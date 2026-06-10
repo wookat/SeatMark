@@ -1,0 +1,299 @@
+<script setup lang="ts">
+import { computed, nextTick, ref, watch, watchEffect } from 'vue'
+
+import LabelSheet from '@/components/label/LabelSheet.vue'
+import { useElementSize } from '@/composables/useElementSize'
+import { useToastStore } from '@/stores/toast'
+import { useWorkspaceStore } from '@/stores/workspace'
+import { MM_TO_PX } from '@/utils/layout'
+import { paperLabel, setPrintPageSize } from '@/utils/paper'
+import { exportPagesToPdf } from '@/utils/pdfExport'
+
+const workspace = useWorkspaceStore()
+const toast = useToastStore()
+
+const pageWidthPx = computed(() => workspace.template.page.paperWidth * MM_TO_PX)
+const pageHeightPx = computed(() => workspace.template.page.paperHeight * MM_TO_PX)
+const currentPaperLabel = computed(() => paperLabel(workspace.template.page))
+
+/** 浏览器打印的 @page 尺寸跟随模板纸张 */
+watchEffect(() => {
+  setPrintPageSize(workspace.template.page.paperWidth, workspace.template.page.paperHeight)
+})
+
+const previewContainer = ref<HTMLElement | null>(null)
+const { width: containerWidth } = useElementSize(previewContainer)
+
+const zoomMode = ref<'fit' | '0.5' | '0.75' | '1'>('fit')
+const scale = computed(() => {
+  if (zoomMode.value === 'fit') {
+    if (!containerWidth.value) return 0.6
+    return Math.min((containerWidth.value - 24) / pageWidthPx.value, 1)
+  }
+  return Number(zoomMode.value)
+})
+
+const pageInput = ref(String(workspace.previewPage))
+watch(
+  () => workspace.previewPage,
+  (value) => {
+    pageInput.value = String(value)
+  },
+)
+
+function jumpToPage() {
+  if (!workspace.totalPages) return
+  const page = Math.min(Math.max(Number(pageInput.value) || 1, 1), workspace.totalPages)
+  workspace.previewPage = page
+  pageInput.value = String(page)
+}
+
+// ---------- 导出 / 打印 ----------
+const renderHost = ref(false)
+const hostRef = ref<HTMLElement | null>(null)
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+async function mountHost() {
+  renderHost.value = true
+  await nextTick()
+  await sleep(250)
+}
+
+async function onExportPdf() {
+  if (!workspace.excel.rows.length) return
+  workspace.setLoading(true, '正在准备页面...')
+  try {
+    await mountHost()
+    const pages = Array.from(hostRef.value?.querySelectorAll<HTMLElement>('.sheet-page') ?? [])
+    await exportPagesToPdf(pages, {
+      scale: 3,
+      pageWidth: workspace.template.page.paperWidth,
+      pageHeight: workspace.template.page.paperHeight,
+      onProgress: (done, total) => workspace.setLoading(true, `正在渲染第 ${done}/${total} 页...`),
+    })
+    toast.success(
+      '图片 PDF 已生成',
+      '每页为 288dpi 高清图片，兼容性最好；需要文字可选中的矢量 PDF 时，请用「打印 / 矢量 PDF」并选择“另存为 PDF”',
+    )
+  } catch (err) {
+    toast.danger('PDF 生成失败', err instanceof Error ? err.message : String(err))
+  } finally {
+    workspace.setLoading(false)
+    renderHost.value = false
+  }
+}
+
+/**
+ * 浏览器打印：既是实体打印入口，也是矢量 PDF 导出入口——
+ * 打印引擎会内嵌系统字体子集做矢量输出（网页脚本无法读取宋体等
+ * 系统字体文件，因此纯前端 jsPDF 无法生成中文矢量 PDF）。
+ */
+async function onPrint() {
+  if (!workspace.excel.rows.length) return
+  await mountHost()
+  window.print()
+  renderHost.value = false
+  toast.info(
+    '已调起浏览器打印',
+    `目标打印机选「另存为 PDF」即可导出矢量 PDF；直接打印请用 ${currentPaperLabel} 纸张、无边距、缩放 100%`,
+  )
+}
+</script>
+
+<template>
+  <section class="flex h-full flex-col">
+    <div
+      class="no-print flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm"
+    >
+      <div class="flex items-center gap-1.5 text-xs">
+        <span
+          v-if="workspace.excel.rows.length"
+          class="rounded-full bg-brand-50 px-2.5 py-1 font-bold text-brand-700"
+        >
+          {{ workspace.excel.rows.length }} 个标签
+        </span>
+        <span class="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-500">
+          {{ workspace.totalPages }} 页
+        </span>
+        <span class="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-500">
+          {{ currentPaperLabel }}
+        </span>
+      </div>
+
+      <div v-if="workspace.totalPages > 0" class="flex items-center gap-1.5">
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm !px-2"
+          aria-label="上一页"
+          :disabled="workspace.previewPage <= 1"
+          @click="workspace.previewPage--"
+        >
+          <svg
+            class="size-3.5"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m10 4-4 4 4 4" />
+          </svg>
+        </button>
+        <div class="flex items-center gap-1 text-xs text-slate-500">
+          <input
+            v-model="pageInput"
+            type="number"
+            min="1"
+            :max="workspace.totalPages"
+            class="input-field w-14 text-center"
+            @change="jumpToPage"
+            @keyup.enter="jumpToPage"
+          />
+          <span>/ {{ workspace.totalPages }}</span>
+        </div>
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm !px-2"
+          aria-label="下一页"
+          :disabled="workspace.previewPage >= workspace.totalPages"
+          @click="workspace.previewPage++"
+        >
+          <svg
+            class="size-3.5"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m6 4 4 4-4 4" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <select v-model="zoomMode" class="input-field w-22 !py-1 text-xs">
+          <option value="fit">适应宽度</option>
+          <option value="0.5">50%</option>
+          <option value="0.75">75%</option>
+          <option value="1">100%</option>
+        </select>
+        <label class="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-slate-600">
+          <input v-model="workspace.showCutLines" type="checkbox" class="accent-brand-600" />
+          裁切线
+        </label>
+        <label class="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-slate-600">
+          <input v-model="workspace.highlightMissing" type="checkbox" class="accent-amber-500" />
+          高亮缺失
+        </label>
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          title="经浏览器打印对话框输出：选「另存为 PDF」可得到文字可选中的矢量 PDF"
+          :disabled="!workspace.excel.rows.length"
+          @click="onPrint"
+        >
+          <svg
+            class="size-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M7 8V3h10v5M7 17H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3m-10-3h10v7H7v-7z" />
+          </svg>
+          打印 / 矢量 PDF
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm"
+          title="逐页渲染为 288dpi 高清图片后合成 PDF，兼容性最好"
+          :disabled="!workspace.excel.rows.length || workspace.loading.active"
+          @click="onExportPdf"
+        >
+          <svg
+            class="size-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 4v12m0 0 5-5m-5 5-5-5M4 20h16" />
+          </svg>
+          导出图片 PDF
+        </button>
+      </div>
+    </div>
+
+    <div
+      ref="previewContainer"
+      class="no-print mt-3 flex-1 overflow-auto rounded-2xl border border-slate-200 bg-slate-100/70 p-3"
+    >
+      <div v-if="!workspace.excel.rows.length" class="flex h-full items-center justify-center py-12">
+        <div class="max-w-xs text-center">
+          <div
+            class="mx-auto grid w-44 grid-cols-2 gap-1.5 rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+          >
+            <div
+              v-for="n in 8"
+              :key="n"
+              class="h-7 animate-pulse rounded-sm bg-slate-100"
+              :style="{ animationDelay: `${n * 80}ms` }"
+            ></div>
+          </div>
+          <h3 class="mt-4 text-sm font-bold text-slate-700">预览区</h3>
+          <p class="mt-1 text-xs leading-5 text-slate-500">
+            上传 Excel 后，这里将实时显示 A4 打印效果
+          </p>
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm mt-3"
+            @click="workspace.useDemoData()"
+          >
+            先用演示数据看看效果
+          </button>
+        </div>
+      </div>
+
+      <div v-else class="flex justify-center">
+        <div
+          class="relative origin-top-left"
+          :style="{ width: `${pageWidthPx * scale}px`, height: `${pageHeightPx * scale}px` }"
+        >
+          <div class="absolute top-0 left-0 origin-top-left" :style="{ transform: `scale(${scale})` }">
+            <LabelSheet
+              :template="workspace.template"
+              :rows="workspace.currentPageRows"
+              :get-text="workspace.fieldText"
+              :get-photo="workspace.photoFor"
+              :show-cut-lines="workspace.showCutLines"
+              :highlight-missing="workspace.highlightMissing"
+              screen
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <Teleport to="body">
+      <div v-if="renderHost" ref="hostRef" class="offscreen-host">
+        <LabelSheet
+          v-for="(pageRows, i) in workspace.pages"
+          :key="i"
+          :template="workspace.template"
+          :rows="pageRows"
+          :get-text="workspace.fieldText"
+          :get-photo="workspace.photoFor"
+          :show-cut-lines="workspace.showCutLines"
+        />
+      </div>
+    </Teleport>
+  </section>
+</template>

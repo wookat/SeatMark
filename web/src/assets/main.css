@@ -1,0 +1,266 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-transparent font-semibold transition-colors duration-150 select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-md {
+    @apply px-4 py-2 text-sm;
+  }
+
+  .btn-sm {
+    @apply px-2.5 py-1.5 text-xs;
+  }
+
+  .btn-lg {
+    @apply px-6 py-3 text-base;
+  }
+
+  .btn-primary {
+    @apply bg-brand-600 text-white shadow-sm hover:bg-brand-700 active:bg-brand-800;
+  }
+
+  .btn-secondary {
+    @apply border-slate-300 bg-white text-slate-700 shadow-sm hover:border-brand-400 hover:text-brand-600 active:bg-slate-50;
+  }
+
+  .btn-ghost {
+    @apply text-slate-500 hover:bg-slate-100 hover:text-slate-700 active:bg-slate-200/70;
+  }
+
+  .btn-danger {
+    @apply border-red-200 bg-white text-red-600 shadow-sm hover:bg-red-50 active:bg-red-100/70;
+  }
+
+  .panel-card {
+    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm;
+  }
+
+  .field-label {
+    @apply mb-1 block text-xs font-semibold text-slate-500;
+  }
+
+  .input-field {
+    @apply w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-800 transition-[border-color,box-shadow] duration-150 hover:border-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 focus:outline-none;
+  }
+
+  .section-title {
+    @apply flex items-center gap-2 text-sm font-bold text-slate-800;
+  }
+
+  .step-chip {
+    @apply inline-flex size-5 items-center justify-center rounded-md bg-brand-600 text-[11px] font-bold text-white;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 标签与 A4 页面渲染（打印精度相关，必须使用 mm 物理单位，颜色保持十六进制）
+ * ------------------------------------------------------------------------ */
+
+/* 纸张尺寸由 LabelSheet 按模板注入内联样式，此处仅作 A4 默认值 */
+.sheet-page {
+  position: relative;
+  width: 210mm;
+  height: 297mm;
+  background: #ffffff;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sheet-page--screen {
+  border-radius: 6px;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.1),
+    0 12px 32px -12px rgba(15, 23, 42, 0.25);
+}
+
+.cut-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cut-line {
+  position: absolute;
+  border: 0 dashed rgba(120, 130, 150, 0.65);
+}
+
+.cut-line--v {
+  border-left-width: 0.35mm;
+}
+
+.cut-line--h {
+  border-top-width: 0.35mm;
+}
+
+.label-box {
+  position: absolute;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.label-field {
+  position: absolute;
+  display: flex;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.label-field--text {
+  /* 纵向 flex：justify-content（由 verticalAlign 注入）控制内容的垂直位置 */
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.label-field__content {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--max-lines, 1);
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
+}
+
+/* 标签名前缀：随字段字号缩放的小字标题，颜色继承字段色并降低存在感 */
+.label-field__caption {
+  font-size: 0.6em;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  opacity: 0.66;
+  margin-right: 0.5em;
+}
+
+.label-field--hero .label-field__content {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.label-field--empty {
+  background: rgba(217, 119, 6, 0.09);
+  outline: 0.45mm dashed rgba(217, 119, 6, 0.6);
+  outline-offset: -0.2mm;
+}
+
+.label-field--image {
+  justify-content: center;
+  align-items: center;
+  background: #f8fafc;
+}
+
+.label-field--image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.label-field__placeholder {
+  color: #94a3b8;
+  font-size: 7pt;
+}
+
+.label-field--photo-missing {
+  background: rgba(220, 38, 38, 0.06);
+  outline: 0.45mm dashed rgba(220, 38, 38, 0.55);
+  outline-offset: -0.2mm;
+}
+
+/* 导出 / 打印用的离屏宿主：保持布局渲染但不可见（宽度随纸张自适应） */
+.offscreen-host {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  z-index: -1;
+  width: max-content;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 设计器画布网格（1mm 网格随缩放变化，由组件注入 --designer-mm 变量） */
+.designer-grid {
+  background-image:
+    linear-gradient(to right, rgba(99, 102, 241, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(99, 102, 241, 0.07) 1px, transparent 1px),
+    linear-gradient(to right, rgba(99, 102, 241, 0.18) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(99, 102, 241, 0.18) 1px, transparent 1px);
+  background-size:
+    var(--designer-mm) var(--designer-mm),
+    var(--designer-mm) var(--designer-mm),
+    calc(var(--designer-mm) * 5) calc(var(--designer-mm) * 5),
+    calc(var(--designer-mm) * 5) calc(var(--designer-mm) * 5);
+}
+
+/* ---------------------------------------------------------------------------
+ * 打印：隐藏整个应用壳，仅输出打印宿主中的 A4 页面
+ * ------------------------------------------------------------------------ */
+
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+  body {
+    background: #ffffff;
+  }
+
+  #app,
+  .no-print {
+    display: none !important;
+  }
+
+  .offscreen-host {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    z-index: auto !important;
+    overflow: visible !important;
+    pointer-events: auto !important;
+  }
+
+  .sheet-page {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    page-break-after: always;
+  }
+
+  /* 最后一页之后不再强制分页，否则会多打出一张空白页 */
+  .sheet-page:last-child {
+    page-break-after: auto;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
