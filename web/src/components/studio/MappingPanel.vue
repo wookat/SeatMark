@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
+import CheckboxField from '@/components/ui/CheckboxField.vue'
+import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 const workspace = useWorkspaceStore()
@@ -12,13 +14,19 @@ const TONE_CLASSES: Record<string, string> = {
   warning: 'border-amber-200 bg-amber-50 text-amber-800',
 }
 
-function onMappingChange(fieldId: string, event: Event) {
-  workspace.setMappingValue(fieldId, (event.target as HTMLSelectElement).value)
-}
+const headerOptions = computed<SelectOption[]>(() =>
+  workspace.excel.headers.map((h) => ({ value: h, label: h })),
+)
 
-function onPhotoColumnChange(event: Event) {
-  workspace.setPhotoColumn((event.target as HTMLSelectElement).value)
-}
+const mappingOptions = computed<SelectOption[]>(() => [
+  { value: '', label: '未映射' },
+  ...headerOptions.value,
+])
+
+const photoColumnOptions = computed<SelectOption[]>(() => [
+  { value: '', label: '请选择 Excel 中的一列' },
+  ...headerOptions.value,
+])
 
 function onPhotoFiles(event: Event) {
   const input = event.target as HTMLInputElement
@@ -57,14 +65,11 @@ function onPhotoFiles(event: Event) {
           {{ field.label || field.id }}
         </span>
         <span class="text-center text-slate-300">→</span>
-        <select
-          class="input-field"
-          :value="workspace.mapping[field.id] ?? ''"
-          @change="onMappingChange(field.id, $event)"
-        >
-          <option value="">未映射</option>
-          <option v-for="h in workspace.excel.headers" :key="h" :value="h">{{ h }}</option>
-        </select>
+        <SelectField
+          :model-value="workspace.mapping[field.id] ?? ''"
+          :options="mappingOptions"
+          @update:model-value="workspace.setMappingValue(field.id, $event)"
+        />
       </div>
     </div>
 
@@ -84,24 +89,28 @@ function onPhotoFiles(event: Event) {
           {{ workspace.dataQuality.duplicateSeatKeys }} 个「考场 + 座位号」组合重复
         </li>
       </ul>
-      <label class="mt-2 flex cursor-pointer items-center gap-1.5 font-semibold">
-        <input v-model="workspace.highlightMissing" type="checkbox" class="accent-amber-600" />
-        在预览中高亮缺失内容
-      </label>
+      <CheckboxField
+        v-model="workspace.highlightMissing"
+        tone="amber"
+        class="mt-2 font-semibold"
+        label="在预览中高亮缺失内容"
+      />
     </div>
 
     <div v-if="workspace.hasMatchedImageField" class="mt-4 border-t border-slate-100 pt-4">
       <h3 class="text-xs font-bold text-slate-700">照片匹配</h3>
       <p class="mt-1 text-[11px] leading-4 text-slate-400">
-        照片文件名（不含扩展名）需与所选列的值一致，例如准考证号命名：2026061001.jpg
+        照片文件名与所选列的值一致或包含该值即可匹配。例如「张伟2023010101.jpg」，
+        按姓名列或学号列都能匹配；完全一致的文件优先。
       </p>
       <div class="mt-2 grid gap-2">
         <div>
           <label class="field-label">匹配列</label>
-          <select class="input-field" :value="workspace.photoColumn" @change="onPhotoColumnChange">
-            <option value="">请选择 Excel 中的一列</option>
-            <option v-for="h in workspace.excel.headers" :key="h" :value="h">{{ h }}</option>
-          </select>
+          <SelectField
+            :model-value="workspace.photoColumn"
+            :options="photoColumnOptions"
+            @update:model-value="workspace.setPhotoColumn($event)"
+          />
         </div>
         <button
           type="button"

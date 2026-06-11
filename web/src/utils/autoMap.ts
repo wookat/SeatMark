@@ -8,6 +8,12 @@ const MATCH_PATTERNS: Record<string, string[]> = {
   gender: ['性别', 'gender', 'sex'],
   idCard: ['身份证', '证件号', 'idcard'],
   studentId: ['学号', '学籍', 'student', 'studentid'],
+  className: ['班级', '年级', 'class'],
+  school: ['学校', '院校', '学院', 'school'],
+  company: ['单位', '公司', '机构', 'company'],
+  department: ['部门', '科室', '院系', 'department', 'dept'],
+  position: ['职务', '职位', '岗位', 'position'],
+  employeeId: ['工号', '员工号', 'employee', 'staff'],
 }
 
 /**

@@ -15,6 +15,45 @@
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', sans-serif;
+
+  /* ---------- 首页动效 ---------- */
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-gradient: gradient-pan 7s ease-in-out infinite;
+  --animate-blob: blob 18s ease-in-out infinite;
+  --animate-blob-slow: blob 26s ease-in-out -9s infinite reverse;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-9px);
+    }
+  }
+
+  @keyframes gradient-pan {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes blob {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    33% {
+      transform: translate(30px, -26px) scale(1.08);
+    }
+    66% {
+      transform: translate(-22px, 20px) scale(0.93);
+    }
+  }
 }
 
 @layer base {
@@ -24,6 +63,30 @@
 
   body {
     @apply bg-slate-50 text-slate-800 antialiased;
+  }
+
+  /* Windows 默认滚动条粗笨，统一为细圆角样式（Firefox/新 Chromium 走标准属性，Safari 走 webkit 后备） */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-slate-300) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border-radius: 8px;
+    background-color: var(--color-slate-300);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-slate-400);
   }
 }
 
@@ -72,12 +135,106 @@
     @apply w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-800 transition-[border-color,box-shadow] duration-150 hover:border-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 focus:outline-none;
   }
 
+  /* 数字输入隐藏原生步进按钮（Windows 上常驻且粗糙），键盘上下键仍可微调 */
+  .input-field::-webkit-outer-spin-button,
+  .input-field::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .input-field[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
   .section-title {
     @apply flex items-center gap-2 text-sm font-bold text-slate-800;
   }
 
   .step-chip {
     @apply inline-flex size-5 items-center justify-center rounded-md bg-brand-600 text-[11px] font-bold text-white;
+  }
+
+  /* 滚动显现（配合 v-reveal 指令）：进入视口前下移隐藏，进入后上浮显现 */
+  .reveal-init {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .reveal-init.reveal-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal-init {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+
+  /* ---------- 首页 Hero 示例排版动效 ---------- */
+
+  /* 扫描光带：在缩放后的 A4 页面上自上而下循环扫过，模拟批量生成进度 */
+  .hero-scanline {
+    position: absolute;
+    left: 0;
+    top: 0;
+    /* 与 Hero 的 A4 页面同宽（包装层布局宽度小于缩放前页面，不能用 inset-inline） */
+    width: 210mm;
+    height: 90px;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      rgba(79, 70, 229, 0.06) 40%,
+      rgba(79, 70, 229, 0.16) 82%,
+      rgba(99, 102, 241, 0.4) 100%
+    );
+    border-bottom: 2px solid rgba(99, 102, 241, 0.5);
+    animation: hero-scan 6.5s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  @keyframes hero-scan {
+    0% {
+      transform: translateY(-90px);
+      opacity: 0;
+    }
+    6% {
+      opacity: 1;
+    }
+    70% {
+      opacity: 1;
+    }
+    78%,
+    100% {
+      transform: translateY(297mm);
+      opacity: 0;
+    }
+  }
+
+  /* 标签逐枚“落版”进场：延迟随 LabelSheet 注入的 --i 序号递增 */
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-sheet .label-box {
+      animation: hero-pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+      animation-delay: calc(var(--i, 0) * 45ms + 250ms);
+    }
+  }
+
+  @keyframes hero-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.65);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 }
 
@@ -181,6 +338,15 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* 矢量图标字段：等比完整显示，不带照片占位底色 */
+.label-field--vector {
+  background: transparent;
+}
+
+.label-field--vector img {
+  object-fit: contain;
 }
 
 .label-field__placeholder {

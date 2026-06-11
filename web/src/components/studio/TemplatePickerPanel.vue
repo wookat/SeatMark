@@ -21,13 +21,12 @@ const router = useRouter()
 const importInput = ref<HTMLInputElement | null>(null)
 const deleteTarget = ref<LabelTemplate | null>(null)
 
-// ---------- 折叠展示：默认只露出少量模板，避免侧栏过长 ----------
+// ---------- 面板只露出少量模板，全部模板用弹窗浏览 ----------
 const COLLAPSED_COUNT = 3
-const expanded = ref(false)
 
 const visibleTemplates = computed<LabelTemplate[]>(() => {
   const all = library.allTemplates
-  if (expanded.value || all.length <= COLLAPSED_COUNT) return all
+  if (all.length <= COLLAPSED_COUNT) return all
   const head = all.slice(0, COLLAPSED_COUNT)
   if (head.some((t) => t.id === workspace.selectedTemplateId)) return head
   // 选中的模板不在前几位时，置顶展示，保证折叠状态下也能看到当前选择
@@ -35,7 +34,18 @@ const visibleTemplates = computed<LabelTemplate[]>(() => {
   return selected ? [selected, ...head.slice(0, COLLAPSED_COUNT - 1)] : head
 })
 
-const hiddenCount = computed(() => library.allTemplates.length - visibleTemplates.value.length)
+// ---------- 全部模板弹窗 ----------
+const pickerOpen = ref(false)
+
+function pickFromModal(t: LabelTemplate) {
+  workspace.selectTemplate(t)
+  pickerOpen.value = false
+}
+
+function openDesignerFromModal(t: LabelTemplate) {
+  pickerOpen.value = false
+  emit('openDesigner', t)
+}
 
 /** 链接长度超过该阈值时提示改用 JSON 文件分享（聊天工具对超长 URL 不友好） */
 const SHARE_URL_LIMIT = 8000
@@ -207,23 +217,22 @@ function confirmDelete() {
     </div>
 
     <button
-      v-if="hiddenCount > 0 || expanded"
+      v-if="library.allTemplates.length > visibleTemplates.length"
       type="button"
       class="mt-2.5 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 py-2 text-xs font-semibold text-slate-500 transition-colors duration-150 hover:border-brand-400 hover:text-brand-600"
-      @click="expanded = !expanded"
+      @click="pickerOpen = true"
     >
-      {{ expanded ? '收起模板列表' : `展开全部 ${library.allTemplates.length} 款模板` }}
+      浏览全部 {{ library.allTemplates.length }} 款模板
       <svg
-        class="size-3.5 transition-transform"
-        :class="{ 'rotate-180': expanded }"
+        class="size-3.5"
         viewBox="0 0 16 16"
         fill="none"
         stroke="currentColor"
-        stroke-width="1.8"
+        stroke-width="1.6"
         stroke-linecap="round"
         stroke-linejoin="round"
       >
-        <path d="m4 6 4 4 4-4" />
+        <path d="M6 2.5H2.5V6M10 2.5h3.5V6M6 13.5H2.5V10M10 13.5h3.5V10" />
       </svg>
     </button>
 
@@ -235,6 +244,79 @@ function confirmDelete() {
         导出 JSON
       </button>
     </div>
+
+    <ModalDialog
+      :open="pickerOpen"
+      :title="`全部模板（${library.allTemplates.length} 款）`"
+      size="xl"
+      @close="pickerOpen = false"
+    >
+      <div class="columns-1 gap-3 sm:columns-2 lg:columns-3">
+        <article
+          v-for="t in library.allTemplates"
+          :key="t.id"
+          role="button"
+          tabindex="0"
+          class="relative mb-3 inline-block w-full cursor-pointer break-inside-avoid rounded-xl border-2 p-3 transition-all duration-150"
+          :class="
+            workspace.selectedTemplateId === t.id
+              ? 'border-brand-500 bg-brand-50/60 shadow-sm'
+              : 'border-slate-200 bg-white hover:border-brand-300 hover:shadow-sm'
+          "
+          @click="pickFromModal(t)"
+          @keyup.enter="pickFromModal(t)"
+        >
+          <span
+            v-if="workspace.selectedTemplateId === t.id"
+            class="absolute -top-2 -right-2 z-10 flex size-5 items-center justify-center rounded-full bg-brand-600 text-white shadow"
+          >
+            <svg
+              class="size-3"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m3.5 8.5 3 3 6-7" />
+            </svg>
+          </span>
+          <TemplateThumb :template="t" />
+          <div class="mt-2 flex items-start justify-between gap-2">
+            <h3 class="truncate text-sm font-bold text-slate-900">{{ t.name }}</h3>
+            <span
+              v-if="!t.builtin"
+              class="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700"
+            >
+              自定义
+            </span>
+          </div>
+          <p class="mt-1 text-[11px] text-slate-400">
+            {{ t.label.width }} × {{ t.label.height }} mm · {{ t.page.cols * t.page.rows }}
+            枚/页<template v-if="t.scenario"> · {{ t.scenario }}</template>
+          </p>
+          <div class="mt-2 flex gap-1.5">
+            <button type="button" class="btn btn-ghost btn-sm" @click.stop="openDesignerFromModal(t)">
+              {{ t.builtin ? '以此为基础设计' : '编辑' }}
+            </button>
+            <button
+              v-if="!t.builtin"
+              type="button"
+              class="btn btn-ghost btn-sm text-red-500 hover:bg-red-50 hover:text-red-600"
+              @click.stop="deleteTarget = t"
+            >
+              删除
+            </button>
+          </div>
+        </article>
+      </div>
+      <template #actions>
+        <button type="button" class="btn btn-secondary btn-md" @click="pickerOpen = false">
+          关闭
+        </button>
+      </template>
+    </ModalDialog>
 
     <ModalDialog :open="!!deleteTarget" title="删除自定义模板" @close="deleteTarget = null">
       <p>

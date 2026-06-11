@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, type Directive } from 'vue'
 
 import LabelSheet from '@/components/label/LabelSheet.vue'
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
@@ -8,6 +8,34 @@ import { defaultTemplates } from '@/data/defaultTemplates'
 import type { DataRow } from '@/types/template'
 import { makeDemoRows } from '@/utils/excel'
 import { MM_TO_PX } from '@/utils/layout'
+
+/** 滚动显现指令：进入视口时上浮淡入，value 为延迟毫秒（交错动画用） */
+const revealObservers = new WeakMap<HTMLElement, IntersectionObserver>()
+const vReveal: Directive<HTMLElement, number | undefined> = {
+  mounted(el, binding) {
+    el.classList.add('reveal-init')
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      el.classList.add('reveal-in')
+      return
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          window.setTimeout(() => el.classList.add('reveal-in'), binding.value ?? 0)
+          io.disconnect()
+          revealObservers.delete(el)
+        }
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -40px 0px' },
+    )
+    io.observe(el)
+    revealObservers.set(el, io)
+  },
+  unmounted(el) {
+    revealObservers.get(el)?.disconnect()
+    revealObservers.delete(el)
+  },
+}
 
 const heroTemplate = defaultTemplates[0]!
 const heroRows = makeDemoRows(24).rows
@@ -24,8 +52,8 @@ function heroGetText(row: DataRow, fieldId: string): string {
   return header ? (row[header] ?? '') : ''
 }
 
-// ---------- 模板展示：默认露出 6 款，其余折叠 ----------
-const SHOWCASE_COUNT = 6
+// ---------- 模板展示：默认露出 5 款 + 「从空白新建」卡片，正好两排 ----------
+const SHOWCASE_COUNT = 5
 const templatesExpanded = ref(false)
 const shownTemplates = computed(() =>
   templatesExpanded.value ? defaultTemplates : defaultTemplates.slice(0, SHOWCASE_COUNT),
@@ -36,11 +64,22 @@ const hiddenTemplateCount = computed(() =>
 
 const heroPanel = ref<HTMLElement | null>(null)
 const { width: heroPanelWidth } = useElementSize(heroPanel)
+
+/** 预览容器内边距：给纸张投影留出渐隐空间，避免被 overflow 裁出生硬切边 */
+const HERO_PAD_X = 16
+const HERO_PAD_TOP = 16
+const HERO_PAD_BOTTOM = 44
+
 const heroScale = computed(() => {
   if (!heroPanelWidth.value) return 0.4
-  return Math.min(heroPanelWidth.value / (heroTemplate.page.paperWidth * MM_TO_PX), 0.62)
+  return Math.min(
+    (heroPanelWidth.value - HERO_PAD_X * 2) / (heroTemplate.page.paperWidth * MM_TO_PX),
+    0.62,
+  )
 })
-const heroHeight = computed(() => heroTemplate.page.paperHeight * MM_TO_PX * heroScale.value + 8)
+const heroHeight = computed(
+  () => heroTemplate.page.paperHeight * MM_TO_PX * heroScale.value + HERO_PAD_TOP + HERO_PAD_BOTTOM,
+)
 
 const STEPS = [
   {
@@ -76,7 +115,7 @@ const FEATURES = [
   },
   {
     title: '照片批量核验',
-    desc: '按文件名自动匹配考生照片，覆盖率实时统计，缺照考生一眼可见。',
+    desc: '支持「姓名+学号」等组合命名，按所选列自动包含匹配，覆盖率实时统计。',
     icon: 'M4 5h16v14H4zM9 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM20 15l-4.5-4.5L7 19',
   },
   {
@@ -107,7 +146,7 @@ const FAQS = [
   },
   {
     q: '照片模板怎么用？',
-    a: '照片文件名需要与 Excel 中某一列的值一致，例如用准考证号命名：2026061001.jpg，上传后工具会自动完成匹配并统计覆盖率。',
+    a: '照片文件名与 Excel 中某一列的值一致、或包含该值即可，例如「张伟2023010101.jpg」用姓名列或学号列都能匹配。上传后工具会自动完成匹配并统计覆盖率。',
   },
   {
     q: '最终输出是什么？',
@@ -123,10 +162,20 @@ const FAQS = [
       <div
         class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,#c7d2fe66_1px,transparent_1px)] bg-[size:26px_26px] [mask-image:linear-gradient(to_bottom,black,transparent_70%)]"
       ></div>
+      <!-- 漂移光斑：为 Hero 增加缓慢流动的氛围光 -->
       <div
-        class="relative mx-auto grid w-full max-w-6xl items-center gap-10 px-4 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:py-20"
+        class="pointer-events-none absolute -top-28 -left-28 size-96 rounded-full bg-brand-300/40 blur-3xl motion-safe:animate-blob"
+      ></div>
+      <div
+        class="pointer-events-none absolute top-1/4 -right-24 size-[28rem] rounded-full bg-sky-300/30 blur-3xl motion-safe:animate-blob-slow"
+      ></div>
+      <div
+        class="pointer-events-none absolute -bottom-24 left-1/3 size-80 rounded-full bg-violet-300/30 blur-3xl motion-safe:animate-blob [animation-delay:-13s]"
+      ></div>
+      <div
+        class="relative mx-auto grid w-full max-w-6xl items-center gap-8 px-4 py-10 sm:py-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:py-20"
       >
-        <div>
+        <div v-reveal>
           <p
             class="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-white px-3 py-1 text-xs font-bold text-brand-700 shadow-sm"
           >
@@ -144,10 +193,12 @@ const FAQS = [
             免费 · 无需注册 · 数据不出浏览器
           </p>
           <h1
-            class="mt-4 text-4xl leading-tight font-black tracking-tight text-slate-900 lg:text-5xl"
+            class="mt-4 text-3xl leading-tight font-black tracking-tight text-slate-900 sm:text-4xl lg:text-5xl"
           >
             上传 Excel，批量生成<br />
-            <span class="bg-gradient-to-r from-brand-600 to-brand-400 bg-clip-text text-transparent">
+            <span
+              class="bg-gradient-to-r from-brand-600 via-violet-500 to-sky-500 bg-[length:200%_auto] bg-clip-text text-transparent motion-safe:animate-gradient"
+            >
               可打印的考场座位标签
             </span>
           </h1>
@@ -156,10 +207,13 @@ const FAQS = [
             支持照片核验、开源字体与完全自定义的标签设计。
           </p>
           <div class="mt-7 flex flex-wrap gap-3">
-            <RouterLink to="/studio" class="btn btn-primary btn-lg">
+            <RouterLink
+              to="/studio"
+              class="group btn btn-primary btn-lg w-full shadow-lg shadow-brand-600/25 transition-shadow hover:shadow-xl hover:shadow-brand-600/30 sm:w-auto"
+            >
               开始生成标签
               <svg
-                class="size-4"
+                class="size-4 transition-transform duration-200 group-hover:translate-x-1"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -170,7 +224,7 @@ const FAQS = [
                 <path d="M5 12h14m-6-6 6 6-6 6" />
               </svg>
             </RouterLink>
-            <RouterLink to="/studio?demo=1" class="btn btn-secondary btn-lg">
+            <RouterLink to="/studio?demo=1" class="btn btn-secondary btn-lg w-full sm:w-auto">
               用演示数据先试试
             </RouterLink>
           </div>
@@ -196,12 +250,20 @@ const FAQS = [
           </div>
         </div>
 
-        <div ref="heroPanel" class="relative mx-auto w-full max-w-md">
+        <!-- min-w-0：A4 预览的固有宽度（max-w-md）不得撑大 grid 轨道，否则小屏整个 Hero 溢出 -->
+        <div
+          ref="heroPanel"
+          v-reveal="150"
+          class="relative mx-auto w-full max-w-md min-w-0 motion-safe:animate-float"
+        >
           <div
             class="absolute -inset-4 rounded-3xl bg-gradient-to-br from-brand-200/60 to-emerald-100/40 blur-2xl"
           ></div>
-          <div class="relative overflow-hidden" :style="{ height: `${heroHeight}px` }">
-            <div class="origin-top-left" :style="{ transform: `scale(${heroScale})` }">
+          <div
+            class="hero-sheet relative max-h-96 overflow-hidden px-4 pt-4 [mask-image:linear-gradient(to_bottom,black_72%,transparent)] sm:max-h-none sm:[mask-image:none]"
+            :style="{ height: `${heroHeight}px` }"
+          >
+            <div class="relative w-fit origin-top-left" :style="{ transform: `scale(${heroScale})` }">
               <LabelSheet
                 :template="heroTemplate"
                 :rows="heroRows"
@@ -209,23 +271,10 @@ const FAQS = [
                 show-cut-lines
                 screen
               />
+              <!-- 扫描光带：模拟批量生成的打印进度感 -->
+              <div class="hero-scanline motion-reduce:hidden" aria-hidden="true"></div>
             </div>
           </div>
-          <p
-            class="absolute -top-3 -left-3 flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-slate-600 shadow-md"
-          >
-            <svg
-              class="size-3.5 text-brand-600"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            >
-              <path d="M4 7h9M4 12h16M4 17h12" />
-            </svg>
-            字段自动映射
-          </p>
           <p
             class="absolute right-3 bottom-3 rounded-lg bg-slate-900/85 px-2.5 py-1 text-[11px] font-bold text-white"
           >
@@ -241,9 +290,9 @@ const FAQS = [
         class="mx-auto flex w-full max-w-6xl flex-col items-stretch gap-4 px-4 py-8 sm:flex-row sm:items-center"
       >
         <template v-for="(step, i) in STEPS" :key="step.num">
-          <div class="flex flex-1 items-start gap-3">
+          <div v-reveal="i * 90" class="group flex flex-1 items-start gap-3">
             <span
-              class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"
+              class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition-all duration-200 group-hover:scale-110 group-hover:bg-brand-600 group-hover:text-white"
             >
               <svg
                 class="size-5"
@@ -281,8 +330,8 @@ const FAQS = [
     </section>
 
     <!-- 模板展示 -->
-    <section class="mx-auto w-full max-w-6xl px-4 py-14">
-      <div class="text-center">
+    <section class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
+      <div v-reveal class="text-center">
         <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Templates</p>
         <h2 class="mt-1 text-2xl font-black tracking-tight text-slate-900">选择适合你的模板</h2>
         <p class="mt-2 text-sm text-slate-500">
@@ -291,8 +340,9 @@ const FAQS = [
       </div>
       <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <RouterLink
-          v-for="t in shownTemplates"
+          v-for="(t, i) in shownTemplates"
           :key="t.id"
+          v-reveal="(i % 3) * 80"
           :to="`/studio?template=${t.id}`"
           class="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-brand-300 hover:shadow-lg"
         >
@@ -304,7 +354,7 @@ const FAQS = [
             class="relative bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-[size:12px_12px] px-8 pt-7 pb-5"
           >
             <div
-              class="mx-auto max-w-56 transition-transform duration-200 group-hover:scale-[1.03]"
+              class="mx-auto max-w-56 transition-transform duration-300 group-hover:scale-[1.04] group-hover:-rotate-1"
             >
               <div class="bg-white shadow-[0_8px_24px_-10px_rgba(15,23,42,0.35)]">
                 <TemplateThumb :template="t" />
@@ -355,6 +405,7 @@ const FAQS = [
         </RouterLink>
 
         <RouterLink
+          v-reveal="160"
           to="/studio?design=new"
           class="group flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-6 text-center transition-all duration-200 hover:-translate-y-1 hover:border-brand-400 hover:bg-brand-50/40"
         >
@@ -408,8 +459,8 @@ const FAQS = [
 
     <!-- 特性 -->
     <section class="border-y border-slate-200 bg-white">
-      <div class="mx-auto w-full max-w-6xl px-4 py-14">
-        <div class="text-center">
+      <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
+        <div v-reveal class="text-center">
           <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Features</p>
           <h2 class="mt-1 text-2xl font-black tracking-tight text-slate-900">
             为考务场景打磨的细节
@@ -417,12 +468,13 @@ const FAQS = [
         </div>
         <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div
-            v-for="feature in FEATURES"
+            v-for="(feature, i) in FEATURES"
             :key="feature.title"
-            class="group rounded-2xl border border-slate-200 bg-slate-50/60 p-5 transition-colors hover:border-brand-200 hover:bg-white"
+            v-reveal="(i % 3) * 80"
+            class="group rounded-2xl border border-slate-200 bg-slate-50/60 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white hover:shadow-md"
           >
             <span
-              class="flex size-9 items-center justify-center rounded-xl bg-white text-brand-600 shadow-sm ring-1 ring-slate-200 transition-colors group-hover:bg-brand-600 group-hover:text-white group-hover:ring-brand-600"
+              class="flex size-9 items-center justify-center rounded-xl bg-white text-brand-600 shadow-sm ring-1 ring-slate-200 transition-all duration-200 group-hover:scale-110 group-hover:-rotate-6 group-hover:bg-brand-600 group-hover:text-white group-hover:ring-brand-600"
             >
               <svg
                 class="size-4.5"
@@ -444,15 +496,16 @@ const FAQS = [
     </section>
 
     <!-- FAQ -->
-    <section class="mx-auto w-full max-w-6xl px-4 py-14">
-      <div class="text-center">
+    <section class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
+      <div v-reveal class="text-center">
         <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">FAQ</p>
         <h2 class="mt-1 text-2xl font-black tracking-tight text-slate-900">常见问题</h2>
       </div>
       <div class="mt-8 grid gap-4 sm:grid-cols-2">
         <div
-          v-for="faq in FAQS"
+          v-for="(faq, i) in FAQS"
           :key="faq.q"
+          v-reveal="(i % 2) * 90"
           class="rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-brand-200"
         >
           <h3 class="flex items-start gap-2 text-sm font-bold text-slate-900">
@@ -469,12 +522,16 @@ const FAQS = [
     </section>
 
     <!-- CTA -->
-    <section class="mx-auto w-full max-w-6xl px-4 pb-16">
+    <section class="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-16">
       <div
-        class="relative flex flex-col items-center justify-between gap-5 overflow-hidden rounded-3xl bg-gradient-to-r from-brand-600 to-brand-700 px-8 py-10 text-center sm:flex-row sm:text-left"
+        v-reveal
+        class="relative flex flex-col items-center justify-between gap-5 overflow-hidden rounded-3xl bg-gradient-to-r from-brand-600 via-violet-600 to-brand-700 bg-[length:200%_auto] px-6 py-8 text-center motion-safe:animate-gradient sm:flex-row sm:px-8 sm:py-10 sm:text-left"
       >
         <div
           class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,#ffffff22_1px,transparent_1px)] bg-[size:18px_18px]"
+        ></div>
+        <div
+          class="pointer-events-none absolute -top-16 -right-10 size-48 rounded-full bg-white/15 blur-2xl motion-safe:animate-blob"
         ></div>
         <div class="relative">
           <h2 class="text-xl font-black text-white">准备好了？</h2>
@@ -482,11 +539,11 @@ const FAQS = [
         </div>
         <RouterLink
           to="/studio"
-          class="btn btn-lg relative shrink-0 bg-white text-brand-700 hover:bg-brand-50"
+          class="group btn btn-lg relative w-full shrink-0 bg-white text-brand-700 shadow-lg hover:bg-brand-50 sm:w-auto"
         >
           进入标签工坊
           <svg
-            class="size-4"
+            class="size-4 transition-transform duration-200 group-hover:translate-x-1"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"

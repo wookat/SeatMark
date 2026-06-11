@@ -97,7 +97,8 @@ onMounted(() => {
 <template>
   <div class="mx-auto w-full max-w-[1480px] px-4 py-5">
     <div class="grid items-start gap-5 lg:grid-cols-[400px_minmax(0,1fr)]">
-      <aside class="no-print grid gap-4">
+      <!-- min-w-0 + flex 纵排：防止宽表格把侧栏撑出 400px 网格轨道、压到预览区 -->
+      <aside class="no-print flex min-w-0 flex-col gap-4">
         <TemplatePickerPanel @open-designer="openDesigner" />
         <DataImportPanel />
         <MappingPanel v-if="workspace.excel.rows.length" />

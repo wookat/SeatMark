@@ -2,12 +2,14 @@
 import { computed, nextTick, ref, watch, watchEffect } from 'vue'
 
 import LabelSheet from '@/components/label/LabelSheet.vue'
+import CheckboxField from '@/components/ui/CheckboxField.vue'
+import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { MM_TO_PX } from '@/utils/layout'
 import { paperLabel, setPrintPageSize } from '@/utils/paper'
-import { exportPagesToPdf } from '@/utils/pdfExport'
+import { defaultRasterScale, exportPagesToPdf, rasterDpi } from '@/utils/pdfExport'
 
 const workspace = useWorkspaceStore()
 const toast = useToastStore()
@@ -24,7 +26,14 @@ watchEffect(() => {
 const previewContainer = ref<HTMLElement | null>(null)
 const { width: containerWidth } = useElementSize(previewContainer)
 
-const zoomMode = ref<'fit' | '0.5' | '0.75' | '1'>('fit')
+const ZOOM_OPTIONS: SelectOption[] = [
+  { value: 'fit', label: '适应宽度' },
+  { value: '0.5', label: '50%' },
+  { value: '0.75', label: '75%' },
+  { value: '1', label: '100%' },
+]
+
+const zoomMode = ref('fit')
 const scale = computed(() => {
   if (zoomMode.value === 'fit') {
     if (!containerWidth.value) return 0.6
@@ -66,15 +75,17 @@ async function onExportPdf() {
   try {
     await mountHost()
     const pages = Array.from(hostRef.value?.querySelectorAll<HTMLElement>('.sheet-page') ?? [])
+    const scale = defaultRasterScale(pages.length)
     await exportPagesToPdf(pages, {
-      scale: 3,
+      scale,
+      imageFormat: 'png',
       pageWidth: workspace.template.page.paperWidth,
       pageHeight: workspace.template.page.paperHeight,
       onProgress: (done, total) => workspace.setLoading(true, `正在渲染第 ${done}/${total} 页...`),
     })
     toast.success(
-      '图片 PDF 已生成',
-      '每页为 288dpi 高清图片，兼容性最好；需要文字可选中的矢量 PDF 时，请用「打印 / 矢量 PDF」并选择“另存为 PDF”',
+      '超清图片 PDF 已生成',
+      `每页为 ${rasterDpi(scale)}dpi 无损 PNG 栅格，放大打印仍清晰；文字需可选中请用「打印 / 矢量 PDF」另存为 PDF`,
     )
   } catch (err) {
     toast.danger('PDF 生成失败', err instanceof Error ? err.message : String(err))
@@ -96,7 +107,7 @@ async function onPrint() {
   renderHost.value = false
   toast.info(
     '已调起浏览器打印',
-    `目标打印机选「另存为 PDF」即可导出矢量 PDF；直接打印请用 ${currentPaperLabel} 纸张、无边距、缩放 100%`,
+    `目标打印机选「另存为 PDF」即可导出矢量 PDF；直接打印请用 ${currentPaperLabel.value} 纸张、无边距、缩放 100%`,
   )
 }
 </script>
@@ -175,20 +186,18 @@ async function onPrint() {
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
-        <select v-model="zoomMode" class="input-field w-22 !py-1 text-xs">
-          <option value="fit">适应宽度</option>
-          <option value="0.5">50%</option>
-          <option value="0.75">75%</option>
-          <option value="1">100%</option>
-        </select>
-        <label class="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-slate-600">
-          <input v-model="workspace.showCutLines" type="checkbox" class="accent-brand-600" />
-          裁切线
-        </label>
-        <label class="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-slate-600">
-          <input v-model="workspace.highlightMissing" type="checkbox" class="accent-amber-500" />
-          高亮缺失
-        </label>
+        <SelectField v-model="zoomMode" class="w-24" size="sm" :options="ZOOM_OPTIONS" />
+        <CheckboxField
+          v-model="workspace.showCutLines"
+          class="text-xs font-semibold text-slate-600"
+          label="裁切线"
+        />
+        <CheckboxField
+          v-model="workspace.highlightMissing"
+          tone="amber"
+          class="text-xs font-semibold text-slate-600"
+          label="高亮缺失"
+        />
         <button
           type="button"
           class="btn btn-primary btn-sm"
@@ -212,7 +221,7 @@ async function onPrint() {
         <button
           type="button"
           class="btn btn-secondary btn-sm"
-          title="逐页渲染为 288dpi 高清图片后合成 PDF，兼容性最好"
+          title="逐页渲染为超清 PNG 图片后合成 PDF（约 288–480dpi，页数越少越清晰）；中文矢量文字请用「打印 / 矢量 PDF」"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="onExportPdf"
         >
@@ -227,7 +236,7 @@ async function onPrint() {
           >
             <path d="M12 4v12m0 0 5-5m-5 5-5-5M4 20h16" />
           </svg>
-          导出图片 PDF
+          超清图片 PDF
         </button>
       </div>
     </div>

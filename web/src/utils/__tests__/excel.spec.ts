@@ -5,7 +5,21 @@ import { makeDemoRows, parseExcelFile } from '@/utils/excel'
 describe('makeDemoRows', () => {
   it('生成指定数量的演示数据，座位号补零', () => {
     const { headers, rows } = makeDemoRows(30)
-    expect(headers).toEqual(['姓名', '考场', '准考证号', '座位号'])
+    expect(headers).toEqual([
+      '姓名',
+      '性别',
+      '考场',
+      '座位号',
+      '准考证号',
+      '班级',
+      '学号',
+      '学校',
+      '身份证号',
+      '部门',
+      '职务',
+      '工号',
+      '单位',
+    ])
     expect(rows).toHaveLength(30)
     expect(rows[0]!['座位号']).toBe('01')
     expect(rows[0]!['考场']).toBe('第1考场')

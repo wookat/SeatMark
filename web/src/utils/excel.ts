@@ -56,16 +56,16 @@ export function compareCellText(a: string, b: string): number {
   return a.localeCompare(b, 'zh-Hans-CN')
 }
 
-const SAMPLE_HEADERS = ['姓名', '考场', '准考证号', '座位号']
+const SAMPLE_HEADERS = ['姓名', '性别', '考场', '座位号', '准考证号', '班级', '学号']
 
 /** 生成并下载示例 Excel 模板 */
 export async function downloadSampleExcel(): Promise<void> {
   const XLSX = await import('xlsx')
   const sheetData = [
     SAMPLE_HEADERS,
-    ['张同学', '第一考场', '2026061001', '01'],
-    ['李同学', '第一考场', '2026061002', '02'],
-    ['王同学', '第二考场', '2026061003', '03'],
+    ['张同学', '男', '第一考场', '01', '2026061001', '高三（1）班', '2023010101'],
+    ['李同学', '女', '第一考场', '02', '2026061002', '高三（1）班', '2023010102'],
+    ['王同学', '男', '第二考场', '03', '2026061003', '高三（2）班', '2023020103'],
   ]
   const worksheet = XLSX.utils.aoa_to_sheet(sheetData)
   const workbook = XLSX.utils.book_new()
@@ -80,6 +80,26 @@ const DEMO_NAMES = [
   '唐瑶', '许辉', '韩雪', '冯刚', '曹阳', '彭飞',
 ]
 
+/** 演示数据覆盖全部内置模板字段（含学生证 / 工作证），任何模板都能直接预览 */
+const DEMO_HEADERS = [
+  '姓名',
+  '性别',
+  '考场',
+  '座位号',
+  '准考证号',
+  '班级',
+  '学号',
+  '学校',
+  '身份证号',
+  '部门',
+  '职务',
+  '工号',
+  '单位',
+]
+
+const DEMO_SCHOOL = '市第一中学'
+const DEMO_DEPARTMENTS = ['教务处', '招生办', '信息中心', '后勤保障部']
+
 /** 生成一批演示数据，便于用户上传前先体验完整流程 */
 export function makeDemoRows(count = 30): { headers: string[]; rows: DataRow[] } {
   const rows: DataRow[] = []
@@ -87,12 +107,23 @@ export function makeDemoRows(count = 30): { headers: string[]; rows: DataRow[] }
   for (let i = 0; i < count; i++) {
     const room = Math.floor(i / perRoom) + 1
     const seat = (i % perRoom) + 1
+    const birthMonth = String((i % 12) + 1).padStart(2, '0')
+    const birthDay = String((i % 28) + 1).padStart(2, '0')
     rows.push({
       姓名: DEMO_NAMES[i % DEMO_NAMES.length]!,
+      性别: i % 2 === 0 ? '男' : '女',
       考场: `第${room}考场`,
-      准考证号: String(2026061000 + i + 1),
       座位号: String(seat).padStart(2, '0'),
+      准考证号: String(2026061000 + i + 1),
+      班级: `高三（${(i % 6) + 1}）班`,
+      学号: String(2023010100 + i + 1),
+      学校: DEMO_SCHOOL,
+      身份证号: `1101012008${birthMonth}${birthDay}${String(17 + i * 2).padStart(4, '0')}`,
+      部门: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length]!,
+      职务: i % 5 === 0 ? '巡考员' : '监考员',
+      工号: `JW${2300 + i + 1}`,
+      单位: DEMO_SCHOOL,
     })
   }
-  return { headers: SAMPLE_HEADERS, rows }
+  return { headers: DEMO_HEADERS, rows }
 }

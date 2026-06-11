@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 
 import { defaultTemplates } from '@/data/defaultTemplates'
 import { useFontsStore } from '@/stores/fonts'
+import { isValidTemplate } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import type { DataRow, FieldMapping, LabelTemplate, TemplateField } from '@/types/template'
 import { autoMapFields } from '@/utils/autoMap'
@@ -18,12 +19,58 @@ export interface MappingSummary {
   text: string
 }
 
+/** 工作区当前模板（含未保存的微调）的持久化键：刷新页面不丢失 */
+const WORKSPACE_TEMPLATE_KEY = 'seatmark.workspace-template.v1'
+
+function loadInitialTemplate(): { template: LabelTemplate; id: string } {
+  try {
+    const raw = localStorage.getItem(WORKSPACE_TEMPLATE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as { id?: unknown; template?: unknown }
+      if (parsed && isValidTemplate(parsed.template)) {
+        return {
+          template: parsed.template,
+          id: typeof parsed.id === 'string' ? parsed.id : parsed.template.id,
+        }
+      }
+    }
+  } catch {
+    /* 数据损坏 / 隐私模式：回落到默认模板 */
+  }
+  const first = defaultTemplates[0]!
+  return { template: cloneTemplate(first), id: first.id }
+}
+
 export const useWorkspaceStore = defineStore('workspace', () => {
   const toast = useToastStore()
 
   // ---------- 模板 ----------
-  const template = ref<LabelTemplate>(cloneTemplate(defaultTemplates[0]!))
-  const selectedTemplateId = ref(defaultTemplates[0]!.id)
+  const initial = loadInitialTemplate()
+  const template = ref<LabelTemplate>(initial.template)
+  const selectedTemplateId = ref(initial.id)
+
+  // 恢复的模板可能引用在线字体，后台补载
+  useFontsStore().ensureTemplateFonts(template.value)
+
+  // 当前模板与选择持久化（防抖合并连续修改）
+  let persistTimer: number | undefined
+  watch(
+    [template, selectedTemplateId],
+    () => {
+      window.clearTimeout(persistTimer)
+      persistTimer = window.setTimeout(() => {
+        try {
+          localStorage.setItem(
+            WORKSPACE_TEMPLATE_KEY,
+            JSON.stringify({ id: selectedTemplateId.value, template: template.value }),
+          )
+        } catch {
+          /* 存储满 / 隐私模式下静默失败 */
+        }
+      }, 400)
+    },
+    { deep: true },
+  )
 
   // ---------- 数据 ----------
   const excel = reactive({
@@ -328,7 +375,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   async function importPhotos(files: File[]) {
     if (!photoColumn.value) {
-      toast.warning('请先选择匹配列', '照片文件名会与该列的值进行匹配')
+      toast.warning('请先选择匹配列', '照片文件名需等于或包含该列的值，如「张伟2023010101.jpg」')
       return
     }
     await withLoading(`正在加载 ${files.length} 张照片...`, async () => {

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+import CheckboxField from '@/components/ui/CheckboxField.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
+import { useDragScroll } from '@/composables/useDragScroll'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { compareCellText, downloadSampleExcel } from '@/utils/excel'
@@ -14,6 +16,12 @@ const dragging = ref(false)
 
 /** 面板小预览跟随排版顺序（筛选 + 排序后） */
 const previewRows = computed(() => workspace.displayRows.slice(0, 5))
+
+// 列较多时表格在容器内横向滚动，支持按住拖拽平移查看
+const previewScroller = ref<HTMLElement | null>(null)
+const viewerScroller = ref<HTMLElement | null>(null)
+useDragScroll(previewScroller)
+useDragScroll(viewerScroller)
 
 /** 面板上的排版顺序摘要 */
 const viewSummary = computed(() => {
@@ -233,7 +241,10 @@ async function onDownloadSample() {
         </button>
       </p>
 
-      <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200">
+      <div
+        ref="previewScroller"
+        class="mt-3 cursor-grab overflow-x-auto rounded-lg border border-slate-200"
+      >
         <table class="w-full text-left text-xs">
           <thead>
             <tr class="bg-slate-50 text-slate-500">
@@ -298,7 +309,10 @@ async function onDownloadSample() {
         </span>
       </div>
 
-      <div class="mt-3 max-h-[62vh] overflow-auto rounded-lg border border-slate-200">
+      <div
+        ref="viewerScroller"
+        class="mt-3 max-h-[62vh] cursor-grab overflow-auto rounded-lg border border-slate-200"
+      >
         <table class="w-full text-left text-xs">
           <thead class="sticky top-0 z-10">
             <tr class="bg-slate-50 text-slate-500">
@@ -433,22 +447,18 @@ async function onDownloadSample() {
           </span>
         </div>
         <div class="max-h-56 overflow-y-auto p-1.5">
-          <label
+          <CheckboxField
             v-for="item in shownValues"
             :key="item.value"
-            class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
+            class="rounded-lg px-2 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
+            :model-value="filterDraft.has(item.value)"
+            @update:model-value="toggleDraftValue(item.value)"
           >
-            <input
-              type="checkbox"
-              class="accent-brand-600"
-              :checked="filterDraft.has(item.value)"
-              @change="toggleDraftValue(item.value)"
-            />
             <span class="min-w-0 flex-1 truncate" :class="{ 'text-slate-400 italic': !item.value }">
               {{ item.value || '(空白)' }}
             </span>
             <span class="shrink-0 text-[10px] text-slate-400">{{ item.count }}</span>
-          </label>
+          </CheckboxField>
           <p v-if="!shownValues.length" class="px-2 py-4 text-center text-xs text-slate-400">
             没有匹配「{{ filterQuery }}」的取值
           </p>

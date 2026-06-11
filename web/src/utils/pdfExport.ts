@@ -1,12 +1,26 @@
 export interface PdfExportOptions {
-  /** html2canvas 渲染倍率，3 约等于 288dpi */
+  /** html2canvas 渲染倍率，4 约等于 384dpi；未指定时按页数自动选取 */
   scale?: number
+  /** 栅格格式：PNG 无损（默认，文字边缘更锐利）；JPEG 体积更小 */
+  imageFormat?: 'png' | 'jpeg'
   fileName?: string
   /** 页面宽度（mm），默认 A4 纵向 */
   pageWidth?: number
   /** 页面高度（mm），默认 A4 纵向 */
   pageHeight?: number
   onProgress?: (done: number, total: number) => void
+}
+
+/** 按页数选取渲染倍率：页少时可更高清，页多时控制体积与耗时 */
+export function defaultRasterScale(pageCount: number): number {
+  if (pageCount <= 2) return 5
+  if (pageCount <= 6) return 4
+  return 3
+}
+
+/** 近似 DPI（96 CSS px/in × scale） */
+export function rasterDpi(scale: number): number {
+  return Math.round(96 * scale)
 }
 
 /**
@@ -25,7 +39,8 @@ export async function exportPagesToPdf(
     import('html2canvas-pro'),
   ])
 
-  const scale = options.scale ?? 3
+  const scale = options.scale ?? defaultRasterScale(pages.length)
+  const imageFormat = options.imageFormat ?? 'png'
   const pageWidth = options.pageWidth ?? 210
   const pageHeight = options.pageHeight ?? 297
   const doc = new jsPDF({
@@ -41,9 +56,14 @@ export async function exportPagesToPdf(
       useCORS: true,
       backgroundColor: '#ffffff',
       logging: false,
+      // 避免子像素模糊，文字边缘更利落
+      letterRendering: true,
     })
-    const imgData = canvas.toDataURL('image/jpeg', 0.95)
-    doc.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight)
+    const imgData =
+      imageFormat === 'png'
+        ? canvas.toDataURL('image/png')
+        : canvas.toDataURL('image/jpeg', 0.96)
+    doc.addImage(imgData, imageFormat === 'png' ? 'PNG' : 'JPEG', 0, 0, pageWidth, pageHeight)
     options.onProgress?.(i + 1, pages.length)
   }
 

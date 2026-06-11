@@ -41,7 +41,8 @@ function lineStyle(line: (typeof lines.value)[number]): CSSProperties {
 
 function boxStyle(idx: number): CSSProperties {
   const pos = labelPosition(props.template, idx)
-  return { left: `${pos.left}mm`, top: `${pos.top}mm` }
+  // --i 供外部交错动画使用（如首页 Hero 的逐枚落版进场）
+  return { left: `${pos.left}mm`, top: `${pos.top}mm`, '--i': idx } as CSSProperties
 }
 
 function textsFor(row: DataRow): Record<string, string> {

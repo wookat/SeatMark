@@ -103,6 +103,9 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
     'label-field--empty':
       empty && field.type === 'text' && field.fixedText == null && !textOf(field).trim(),
     'label-field--photo-missing': empty && field.type === 'image' && !imageSrcOf(field),
+    // 矢量图标（SVG data URL）：完整等比显示且无照片底色
+    'label-field--vector':
+      field.type === 'image' && !!field.imageSrc?.startsWith('data:image/svg'),
   }
 }
 </script>

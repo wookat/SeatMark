@@ -2,6 +2,9 @@
 import { computed } from 'vue'
 
 import FontPicker from '@/components/studio/FontPicker.vue'
+import CheckboxField from '@/components/ui/CheckboxField.vue'
+import NumberField from '@/components/ui/NumberField.vue'
+import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { LabelTemplate } from '@/types/template'
@@ -36,6 +39,22 @@ const paperId = computed({
 
 const isCustomPaper = computed(() => paperId.value === 'custom')
 
+const paperOptions = computed<SelectOption[]>(() => {
+  const options: SelectOption[] = PAPER_PRESETS.map((p) => ({
+    value: p.id,
+    label: p.label,
+    hint: `${p.width} × ${p.height} mm`,
+  }))
+  if (isCustomPaper.value) {
+    options.push({
+      value: 'custom',
+      label: `自定义（${workspace.template.page.paperWidth} × ${workspace.template.page.paperHeight}）`,
+      disabled: true,
+    })
+  }
+  return options
+})
+
 /** 模板全局中文字体 */
 const templateFontZh = computed({
   get: () => workspace.template.fontFamily,
@@ -52,28 +71,24 @@ const templateFontEn = computed({
   },
 })
 
-function numberFrom(event: Event): number {
-  return Number((event.target as HTMLInputElement).value) || 0
+function setLabelSize(prop: 'width' | 'height', value: number) {
+  workspace.template.label[prop] = round1(clamp(value, 10, 420))
 }
 
-function setLabelSize(prop: 'width' | 'height', event: Event) {
-  workspace.template.label[prop] = round1(clamp(numberFrom(event), 10, 420))
-}
-
-function setGrid(prop: 'rows' | 'cols', event: Event) {
+function setGrid(prop: 'rows' | 'cols', value: number) {
   const max = prop === 'cols' ? 12 : 30
-  workspace.template.page[prop] = Math.round(clamp(numberFrom(event), 1, max))
+  workspace.template.page[prop] = Math.round(clamp(value, 1, max))
 }
 
-function setGap(prop: 'gapX' | 'gapY', event: Event) {
-  workspace.template.page[prop] = round1(clamp(numberFrom(event), 0, 50))
+function setGap(prop: 'gapX' | 'gapY', value: number) {
+  workspace.template.page[prop] = round1(clamp(value, 0, 50))
 }
 
 function setMargin(
   prop: 'marginTop' | 'marginBottom' | 'marginLeft' | 'marginRight',
-  event: Event,
+  value: number,
 ) {
-  workspace.template.page[prop] = round1(clamp(numberFrom(event), 0, 100))
+  workspace.template.page[prop] = round1(clamp(value, 0, 100))
 }
 
 function onCenterLayout() {
@@ -97,15 +112,7 @@ function onCenterLayout() {
     <div class="grid grid-cols-2 gap-2.5">
       <div class="col-span-2">
         <label class="field-label">纸张规格</label>
-        <select v-model="paperId" class="input-field">
-          <option v-for="p in PAPER_PRESETS" :key="p.id" :value="p.id">
-            {{ p.label }}（{{ p.width }} × {{ p.height }}）
-          </option>
-          <option v-if="isCustomPaper" value="custom" disabled>
-            自定义（{{ workspace.template.page.paperWidth }} ×
-            {{ workspace.template.page.paperHeight }}）
-          </option>
-        </select>
+        <SelectField v-model="paperId" :options="paperOptions" />
       </div>
       <div>
         <label class="field-label">中文字体</label>
@@ -117,97 +124,90 @@ function onCenterLayout() {
       </div>
       <div>
         <label class="field-label">标签宽 (mm)</label>
-        <input
-          type="number"
-          step="1"
-          class="input-field"
-          :value="workspace.template.label.width"
-          @change="setLabelSize('width', $event)"
+        <NumberField
+          :model-value="workspace.template.label.width"
+          :step="1"
+          :min="10"
+          :max="420"
+          @update:model-value="setLabelSize('width', $event)"
         />
       </div>
       <div>
         <label class="field-label">标签高 (mm)</label>
-        <input
-          type="number"
-          step="1"
-          class="input-field"
-          :value="workspace.template.label.height"
-          @change="setLabelSize('height', $event)"
+        <NumberField
+          :model-value="workspace.template.label.height"
+          :step="1"
+          :min="10"
+          :max="420"
+          @update:model-value="setLabelSize('height', $event)"
         />
       </div>
       <div>
         <label class="field-label">列数</label>
-        <input
-          type="number"
-          min="1"
-          max="12"
-          class="input-field"
-          :value="workspace.template.page.cols"
-          @change="setGrid('cols', $event)"
+        <NumberField
+          :model-value="workspace.template.page.cols"
+          :min="1"
+          :max="12"
+          @update:model-value="setGrid('cols', $event)"
         />
       </div>
       <div>
         <label class="field-label">行数</label>
-        <input
-          type="number"
-          min="1"
-          max="30"
-          class="input-field"
-          :value="workspace.template.page.rows"
-          @change="setGrid('rows', $event)"
+        <NumberField
+          :model-value="workspace.template.page.rows"
+          :min="1"
+          :max="30"
+          @update:model-value="setGrid('rows', $event)"
         />
       </div>
       <div>
         <label class="field-label">横向间距 (mm)</label>
-        <input
-          type="number"
-          step="0.5"
-          class="input-field"
-          :value="workspace.template.page.gapX"
-          @change="setGap('gapX', $event)"
+        <NumberField
+          :model-value="workspace.template.page.gapX"
+          :step="0.5"
+          :min="0"
+          :max="50"
+          @update:model-value="setGap('gapX', $event)"
         />
       </div>
       <div>
         <label class="field-label">纵向间距 (mm)</label>
-        <input
-          type="number"
-          step="0.5"
-          class="input-field"
-          :value="workspace.template.page.gapY"
-          @change="setGap('gapY', $event)"
+        <NumberField
+          :model-value="workspace.template.page.gapY"
+          :step="0.5"
+          :min="0"
+          :max="50"
+          @update:model-value="setGap('gapY', $event)"
         />
       </div>
       <div>
         <label class="field-label">左右边距 (mm)</label>
-        <input
-          type="number"
-          step="0.5"
-          class="input-field"
-          :value="workspace.template.page.marginLeft"
-          @change="setMargin('marginLeft', $event), setMargin('marginRight', $event)"
+        <NumberField
+          :model-value="workspace.template.page.marginLeft"
+          :step="0.5"
+          :min="0"
+          :max="100"
+          @update:model-value="setMargin('marginLeft', $event), setMargin('marginRight', $event)"
         />
       </div>
       <div>
         <label class="field-label">上下边距 (mm)</label>
-        <input
-          type="number"
-          step="0.5"
-          class="input-field"
-          :value="workspace.template.page.marginTop"
-          @change="setMargin('marginTop', $event), setMargin('marginBottom', $event)"
+        <NumberField
+          :model-value="workspace.template.page.marginTop"
+          :step="0.5"
+          :min="0"
+          :max="100"
+          @update:model-value="setMargin('marginTop', $event), setMargin('marginBottom', $event)"
         />
       </div>
     </div>
 
     <div class="mt-3 flex flex-wrap items-center gap-2">
-      <label class="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-slate-600">
-        <input
-          v-model="workspace.template.showLabelBorder"
-          type="checkbox"
-          class="accent-brand-600"
-        />
-        显示标签边框
-      </label>
+      <CheckboxField
+        v-model="workspace.template.showLabelBorder"
+        class="text-xs font-semibold text-slate-600"
+        label="显示标签边框"
+      />
       <button type="button" class="btn btn-ghost btn-sm" @click="onCenterLayout">
         阵列居中（自动均分边距）
       </button>

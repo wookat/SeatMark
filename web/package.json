@@ -6,6 +6,7 @@
   "description": "SeatMark 座签 - 考场座位标签在线生成工具",
   "scripts": {
     "dev": "vite",
+    "dev:lan": "vite --host",
     "build": "vue-tsc --noEmit -p tsconfig.json && vite build",
     "build:pages": "vue-tsc --noEmit -p tsconfig.json && vite build --base=/SeatMark/ && node --input-type=module -e \"import { copyFileSync } from 'node:fs'; copyFileSync('dist/index.html','dist/404.html')\"",
     "preview": "vite preview",
