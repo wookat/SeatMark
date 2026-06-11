@@ -56,8 +56,6 @@ export async function exportPagesToPdf(
       useCORS: true,
       backgroundColor: '#ffffff',
       logging: false,
-      // 避免子像素模糊，文字边缘更利落
-      letterRendering: true,
     })
     const imgData =
       imageFormat === 'png'
