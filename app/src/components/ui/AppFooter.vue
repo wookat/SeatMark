@@ -23,5 +23,21 @@
         <span>所有数据仅在浏览器本地处理，不会上传服务器</span>
       </div>
     </div>
+    <div class="border-t border-slate-100 py-3">
+      <div
+        class="mx-auto flex w-full max-w-6xl flex-col items-center gap-2 px-4 text-xs text-slate-400 sm:flex-row sm:justify-center"
+      >
+        <a
+          href="https://beian.miit.gov.cn"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="transition-colors hover:text-slate-600"
+        >
+          湘ICP备2026009844号
+        </a>
+        <span class="hidden text-slate-300 sm:inline">·</span>
+        <span>公安备案办理中</span>
+      </div>
+    </div>
   </footer>
 </template>
