@@ -1,5 +1,5 @@
-web/node_modules
-web/dist
+app/node_modules
+app/dist
 *.local
 .DS_Store
 .cursor/

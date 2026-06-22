@@ -119,10 +119,7 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
         :class="fieldClasses(field)"
         :style="fieldStyle(field)"
       >
-        <span class="label-field__content"><span
-            v-if="field.caption"
-            class="label-field__caption"
-          >{{ field.caption }}</span>{{ textOf(field) }}</span>
+        <span class="label-field__content">{{ textOf(field) }}</span>
       </div>
       <div
         v-else

@@ -8,11 +8,6 @@ export interface TemplateField {
   id: string
   label: string
   type: FieldType
-  /**
-   * 标签名前缀：渲染在内容前的小字标题（如「姓名」→“姓名 张三”），
-   * 仅文本字段有效，留空则只显示内容本身
-   */
-  caption?: string
   x: number
   y: number
   width: number

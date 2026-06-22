@@ -308,13 +308,10 @@
   word-break: break-all;
 }
 
-/* 标签名前缀：随字段字号缩放的小字标题，颜色继承字段色并降低存在感 */
+/* 标签名前缀：与字段内容同字号、同字重、同颜色（完全继承字段样式，受设计器调节），
+   仅用一个右间距与内容区隔 */
 .label-field__caption {
-  font-size: 0.6em;
-  font-weight: 400;
-  letter-spacing: 0.08em;
-  opacity: 0.66;
-  margin-right: 0.5em;
+  margin-right: 0.4em;
 }
 
 .label-field--hero .label-field__content {
