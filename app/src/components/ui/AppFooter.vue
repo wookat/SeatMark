@@ -32,11 +32,8 @@
         >
           湘ICP备2026009844号
         </a>
-      </div>
-    </div>
-    <div class="border-t border-slate-100 py-3">
-      <div class="mx-auto px-4 text-center text-xs text-slate-400">
-        © 2026 SeatMark 作者 版权所有
+        <span class="hidden text-slate-300 sm:inline">·</span>
+        <span>© 2026 SeatMark. All rights reserved.</span>
       </div>
     </div>
   </footer>
