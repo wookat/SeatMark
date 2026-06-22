@@ -119,6 +119,7 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
         :class="fieldClasses(field)"
         :style="fieldStyle(field)"
       >
+        <span v-if="field.caption" class="label-field__caption">{{ field.caption }}</span>
         <span class="label-field__content">{{ textOf(field) }}</span>
       </div>
       <div

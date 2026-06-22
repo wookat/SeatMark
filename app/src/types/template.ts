@@ -34,6 +34,8 @@ export interface TemplateField {
   background?: string
   /** hero 字段（如座位号）会以更重的字重展示 */
   emphasis?: 'hero'
+  /** 标签名前缀（如「姓名」），渲染在内容前的小字标题 */
+  caption?: string
   /** 缩略图与设计器中展示的示例内容 */
   sample?: string
   /**
