@@ -137,6 +137,10 @@ const FEATURES = [
 
 const FAQS = [
   {
+    q: '除了座位标签还能生成什么？',
+    a: '内置模板覆盖考场座位标签、考场桌贴、考号贴、签到桌牌 / 会议名牌、半页与整页大桌牌、学生证、工作证、胸卡出入证等多种场景；字段、尺寸与排版都可在可视化设计器中自由调整，也能从空白模板自定义。',
+  },
+  {
     q: 'Excel 应该怎么准备？',
     a: '第一行为表头，建议包含姓名、考场、准考证号、座位号等列。表头越规范，自动匹配越准确；也可以先下载示例文件参考。',
   },
@@ -199,11 +203,12 @@ const FAQS = [
             <span
               class="bg-gradient-to-r from-brand-600 via-violet-500 to-sky-500 bg-[length:200%_auto] bg-clip-text text-transparent motion-safe:animate-gradient"
             >
-              可打印的考场座位标签
+              座位标签 · 考场桌贴 · 桌牌
             </span>
           </h1>
           <p class="mt-4 max-w-lg text-base leading-7 text-slate-600">
-            适合考试、比赛签到、入场核验场景。导入名单即可输出排版精确到毫米的打印页，
+            一站式生成考场座位标签、考场桌贴、考号贴、签到桌牌、学生证 / 工作证、胸卡出入证等。
+            适合考试、比赛签到、入场核验与校园管理场景，导入名单即可输出排版精确到毫米的打印页，
             支持照片核验、开源字体与完全自定义的标签设计。
           </p>
           <div class="mt-7 flex flex-wrap gap-3">
@@ -335,7 +340,8 @@ const FAQS = [
         <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Templates</p>
         <h2 class="mt-1 text-2xl font-black tracking-tight text-slate-900">选择适合你的模板</h2>
         <p class="mt-2 text-sm text-slate-500">
-          {{ defaultTemplates.length }} 套内置模板覆盖常见考务场景，也可以在设计器中从零开始
+          {{ defaultTemplates.length }} 套内置模板覆盖座位标签、考场桌贴、考号贴、桌牌、学生证 /
+          工作证、胸卡出入证等场景，也可以在设计器中从零开始
         </p>
       </div>
       <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

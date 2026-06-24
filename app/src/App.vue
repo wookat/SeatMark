@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppFooter from '@/components/ui/AppFooter.vue'
 import AppHeader from '@/components/ui/AppHeader.vue'
+import FeedbackButton from '@/components/ui/FeedbackButton.vue'
 import LoadingOverlay from '@/components/ui/LoadingOverlay.vue'
 import ToastHost from '@/components/ui/ToastHost.vue'
 </script>
@@ -14,5 +15,6 @@ import ToastHost from '@/components/ui/ToastHost.vue'
     <AppFooter />
     <ToastHost />
     <LoadingOverlay />
+    <FeedbackButton />
   </div>
 </template>

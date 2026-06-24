@@ -7,7 +7,7 @@ export const router = createRouter({
       path: '/',
       name: 'home',
       component: () => import('@/views/HomeView.vue'),
-      meta: { title: 'SeatMark 座签 - 考场座位标签在线生成' },
+      meta: { title: '座位标签·考场桌贴·桌牌在线生成 - SeatMark 座签' },
     },
     {
       path: '/studio',
@@ -25,4 +25,20 @@ export const router = createRouter({
 router.afterEach((to) => {
   const title = to.meta.title
   if (typeof title === 'string') document.title = title
+
+  const path = to.fullPath
+
+  // GA4 pageview
+  const w = window as any
+  if (typeof w.gtag === 'function') {
+    w.gtag('event', 'page_view', {
+      page_path: path,
+      page_title: title ?? document.title,
+    })
+  }
+
+  // 百度统计 pageview
+  if (Array.isArray(w._hmt)) {
+    w._hmt.push(['_trackPageview', path])
+  }
 })

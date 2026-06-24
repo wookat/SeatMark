@@ -298,14 +298,22 @@
   align-items: stretch;
 }
 
-.label-field__content {
+/* 文本行容器：caption 与 content 在同一行内流动（行内排版），
+   多行裁剪、省略号、垂直对齐均作用于此容器 */
+.label-field__body {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: var(--max-lines, 1);
+  line-clamp: var(--max-lines, 1);
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: break-all;
+}
+
+.label-field__content {
+  /* 行内元素：紧随 caption 之后，不再独占一行 */
+  display: inline;
 }
 
 /* 标签名前缀：与字段内容同字号、同字重、同颜色（完全继承字段样式，受设计器调节），
