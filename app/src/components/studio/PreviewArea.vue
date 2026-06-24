@@ -10,7 +10,6 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import { MM_TO_PX } from '@/utils/layout'
 import { paperLabel, setPrintPageSize } from '@/utils/paper'
 import { defaultRasterScale, exportPagesToPdf, rasterDpi } from '@/utils/pdfExport'
-import { exportPagesToVectorPdf } from '@/utils/vectorPdfExport'
 
 const workspace = useWorkspaceStore()
 const toast = useToastStore()
@@ -86,33 +85,13 @@ async function onExportPdf() {
     })
     toast.success(
       '超清图片 PDF 已生成',
-      `每页为 ${rasterDpi(scale)}dpi 无损 PNG 栅格，放大打印仍清晰；文字需可选中请用「矢量 PDF」`,
+      `每页为 ${rasterDpi(scale)}dpi 无损 PNG 栅格，放大打印仍清晰；文字需可选中请用「打印 / 矢量 PDF」`,
     )
   } catch (err) {
     toast.danger('PDF 生成失败', err instanceof Error ? err.message : String(err))
   } finally {
     workspace.setLoading(false)
     renderHost.value = false
-  }
-}
-
-async function onExportVectorPdf() {
-  if (!workspace.excel.rows.length) return
-  workspace.setLoading(true, '正在加载矢量字体...')
-  try {
-    await exportPagesToVectorPdf(workspace.template, workspace.pages, workspace.fieldText, workspace.photoFor, {
-      showCutLines: workspace.showCutLines,
-      onFontProgress: (text) => workspace.setLoading(true, text),
-      onProgress: (done, total) => workspace.setLoading(true, `正在生成矢量 PDF 第 ${done}/${total} 页...`),
-    })
-    toast.success(
-      '矢量 PDF 已生成',
-      '文字可选可复制，无限缩放清晰；首次生成需下载开源字体，后续更快',
-    )
-  } catch (err) {
-    toast.danger('矢量 PDF 生成失败', err instanceof Error ? err.message : String(err))
-  } finally {
-    workspace.setLoading(false)
   }
 }
 
@@ -236,28 +215,6 @@ async function onPrint() {
             <path d="M7 8V3h10v5M7 17H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3m-10-3h10v7H7v-7z" />
           </svg>
           打印<span class="hidden sm:inline"> / 矢量 PDF</span>
-        </button>
-        <button
-          type="button"
-          class="btn btn-secondary btn-sm"
-          title="生成文字可选可复制的矢量 PDF（pdf-lib + 开源思源字体，首次需下载字体约 30MB）"
-          :disabled="!workspace.excel.rows.length || workspace.loading.active"
-          @click="onExportVectorPdf"
-        >
-          <svg
-            class="size-3.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <path d="M14 2v6h6" />
-            <path d="m9 15 2 2 4-4" />
-          </svg>
-          矢量<span class="hidden sm:inline"> PDF</span>
         </button>
         <button
           type="button"
