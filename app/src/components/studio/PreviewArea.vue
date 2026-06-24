@@ -102,6 +102,7 @@ async function onExportVectorPdf() {
   try {
     await exportPagesToVectorPdf(workspace.template, workspace.pages, workspace.fieldText, workspace.photoFor, {
       showCutLines: workspace.showCutLines,
+      onFontProgress: (text) => workspace.setLoading(true, text),
       onProgress: (done, total) => workspace.setLoading(true, `正在生成矢量 PDF 第 ${done}/${total} 页...`),
     })
     toast.success(
@@ -219,7 +220,27 @@ async function onPrint() {
         <button
           type="button"
           class="btn btn-primary btn-sm"
-          title="生成文字可选可复制的矢量 PDF（pdf-lib + 开源思源字体）"
+          title="经浏览器打印对话框输出：选「另存为 PDF」可得到矢量 PDF；直接打印请用对应纸张、无边距、缩放 100%"
+          :disabled="!workspace.excel.rows.length"
+          @click="onPrint"
+        >
+          <svg
+            class="size-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M7 8V3h10v5M7 17H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3m-10-3h10v7H7v-7z" />
+          </svg>
+          打印<span class="hidden sm:inline"> / 矢量 PDF</span>
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm"
+          title="生成文字可选可复制的矢量 PDF（pdf-lib + 开源思源字体，首次需下载字体约 30MB）"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="onExportVectorPdf"
         >
@@ -241,27 +262,7 @@ async function onPrint() {
         <button
           type="button"
           class="btn btn-secondary btn-sm"
-          title="经浏览器打印对话框输出：选「另存为 PDF」可得到矢量 PDF；直接打印请用对应纸张、无边距、缩放 100%"
-          :disabled="!workspace.excel.rows.length"
-          @click="onPrint"
-        >
-          <svg
-            class="size-3.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M7 8V3h10v5M7 17H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3m-10-3h10v7H7v-7z" />
-          </svg>
-          打印
-        </button>
-        <button
-          type="button"
-          class="btn btn-secondary btn-sm"
-          title="逐页渲染为超清 PNG 图片后合成 PDF（约 288–480dpi，页数越少越清晰）；文字不可选中，如需矢量文字请用「矢量 PDF」"
+          title="逐页渲染为超清 PNG 图片后合成 PDF（约 288–480dpi，页数越少越清晰）；文字不可选中，如需矢量文字请用「打印 / 矢量 PDF」"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="onExportPdf"
         >

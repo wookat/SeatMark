@@ -240,7 +240,7 @@ async function callChatCustom(
 const FREE_ATTEMPTS: Array<{ url: string; model?: string; timeoutMs: number }> = [
   { url: '/api/ai-design', timeoutMs: 90_000 },
   { url: 'https://text.pollinations.ai/openai', model: 'openai', timeoutMs: 90_000 },
-  { url: 'https://text.pollinations.ai/openai', model: 'mistral', timeoutMs: 90_000 },
+  { url: 'https://text.pollinations.ai/openai', model: 'openai-fast', timeoutMs: 90_000 },
 ]
 
 async function callChatFree(messages: ChatMessage[], signal?: AbortSignal): Promise<string> {

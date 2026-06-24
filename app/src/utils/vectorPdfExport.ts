@@ -32,30 +32,35 @@ interface FontSet {
   bold: PDFFont
 }
 
-/** CDN 字体源（按优先级排列） */
+/**
+ * CDN 字体源（完整 OTF 文件，约 16MB/个）。
+ * @fontsource 的 woff 按 Unicode 分包（每包 3-13KB），pdf-lib 无法使用分包文件，
+ * 必须用完整字体文件。subset: true 仅嵌入使用到的字符到 PDF，最终 PDF 仍很小。
+ * 首次下载后内存缓存，后续无需重复下载。
+ */
 const FONT_SOURCES: Record<FontType, { regular: string[]; bold: string[] }> = {
   sans: {
     regular: [
-      'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5.1.0/files/noto-sans-sc-chinese-simplified-400-normal.woff',
-      'https://fastly.jsdelivr.net/npm/@fontsource/noto-sans-sc@5.1.0/files/noto-sans-sc-chinese-simplified-400-normal.woff',
-      'https://unpkg.com/@fontsource/noto-sans-sc@5.1.0/files/noto-sans-sc-chinese-simplified-400-normal.woff',
+      'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf',
+      'https://fastly.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf',
+      'https://cdn.jsdelivr.net/gh/googlefonts/noto-cjk@main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf',
     ],
     bold: [
-      'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5.1.0/files/noto-sans-sc-chinese-simplified-700-normal.woff',
-      'https://fastly.jsdelivr.net/npm/@fontsource/noto-sans-sc@5.1.0/files/noto-sans-sc-chinese-simplified-700-normal.woff',
-      'https://unpkg.com/@fontsource/noto-sans-sc@5.1.0/files/noto-sans-sc-chinese-simplified-700-normal.woff',
+      'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf',
+      'https://fastly.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf',
+      'https://cdn.jsdelivr.net/gh/googlefonts/noto-cjk@main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf',
     ],
   },
   serif: {
     regular: [
-      'https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.1.0/files/noto-serif-sc-chinese-simplified-400-normal.woff',
-      'https://fastly.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.1.0/files/noto-serif-sc-chinese-simplified-400-normal.woff',
-      'https://unpkg.com/@fontsource/noto-serif-sc@5.1.0/files/noto-serif-sc-chinese-simplified-400-normal.woff',
+      'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Serif/OTF/SimplifiedChinese/NotoSerifCJKsc-Regular.otf',
+      'https://fastly.jsdelivr.net/gh/notofonts/noto-cjk@main/Serif/OTF/SimplifiedChinese/NotoSerifCJKsc-Regular.otf',
+      'https://cdn.jsdelivr.net/gh/googlefonts/noto-cjk@main/Serif/OTF/SimplifiedChinese/NotoSerifCJKsc-Regular.otf',
     ],
     bold: [
-      'https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.1.0/files/noto-serif-sc-chinese-simplified-700-normal.woff',
-      'https://fastly.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.1.0/files/noto-serif-sc-chinese-simplified-700-normal.woff',
-      'https://unpkg.com/@fontsource/noto-serif-sc@5.1.0/files/noto-serif-sc-chinese-simplified-700-normal.woff',
+      'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Serif/OTF/SimplifiedChinese/NotoSerifCJKsc-Bold.otf',
+      'https://fastly.jsdelivr.net/gh/notofonts/noto-cjk@main/Serif/OTF/SimplifiedChinese/NotoSerifCJKsc-Bold.otf',
+      'https://cdn.jsdelivr.net/gh/googlefonts/noto-cjk@main/Serif/OTF/SimplifiedChinese/NotoSerifCJKsc-Bold.otf',
     ],
   },
 }
@@ -63,13 +68,40 @@ const FONT_SOURCES: Record<FontType, { regular: string[]; bold: string[] }> = {
 /** 内存字体缓存：同一 URL 的字体文件只下载一次 */
 const fontBufferCache = new Map<string, ArrayBuffer>()
 
-async function fetchFontBuffer(urls: string[]): Promise<ArrayBuffer> {
+async function fetchFontBuffer(
+  urls: string[],
+  onProgress?: (loaded: number, total: number) => void,
+): Promise<ArrayBuffer> {
   for (const url of urls) {
     const cached = fontBufferCache.get(url)
     if (cached) return cached
     try {
       const res = await fetch(url)
       if (!res.ok) continue
+      const total = Number(res.headers.get('content-length')) || 0
+      if (total && res.body && onProgress) {
+        const reader = res.body.getReader()
+        const chunks: Uint8Array[] = []
+        let loaded = 0
+        for (;;) {
+          const { done, value } = await reader.read()
+          if (done) break
+          if (value) {
+            chunks.push(value)
+            loaded += value.length
+            onProgress(loaded, total)
+          }
+        }
+        const buf = new ArrayBuffer(loaded)
+        const view = new Uint8Array(buf)
+        let offset = 0
+        for (const chunk of chunks) {
+          view.set(chunk, offset)
+          offset += chunk.length
+        }
+        fontBufferCache.set(url, buf)
+        return buf
+      }
       const buf = await res.arrayBuffer()
       fontBufferCache.set(url, buf)
       return buf
@@ -527,6 +559,7 @@ export interface VectorPdfOptions {
   showCutLines?: boolean
   fileName?: string
   onProgress?: (done: number, total: number) => void
+  onFontProgress?: (text: string, loaded: number, total: number) => void
 }
 
 export async function exportPagesToVectorPdf(
@@ -538,11 +571,18 @@ export async function exportPagesToVectorPdf(
 ): Promise<void> {
   if (!pages.length) throw new Error('没有可导出的页面')
 
-  // 1. 加载字体
+  // 1. 加载字体（完整 OTF 约 16MB/个，首次下载较慢，后续内存缓存）
   const fontType = determineFontType(template.fontFamily)
   const [regularBuf, boldBuf] = await Promise.all([
-    fetchFontBuffer(FONT_SOURCES[fontType].regular),
-    fetchFontBuffer(FONT_SOURCES[fontType].bold),
+    fetchFontBuffer(FONT_SOURCES[fontType].regular, (loaded, total) => {
+      const pct = Math.round((loaded / total) * 100)
+      options.onProgress?.(0, 0)
+      options.onFontProgress?.(`正在下载字体 ${pct}%`, loaded, total)
+    }),
+    fetchFontBuffer(FONT_SOURCES[fontType].bold, (loaded, total) => {
+      const pct = Math.round((loaded / total) * 100)
+      options.onFontProgress?.(`正在下载粗体字体 ${pct}%`, loaded, total)
+    }),
   ])
 
   const pdfDoc = await PDFDocument.create()

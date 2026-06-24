@@ -12,6 +12,7 @@
  * - AI_API_KEY        兜底密钥（智谱开放平台 glm-4-flash）
  * - AI_BASE_URL       兜底接口地址，默认 https://open.bigmodel.cn/api/paas/v4
  * - AI_MODEL          兜底模型名，默认 glm-4-flash
+ * - ALERT_WEBHOOK     可选，告警 webhook（企业微信机器人），未配置时使用内置默认值
  */
 
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
@@ -20,11 +21,42 @@ const DEEPSEEK_MODEL = 'deepseek-v4-pro'
 const FALLBACK_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4'
 const FALLBACK_MODEL = 'glm-4-flash'
 
+const ALERT_WEBHOOK_DEFAULT = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=f987cae8-5740-41a8-9492-f11325d894e1'
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   })
+}
+
+/** 告警等级与 HTTP 状态的映射 */
+function alertLevel(status) {
+  if (status === 402) return '余额不足'
+  if (status === 429) return '请求限流'
+  if (status === 401 || status === 403) return '密钥无效'
+  return `上游错误 ${status}`
+}
+
+/** 向企业微信推送告警（静默，不阻塞主流程） */
+async function sendAlert(env, level, detail) {
+  const webhook = (env && env.ALERT_WEBHOOK) || ALERT_WEBHOOK_DEFAULT
+  if (!webhook) return
+  const text = [
+    '【AI 设计告警】DeepSeek 主模型异常',
+    `等级：${level}`,
+    `详情：${detail}`,
+    `时间：${new Date().toISOString()}`,
+  ].join('\n')
+  try {
+    await fetch(webhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ msgtype: 'text', text: { content: text } }),
+    })
+  } catch {
+    /* 推送失败不阻塞 */
+  }
 }
 
 export async function onRequest(context) {
@@ -67,23 +99,34 @@ export async function onRequest(context) {
   const deepseekKey = env && env.DEEPSEEK_API_KEY
   if (deepseekKey) {
     try {
-    const upstream = await callUpstream(DEEPSEEK_BASE_URL, deepseekKey, DEEPSEEK_MODEL)
-    if (upstream.ok) {
-      const text = await upstream.text()
-      return new Response(text, {
-        status: upstream.status,
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-      })
-    }
-    // DeepSeek 失败，尝试兜底
-    } catch {
-    // DeepSeek 请求异常，尝试兜底
+      const upstream = await callUpstream(DEEPSEEK_BASE_URL, deepseekKey, DEEPSEEK_MODEL)
+      if (upstream.ok) {
+        const text = await upstream.text()
+        return new Response(text, {
+          status: upstream.status,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+        })
+      }
+      // DeepSeek 返回非 200：读取错误详情并告警
+      const errBody = await upstream.text().catch(() => '')
+      const level = alertLevel(upstream.status)
+      const detail = `HTTP ${upstream.status} ${errBody.slice(0, 200)}`
+      await sendAlert(env, level, detail)
+    } catch (e) {
+      // DeepSeek 网络异常：告警
+      const detail = `网络异常 ${e instanceof Error ? e.message : String(e)}`
+      await sendAlert(env, '网络异常', detail)
     }
   }
 
   // 兜底：智谱 glm-4-flash
   const fallbackKey = env && env.AI_API_KEY
-  if (!fallbackKey) return json({ error: 'AI proxy not configured' }, 501)
+  if (!fallbackKey) {
+    const msg = deepseekKey
+      ? 'DeepSeek 主模型暂不可用，已告警；请稍后重试或切换「自定义 API」'
+      : 'AI proxy not configured'
+    return json({ error: msg }, 501)
+  }
 
   const fallbackBaseUrl = String((env && env.AI_BASE_URL) || FALLBACK_BASE_URL)
   const fallbackModel = (env && env.AI_MODEL) || FALLBACK_MODEL
