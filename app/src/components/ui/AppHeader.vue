@@ -47,7 +47,7 @@ const route = useRoute()
         <span class="text-base font-bold tracking-tight text-slate-900">
           SeatMark <span class="text-brand-600">座签</span>
         </span>
-        <span class="hidden text-xs text-slate-400 sm:inline">考场座位标签在线生成</span>
+        <span class="hidden text-xs text-slate-400 sm:inline">座位标签 · 考场桌贴 · 桌牌在线生成</span>
       </RouterLink>
 
       <nav class="flex items-center gap-1.5">

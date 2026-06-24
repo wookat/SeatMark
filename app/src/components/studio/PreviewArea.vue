@@ -10,6 +10,7 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import { MM_TO_PX } from '@/utils/layout'
 import { paperLabel, setPrintPageSize } from '@/utils/paper'
 import { defaultRasterScale, exportPagesToPdf, rasterDpi } from '@/utils/pdfExport'
+import { exportPagesToVectorPdf } from '@/utils/vectorPdfExport'
 
 const workspace = useWorkspaceStore()
 const toast = useToastStore()
@@ -85,7 +86,7 @@ async function onExportPdf() {
     })
     toast.success(
       '超清图片 PDF 已生成',
-      `每页为 ${rasterDpi(scale)}dpi 无损 PNG 栅格，放大打印仍清晰；文字需可选中请用「打印 / 矢量 PDF」另存为 PDF`,
+      `每页为 ${rasterDpi(scale)}dpi 无损 PNG 栅格，放大打印仍清晰；文字需可选中请用「矢量 PDF」`,
     )
   } catch (err) {
     toast.danger('PDF 生成失败', err instanceof Error ? err.message : String(err))
@@ -95,10 +96,27 @@ async function onExportPdf() {
   }
 }
 
+async function onExportVectorPdf() {
+  if (!workspace.excel.rows.length) return
+  workspace.setLoading(true, '正在加载矢量字体...')
+  try {
+    await exportPagesToVectorPdf(workspace.template, workspace.pages, workspace.fieldText, workspace.photoFor, {
+      showCutLines: workspace.showCutLines,
+      onProgress: (done, total) => workspace.setLoading(true, `正在生成矢量 PDF 第 ${done}/${total} 页...`),
+    })
+    toast.success(
+      '矢量 PDF 已生成',
+      '文字可选可复制，无限缩放清晰；首次生成需下载开源字体，后续更快',
+    )
+  } catch (err) {
+    toast.danger('矢量 PDF 生成失败', err instanceof Error ? err.message : String(err))
+  } finally {
+    workspace.setLoading(false)
+  }
+}
+
 /**
- * 浏览器打印：既是实体打印入口，也是矢量 PDF 导出入口——
- * 打印引擎会内嵌系统字体子集做矢量输出（网页脚本无法读取宋体等
- * 系统字体文件，因此纯前端 jsPDF 无法生成中文矢量 PDF）。
+ * 浏览器打印：既是实体打印入口，也可选「另存为 PDF」导出矢量 PDF。
  */
 async function onPrint() {
   if (!workspace.excel.rows.length) return
@@ -201,7 +219,29 @@ async function onPrint() {
         <button
           type="button"
           class="btn btn-primary btn-sm"
-          title="经浏览器打印对话框输出：选「另存为 PDF」可得到文字可选中的矢量 PDF"
+          title="生成文字可选可复制的矢量 PDF（pdf-lib + 开源思源字体）"
+          :disabled="!workspace.excel.rows.length || workspace.loading.active"
+          @click="onExportVectorPdf"
+        >
+          <svg
+            class="size-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <path d="M14 2v6h6" />
+            <path d="m9 15 2 2 4-4" />
+          </svg>
+          矢量<span class="hidden sm:inline"> PDF</span>
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm"
+          title="经浏览器打印对话框输出：选「另存为 PDF」可得到矢量 PDF；直接打印请用对应纸张、无边距、缩放 100%"
           :disabled="!workspace.excel.rows.length"
           @click="onPrint"
         >
@@ -217,12 +257,11 @@ async function onPrint() {
             <path d="M7 8V3h10v5M7 17H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3m-10-3h10v7H7v-7z" />
           </svg>
           打印
-          <span class="hidden sm:inline">/ 矢量 PDF</span>
         </button>
         <button
           type="button"
           class="btn btn-secondary btn-sm"
-          title="逐页渲染为超清 PNG 图片后合成 PDF（约 288–480dpi，页数越少越清晰）；中文矢量文字请用「打印 / 矢量 PDF」"
+          title="逐页渲染为超清 PNG 图片后合成 PDF（约 288–480dpi，页数越少越清晰）；文字不可选中，如需矢量文字请用「矢量 PDF」"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="onExportPdf"
         >
