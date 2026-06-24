@@ -4,7 +4,7 @@
  * 路由：POST /api/ai-design   请求体：{ messages: [{ role, content }, ...] }
  * 作用：用站长配置的密钥转发到上游大模型，让访客无需任何配置即可使用 AI 设计。
  *
- * 主模型：DeepSeek v4 Pro（通过环境变量 DEEPSEEK_API_KEY 配置）
+ * 主模型：DeepSeek v4 Flash（通过环境变量 DEEPSEEK_API_KEY 配置）
  * 兜底模型：智谱 glm-4-flash（通过环境变量 AI_API_KEY 配置，永久免费）
  *
  * 环境变量（EdgeOne Pages 控制台配置）：
@@ -16,7 +16,7 @@
  */
 
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
-const DEEPSEEK_MODEL = 'deepseek-v4-pro'
+const DEEPSEEK_MODEL = 'deepseek-v4-flash'
 
 const FALLBACK_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4'
 const FALLBACK_MODEL = 'glm-4-flash'
@@ -91,6 +91,13 @@ export async function onRequest(context) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({ model, messages, temperature: 0.6 }),
+      eo: {
+        timeoutSetting: {
+          connectTimeout: 30_000,
+          readTimeout: 120_000,
+          writeTimeout: 30_000,
+        },
+      },
     })
     return resp
   }
