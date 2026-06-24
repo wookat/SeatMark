@@ -2,6 +2,8 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
+import { useIsMobile } from '@/composables/useMediaQuery'
+
 import TemplateDesigner from '@/components/designer/TemplateDesigner.vue'
 import DataImportPanel from '@/components/studio/DataImportPanel.vue'
 import LayoutPanel from '@/components/studio/LayoutPanel.vue'
@@ -22,6 +24,9 @@ const route = useRoute()
 const workspace = useWorkspaceStore()
 const library = useTemplateLibrary()
 const toast = useToastStore()
+
+const isMobile = useIsMobile()
+const mobileTab = ref<'settings' | 'preview'>('settings')
 
 const designerOpen = ref(false)
 const designerTemplate = ref<LabelTemplate | null>(null)
@@ -96,16 +101,45 @@ onMounted(() => {
 
 <template>
   <div class="mx-auto w-full max-w-[1480px] px-4 py-5">
+    <!-- 移动端 Tab 切换 -->
+    <div v-if="isMobile" class="mb-3 flex rounded-xl border border-slate-200 bg-white p-1">
+      <button
+        type="button"
+        class="flex-1 rounded-lg px-3 py-2 text-sm font-bold transition-colors"
+        :class="mobileTab === 'settings' ? 'bg-brand-600 text-white' : 'text-slate-500'"
+        @click="mobileTab = 'settings'"
+      >
+        设置
+      </button>
+      <button
+        type="button"
+        class="flex-1 rounded-lg px-3 py-2 text-sm font-bold transition-colors"
+        :class="mobileTab === 'preview' ? 'bg-brand-600 text-white' : 'text-slate-500'"
+        @click="mobileTab = 'preview'"
+      >
+        预览
+      </button>
+    </div>
+
     <div class="grid items-start gap-5 lg:grid-cols-[400px_minmax(0,1fr)]">
       <!-- min-w-0 + flex 纵排：防止宽表格把侧栏撑出 400px 网格轨道、压到预览区 -->
-      <aside class="no-print flex min-w-0 flex-col gap-4">
+      <aside
+        class="no-print flex min-w-0 flex-col gap-4"
+        :class="isMobile && mobileTab !== 'settings' ? 'hidden' : ''"
+      >
         <TemplatePickerPanel @open-designer="openDesigner" />
         <DataImportPanel />
         <MappingPanel v-if="workspace.excel.rows.length" />
         <LayoutPanel @open-designer="openDesigner" />
       </aside>
 
-      <div class="lg:sticky lg:top-[72px] lg:h-[calc(100vh-92px)]">
+      <div
+        :class="[
+          isMobile && mobileTab !== 'preview' ? 'hidden' : '',
+          'lg:sticky lg:top-[72px] lg:h-[calc(100vh-92px)]',
+          isMobile ? 'h-[calc(100vh-180px)]' : '',
+        ]"
+      >
         <PreviewArea />
       </div>
     </div>

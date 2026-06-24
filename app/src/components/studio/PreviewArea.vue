@@ -216,7 +216,8 @@ async function onPrint() {
           >
             <path d="M7 8V3h10v5M7 17H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3m-10-3h10v7H7v-7z" />
           </svg>
-          打印 / 矢量 PDF
+          打印
+          <span class="hidden sm:inline">/ 矢量 PDF</span>
         </button>
         <button
           type="button"
@@ -236,7 +237,7 @@ async function onPrint() {
           >
             <path d="M12 4v12m0 0 5-5m-5 5-5-5M4 20h16" />
           </svg>
-          超清图片 PDF
+          超清<span class="hidden sm:inline">图片 PDF</span>
         </button>
       </div>
     </div>

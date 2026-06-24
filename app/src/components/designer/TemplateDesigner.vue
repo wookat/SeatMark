@@ -10,6 +10,7 @@ import ColorField from '@/components/ui/ColorField.vue'
 import NumberField from '@/components/ui/NumberField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
+import { useIsMobile } from '@/composables/useMediaQuery'
 import { useFontsStore } from '@/stores/fonts'
 import { useTemplateLibrary } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
@@ -34,6 +35,9 @@ const emit = defineEmits<{
 const library = useTemplateLibrary()
 const toast = useToastStore()
 const fonts = useFontsStore()
+
+const isMobile = useIsMobile()
+const mobilePanel = ref<null | 'layers' | 'props'>(null)
 
 const draft = ref(cloneTemplate(props.initial))
 const pxPerMm = ref(6)
@@ -1090,35 +1094,50 @@ function save(asNew: boolean) {
 <template>
   <div class="no-print fixed inset-0 z-50 flex flex-col bg-slate-50">
     <header
-      class="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4"
+      class="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 sm:px-4"
     >
-      <div class="flex min-w-0 items-center gap-3">
+      <div class="flex min-w-0 items-center gap-2 sm:gap-3">
+        <!-- 移动端侧栏切换：字段列表 -->
+        <button
+          v-if="isMobile"
+          type="button"
+          class="btn btn-ghost btn-sm !px-2"
+          :class="{ 'bg-slate-100 text-brand-600': mobilePanel === 'layers' }"
+          aria-label="字段列表"
+          @click="mobilePanel = mobilePanel === 'layers' ? null : 'layers'"
+        >
+          <svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2.5 4h11M2.5 8h11M2.5 12h11" />
+          </svg>
+        </button>
         <span class="hidden text-sm font-bold text-slate-400 sm:inline">模板设计器</span>
         <input
           v-model="draft.name"
           type="text"
-          class="input-field w-56 font-semibold"
+          class="input-field w-32 font-semibold sm:w-56"
           placeholder="模板名称"
         />
       </div>
-      <div class="flex items-center gap-2">
-        <button type="button" class="btn btn-ghost btn-md" @click="emit('close')">取消</button>
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <button type="button" class="btn btn-ghost btn-sm sm:btn-md" @click="emit('close')">取消</button>
         <template v-if="isEditingCustom">
-          <button type="button" class="btn btn-secondary btn-md" @click="save(true)">
-            另存为新模板
+          <button type="button" class="btn btn-secondary btn-sm sm:btn-md" @click="save(true)">
+            另存
           </button>
-          <button type="button" class="btn btn-primary btn-md" @click="save(false)">
-            保存修改
+          <button type="button" class="btn btn-primary btn-sm sm:btn-md" @click="save(false)">
+            保存
           </button>
         </template>
-        <button v-else type="button" class="btn btn-primary btn-md" @click="save(true)">
-          保存为我的模板
+        <button v-else type="button" class="btn btn-primary btn-sm sm:btn-md" @click="save(true)">
+          保存
         </button>
       </div>
     </header>
 
     <!-- 工具栏 -->
-    <div class="flex h-11 shrink-0 items-center gap-1 border-b border-slate-200 bg-white px-3">
+    <div
+      class="flex h-11 shrink-0 items-center gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3"
+    >
       <div ref="addMenuRoot" class="relative shrink-0">
         <button type="button" class="btn btn-secondary btn-sm" @click="addMenuOpen = !addMenuOpen">
           + 添加字段
@@ -1415,11 +1434,30 @@ function save(asNew: boolean) {
           </svg>
         </button>
       </div>
+
+      <!-- 移动端属性面板切换 -->
+      <span v-if="isMobile" class="mx-1.5 h-5 w-px shrink-0 bg-slate-200"></span>
+      <button
+        v-if="isMobile"
+        type="button"
+        class="btn btn-ghost btn-sm shrink-0 !px-1.5"
+        :class="{ 'bg-slate-100 text-brand-600': mobilePanel === 'props' }"
+        aria-label="属性面板"
+        @click="mobilePanel = mobilePanel === 'props' ? null : 'props'"
+      >
+        <svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3.5 5.5h9M3.5 8h6M3.5 10.5h9" />
+        </svg>
+      </button>
     </div>
 
     <div class="flex min-h-0 flex-1">
       <!-- 字段列表（图层） -->
-      <aside class="flex w-56 shrink-0 flex-col border-r border-slate-200 bg-white">
+      <aside
+        class="flex shrink-0 flex-col border-r border-slate-200 bg-white"
+        :class="isMobile ? 'absolute inset-y-0 left-0 z-30 w-64 max-w-[80vw] shadow-xl transition-transform' : 'w-56'"
+        :style="isMobile ? { transform: mobilePanel === 'layers' ? 'translateX(0)' : 'translateX(-100%)' } : {}"
+      >
         <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2.5">
           <h3 class="text-xs font-bold text-slate-700">字段</h3>
           <span class="text-[10px] font-semibold text-slate-400">{{ draft.fields.length }} 个</span>
@@ -1471,7 +1509,7 @@ function save(asNew: boolean) {
       <div
         ref="canvasViewport"
         class="flex-1 overflow-auto"
-        @pointerdown.self="clearSelection()"
+        @pointerdown.self="clearSelection(); isMobile && (mobilePanel = null)"
         @wheel="onCanvasWheel"
       >
         <div class="grid min-h-full w-full place-items-center p-10">
@@ -1539,7 +1577,11 @@ function save(asNew: boolean) {
       </div>
 
       <!-- 属性面板 -->
-      <aside class="w-80 shrink-0 overflow-y-auto border-l border-slate-200 bg-white p-4">
+      <aside
+        class="shrink-0 overflow-y-auto border-l border-slate-200 bg-white p-4"
+        :class="isMobile ? 'absolute inset-y-0 right-0 z-30 w-72 max-w-[85vw] shadow-xl transition-transform' : 'w-80'"
+        :style="isMobile ? { transform: mobilePanel === 'props' ? 'translateX(0)' : 'translateX(100%)' } : {}"
+      >
         <!-- 选中字段属性 -->
         <p
           v-if="!selectedField"
@@ -1911,7 +1953,7 @@ function save(asNew: boolean) {
 
     <!-- 状态栏 -->
     <footer
-      class="flex h-8 shrink-0 items-center gap-x-4 border-t border-slate-200 bg-white px-4 text-[11px] whitespace-nowrap text-slate-500"
+      class="flex h-8 shrink-0 items-center gap-x-4 overflow-x-auto border-t border-slate-200 bg-white px-4 text-[11px] whitespace-nowrap text-slate-500"
     >
       <span>{{ currentPaperLabel }}</span>
       <span>标签 {{ draft.label.width }} × {{ draft.label.height }} mm</span>
