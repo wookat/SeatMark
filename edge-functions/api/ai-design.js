@@ -4,16 +4,21 @@
  * 路由：POST /api/ai-design   请求体：{ messages: [{ role, content }, ...] }
  * 作用：用站长配置的密钥转发到上游大模型，让访客无需任何配置即可使用 AI 设计。
  *
- * 环境变量（EdgeOne Pages 控制台配置）：
- * - AI_API_KEY   必填，上游接口密钥（推荐智谱开放平台，glm-4-flash 永久免费）
- * - AI_BASE_URL  可选，OpenAI 兼容接口地址，默认 https://open.bigmodel.cn/api/paas/v4
- * - AI_MODEL     可选，模型名，默认 glm-4-flash
+ * 主模型：DeepSeek v4 Pro（通过环境变量 DEEPSEEK_API_KEY 配置）
+ * 兜底模型：智谱 glm-4-flash（通过环境变量 AI_API_KEY 配置，永久免费）
  *
- * 未配置 AI_API_KEY 时返回 501，前端会自动回退到公共免费接口。
+ * 环境变量（EdgeOne Pages 控制台配置）：
+ * - DEEPSEEK_API_KEY  主模型密钥（DeepSeek 开放平台）
+ * - AI_API_KEY        兜底密钥（智谱开放平台 glm-4-flash）
+ * - AI_BASE_URL       兜底接口地址，默认 https://open.bigmodel.cn/api/paas/v4
+ * - AI_MODEL          兜底模型名，默认 glm-4-flash
  */
 
-const DEFAULT_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4'
-const DEFAULT_MODEL = 'glm-4-flash'
+const DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
+const DEEPSEEK_MODEL = 'deepseek-v4-pro'
+
+const FALLBACK_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4'
+const FALLBACK_MODEL = 'glm-4-flash'
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -27,9 +32,6 @@ export async function onRequest(context) {
 
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 })
   if (request.method !== 'POST') return json({ error: 'Method Not Allowed' }, 405)
-
-  const apiKey = env && env.AI_API_KEY
-  if (!apiKey) return json({ error: 'AI proxy not configured' }, 501)
 
   let payload
   try {
@@ -48,22 +50,46 @@ export async function onRequest(context) {
     if (!roleOk || !contentOk) return json({ error: 'Invalid message item' }, 400)
   }
 
-  const baseUrl = String((env && env.AI_BASE_URL) || DEFAULT_BASE_URL).replace(/\/+$/, '')
-  const url = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl}/chat/completions`
-
-  try {
-    const upstream = await fetch(url, {
+  async function callUpstream(baseUrl, apiKey, model) {
+    const url = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl.replace(/\/+$/, '')}/chat/completions`
+    const resp = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model: (env && env.AI_MODEL) || DEFAULT_MODEL,
-        messages,
-        temperature: 0.6,
-      }),
+      body: JSON.stringify({ model, messages, temperature: 0.6 }),
     })
+    return resp
+  }
+
+  // 主模型：DeepSeek v4 Pro
+  const deepseekKey = env && env.DEEPSEEK_API_KEY
+  if (deepseekKey) {
+    try {
+    const upstream = await callUpstream(DEEPSEEK_BASE_URL, deepseekKey, DEEPSEEK_MODEL)
+    if (upstream.ok) {
+      const text = await upstream.text()
+      return new Response(text, {
+        status: upstream.status,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      })
+    }
+    // DeepSeek 失败，尝试兜底
+    } catch {
+    // DeepSeek 请求异常，尝试兜底
+    }
+  }
+
+  // 兜底：智谱 glm-4-flash
+  const fallbackKey = env && env.AI_API_KEY
+  if (!fallbackKey) return json({ error: 'AI proxy not configured' }, 501)
+
+  const fallbackBaseUrl = String((env && env.AI_BASE_URL) || FALLBACK_BASE_URL)
+  const fallbackModel = (env && env.AI_MODEL) || FALLBACK_MODEL
+
+  try {
+    const upstream = await callUpstream(fallbackBaseUrl, fallbackKey, fallbackModel)
     const text = await upstream.text()
     return new Response(text, {
       status: upstream.status,
