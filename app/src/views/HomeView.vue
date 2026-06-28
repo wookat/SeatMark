@@ -84,20 +84,20 @@ const heroHeight = computed(
 const STEPS = [
   {
     num: 1,
-    title: '选择模板',
-    desc: '按考试场景挑选版式，支持完全自定义设计',
+    title: '选择标签类型',
+    desc: '从座签、桌贴、桌牌、门贴、证卡模板开始，也可自定义',
     icon: 'M4 5h7v7H4zM13 5h7v4h-7zM13 12h7v7h-7zM4 15h7v4H4z',
   },
   {
     num: 2,
-    title: '上传 Excel',
-    desc: '自动识别姓名、考场、准考证号等列',
+    title: '上传 Excel 名单',
+    desc: '自动识别姓名、编号、考场、座位号等常见列',
     icon: 'M12 16V4m0 0L7 9m5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3',
   },
   {
     num: 3,
-    title: '预览并导出',
-    desc: '检查裁切线与页数，下载 PDF 或直接打印',
+    title: '预览并打印',
+    desc: '检查裁切线、页数和排版，下载 PDF 或直接打印',
     icon: 'M12 4v12m0 0 5-5m-5 5-5-5M4 20h16',
   },
 ]
@@ -105,17 +105,17 @@ const STEPS = [
 const FEATURES = [
   {
     title: '数据本地处理',
-    desc: 'Excel 与照片全部在浏览器内解析，不经过任何服务器，敏感考生信息零外泄。',
+    desc: 'Excel 名单与照片全部在浏览器内解析，不经过任何服务器，敏感人员信息零外泄。',
     icon: 'M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3zM9 12l2 2 4-4',
   },
   {
     title: '字段智能映射',
-    desc: '常见表头自动识别匹配，不规范的列名也可以手动指定，30 秒完成配置。',
+    desc: '姓名、座位号、考号、部门、班级等常见表头自动匹配，不规范列名也可手动指定。',
     icon: 'M4 7h9M4 12h16M4 17h12M19.5 5.5 17 8l-1.5-1.5',
   },
   {
     title: '照片批量核验',
-    desc: '支持「姓名+学号」等组合命名，按所选列自动包含匹配，覆盖率实时统计。',
+    desc: '支持「姓名+学号」等组合命名，按所选列自动匹配照片，覆盖率实时统计。',
     icon: 'M4 5h16v14H4zM9 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM20 15l-4.5-4.5L7 19',
   },
   {
@@ -125,7 +125,7 @@ const FEATURES = [
   },
   {
     title: '多纸张打印精度',
-    desc: '支持 A4 / A5 / A3 横竖向，所有尺寸以毫米计算，自带裁切参考线，裁剪不跑偏。',
+    desc: '支持 A4 / A5 / A3 横竖向，尺寸以毫米计算，自带裁切参考线，张贴、摆放、裁剪不跑偏。',
     icon: 'M12 2v4M12 18v4M2 12h4M18 12h4M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
   },
   {
@@ -137,12 +137,12 @@ const FEATURES = [
 
 const FAQS = [
   {
-    q: '除了座位标签还能生成什么？',
-    a: '内置模板覆盖考场座位标签、考场桌贴、考号贴、签到桌牌 / 会议名牌、半页与整页大桌牌、学生证、工作证、胸卡出入证等多种场景；字段、尺寸与排版都可在可视化设计器中自由调整，也能从空白模板自定义。',
+    q: '除了考场座签还能生成什么？',
+    a: '内置模板覆盖考场桌贴、座位号贴、考号贴、门贴门牌、会议桌牌 / 桌签 / 台签 / 席卡、半页与整页大名牌、学生证、工作证、胸卡出入证等多种场景；字段、尺寸与排版都可在可视化设计器中自由调整。',
   },
   {
     q: 'Excel 应该怎么准备？',
-    a: '第一行为表头，建议包含姓名、考场、准考证号、座位号等列。表头越规范，自动匹配越准确；也可以先下载示例文件参考。',
+    a: '第一行为表头，建议包含姓名、考场、座位号、准考证号、班级、学号、部门、工号等列。表头越规范，自动匹配越准确；也可以先下载示例文件参考。',
   },
   {
     q: '数据会上传到服务器吗？',
@@ -203,13 +203,14 @@ const FAQS = [
             <span
               class="bg-gradient-to-r from-brand-600 via-violet-500 to-sky-500 bg-[length:200%_auto] bg-clip-text text-transparent motion-safe:animate-gradient"
             >
-              座位标签 · 考场桌贴 · 桌牌
+              座签 · 桌牌席卡 · 门贴证卡
             </span>
           </h1>
           <p class="mt-4 max-w-lg text-base leading-7 text-slate-600">
-            一站式生成考场座位标签、考场桌贴、考号贴、签到桌牌、学生证 / 工作证、胸卡出入证等。
-            适合考试、比赛签到、入场核验与校园管理场景，导入名单即可输出排版精确到毫米的打印页，
-            支持照片核验、开源字体与完全自定义的标签设计。
+            一站式制作考场座签、课桌桌贴、考号贴、会议桌牌 / 桌签 / 台签 / 席卡、
+            门贴门牌、学生证 / 工作证、胸卡出入证等。适合考试、会议、培训、活动签到、
+            入场核验与校园 / 单位管理场景，导入名单即可输出排版精确到毫米的打印页，
+            支持照片核验、开源字体与自定义模板设计。
           </p>
           <div class="mt-7 flex flex-wrap gap-3">
             <RouterLink
@@ -235,7 +236,7 @@ const FAQS = [
           </div>
           <div class="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-xs font-semibold text-slate-500">
             <span
-              v-for="mark in ['无需安装', '照片批量匹配', 'PDF / 直接打印', 'A4 · A5 · A3']"
+              v-for="mark in ['无需安装', 'Excel 批量导入', 'PDF / 直接打印', 'A4 · A5 · A3']"
               :key="mark"
               class="flex items-center gap-1"
             >
@@ -341,7 +342,7 @@ const FAQS = [
         <h2 class="mt-1 text-2xl font-black tracking-tight text-slate-900">选择适合你的模板</h2>
         <p class="mt-2 text-sm text-slate-500">
           {{ defaultTemplates.length }} 套内置模板覆盖座位标签、考场桌贴、考号贴、桌牌、学生证 /
-          工作证、胸卡出入证等场景，也可以在设计器中从零开始
+          工作证、胸卡出入证、门贴门牌等场景，也可以在设计器中从零开始
         </p>
       </div>
       <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -469,7 +470,7 @@ const FAQS = [
         <div v-reveal class="text-center">
           <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Features</p>
           <h2 class="mt-1 text-2xl font-black tracking-tight text-slate-900">
-            为考务场景打磨的细节
+            为批量制签和打印交付打磨的细节
           </h2>
         </div>
         <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -541,7 +542,7 @@ const FAQS = [
         ></div>
         <div class="relative">
           <h2 class="text-xl font-black text-white">准备好了？</h2>
-          <p class="mt-1 text-sm text-brand-100">选择模板、上传 Excel，几分钟完成全部标签。</p>
+          <p class="mt-1 text-sm text-brand-100">选择模板、上传 Excel，几分钟完成一批座签、门贴或证卡。</p>
         </div>
         <RouterLink
           to="/studio"

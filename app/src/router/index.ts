@@ -7,7 +7,7 @@ export const router = createRouter({
       path: '/',
       name: 'home',
       component: () => import('@/views/HomeView.vue'),
-      meta: { title: '座位标签·考场桌贴·桌牌在线生成 - SeatMark 座签' },
+      meta: { title: '座签·桌牌席卡·门贴证卡批量生成 - SeatMark 座签' },
     },
     {
       path: '/studio',

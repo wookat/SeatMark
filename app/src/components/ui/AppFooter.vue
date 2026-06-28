@@ -6,7 +6,7 @@
       <div class="flex items-center gap-2">
         <span class="font-semibold text-slate-700">SeatMark 座签</span>
         <span class="hidden text-slate-300 sm:inline">·</span>
-        <span>座位标签 · 考场桌贴 · 桌牌在线生成工具</span>
+        <span>座签 · 桌牌席卡 · 门贴证卡批量生成工具</span>
       </div>
       <div class="flex items-center gap-3">
         <div class="flex items-center gap-1.5">
