@@ -74,11 +74,15 @@ export interface PageSpec {
   gapY: number
 }
 
+/** 模板场景分类：考试 / 教学 / 会议活动 / 生活办公 */
+export type TemplateCategory = 'exam' | 'teaching' | 'event' | 'life'
+
 export interface LabelTemplate {
   id: string
   name: string
   description: string
   scenario?: string
+  category?: TemplateCategory
   accent?: string
   builtin?: boolean
   sampleData?: Record<string, string>
