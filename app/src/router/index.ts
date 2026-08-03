@@ -17,7 +17,11 @@ export const router = createRouter({
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
-  scrollBehavior(_to, _from, savedPosition) {
+  scrollBehavior(to, _from, savedPosition) {
+    // 仅落地页锚点走定位滚动；工坊的分享 hash（#t=...）不是选择器，必须排除
+    if (/^#[a-z][\w-]*$/.test(to.hash)) {
+      return { el: to.hash, top: 72, behavior: 'smooth' }
+    }
     return savedPosition ?? { top: 0 }
   },
 })

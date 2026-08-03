@@ -38,7 +38,9 @@ function onPhotoFiles(event: Event) {
 
 <template>
   <section class="panel-card">
-    <h2 class="section-title mb-3"><span class="step-chip">3</span>字段映射</h2>
+    <div class="panel-head">
+      <h2 class="section-title"><span class="step-chip">3</span>字段映射</h2>
+    </div>
 
     <div
       class="rounded-xl border p-3 text-xs leading-5"

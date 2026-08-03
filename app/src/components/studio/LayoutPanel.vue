@@ -98,7 +98,7 @@ function onCenterLayout() {
 
 <template>
   <section class="panel-card">
-    <div class="mb-3 flex items-center justify-between">
+    <div class="panel-head">
       <h2 class="section-title"><span class="step-chip">4</span>页面与版式</h2>
       <button
         type="button"

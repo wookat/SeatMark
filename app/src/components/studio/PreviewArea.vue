@@ -113,7 +113,7 @@ async function onPrint() {
 <template>
   <section class="flex h-full flex-col">
     <div
-      class="no-print flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm"
+      class="no-print sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/80 bg-white/95 px-3 py-2.5 shadow-card backdrop-blur sm:px-4"
     >
       <div class="flex items-center gap-1.5 text-xs">
         <span
@@ -241,12 +241,12 @@ async function onPrint() {
 
     <div
       ref="previewContainer"
-      class="no-print mt-3 flex-1 overflow-auto rounded-2xl border border-slate-200 bg-slate-100/70 p-3"
+      class="no-print mt-3 flex-1 overflow-auto rounded-2xl border border-slate-200/80 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-slate-100/70 bg-[size:16px_16px] p-3 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)]"
     >
       <div v-if="!workspace.excel.rows.length" class="flex h-full items-center justify-center py-12">
         <div class="max-w-xs text-center">
           <div
-            class="mx-auto grid w-44 grid-cols-2 gap-1.5 rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+            class="mx-auto grid w-44 grid-cols-2 gap-1.5 rounded-lg border border-slate-200 bg-white p-3 shadow-card"
           >
             <div
               v-for="n in 8"
@@ -255,9 +255,9 @@ async function onPrint() {
               :style="{ animationDelay: `${n * 80}ms` }"
             ></div>
           </div>
-          <h3 class="mt-4 text-sm font-bold text-slate-700">预览区</h3>
-          <p class="mt-1 text-xs leading-5 text-slate-500">
-            上传 Excel 后，这里将实时显示 A4 打印效果
+          <h3 class="mt-4 text-sm font-bold text-slate-800">还没有名单数据</h3>
+          <p class="mt-1.5 text-xs leading-5 text-slate-500">
+            在左侧「导入数据」上传 Excel 后，这里会实时显示按毫米排版的真实打印效果
           </p>
           <button
             type="button"

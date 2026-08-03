@@ -1,29 +1,120 @@
+<script setup lang="ts">
+/** 页脚分组：法务类为占位（纯静态站点，暂无独立页面，锚到首页对应区块） */
+const GROUPS = [
+  {
+    title: '产品',
+    links: [
+      { label: '标签工坊', to: '/studio' },
+      { label: '模板库', to: '/studio' },
+      { label: '模板设计器', to: '/studio?design=new' },
+      { label: '演示数据体验', to: '/studio?demo=1' },
+    ],
+  },
+  {
+    title: '资源',
+    links: [
+      { label: '使用流程', to: '/#how' },
+      { label: '功能特性', to: '/#features' },
+      { label: '常见问题', to: '/#faq' },
+      { label: '模板一览', to: '/#templates' },
+    ],
+  },
+  {
+    title: '法务',
+    links: [
+      { label: '隐私说明', to: '/#faq' },
+      { label: '数据处理承诺', to: '/#features' },
+      { label: '字体授权说明', to: '/#faq' },
+    ],
+  },
+]
+</script>
+
 <template>
   <footer class="no-print border-t border-slate-200 bg-white">
-    <div
-      class="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-slate-500 sm:flex-row"
-    >
-      <div class="flex items-center gap-2">
-        <span class="font-semibold text-slate-700">SeatMark 座签</span>
-        <span class="hidden text-slate-300 sm:inline">·</span>
-        <span>座签 · 桌牌席卡 · 门贴证卡批量生成工具</span>
-      </div>
-      <div class="flex items-center gap-3">
-        <div class="flex items-center gap-1.5">
-          <svg
-            class="size-3.5 text-emerald-500"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+    <div class="mx-auto w-full max-w-6xl px-4 py-10">
+      <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(3,1fr)]">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <span
+              class="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm"
+            >
+              <svg class="size-4.5" viewBox="0 0 24 24" fill="none">
+                <rect x="4" y="4" width="7" height="7" rx="1.2" fill="currentColor" />
+                <rect
+                  x="13.5"
+                  y="4"
+                  width="6.5"
+                  height="7"
+                  rx="1.2"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                />
+                <rect
+                  x="4"
+                  y="13.5"
+                  width="7"
+                  height="6.5"
+                  rx="1.2"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                />
+                <rect
+                  x="13.5"
+                  y="13.5"
+                  width="6.5"
+                  height="6.5"
+                  rx="1.2"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                />
+              </svg>
+            </span>
+            <span class="text-base font-bold tracking-tight text-slate-900">
+              SeatMark <span class="text-brand-600">座签</span>
+            </span>
+          </div>
+          <p class="mt-3 max-w-xs text-xs leading-5 text-slate-500">
+            考场座签、桌牌席卡、门贴证卡在线批量生成工具。上传 Excel
+            名单即可输出毫米级精确排版的打印页。
+          </p>
+          <p
+            class="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200"
           >
-            <path d="M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3z" />
-          </svg>
-          <span>所有数据仅在浏览器本地处理，不会上传服务器</span>
+            <svg
+              class="size-3.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3z" />
+            </svg>
+            所有数据仅在浏览器本地处理
+          </p>
         </div>
-        <span class="hidden text-slate-300 sm:inline">·</span>
+
+        <div v-for="group in GROUPS" :key="group.title">
+          <h3 class="text-xs font-bold tracking-wide text-slate-900">{{ group.title }}</h3>
+          <ul class="mt-3 space-y-2">
+            <li v-for="link in group.links" :key="link.label">
+              <RouterLink
+                :to="link.to"
+                class="text-xs text-slate-500 transition-colors hover:text-brand-600"
+              >
+                {{ link.label }}
+              </RouterLink>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div
+        class="mt-9 flex flex-col items-center justify-between gap-2 border-t border-slate-200 pt-5 text-xs text-slate-400 sm:flex-row"
+      >
+        <span>© 2026 SeatMark 座签. All rights reserved.</span>
         <a
           href="https://beian.miit.gov.cn"
           target="_blank"
@@ -32,8 +123,6 @@
         >
           湘ICP备2026009844号
         </a>
-        <span class="hidden text-slate-300 sm:inline">·</span>
-        <span>© 2026 SeatMark. All rights reserved.</span>
       </div>
     </div>
   </footer>

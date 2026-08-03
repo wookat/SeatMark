@@ -1094,7 +1094,7 @@ function save(asNew: boolean) {
 <template>
   <div class="no-print fixed inset-0 z-50 flex flex-col bg-slate-50">
     <header
-      class="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 sm:px-4"
+      class="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 shadow-card sm:px-4"
     >
       <div class="flex min-w-0 items-center gap-2 sm:gap-3">
         <!-- 移动端侧栏切换：字段列表 -->
@@ -1508,14 +1508,14 @@ function save(asNew: boolean) {
       <!-- 画布 -->
       <div
         ref="canvasViewport"
-        class="flex-1 overflow-auto"
+        class="flex-1 overflow-auto bg-slate-100/70 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-[size:16px_16px]"
         @pointerdown.self="clearSelection(); isMobile && (mobilePanel = null)"
         @wheel="onCanvasWheel"
       >
         <div class="grid min-h-full w-full place-items-center p-10">
           <div>
             <div
-              class="designer-grid relative border border-slate-300 bg-white shadow-md"
+              class="designer-grid relative border border-slate-300 bg-white shadow-pop"
               :style="stageStyle"
               @pointerdown.self="clearSelection()"
             >
