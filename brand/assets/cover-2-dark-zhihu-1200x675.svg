@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" font-family="'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif"><rect width="1200" height="675" fill="#0f172a"/>
+     <g transform="translate(84,76) scale(1.375)">
+  <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#818cf8" stroke-width="5"/>
+  <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#818cf8" stroke-width="5"/>
+  <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#818cf8" stroke-width="5"/>
+  <rect x="35" y="35" width="23" height="23" rx="6" fill="#818cf8"/>
+  <circle cx="46.5" cy="46.5" r="4.5" fill="#0f172a"/></g>
+     <text x="196" y="136" font-size="46" font-weight="700" fill="#fff">座签 SeatMark</text>
+     <text x="84" y="290" font-size="62" font-weight="700" fill="#fff">名单到座签</text>
+     <text x="84" y="376" font-size="62" font-weight="700" fill="#818cf8">只要 1 分钟</text>
+     <text x="84" y="460" font-size="30" fill="#94a3b8">61 款模板 · 毫米级排版 · 隐私优先</text>
+     <text x="84" y="580" font-size="28" font-weight="600" fill="#818cf8">www.seatmark.cn</text>
+     <g transform="translate(680,150)"><rect width="440" height="380" rx="7.919999999999999" fill="#1e293b"/><rect x="20" y="20" width="93.25" height="107.33333333333333" rx="5.28" fill="#334155"/><rect x="122.25" y="20" width="93.25" height="107.33333333333333" rx="5.28" fill="#334155"/><rect x="224.5" y="20" width="93.25" height="107.33333333333333" rx="5.28" fill="#334155"/><rect x="326.75" y="20" width="93.25" height="107.33333333333333" rx="5.28" fill="#334155"/><rect x="20" y="136.33333333333331" width="93.25" height="107.33333333333333" rx="5.28" fill="#334155"/><rect x="122.25" y="136.33333333333331" width="93.25" height="107.33333333333333" rx="5.28" fill="#334155"/><rect x="224.5" y="136.33333333333331" width="93.25" height="107.33333333333333" rx="5.28" fill="#4f46e5"/><text x="271.125" y="203.29999999999998" text-anchor="middle" font-size="38" font-weight="700" fill="#fff">李四</text><rect x="326.75" y="136.33333333333331" width="93.25" height="107.33333333333333" rx="5.28" fill="#334155"/><rect x="20" y="252.66666666666666" width="93.25" height="107.33333333333333" rx="5.28" fill="#334155"/><rect x="122.25" y="252.66666666666666" width="93.25" height="107.33333333333333" rx="5.28" fill="#334155"/><rect x="224.5" y="252.66666666666666" width="93.25" height="107.33333333333333" rx="5.28" fill="#334155"/><rect x="326.75" y="252.66666666666666" width="93.25" height="107.33333333333333" rx="5.28" fill="#334155"/></g></svg>

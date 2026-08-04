@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="400" viewBox="0 0 500 400" font-family="'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif"><rect width="500" height="400" fill="#eef2ff"/>
+     <g opacity="0.5"><g transform="translate(360,-50) scale(3.75)">
+  <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#e0e7ff" stroke-width="5"/>
+  <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#e0e7ff" stroke-width="5"/>
+  <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#e0e7ff" stroke-width="5"/>
+  <rect x="35" y="35" width="23" height="23" rx="6" fill="#e0e7ff"/>
+  <circle cx="46.5" cy="46.5" r="4.5" fill="#eef2ff"/></g></g>
+     <g transform="translate(40,40) scale(1.125)">
+  <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+  <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+  <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+  <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+  <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></g>
+     <text x="130" y="90" font-size="40" font-weight="700" fill="#0f172a">座签 SeatMark</text>
+     <text x="40" y="188" font-size="30" font-weight="700" fill="#0f172a">上传名单，批量生成座位标签</text>
+     <text x="40" y="238" font-size="21" fill="#475569">61 款模板 · 毫米级排版 · PDF 导出</text>
+     <g transform="translate(40,270)"><rect width="300" height="96" rx="5.3999999999999995" fill="#fff" stroke="#e2e8f0" stroke-width="2"/><rect x="14" y="14" width="63.5" height="18.666666666666668" rx="3.6" fill="#e0e7ff"/><rect x="83.5" y="14" width="63.5" height="18.666666666666668" rx="3.6" fill="#e0e7ff"/><rect x="153" y="14" width="63.5" height="18.666666666666668" rx="3.6" fill="#e0e7ff"/><rect x="222.5" y="14" width="63.5" height="18.666666666666668" rx="3.6" fill="#e0e7ff"/><rect x="14" y="38.66666666666667" width="63.5" height="18.666666666666668" rx="3.6" fill="#e0e7ff"/><rect x="83.5" y="38.66666666666667" width="63.5" height="18.666666666666668" rx="3.6" fill="#e0e7ff"/><rect x="153" y="38.66666666666667" width="63.5" height="18.666666666666668" rx="3.6" fill="#4f46e5"/><text x="184.75" y="51.36000000000001" text-anchor="middle" font-size="9.600000000000001" font-weight="700" fill="#fff">张三</text><rect x="222.5" y="38.66666666666667" width="63.5" height="18.666666666666668" rx="3.6" fill="#e0e7ff"/><rect x="14" y="63.333333333333336" width="63.5" height="18.666666666666668" rx="3.6" fill="#e0e7ff"/><rect x="83.5" y="63.333333333333336" width="63.5" height="18.666666666666668" rx="3.6" fill="#e0e7ff"/><rect x="153" y="63.333333333333336" width="63.5" height="18.666666666666668" rx="3.6" fill="#e0e7ff"/><rect x="222.5" y="63.333333333333336" width="63.5" height="18.666666666666668" rx="3.6" fill="#e0e7ff"/></g>
+     <text x="370" y="326" font-size="17" fill="#64748b">数据本地处理</text>
+     <text x="370" y="356" font-size="17" font-weight="600" fill="#4f46e5">免费无需注册</text></svg>

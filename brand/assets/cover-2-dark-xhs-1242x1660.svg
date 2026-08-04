@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1242" height="1660" viewBox="0 0 1242 1660" font-family="'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif"><rect width="1242" height="1660" fill="#0f172a"/>
+     <g transform="translate(505,170) scale(3.625)">
+  <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#818cf8" stroke-width="5"/>
+  <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#818cf8" stroke-width="5"/>
+  <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#818cf8" stroke-width="5"/>
+  <rect x="35" y="35" width="23" height="23" rx="6" fill="#818cf8"/>
+  <circle cx="46.5" cy="46.5" r="4.5" fill="#0f172a"/></g>
+     <text x="621" y="560" text-anchor="middle" font-size="100" font-weight="700" fill="#fff">名单到座签</text>
+     <text x="621" y="700" text-anchor="middle" font-size="100" font-weight="700" fill="#818cf8">只要 1 分钟</text>
+     <text x="621" y="806" text-anchor="middle" font-size="44" fill="#94a3b8">61 款模板 · 毫米级排版 · 隐私优先</text>
+     <g transform="translate(191,900)"><rect width="860" height="420" rx="15.479999999999999" fill="#1e293b"/><rect x="39" y="39" width="182.75" height="102.66666666666667" rx="10.32" fill="#334155"/><rect x="238.75" y="39" width="182.75" height="102.66666666666667" rx="10.32" fill="#334155"/><rect x="438.5" y="39" width="182.75" height="102.66666666666667" rx="10.32" fill="#334155"/><rect x="638.25" y="39" width="182.75" height="102.66666666666667" rx="10.32" fill="#334155"/><rect x="39" y="158.66666666666669" width="182.75" height="102.66666666666667" rx="10.32" fill="#334155"/><rect x="238.75" y="158.66666666666669" width="182.75" height="102.66666666666667" rx="10.32" fill="#334155"/><rect x="438.5" y="158.66666666666669" width="182.75" height="102.66666666666667" rx="10.32" fill="#4f46e5"/><text x="529.875" y="224.70000000000002" text-anchor="middle" font-size="42" font-weight="700" fill="#fff">李四</text><rect x="638.25" y="158.66666666666669" width="182.75" height="102.66666666666667" rx="10.32" fill="#334155"/><rect x="39" y="278.33333333333337" width="182.75" height="102.66666666666667" rx="10.32" fill="#334155"/><rect x="238.75" y="278.33333333333337" width="182.75" height="102.66666666666667" rx="10.32" fill="#334155"/><rect x="438.5" y="278.33333333333337" width="182.75" height="102.66666666666667" rx="10.32" fill="#334155"/><rect x="638.25" y="278.33333333333337" width="182.75" height="102.66666666666667" rx="10.32" fill="#334155"/></g>
+     <text x="621" y="1450" text-anchor="middle" font-size="40" fill="#94a3b8">数据本地处理 · 免费无需注册</text>
+     <text x="621" y="1530" text-anchor="middle" font-size="38" font-weight="600" fill="#818cf8">www.seatmark.cn</text></svg>

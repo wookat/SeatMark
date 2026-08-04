@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" font-family="'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif"><rect width="1200" height="675" fill="#f8fafc"/>
+     <rect width="1200" height="675" fill="#eef2ff" opacity="0.6"/>
+     <g transform="translate(84,76) scale(1.375)">
+  <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+  <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+  <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+  <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+  <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></g>
+     <text x="196" y="136" font-size="46" font-weight="700" fill="#0f172a">座签 SeatMark</text>
+     <text x="84" y="300" font-size="60" font-weight="700" fill="#0f172a">A4 一页 6 签</text>
+     <text x="84" y="382" font-size="60" font-weight="700" fill="#4f46e5">打印即贴</text>
+     <text x="84" y="466" font-size="30" fill="#475569">桌牌 · 席卡 · 门贴 · 证卡全覆盖</text>
+     <text x="84" y="580" font-size="28" font-weight="600" fill="#4f46e5">www.seatmark.cn</text>
+     <g transform="translate(760,80) rotate(3 180 255)"><rect width="360" height="510" rx="4.32" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+    <line x1="29" y1="15.950000000000001" x2="65" y2="15.950000000000001" stroke="#cbd5e1" stroke-width="2"/>
+    <line x1="295" y1="15.950000000000001" x2="331" y2="15.950000000000001" stroke="#cbd5e1" stroke-width="2"/>
+    <rect x="29" y="29" width="302" height="103.25" rx="3.6" fill="#f8fafc" stroke="#e2e8f0"/>
+      <rect x="43.4" y="59.974999999999994" width="108" height="18.585" rx="9.2925" fill="#cbd5e1"/>
+      <rect x="43.4" y="88.88499999999999" width="72" height="12.389999999999999" rx="6.194999999999999" fill="#cbd5e1"/>
+      <rect x="259" y="49.650000000000006" width="50.400000000000006" height="61.949999999999996" rx="2.88" fill="#e2e8f0" stroke="#cbd5e1"/><rect x="29" y="145.25" width="302" height="103.25" rx="3.6" fill="#e0e7ff" stroke="#e2e8f0"/>
+      <rect x="43.4" y="176.225" width="108" height="18.585" rx="9.2925" fill="#4f46e5"/>
+      <rect x="43.4" y="205.135" width="72" height="12.389999999999999" rx="6.194999999999999" fill="#cbd5e1"/>
+      <rect x="259" y="165.9" width="50.400000000000006" height="61.949999999999996" rx="2.88" fill="#e0e7ff" stroke="#cbd5e1"/><rect x="29" y="261.5" width="302" height="103.25" rx="3.6" fill="#f8fafc" stroke="#e2e8f0"/>
+      <rect x="43.4" y="292.475" width="108" height="18.585" rx="9.2925" fill="#cbd5e1"/>
+      <rect x="43.4" y="321.385" width="72" height="12.389999999999999" rx="6.194999999999999" fill="#cbd5e1"/>
+      <rect x="259" y="282.15" width="50.400000000000006" height="61.949999999999996" rx="2.88" fill="#e2e8f0" stroke="#cbd5e1"/><rect x="29" y="377.75" width="302" height="103.25" rx="3.6" fill="#f8fafc" stroke="#e2e8f0"/>
+      <rect x="43.4" y="408.725" width="108" height="18.585" rx="9.2925" fill="#cbd5e1"/>
+      <rect x="43.4" y="437.635" width="72" height="12.389999999999999" rx="6.194999999999999" fill="#cbd5e1"/>
+      <rect x="259" y="398.4" width="50.400000000000006" height="61.949999999999996" rx="2.88" fill="#e2e8f0" stroke="#cbd5e1"/></g></svg>

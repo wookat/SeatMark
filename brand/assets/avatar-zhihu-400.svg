@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" font-family="'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif">
+    <defs>
+      <linearGradient id="avbg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#4f46e5"/>
+        <stop offset="1" stop-color="#4338ca"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="400" fill="url(#avbg)"/>
+    <g transform="translate(96.875,82.8125) scale(3.22265625)">
+  <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#ffffff" stroke-width="5"/>
+  <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#ffffff" stroke-width="5"/>
+  <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#ffffff" stroke-width="5"/>
+  <rect x="35" y="35" width="23" height="23" rx="6" fill="#ffffff"/>
+  <circle cx="46.5" cy="46.5" r="4.5" fill="#4f46e5"/></g>
+    <text x="200" y="350" text-anchor="middle" font-size="56.25" font-weight="700" fill="#fff" letter-spacing="4.6875">座签</text></svg>

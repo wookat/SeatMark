@@ -69,6 +69,20 @@
 | OG 分享图 | `materials/og-image.svg/.png` | 1200×630 |
 | 名片（正/反） | `materials/business-card.svg/.png` | 90×54mm（1063×638px @300dpi 按比例） |
 
+第二轮物料（`assets/`，SVG+PNG 成对）：
+
+| 物料 | 文件 | 尺寸 |
+|---|---|---|
+| 头像·微信公众号 | `assets/avatar-wechat-mp-500.*` | 500×500 |
+| 头像·知乎 | `assets/avatar-zhihu-400.*` | 400×400 |
+| 头像·小红书 | `assets/avatar-xiaohongshu-1080.*` | 1080×1080 |
+| 头像·抖音 | `assets/avatar-douyin-1080.*` | 1080×1080 |
+| 封面模板 1「浅底网格」 | `assets/cover-1-grid-zhihu-1200x675.*` / `assets/cover-1-grid-xhs-1242x1660.*` | 1200×675 / 1242×1660 |
+| 封面模板 2「暗底数据」 | `assets/cover-2-dark-zhihu-1200x675.*` / `assets/cover-2-dark-xhs-1242x1660.*` | 1200×675 / 1242×1660 |
+| 封面模板 3「纸张场景」 | `assets/cover-3-paper-zhihu-1200x675.*` / `assets/cover-3-paper-xhs-1242x1660.*` | 1200×675 / 1242×1660 |
+| 微信分享卡片 | `assets/wechat-share-card-500x400.*` | 500×400 |
+| PPT 模板封面 | `assets/ppt-cover-1280x720.*` | 1280×720 |
+
 物料统一原则：浅底用 `#eef2ff`→白 的单色浅底或纯白；暗底用 `#0f172a`；主色仅一处强调；文案遵循 DESIGN.md 禁用词表。
 
 ## 6. 目录结构
@@ -78,7 +92,8 @@ brand/
 ├── BRAND.md               # 本规范
 ├── logos/                 # 6 方案 × (mark / mark-mono / lockup-light / lockup-dark)；a-* 为正式版，b–f 为归档备选
 ├── materials/             # 物料模板 SVG + PNG
+├── assets/                # 第二轮物料：头像方阵 / 封面模板×3 / 微信分享卡 / PPT 封面
 ├── prototypes/            # UI/UX 原型（单文件 HTML）+ 各屏 PNG
 ├── preview/               # Logo 对比预览
-└── scripts/generate.mjs   # Logo 资产生成脚本（node brand/scripts/generate.mjs）
+└── scripts/               # generate.mjs（Logo）/ materials.mjs（物料）/ assets.mjs + export-assets.sh（第二轮物料）
 ```

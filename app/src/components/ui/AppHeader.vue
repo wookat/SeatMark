@@ -48,7 +48,7 @@ const SECTIONS = [
       <RouterLink to="/" class="group flex min-w-0 items-center gap-2.5">
         <BrandMark class="size-8 shrink-0 text-brand-600" />
         <span class="truncate text-base font-bold tracking-tight text-slate-900">
-          SeatMark <span class="text-brand-600">座签</span>
+          <span class="hidden sm:inline">SeatMark </span><span class="text-brand-600">座签</span>
         </span>
       </RouterLink>
 
