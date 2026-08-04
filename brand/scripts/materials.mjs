@@ -82,23 +82,54 @@ writeFileSync(
   ),
 )
 
-// —— OG 分享图 1200x630 ——
+// —— OG 分享图 1200x630（v2：强化信息层级 + 场景插画）——
 writeFileSync(
   join(OUT, 'og-image.svg'),
   svg(
     1200,
     630,
-    `<rect width="1200" height="630" fill="${INK}"/>
-     ${markAt(96, 120, 120, '#818cf8', INK)}
-     <text x="250" y="196" font-size="64" font-weight="700" fill="#fff">座签 SeatMark</text>
-     <text x="96" y="330" font-size="40" fill="#cbd5e1">上传 Excel 名单，批量生成可打印的</text>
-     <text x="96" y="392" font-size="40" fill="#cbd5e1">座位标签 · 桌牌席卡 · 门贴证卡</text>
-     <text x="96" y="490" font-size="26" fill="#64748b">排版精确到 0.1mm · 数据本地处理 · 免费无需注册</text>
-     <text x="96" y="560" font-size="26" fill="#818cf8">www.seatmark.cn</text>
-     <g transform="translate(840,150)">
-       <rect width="280" height="330" rx="12" fill="#1e293b"/>
-       ${[0, 1, 2].map((r) => [0, 1].map((c) => `<rect x="${28 + c * 118}" y="${28 + r * 96}" width="106" height="80" rx="6" fill="${r === 1 && c === 1 ? BRAND : '#334155'}"/>`).join('')).join('')}
-       <text x="199" y="172" text-anchor="middle" font-size="24" font-weight="700" fill="#fff">李四</text>
+    `<defs>
+       <linearGradient id="ogbg" x1="0" y1="0" x2="1" y2="1">
+         <stop offset="0" stop-color="#0f172a"/>
+         <stop offset="1" stop-color="#1e1b4b"/>
+       </linearGradient>
+       <linearGradient id="ogglow" x1="0" y1="0" x2="1" y2="0">
+         <stop offset="0" stop-color="${BRAND}" stop-opacity="0.35"/>
+         <stop offset="1" stop-color="${BRAND}" stop-opacity="0"/>
+       </linearGradient>
+     </defs>
+     <rect width="1200" height="630" fill="url(#ogbg)"/>
+     <circle cx="1080" cy="80" r="320" fill="url(#ogglow)"/>
+     <!-- 品牌 Lockup -->
+     ${markAt(80, 68, 64, '#818cf8', '#0f172a', '#818cf8')}
+     <text x="164" y="114" font-size="36" font-weight="700" fill="#fff">座签 <tspan fill="#94a3b8" font-weight="600">SeatMark</tspan></text>
+     <!-- 主标题（信息层级 1）-->
+     <text x="80" y="268" font-size="72" font-weight="700" fill="#fff">上传 Excel 名单</text>
+     <text x="80" y="364" font-size="72" font-weight="700" fill="#818cf8">批量生成座位标签</text>
+     <!-- 副标题（层级 2）-->
+     <text x="80" y="440" font-size="30" fill="#cbd5e1">座签 · 桌牌席卡 · 门贴证卡 · 照片核验</text>
+     <!-- 卖点（层级 3）-->
+     <text x="80" y="502" font-size="24" fill="#64748b">排版精确到 0.1mm · 数据本地处理 · 免费无需注册</text>
+     <!-- 域名 pill -->
+     <rect x="80" y="536" width="290" height="46" rx="23" fill="${BRAND}"/>
+     <text x="225" y="567" text-anchor="middle" font-size="24" font-weight="600" fill="#fff">www.seatmark.cn</text>
+     <!-- 场景插画：倾斜 A4 打印页 + 座位表卡片 -->
+     <g transform="translate(812,96) rotate(4 170 240)">
+       <rect width="340" height="470" rx="10" fill="#f8fafc" stroke="#334155"/>
+       <line x1="24" y1="20" x2="52" y2="20" stroke="#94a3b8" stroke-width="2"/>
+       <line x1="288" y1="20" x2="316" y2="20" stroke="#94a3b8" stroke-width="2"/>
+       ${[0, 1, 2, 3].map((r) => `
+         <rect x="24" y="${38 + r * 108}" width="292" height="92" rx="6" fill="${r === 1 ? '#e0e7ff' : '#fff'}" stroke="#cbd5e1"/>
+         <text x="52" y="${96 + r * 108}" font-size="34" font-weight="700" fill="${r === 1 ? BRAND : '#0f172a'}">${['01', '02', '03', '04'][r]}</text>
+         <rect x="112" y="${62 + r * 108}" width="110" height="16" rx="8" fill="${r === 1 ? BRAND : '#cbd5e1'}"/>
+         <rect x="112" y="${88 + r * 108}" width="70" height="10" rx="5" fill="#cbd5e1"/>
+         <rect x="248" y="${56 + r * 108}" width="48" height="58" rx="4" fill="${r === 1 ? '#c7d2fe' : '#e2e8f0'}" stroke="#cbd5e1"/>`).join('')}
+     </g>
+     <!-- 悬浮座位表小卡 -->
+     <g transform="translate(738,420)">
+       <rect width="200" height="150" rx="12" fill="#1e293b" stroke="#334155"/>
+       ${[0, 1].map((r) => [0, 1, 2].map((c) => `<rect x="${18 + c * 58}" y="${20 + r * 60}" width="50" height="50" rx="6" fill="${r === 1 && c === 1 ? BRAND : '#334155'}"/>`).join('')).join('')}
+       <circle cx="101" cy="105" r="7" fill="#fff"/>
      </g>`,
   ),
 )

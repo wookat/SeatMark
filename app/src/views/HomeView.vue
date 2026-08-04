@@ -194,7 +194,7 @@ const FAQS = [
             class="mt-4 text-3xl leading-tight font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl"
           >
             上传 Excel，批量生成<br />
-            <span class="text-brand-600">座签 · 桌牌席卡 · 门贴证卡</span>
+            <span class="text-brand-600"><span class="whitespace-nowrap">座签</span> · <span class="whitespace-nowrap">桌牌席卡</span> · <span class="whitespace-nowrap">门贴证卡</span></span>
           </h1>
           <p class="mt-4 max-w-lg text-base leading-7 text-slate-600">
             制作考场座签、课桌桌贴、考号贴、会议桌牌 / 桌签 / 台签 / 席卡、
@@ -318,7 +318,7 @@ const FAQS = [
               <p class="text-sm font-bold text-slate-900">
                 <span class="mr-1 text-brand-600">{{ step.num }}.</span>{{ step.title }}
               </p>
-              <p class="mt-0.5 text-xs leading-5 text-slate-500">{{ step.desc }}</p>
+              <p class="mt-0.5 text-xs leading-5 text-pretty text-slate-500">{{ step.desc }}</p>
             </div>
           </div>
           <svg
@@ -511,7 +511,7 @@ const FAQS = [
               </svg>
             </span>
             <h3 class="mt-3 text-sm font-bold text-slate-900">{{ feature.title }}</h3>
-            <p class="mt-1.5 text-xs leading-5 text-slate-500">{{ feature.desc }}</p>
+            <p class="mt-1.5 text-xs leading-5 text-pretty text-slate-500">{{ feature.desc }}</p>
           </div>
         </div>
       </div>
