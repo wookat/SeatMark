@@ -1,0 +1,42 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>原型 · 模板库（桌面）</title><link rel="stylesheet" href="shared.css">
+<style>
+body { background:var(--s50); }
+.head { background:#fff; border-bottom:1px solid var(--s200); padding:36px 32px 0; }
+.head h1 { font-size:26px; } .head p { color:var(--s600); font-size:14px; margin-top:8px; }
+.tabs { display:flex; gap:24px; margin-top:22px; font-size:14px; color:var(--s600); }
+.tabs span { padding-bottom:12px; }
+.tabs .on { color:var(--brand-600); font-weight:600; border-bottom:2px solid var(--brand-600); }
+.grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; padding:28px 32px; }
+.tc { overflow:hidden; }
+.tc .pv { height:130px; background:var(--brand-50); display:flex; align-items:center; justify-content:center; }
+.tc .pv .mini { background:#fff; border:1px solid var(--s200); border-radius:4px; width:150px; padding:14px 10px; text-align:center; }
+.tc .pv .mini b { font-size:15px; display:block; } .tc .pv .mini span { font-size:10px; color:var(--s500); }
+.tc .info { padding:14px 16px; display:flex; justify-content:space-between; align-items:center; }
+.tc .info h3 { font-size:14px; } .tc .info p { font-size:12px; color:var(--s400); margin-top:3px; }
+.use { font-size:13px; color:var(--brand-600); font-weight:500; }
+</style></head><body>
+<nav class="nav">
+  <div class="logo">
+    <svg class="mark" width="34" height="34" viewBox="0 0 64 64"><rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/><rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/><rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/><rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/><circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></svg>
+    <span>座签<small>SeatMark</small></span>
+  </div>
+  <div class="links"><span>功能</span><span style="color:var(--brand-600);font-weight:600">模板库</span><span>使用指南</span><span>常见问题</span></div>
+  <button class="btn btn-primary">打开工坊</button>
+</nav>
+<div class="head">
+  <h1>模板库</h1>
+  <p>15 款内置模板，覆盖考场座签、桌牌席卡、门贴与证卡；全部可在设计器中继续调整。</p>
+  <div class="tabs"><span class="on">全部 15</span><span>考场座签 6</span><span>桌牌席卡 4</span><span>门贴门牌 2</span><span>证卡胸卡 3</span></div>
+</div>
+<div class="grid">
+  <div class="tc card"><div class="pv"><div class="mini"><b>张三</b><span>003 · 一考场 · 第 2 排</span></div></div><div class="info"><div><h3>考场座签 · 标准</h3><p>90 × 54 mm · A4 每页 10 枚</p></div><span class="use">使用</span></div></div>
+  <div class="tc card"><div class="pv"><div class="mini"><b>王雨桐</b><span>准考证号 20260012</span></div></div><div class="info"><div><h3>考号贴 · 紧凑</h3><p>70 × 40 mm · A4 每页 16 枚</p></div><span class="use">使用</span></div></div>
+  <div class="tc card"><div class="pv"><div class="mini" style="width:170px"><b>李文博</b><span>市场部 · 项目评审会</span></div></div><div class="info"><div><h3>会议桌牌 · 横向</h3><p>210 × 99 mm · A4 每页 3 枚</p></div><span class="use">使用</span></div></div>
+  <div class="tc card"><div class="pv"><div class="mini" style="width:110px;padding:18px 10px"><b>刘一帆</b><span>高三 (2) 班</span></div></div><div class="info"><div><h3>课桌桌贴 · 竖向</h3><p>60 × 80 mm · A4 每页 12 枚</p></div><span class="use">使用</span></div></div>
+  <div class="tc card"><div class="pv"><div class="mini"><b>一考场</b><span>101 教室 · 30 人</span></div></div><div class="info"><div><h3>考场门贴</h3><p>190 × 130 mm · A4 每页 2 枚</p></div><span class="use">使用</span></div></div>
+  <div class="tc card"><div class="pv"><div class="mini" style="display:flex;gap:8px;align-items:center;text-align:left"><span style="width:34px;height:42px;background:var(--brand-100);border-radius:2px;flex:none"></span><span><b style="font-size:13px">赵思远</b><span style="display:block">工作证 · 0042</span></span></div></div><div class="info"><div><h3>工作证 · 带照片</h3><p>54 × 85.6 mm · A4 每页 8 枚</p></div><span class="use">使用</span></div></div>
+  <div class="tc card"><div class="pv"><div class="mini"><b>孙悦</b><span>VIP 席 · 第 1 桌</span></div></div><div class="info"><div><h3>席卡 · 宴会</h3><p>100 × 60 mm · A4 每页 8 枚</p></div><span class="use">使用</span></div></div>
+  <div class="tc card"><div class="pv"><div class="mini"><b>周子墨</b><span>008 · 二考场 · 第 4 排</span></div></div><div class="info"><div><h3>考场座签 · 大字</h3><p>120 × 70 mm · A4 每页 6 枚</p></div><span class="use">使用</span></div></div>
+</div>
+</body></html>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1242" height="1660" viewBox="0 0 1242 1660" font-family="'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif"><rect width="1242" height="1660" fill="#eef2ff"/>
+     <g transform="translate(521,220) scale(3.125)">
+  <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+  <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+  <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+  <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+  <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></g>
+     <text x="621" y="560" text-anchor="middle" font-size="110" font-weight="700" fill="#0f172a">考场座签</text>
+     <text x="621" y="700" text-anchor="middle" font-size="110" font-weight="700" fill="#4f46e5">批量生成</text>
+     <text x="621" y="810" text-anchor="middle" font-size="44" fill="#475569">上传 Excel 名单 → 一键排版 → 打印</text>
+     <g transform="translate(171,900)">
+       <rect width="900" height="420" rx="12" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+       <rect x="40" y="40" width="190" height="100" rx="6" fill="#e0e7ff"/><rect x="250" y="40" width="190" height="100" rx="6" fill="#e0e7ff"/><rect x="460" y="40" width="190" height="100" rx="6" fill="#e0e7ff"/><rect x="670" y="40" width="190" height="100" rx="6" fill="#e0e7ff"/><rect x="40" y="160" width="190" height="100" rx="6" fill="#e0e7ff"/><rect x="250" y="160" width="190" height="100" rx="6" fill="#e0e7ff"/><rect x="460" y="160" width="190" height="100" rx="6" fill="#4f46e5"/><rect x="670" y="160" width="190" height="100" rx="6" fill="#e0e7ff"/><rect x="40" y="280" width="190" height="100" rx="6" fill="#e0e7ff"/><rect x="250" y="280" width="190" height="100" rx="6" fill="#e0e7ff"/><rect x="460" y="280" width="190" height="100" rx="6" fill="#e0e7ff"/><rect x="670" y="280" width="190" height="100" rx="6" fill="#e0e7ff"/>
+       <text x="565" y="205" text-anchor="middle" font-size="30" font-weight="700" fill="#fff">张三</text>
+     </g>
+     <text x="621" y="1430" text-anchor="middle" font-size="40" fill="#475569">A4 / A5 / A3 · 照片核验 · PDF 导出</text>
+     <text x="621" y="1510" text-anchor="middle" font-size="36" fill="#94a3b8">数据本地处理 · 免费无需注册 · www.seatmark.cn</text></svg>
