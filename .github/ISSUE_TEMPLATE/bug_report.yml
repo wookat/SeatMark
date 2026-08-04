@@ -1,0 +1,57 @@
+name: Bug 反馈
+description: 报告 SeatMark 座签的功能异常或显示问题
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！请尽量完整填写以下信息，便于我们快速定位问题。
+        安全漏洞请勿在此公开提交，参见仓库的 SECURITY.md。
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 清晰描述遇到的问题
+      placeholder: 例如：导出 PDF 时照片位置偏移……
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开 /studio
+        2. 上传名单 xxx.xlsx
+        3. 点击「导出 PDF」
+        4. 出现……
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: 浏览器与版本
+      placeholder: 例如 Chrome 126 / Safari 17（macOS）
+    validations:
+      required: true
+  - type: dropdown
+    id: device
+    attributes:
+      label: 设备类型
+      options:
+        - 桌面端
+        - 手机
+        - 平板
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: 截图与补充信息
+      description: 请附截图（注意打码名单中的个人信息）、控制台报错等

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 官网在线使用
+    url: https://www.seatmark.cn
+    about: SeatMark 座签在线工具，无需安装即可体验
+  - name: 安全漏洞报告（私密）
+    url: https://github.com/wookat/SeatMark/security/advisories/new
+    about: 安全问题请通过私密渠道报告，不要公开提交 Issue
