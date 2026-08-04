@@ -21,7 +21,7 @@ interface Plan {
   tagline: string
   features: string[]
   highlight: boolean
-  cta: 'signup' | 'pro-coming' | 'team-reserve'
+  cta: 'signup' | 'pro-trial' | 'team-reserve'
 }
 
 const PLANS = computed<Plan[]>(() => [
@@ -32,11 +32,11 @@ const PLANS = computed<Plan[]>(() => [
     badge: null,
     tagline: '个人日常制签',
     features: [
-      `每日 ${QUOTA_ANON_DAILY} 次生成（登录后 ${QUOTA_USER_DAILY} 次）`,
-      '分享链接可额外获得当日次数',
+      '带水印导出 / 打印不限次数（页脚角标，不遮挡内容）',
+      `无水印导出每日 ${QUOTA_ANON_DAILY} 次（登录后 ${QUOTA_USER_DAILY} 次）`,
+      '分享链接每被点开 1 次即得 1 次无水印导出',
       `全部 ${defaultTemplates.length} 款内置模板与设计器`,
-      'Excel 名单批量导入与智能映射',
-      'A4 / A5 / A3 排版、PDF 导出与打印',
+      'Excel 名单批量导入、A4 / A5 / A3 排版',
       '数据全程浏览器本地处理',
     ],
     highlight: false,
@@ -46,17 +46,17 @@ const PLANS = computed<Plan[]>(() => [
     name: '专业版',
     price: '¥29',
     priceUnit: '/月',
-    badge: '即将推出',
+    badge: 'Beta 限时免费试用',
     tagline: '考务与会务重度用户',
     features: [
-      '含免费版全部功能',
-      '更高每日生成配额',
+      'Beta 期间免费试用，注册登录即开通',
+      '更高每日无水印导出次数',
       '照片批量核验与覆盖率统计',
-      '自定义模板云端同步不限量',
+      '自定义模板云端同步与跨设备找回',
       '在线开源字体库与 AI 设计辅助',
     ],
     highlight: false,
-    cta: 'pro-coming',
+    cta: 'pro-trial',
   },
   {
     name: '团队版',
@@ -125,9 +125,9 @@ async function submitReserve() {
         定价方案
       </h1>
       <p class="mx-auto mt-4 max-w-xl text-sm leading-6 text-slate-500">
-        免费版每天可生成 {{ QUOTA_ANON_DAILY }} 次（登录后
-        {{ QUOTA_USER_DAILY }} 次），预览与排版不限次数。
-        专业版即将推出；团队版现已标价，支付开通前可预订登记。
+        带水印导出与打印完全不限次数；无水印导出每天 {{ QUOTA_ANON_DAILY }} 次（登录后
+        {{ QUOTA_USER_DAILY }} 次），分享可再送次数。
+        专业版 Beta 期间限时免费试用；团队版现已标价，支付开通前可预订登记。
       </p>
     </div>
 
@@ -175,16 +175,15 @@ async function submitReserve() {
           :to="auth.user ? '/studio' : '/account'"
           class="btn btn-secondary btn-md mt-6 w-full"
         >
-          {{ auth.user ? '免费开始使用' : '免费领取 Beta 会员' }}
+          免费开始使用
         </RouterLink>
-        <button
-          v-else-if="plan.cta === 'pro-coming'"
-          type="button"
-          class="btn btn-secondary btn-md mt-6 w-full cursor-default opacity-70"
-          disabled
+        <RouterLink
+          v-else-if="plan.cta === 'pro-trial'"
+          :to="auth.user ? '/studio' : '/account'"
+          class="btn btn-secondary btn-md mt-6 w-full"
         >
-          即将推出
-        </button>
+          {{ auth.user ? '试用已开通，进入工坊' : '开始免费试用' }}
+        </RouterLink>
         <button
           v-else
           type="button"
@@ -218,7 +217,7 @@ async function submitReserve() {
     <!-- CTA -->
     <div class="mt-12 text-center">
       <RouterLink :to="auth.user ? '/studio' : '/account'" class="btn btn-primary btn-lg">
-        {{ auth.user ? '进入标签工坊' : '免费领取 Beta 会员' }}
+        {{ auth.user ? '进入标签工坊' : '开始免费试用' }}
         <svg
           class="size-4"
           viewBox="0 0 24 24"

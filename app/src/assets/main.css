@@ -243,6 +243,20 @@
   flex-shrink: 0;
 }
 
+/* 页脚角标水印：位于页边距区域，不遮挡标签内容，打印可见 */
+.sheet-watermark {
+  position: absolute;
+  right: 4mm;
+  bottom: 1.6mm;
+  z-index: 5;
+  font-size: 2.6mm;
+  line-height: 1;
+  letter-spacing: 0.2mm;
+  color: #94a3b8;
+  pointer-events: none;
+  user-select: none;
+}
+
 .sheet-page--screen {
   border-radius: 6px;
   box-shadow:

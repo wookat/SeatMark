@@ -16,7 +16,7 @@ const auth = useAuthStore()
 onMounted(() => {
   void auth.refresh()
 
-  // 分享链接访问上报（?ref=分享码）：服务端 IP+日去重后为分享者赠送次数
+  // 分享链接访问上报（?ref=分享码）：服务端 IP+日去重后为分享者赠送 1 次无水印导出
   const params = new URLSearchParams(window.location.search)
   const ref = params.get('ref')
   if (ref && /^[0-9a-f]{8}$/.test(ref)) {
