@@ -32,7 +32,7 @@ const SIZE_CLASSES: Record<string, string> = {
         @click.self="emit('close')"
       >
         <div
-          class="flex max-h-[88vh] w-full flex-col rounded-2xl bg-white p-6 shadow-2xl"
+          class="flex max-h-[88vh] w-full flex-col rounded-2xl bg-white p-5 shadow-pop ring-1 ring-slate-900/5 sm:p-6"
           :class="SIZE_CLASSES[size]"
         >
           <div class="flex items-start justify-between gap-3">

@@ -26,7 +26,21 @@ const library = useTemplateLibrary()
 const toast = useToastStore()
 
 const isMobile = useIsMobile()
-const mobileTab = ref<'settings' | 'preview'>('settings')
+type MobileTab = 'settings' | 'preview'
+const mobileTab = ref<MobileTab>('settings')
+
+const MOBILE_TABS: { key: MobileTab; label: string; icon: string }[] = [
+  {
+    key: 'settings',
+    label: '设置',
+    icon: 'M4 6h16M4 12h16M4 18h10M9 4v4M15 10v4M11 16v4',
+  },
+  {
+    key: 'preview',
+    label: '预览',
+    icon: 'M5 3h14v18H5zM8 7h8M8 11h8M8 15h5',
+  },
+]
 
 const designerOpen = ref(false)
 const designerTemplate = ref<LabelTemplate | null>(null)
@@ -101,24 +115,35 @@ onMounted(() => {
 
 <template>
   <div class="mx-auto w-full max-w-[1480px] px-4 py-5">
-    <!-- 移动端 Tab 切换 -->
-    <div v-if="isMobile" class="mb-3 flex rounded-xl border border-slate-200 bg-white p-1">
-      <button
-        type="button"
-        class="flex-1 rounded-lg px-3 py-2 text-sm font-bold transition-colors"
-        :class="mobileTab === 'settings' ? 'bg-brand-600 text-white' : 'text-slate-500'"
-        @click="mobileTab = 'settings'"
-      >
-        设置
-      </button>
-      <button
-        type="button"
-        class="flex-1 rounded-lg px-3 py-2 text-sm font-bold transition-colors"
-        :class="mobileTab === 'preview' ? 'bg-brand-600 text-white' : 'text-slate-500'"
-        @click="mobileTab = 'preview'"
-      >
-        预览
-      </button>
+    <!-- 移动端分段切换：跟随页面吸顶，随时在设置与预览之间翻面 -->
+    <div v-if="isMobile" class="sticky top-14 z-30 -mx-4 mb-3 bg-slate-50/90 px-4 py-2 backdrop-blur">
+      <div class="flex rounded-xl border border-slate-200 bg-white p-1 shadow-card">
+        <button
+          v-for="tab in MOBILE_TABS"
+          :key="tab.key"
+          type="button"
+          class="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold transition-colors duration-150"
+          :class="
+            mobileTab === tab.key
+              ? 'bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-sm'
+              : 'text-slate-500 hover:bg-slate-50'
+          "
+          @click="mobileTab = tab.key"
+        >
+          <svg
+            class="size-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path :d="tab.icon" />
+          </svg>
+          {{ tab.label }}
+        </button>
+      </div>
     </div>
 
     <div class="grid items-start gap-5 lg:grid-cols-[400px_minmax(0,1fr)]">

@@ -150,7 +150,7 @@ function confirmDelete() {
 
 <template>
   <section class="panel-card">
-    <div class="mb-3 flex items-center justify-between">
+    <div class="panel-head">
       <h2 class="section-title"><span class="step-chip">1</span>选择模板</h2>
       <div class="flex gap-1.5">
         <button type="button" class="btn btn-ghost btn-sm" @click="importInput?.click()">
