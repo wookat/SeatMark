@@ -8,7 +8,8 @@ import { cutLines, labelPosition } from '@/utils/layout'
 const props = withDefaults(
   defineProps<{
     template: LabelTemplate
-    rows: DataRow[]
+    /** 数据行；null 表示版位留白（裁切分拣排序的尾页占位） */
+    rows: (DataRow | null)[]
     getText: (row: DataRow, fieldId: string) => string
     getPhoto?: (row: DataRow) => string | null
     showCutLines?: boolean
@@ -71,6 +72,7 @@ function textsFor(row: DataRow): Record<string, string> {
     <div v-if="watermark" class="sheet-watermark" aria-hidden="true">SeatMark 座签 · seatmark.cn</div>
     <div v-for="(row, idx) in rows" :key="idx" class="label-box" :style="boxStyle(idx)">
       <LabelCard
+        v-if="row"
         :template="template"
         :texts="textsFor(row)"
         :photo-src="getPhoto ? getPhoto(row) : null"

@@ -2,11 +2,14 @@
 import { computed, nextTick, ref, watch, watchEffect } from 'vue'
 
 import LabelSheet from '@/components/label/LabelSheet.vue'
+import CalibrationDialog from '@/components/studio/CalibrationDialog.vue'
+import DuplexGuideDialog from '@/components/studio/DuplexGuideDialog.vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
 import { useAuthStore } from '@/stores/auth'
+import { useCalibrationStore } from '@/stores/calibration'
 import { useQuotaStore } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -18,15 +21,25 @@ const workspace = useWorkspaceStore()
 const toast = useToastStore()
 const quota = useQuotaStore()
 const auth = useAuthStore()
+const calibrationStore = useCalibrationStore()
 
 const pageWidthPx = computed(() => workspace.template.page.paperWidth * MM_TO_PX)
 const pageHeightPx = computed(() => workspace.template.page.paperHeight * MM_TO_PX)
 const currentPaperLabel = computed(() => paperLabel(workspace.template.page))
 
-/** 浏览器打印的 @page 尺寸跟随模板纸张 */
+/** 浏览器打印的 @page 尺寸跟随模板纸张；校准补偿同步注入打印样式 */
 watchEffect(() => {
-  setPrintPageSize(workspace.template.page.paperWidth, workspace.template.page.paperHeight)
+  setPrintPageSize(
+    workspace.template.page.paperWidth,
+    workspace.template.page.paperHeight,
+    calibrationStore.calibration,
+  )
 })
+
+/** 打印校准向导 */
+const calibrationOpen = ref(false)
+/** 双面/对折打印引导（镜像桌牌模板调起浏览器打印前弹出） */
+const duplexGuideOpen = ref(false)
 
 const previewContainer = ref<HTMLElement | null>(null)
 const { width: containerWidth } = useElementSize(previewContainer)
@@ -99,8 +112,19 @@ async function chooseWatermarked() {
 }
 
 async function runPendingAction() {
-  if (pendingAction.value === 'pdf') await doExportPdf()
-  else await doPrint()
+  if (pendingAction.value === 'pdf') {
+    await doExportPdf()
+  } else if (workspace.hasMirrorFields) {
+    // 对折双联（镜像）桌牌：打印前先弹双面/对折引导
+    duplexGuideOpen.value = true
+  } else {
+    await doPrint()
+  }
+}
+
+async function confirmDuplexPrint() {
+  duplexGuideOpen.value = false
+  await doPrint()
 }
 
 async function doExportPdf() {
@@ -114,6 +138,7 @@ async function doExportPdf() {
       imageFormat: 'png',
       pageWidth: workspace.template.page.paperWidth,
       pageHeight: workspace.template.page.paperHeight,
+      calibration: calibrationStore.active ? calibrationStore.calibration : undefined,
       onProgress: (done, total) => workspace.setLoading(true, `正在渲染第 ${done}/${total} 页...`),
     })
     toast.success(
@@ -228,6 +253,35 @@ async function doPrint() {
           class="text-xs font-semibold text-slate-600"
           label="高亮缺失"
         />
+        <CheckboxField
+          v-if="workspace.totalPages > 1 || workspace.cutStackSort"
+          v-model="workspace.cutStackSort"
+          class="text-xs font-semibold text-slate-600"
+          title="摞优先重排顺序：多页叠齐裁切后，每摞标签天然按考场/座位号连续有序，免人工分拣"
+          label="裁切排序"
+        />
+        <CheckboxField
+          v-if="workspace.hasMirrorFields"
+          v-model="workspace.showMirror"
+          class="text-xs font-semibold text-slate-600"
+          title="桌牌上半区 180° 镜像重复下半区内容，对折后两面都能正读；关闭后只印单面"
+          label="对折双联（镜像）"
+        />
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm"
+          :title="calibrationStore.active ? '打印校准已生效：导出与打印自动应用偏移/缩放补偿' : '打印跑偏、尺寸不准？打印一页标尺校准页，量两下即可全局补偿'"
+          @click="calibrationOpen = true"
+        >
+          <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 17 17 3l4 4L7 21H3v-4zM14 6l4 4M9 11l1.5 1.5M11.5 8.5 13 10" />
+          </svg>
+          打印校准<span
+            v-if="calibrationStore.active"
+            class="ml-0.5 size-1.5 rounded-full bg-emerald-500"
+            aria-label="校准已生效"
+          ></span>
+        </button>
         <button
           type="button"
           class="btn btn-primary btn-sm"
@@ -308,7 +362,7 @@ async function doPrint() {
         >
           <div class="absolute top-0 left-0 origin-top-left" :style="{ transform: `scale(${scale})` }">
             <LabelSheet
-              :template="workspace.template"
+              :template="workspace.renderTemplate"
               :rows="workspace.currentPageRows"
               :get-text="workspace.fieldText"
               :get-photo="workspace.photoFor"
@@ -371,12 +425,20 @@ async function doPrint() {
       </p>
     </ModalDialog>
 
+    <CalibrationDialog :open="calibrationOpen" @close="calibrationOpen = false" />
+
+    <DuplexGuideDialog
+      :open="duplexGuideOpen"
+      @close="duplexGuideOpen = false"
+      @confirm="confirmDuplexPrint"
+    />
+
     <Teleport to="body">
       <div v-if="renderHost" ref="hostRef" class="offscreen-host">
         <LabelSheet
           v-for="(pageRows, i) in workspace.pages"
           :key="i"
-          :template="workspace.template"
+          :template="workspace.renderTemplate"
           :rows="pageRows"
           :get-text="workspace.fieldText"
           :get-photo="workspace.photoFor"
