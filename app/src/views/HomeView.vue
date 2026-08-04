@@ -169,26 +169,13 @@ const FAQS = [
 <template>
   <div>
     <!-- Hero -->
-    <section class="relative overflow-hidden bg-gradient-to-b from-brand-50 via-white to-white">
-      <div
-        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,#c7d2fe66_1px,transparent_1px)] bg-[size:26px_26px] [mask-image:linear-gradient(to_bottom,black,transparent_70%)]"
-      ></div>
-      <!-- 漂移光斑：为 Hero 增加缓慢流动的氛围光 -->
-      <div
-        class="pointer-events-none absolute -top-28 -left-28 size-96 rounded-full bg-brand-300/40 blur-3xl motion-safe:animate-blob"
-      ></div>
-      <div
-        class="pointer-events-none absolute top-1/4 -right-24 size-[28rem] rounded-full bg-sky-300/30 blur-3xl motion-safe:animate-blob-slow"
-      ></div>
-      <div
-        class="pointer-events-none absolute -bottom-24 left-1/3 size-80 rounded-full bg-accent-300/30 blur-3xl motion-safe:animate-blob [animation-delay:-13s]"
-      ></div>
+    <section class="relative overflow-hidden border-b border-slate-200 bg-white">
       <div
         class="relative mx-auto grid w-full max-w-6xl items-center gap-8 px-4 py-10 sm:py-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:py-20"
       >
         <div v-reveal>
           <p
-            class="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-white px-3 py-1 text-xs font-bold text-brand-700 shadow-sm"
+            class="inline-flex items-center gap-1.5 rounded border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600"
           >
             <svg
               class="size-3.5"
@@ -204,25 +191,21 @@ const FAQS = [
             免费 · 无需注册 · 数据不出浏览器
           </p>
           <h1
-            class="mt-4 text-3xl leading-tight font-black tracking-tight text-slate-900 sm:text-4xl lg:text-5xl"
+            class="mt-4 text-3xl leading-tight font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl"
           >
             上传 Excel，批量生成<br />
-            <span
-              class="bg-gradient-to-r from-brand-600 via-accent-500 to-sky-500 bg-[length:200%_auto] bg-clip-text text-transparent motion-safe:animate-gradient"
-            >
-              座签 · 桌牌席卡 · 门贴证卡
-            </span>
+            <span class="text-brand-600">座签 · 桌牌席卡 · 门贴证卡</span>
           </h1>
           <p class="mt-4 max-w-lg text-base leading-7 text-slate-600">
-            一站式制作考场座签、课桌桌贴、考号贴、会议桌牌 / 桌签 / 台签 / 席卡、
-            门贴门牌、学生证 / 工作证、胸卡出入证等。适合考试、会议、培训、活动签到、
-            入场核验与校园 / 单位管理场景，导入名单即可输出排版精确到毫米的打印页，
+            制作考场座签、课桌桌贴、考号贴、会议桌牌 / 桌签 / 台签 / 席卡、
+            门贴门牌、学生证 / 工作证、胸卡出入证。适用于考试、会议、培训、活动签到、
+            入场核验与校园 / 单位管理场景：导入名单即可输出排版精确到毫米的打印页，
             支持照片核验、开源字体与自定义模板设计。
           </p>
           <div class="mt-7 flex flex-wrap gap-3">
             <RouterLink
               to="/studio"
-              class="group btn btn-primary btn-lg w-full shadow-cta transition-shadow hover:shadow-xl hover:shadow-brand-600/35 sm:w-auto"
+              class="group btn btn-primary btn-lg w-full sm:w-auto"
             >
               开始生成标签
               <svg
@@ -267,11 +250,8 @@ const FAQS = [
         <div
           ref="heroPanel"
           v-reveal="150"
-          class="relative mx-auto w-full max-w-md min-w-0 motion-safe:animate-float"
+          class="relative mx-auto w-full max-w-md min-w-0"
         >
-          <div
-            class="absolute -inset-4 rounded-3xl bg-gradient-to-br from-brand-200/60 to-emerald-100/40 blur-2xl"
-          ></div>
           <div
             class="hero-sheet relative max-h-96 overflow-hidden px-4 pt-4 [mask-image:linear-gradient(to_bottom,black_72%,transparent)] sm:max-h-none sm:[mask-image:none]"
             :style="{ height: `${heroHeight}px` }"
@@ -284,12 +264,10 @@ const FAQS = [
                 show-cut-lines
                 screen
               />
-              <!-- 扫描光带：模拟批量生成的打印进度感 -->
-              <div class="hero-scanline motion-reduce:hidden" aria-hidden="true"></div>
             </div>
           </div>
           <p
-            class="absolute right-3 bottom-3 rounded-lg bg-slate-900/85 px-2.5 py-1 text-[11px] font-bold text-white"
+            class="absolute right-3 bottom-3 rounded bg-slate-900/85 px-2.5 py-1 text-[11px] font-semibold text-white"
           >
             A4 实际排版效果 · 24 枚/页
           </p>
@@ -306,7 +284,7 @@ const FAQS = [
           v-reveal="i * 70"
           class="text-center"
         >
-          <p class="text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
+          <p class="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
             {{ stat.value }}
           </p>
           <p class="mt-0.5 text-xs font-semibold text-slate-500">{{ stat.label }}</p>
@@ -322,7 +300,7 @@ const FAQS = [
         <template v-for="(step, i) in STEPS" :key="step.num">
           <div v-reveal="i * 90" class="group flex flex-1 items-start gap-3">
             <span
-              class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition-all duration-200 group-hover:scale-110 group-hover:bg-brand-600 group-hover:text-white"
+              class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600"
             >
               <svg
                 class="size-5"
@@ -375,7 +353,7 @@ const FAQS = [
           :key="t.id"
           v-reveal="(i % 3) * 80"
           :to="`/studio?template=${t.id}`"
-          class="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand-300 hover:shadow-card-hover"
+          class="group relative flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-card transition-[border-color,box-shadow] duration-150 hover:border-brand-300 hover:shadow-card-hover"
         >
           <span
             class="absolute inset-x-0 top-0 z-10 h-0.5 opacity-70"
@@ -384,15 +362,13 @@ const FAQS = [
           <div
             class="relative bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-[size:12px_12px] px-8 pt-7 pb-5"
           >
-            <div
-              class="mx-auto max-w-56 transition-transform duration-300 group-hover:scale-[1.04] group-hover:-rotate-1"
-            >
-              <div class="bg-white shadow-[0_8px_24px_-10px_rgba(15,23,42,0.35)]">
+            <div class="mx-auto max-w-56">
+              <div class="bg-white shadow-card">
                 <TemplateThumb :template="t" />
               </div>
             </div>
             <span
-              class="absolute top-3 right-3 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold text-slate-500 shadow-sm ring-1 ring-slate-200"
+              class="absolute top-3 right-3 rounded bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200"
             >
               {{ t.scenario }}
             </span>
@@ -422,12 +398,12 @@ const FAQS = [
             <p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{{ t.description }}</p>
             <div class="mt-auto flex flex-wrap gap-1.5 pt-3">
               <span
-                class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500"
+                class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500"
               >
                 {{ t.label.width }} × {{ t.label.height }} mm
               </span>
               <span
-                class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500"
+                class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500"
               >
                 {{ t.page.cols * t.page.rows }} 枚 / 页
               </span>
@@ -438,10 +414,10 @@ const FAQS = [
         <RouterLink
           v-reveal="160"
           to="/studio?design=new"
-          class="group flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-6 text-center transition-all duration-200 hover:-translate-y-1 hover:border-brand-400 hover:bg-brand-50/40"
+          class="group flex min-h-64 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/50 p-6 text-center transition-colors duration-150 hover:border-brand-400 hover:bg-brand-50/40"
         >
           <span
-            class="flex size-12 items-center justify-center rounded-2xl bg-white text-slate-400 shadow-sm ring-1 ring-slate-200 transition-colors group-hover:text-brand-600"
+            class="flex size-12 items-center justify-center rounded-lg bg-white text-slate-400 shadow-card ring-1 ring-slate-200 transition-colors group-hover:text-brand-600"
           >
             <svg
               class="size-6"
@@ -517,10 +493,10 @@ const FAQS = [
             v-for="(feature, i) in FEATURES"
             :key="feature.title"
             v-reveal="(i % 3) * 80"
-            class="group rounded-2xl border border-slate-200 bg-slate-50/60 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white hover:shadow-card-hover"
+            class="group rounded-lg border border-slate-200 bg-slate-50/60 p-5 transition-[border-color,background-color,box-shadow] duration-150 hover:border-brand-200 hover:bg-white hover:shadow-card-hover"
           >
             <span
-              class="flex size-9 items-center justify-center rounded-xl bg-white text-brand-600 shadow-sm ring-1 ring-slate-200 transition-all duration-200 group-hover:scale-110 group-hover:-rotate-6 group-hover:bg-brand-600 group-hover:text-white group-hover:ring-brand-600"
+              class="flex size-9 items-center justify-center rounded-lg bg-white text-brand-600 ring-1 ring-slate-200"
             >
               <svg
                 class="size-4.5"
@@ -558,11 +534,11 @@ const FAQS = [
           v-for="(faq, i) in FAQS"
           :key="faq.q"
           v-reveal="(i % 2) * 90"
-          class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card transition-all duration-200 hover:border-brand-200 hover:shadow-card-hover"
+          class="rounded-lg border border-slate-200 bg-white p-5 shadow-card"
         >
           <h3 class="flex items-start gap-2 text-sm font-bold text-slate-900">
             <span
-              class="mt-px flex size-4.5 shrink-0 items-center justify-center rounded-md bg-brand-50 text-[10px] font-black text-brand-600"
+              class="mt-px flex size-4.5 shrink-0 items-center justify-center rounded bg-brand-50 text-[10px] font-bold text-brand-600"
             >
               Q
             </span>
@@ -577,23 +553,17 @@ const FAQS = [
     <section class="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-16">
       <div
         v-reveal
-        class="relative flex flex-col items-center justify-between gap-5 overflow-hidden rounded-3xl bg-gradient-to-r from-brand-600 via-accent-600 to-brand-700 bg-[length:200%_auto] px-6 py-10 text-center shadow-pop motion-safe:animate-gradient sm:flex-row sm:px-10 sm:py-12 sm:text-left"
+        class="relative flex flex-col items-center justify-between gap-5 rounded-lg bg-brand-700 px-6 py-10 text-center sm:flex-row sm:px-10 sm:py-12 sm:text-left"
       >
-        <div
-          class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,#ffffff22_1px,transparent_1px)] bg-[size:18px_18px]"
-        ></div>
-        <div
-          class="pointer-events-none absolute -top-16 -right-10 size-48 rounded-full bg-white/15 blur-2xl motion-safe:animate-blob"
-        ></div>
         <div class="relative">
-          <h2 class="text-xl font-black text-white sm:text-2xl">准备好了？现在就开始</h2>
+          <h2 class="text-xl font-bold text-white sm:text-2xl">开始生成你的标签</h2>
           <p class="mt-1.5 text-sm text-brand-100">
-            选择模板、上传 Excel，几分钟完成一批座签、门贴或证卡 —— 无需注册，数据不出浏览器。
+            选择模板、上传 Excel，几分钟完成一批座签、门贴或证卡。无需注册，数据不出浏览器。
           </p>
         </div>
         <RouterLink
           to="/studio"
-          class="group btn btn-lg relative w-full shrink-0 bg-white text-brand-700 shadow-pop hover:bg-brand-50 sm:w-auto"
+          class="group btn btn-lg relative w-full shrink-0 bg-white text-brand-700 hover:bg-brand-50 sm:w-auto"
         >
           进入标签工坊
           <svg

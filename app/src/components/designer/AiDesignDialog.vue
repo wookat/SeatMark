@@ -143,7 +143,7 @@ async function generate() {
 
       <div>
         <label class="field-label">生成通道</label>
-        <div class="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+        <div class="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1">
           <button
             type="button"
             class="cursor-pointer rounded-lg px-2 py-1.5 text-xs font-bold transition-colors duration-150"
@@ -175,7 +175,7 @@ async function generate() {
           仅发送字段名与示例值，不上传完整名单；高峰期偶尔繁忙，失败可重试或切换「自定义 API」。
         </p>
 
-        <div v-else class="mt-2 grid gap-2 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+        <div v-else class="mt-2 grid gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
           <div>
             <label class="field-label">接口地址 Base URL</label>
             <input

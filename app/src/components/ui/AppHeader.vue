@@ -19,7 +19,7 @@ const SECTIONS = [
     <div class="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4">
       <RouterLink to="/" class="group flex min-w-0 items-center gap-2.5">
         <span
-          class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm ring-1 ring-brand-800/20 transition-transform duration-150 group-hover:scale-105"
+          class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white"
         >
           <svg class="size-4.5" viewBox="0 0 24 24" fill="none">
             <rect x="4" y="4" width="7" height="7" rx="1.2" fill="currentColor" />
@@ -74,7 +74,7 @@ const SECTIONS = [
 
       <nav class="ml-auto flex shrink-0 items-center gap-1.5">
         <span
-          class="hidden items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200 md:inline-flex"
+          class="hidden items-center gap-1 rounded bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200 md:inline-flex"
         >
           <svg
             class="size-3.5"

@@ -87,7 +87,7 @@ onBeforeUnmount(() => {
     >
       <div
         v-if="open"
-        class="absolute right-0 z-30 mt-1.5 w-max max-w-80 min-w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+        class="absolute right-0 z-30 mt-1.5 w-max max-w-80 min-w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-pop"
         role="listbox"
       >
         <div class="max-h-64 overflow-y-auto p-1.5">

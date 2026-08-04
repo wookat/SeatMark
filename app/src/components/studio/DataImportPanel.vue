@@ -176,7 +176,7 @@ async function onDownloadSample() {
 
     <template v-if="!workspace.excel.rows.length">
       <div
-        class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors"
+        class="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed px-4 py-8 text-center transition-colors"
         :class="
           dragging ? 'border-brand-500 bg-brand-50' : 'border-slate-300 bg-slate-50 hover:border-brand-400'
         "
@@ -186,7 +186,7 @@ async function onDownloadSample() {
         @drop="onDrop"
       >
         <span
-          class="rounded-lg bg-emerald-100 px-2 py-1 text-[11px] font-black tracking-wide text-emerald-700"
+          class="rounded-lg bg-emerald-100 px-2 py-1 text-[11px] font-bold tracking-wide text-emerald-700"
         >
           XLSX
         </span>
@@ -201,7 +201,7 @@ async function onDownloadSample() {
     </template>
 
     <template v-else>
-      <div class="flex items-center justify-between rounded-xl bg-slate-50 p-3">
+      <div class="flex items-center justify-between rounded-lg bg-slate-50 p-3">
         <div class="min-w-0">
           <p class="truncate text-sm font-semibold text-slate-800">
             {{ workspace.excel.fileName }}
@@ -423,7 +423,7 @@ async function onDownloadSample() {
       <div
         v-if="filterColumn"
         ref="filterPanel"
-        class="fixed z-[70] w-60 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+        class="fixed z-[70] w-60 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-pop"
         :style="{ left: `${filterPos.x}px`, top: `${filterPos.y}px` }"
       >
         <div class="border-b border-slate-100 p-2">

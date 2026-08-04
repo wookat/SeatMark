@@ -15,7 +15,7 @@ const items = templateDetails
   <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
     <div class="text-center">
       <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Templates</p>
-      <h1 class="mt-1 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+      <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
         标签模板库
       </h1>
       <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">
@@ -30,7 +30,7 @@ const items = templateDetails
         v-for="item in items"
         :key="item.detail.slug"
         :to="`/templates/${item.detail.slug}`"
-        class="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-brand-300 hover:shadow-lg"
+        class="group relative flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-brand-300 hover:shadow-card-hover"
       >
         <span
           class="absolute inset-x-0 top-0 z-10 h-0.5 opacity-70"
@@ -39,13 +39,13 @@ const items = templateDetails
         <div
           class="relative bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-[size:12px_12px] px-8 pt-7 pb-5"
         >
-          <div class="mx-auto max-w-56 transition-transform duration-300 group-hover:scale-[1.04]">
-            <div class="bg-white shadow-[0_8px_24px_-10px_rgba(15,23,42,0.35)]">
+          <div class="mx-auto max-w-56 ">
+            <div class="bg-white shadow-card">
               <TemplateThumb :template="item.template!" />
             </div>
           </div>
           <span
-            class="absolute top-3 right-3 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold text-slate-500 shadow-sm ring-1 ring-slate-200"
+            class="absolute top-3 right-3 rounded bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-500 shadow-sm ring-1 ring-slate-200"
           >
             {{ item.template!.scenario }}
           </span>
@@ -71,7 +71,7 @@ const items = templateDetails
 
     <!-- CTA -->
     <div
-      class="mt-12 flex flex-col items-center justify-between gap-4 rounded-2xl border border-brand-200 bg-brand-50/60 px-6 py-6 text-center sm:flex-row sm:text-left"
+      class="mt-12 flex flex-col items-center justify-between gap-4 rounded-lg border border-brand-200 bg-brand-50/60 px-6 py-6 text-center sm:flex-row sm:text-left"
     >
       <div>
         <h2 class="text-base font-bold text-slate-900">没有完全合适的？</h2>

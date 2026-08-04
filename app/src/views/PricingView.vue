@@ -57,11 +57,11 @@ const PLANS: Plan[] = [
   <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
     <div class="text-center">
       <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Pricing</p>
-      <h1 class="mt-1 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+      <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
         定价方案
       </h1>
       <p
-        class="mx-auto mt-4 inline-flex flex-wrap items-center justify-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-sm font-bold text-emerald-700"
+        class="mx-auto mt-4 inline-flex flex-wrap items-center justify-center gap-1.5 rounded border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-sm font-semibold text-emerald-700"
       >
         <svg
           class="size-4"
@@ -79,7 +79,7 @@ const PLANS: Plan[] = [
       <p class="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-500">
         产品处于 Beta 公测阶段，专业版与团队版的全部功能现在
         <strong class="text-slate-700">无需注册、完全免费</strong>使用。
-        正式定价生效前会提前公告，现在开始使用不吃亏。
+        正式定价生效前会提前公告。
       </p>
     </div>
 
@@ -87,12 +87,12 @@ const PLANS: Plan[] = [
       <div
         v-for="plan in PLANS"
         :key="plan.name"
-        class="relative flex flex-col rounded-2xl border bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+        class="relative flex flex-col rounded-lg border bg-white p-6 shadow-card"
         :class="plan.highlight ? 'border-brand-400 ring-2 ring-brand-500/20' : 'border-slate-200'"
       >
         <span
           v-if="plan.highlight"
-          class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-3 py-0.5 text-[11px] font-bold text-white shadow-sm"
+          class="absolute -top-3 left-1/2 -translate-x-1/2 rounded bg-brand-600 px-3 py-0.5 text-[11px] font-semibold text-white"
         >
           最受欢迎
         </span>
@@ -100,7 +100,7 @@ const PLANS: Plan[] = [
         <p class="mt-0.5 text-xs text-slate-500">{{ plan.tagline }}</p>
 
         <div class="mt-4 flex items-end gap-2">
-          <span class="text-4xl font-black tracking-tight text-slate-900">¥0</span>
+          <span class="text-4xl font-bold tracking-tight text-slate-900">¥0</span>
           <span v-if="plan.originalPrice" class="pb-1 text-sm font-semibold text-slate-400">
             <s>{{ plan.originalPrice }}</s>/月
           </span>
@@ -108,7 +108,7 @@ const PLANS: Plan[] = [
         </div>
         <p
           v-if="plan.originalPrice"
-          class="mt-1 inline-flex w-fit items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700"
+          class="mt-1 inline-flex w-fit items-center gap-1 rounded bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700"
         >
           <svg
             class="size-3"
@@ -158,12 +158,12 @@ const PLANS: Plan[] = [
 
     <!-- FAQ -->
     <section class="mx-auto mt-14 max-w-3xl">
-      <h2 class="text-center text-2xl font-black tracking-tight text-slate-900">定价常见问题</h2>
+      <h2 class="text-center text-2xl font-bold tracking-tight text-slate-900">定价常见问题</h2>
       <div class="mt-6 grid gap-4">
         <div
           v-for="faq in PRICING_FAQS"
           :key="faq.q"
-          class="rounded-2xl border border-slate-200 bg-white p-5"
+          class="rounded-lg border border-slate-200 bg-white p-5"
         >
           <h3 class="text-sm font-bold text-slate-900">{{ faq.q }}</h3>
           <p class="mt-2 text-sm leading-6 text-slate-500">{{ faq.a }}</p>
@@ -173,7 +173,7 @@ const PLANS: Plan[] = [
 
     <!-- CTA -->
     <div class="mt-12 text-center">
-      <RouterLink to="/studio" class="btn btn-primary btn-lg shadow-lg shadow-brand-600/25">
+      <RouterLink to="/studio" class="btn btn-primary btn-lg">
         进入标签工坊，免费开始
         <svg
           class="size-4"
