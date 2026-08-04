@@ -25,7 +25,7 @@ export function autoMapFields(fields: TemplateField[], headers: string[]): Field
   const used = new Set<string>()
 
   for (const field of fields) {
-    if (field.type !== 'text' || field.fixedText != null) continue
+    if (field.type !== 'text' || field.fixedText != null || field.mirrorOf != null) continue
     const patterns = MATCH_PATTERNS[field.id] ?? [field.id, field.label]
     const lowered = patterns.map((p) => String(p).toLowerCase()).filter(Boolean)
 

@@ -152,9 +152,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const textFields = computed<TemplateField[]>(() =>
     template.value.fields.filter((f) => f.type === 'text'),
   )
-  /** 参与 Excel 映射的文本字段（排除固定文本） */
+  /** 参与 Excel 映射的文本字段（排除固定文本与镜像字段） */
   const mappableFields = computed<TemplateField[]>(() =>
-    textFields.value.filter((f) => f.fixedText == null),
+    textFields.value.filter((f) => f.fixedText == null && f.mirrorOf == null),
   )
   const imageFields = computed<TemplateField[]>(() =>
     template.value.fields.filter((f) => f.type === 'image'),
@@ -404,6 +404,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function fieldText(row: DataRow, fieldId: string): string {
     const field = template.value.fields.find((f) => f.id === fieldId)
     if (field?.fixedText != null) return field.fixedText
+    if (field?.mirrorOf != null) return fieldText(row, field.mirrorOf)
     const column = mapping[fieldId]
     return column ? String(row[column] ?? '') : ''
   }
