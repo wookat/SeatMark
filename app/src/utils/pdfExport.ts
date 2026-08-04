@@ -1,3 +1,5 @@
+import type { PrintCalibration } from '@/utils/calibration'
+
 export interface PdfExportOptions {
   /** html2canvas 渲染倍率，4 约等于 384dpi；未指定时按页数自动选取 */
   scale?: number
@@ -8,6 +10,8 @@ export interface PdfExportOptions {
   pageWidth?: number
   /** 页面高度（mm），默认 A4 纵向 */
   pageHeight?: number
+  /** 打印校准补偿（全局偏移 mm + 缩放），未设置时不补偿 */
+  calibration?: PrintCalibration
   onProgress?: (done: number, total: number) => void
 }
 
@@ -61,7 +65,12 @@ export async function exportPagesToPdf(
       imageFormat === 'png'
         ? canvas.toDataURL('image/png')
         : canvas.toDataURL('image/jpeg', 0.96)
-    doc.addImage(imgData, imageFormat === 'png' ? 'PNG' : 'JPEG', 0, 0, pageWidth, pageHeight)
+    const cal = options.calibration
+    const x = cal?.offsetX ?? 0
+    const y = cal?.offsetY ?? 0
+    const w = pageWidth * (cal?.scaleX ?? 1)
+    const h = pageHeight * (cal?.scaleY ?? 1)
+    doc.addImage(imgData, imageFormat === 'png' ? 'PNG' : 'JPEG', x, y, w, h)
     options.onProgress?.(i + 1, pages.length)
   }
 

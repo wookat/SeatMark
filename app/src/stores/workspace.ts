@@ -8,6 +8,7 @@ import { useToastStore } from '@/stores/toast'
 import type { DataRow, FieldMapping, LabelTemplate, TemplateField } from '@/types/template'
 import { autoMapFields } from '@/utils/autoMap'
 import { compareCellText, makeDemoRows, parseExcelFile } from '@/utils/excel'
+import { stackSortRows } from '@/utils/cutSort'
 import { chunkRows, cloneTemplate, labelsPerPage } from '@/utils/layout'
 import { loadPhotoFiles } from '@/utils/photos'
 
@@ -146,6 +147,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const previewPage = ref(1)
   const showCutLines = ref(true)
   const highlightMissing = ref(false)
+  /** 裁切分拣排序（摞优先）：裁切后每摞标签天然连续有序；默认关 */
+  const cutStackSort = ref(false)
+  /** 对折双联（镜像）：桌牌类模板可关闭镜像半区，只印单面内容 */
+  const showMirror = ref(true)
   const loading = reactive({ active: false, text: '' })
 
   // ---------- 派生状态 ----------
@@ -166,9 +171,28 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   )
 
   const perPage = computed(() => labelsPerPage(template.value))
-  const pages = computed<DataRow[][]>(() => chunkRows(displayRows.value, perPage.value))
+  const pages = computed<(DataRow | null)[][]>(() =>
+    cutStackSort.value
+      ? chunkRows(stackSortRows(displayRows.value, perPage.value), perPage.value)
+      : chunkRows<DataRow | null>(displayRows.value, perPage.value),
+  )
   const totalPages = computed(() => pages.value.length)
-  const currentPageRows = computed<DataRow[]>(() => pages.value[previewPage.value - 1] ?? [])
+  const currentPageRows = computed<(DataRow | null)[]>(
+    () => pages.value[previewPage.value - 1] ?? [],
+  )
+
+  /** 当前模板是否含镜像字段（对折双联桌牌，如 V 型折叠桌牌） */
+  const hasMirrorFields = computed(() =>
+    template.value.fields.some((f) => f.mirrorOf != null),
+  )
+
+  /** 预览/导出/打印实际使用的模板：关闭对折双联时去掉镜像半区字段 */
+  const renderTemplate = computed<LabelTemplate>(() => {
+    if (showMirror.value || !hasMirrorFields.value) return template.value
+    const clone = cloneTemplate(template.value)
+    clone.fields = clone.fields.filter((f) => f.mirrorOf == null)
+    return clone
+  })
 
   const mappedCount = computed(() => mappableFields.value.filter((f) => !!mapping[f.id]).length)
   const unmappedFields = computed(() => mappableFields.value.filter((f) => !mapping[f.id]))
@@ -438,6 +462,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     previewPage,
     showCutLines,
     highlightMissing,
+    cutStackSort,
+    showMirror,
+    hasMirrorFields,
+    renderTemplate,
     loading,
     textFields,
     mappableFields,

@@ -1,3 +1,6 @@
+import type { PrintCalibration } from '@/utils/calibration'
+import { isCalibrationActive } from '@/utils/calibration'
+
 import type { PageSpec } from '@/types/template'
 
 export interface PaperPreset {
@@ -42,13 +45,23 @@ const PRINT_STYLE_ID = 'dynamic-print-page-size'
 /**
  * 设置打印 @page 尺寸（浏览器打印走样式表，无法用内联样式控制）。
  * 每次模板纸张变化时调用，保证「打印」输出与所选纸张一致。
+ * 传入校准参数时，对打印页面叠加全局偏移与缩放补偿。
  */
-export function setPrintPageSize(widthMm: number, heightMm: number): void {
+export function setPrintPageSize(
+  widthMm: number,
+  heightMm: number,
+  calibration?: PrintCalibration,
+): void {
   let style = document.getElementById(PRINT_STYLE_ID) as HTMLStyleElement | null
   if (!style) {
     style = document.createElement('style')
     style.id = PRINT_STYLE_ID
     document.head.appendChild(style)
   }
-  style.textContent = `@page { size: ${widthMm}mm ${heightMm}mm; margin: 0; }`
+  let css = `@page { size: ${widthMm}mm ${heightMm}mm; margin: 0; }`
+  if (calibration && isCalibrationActive(calibration)) {
+    const { offsetX, offsetY, scaleX, scaleY } = calibration
+    css += `\n@media print { .offscreen-host .sheet-page { transform: translate(${offsetX}mm, ${offsetY}mm) scale(${scaleX}, ${scaleY}); transform-origin: top left; } }`
+  }
+  style.textContent = css
 }
