@@ -56,11 +56,23 @@ const categoryOptions = computed<{ id: CategoryFilter; name: string; count: numb
   return options.filter((o) => o.count > 0)
 })
 
+const searchQuery = ref('')
+
+function matchesQuery(t: LabelTemplate, query: string): boolean {
+  const haystack = `${t.name} ${t.scenario ?? ''} ${t.description}`.toLowerCase()
+  return haystack.includes(query)
+}
+
 const filteredTemplates = computed<LabelTemplate[]>(() => {
   const all = library.allTemplates
-  if (activeCategory.value === 'all') return all
-  if (activeCategory.value === 'custom') return all.filter((t) => !t.builtin)
-  return all.filter((t) => t.category === activeCategory.value)
+  let list = all
+  if (activeCategory.value === 'custom') list = all.filter((t) => !t.builtin)
+  else if (activeCategory.value !== 'all') {
+    list = all.filter((t) => t.category === activeCategory.value)
+  }
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return list
+  return list.filter((t) => matchesQuery(t, query))
 })
 
 function pickFromModal(t: LabelTemplate) {
@@ -277,7 +289,28 @@ function confirmDelete() {
       size="xl"
       @close="pickerOpen = false"
     >
-      <div class="sticky -top-1 z-10 -mx-1 mb-3 flex flex-wrap gap-1.5 bg-white/95 px-1 py-1.5 backdrop-blur">
+      <div class="sticky -top-1 z-10 -mx-1 mb-3 bg-white/95 px-1 py-1.5 backdrop-blur">
+        <label class="relative mb-2 block">
+          <svg
+            class="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-slate-400"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="7" cy="7" r="4.5" />
+            <path d="m10.5 10.5 3 3" />
+          </svg>
+          <input
+            v-model="searchQuery"
+            type="search"
+            placeholder="搜索模板名称 / 场景，如“桌牌”“幼儿园”"
+            class="w-full rounded-lg border border-slate-200 bg-white py-1.5 pr-3 pl-8 text-xs text-slate-700 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
+          />
+        </label>
+        <div class="flex flex-wrap gap-1.5">
         <button
           v-for="opt in categoryOptions"
           :key="opt.id"
@@ -295,7 +328,11 @@ function confirmDelete() {
             {{ opt.count }}
           </span>
         </button>
+        </div>
       </div>
+      <p v-if="filteredTemplates.length === 0" class="py-8 text-center text-sm text-slate-400">
+        没有匹配的模板，换个关键词试试，或从空白新建模板。
+      </p>
       <div class="columns-1 gap-3 sm:columns-2 lg:columns-3">
         <article
           v-for="t in filteredTemplates"
