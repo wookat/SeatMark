@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, type Directive } from 'vue'
+import { computed, onMounted, ref, type Directive } from 'vue'
 
 import LabelSheet from '@/components/label/LabelSheet.vue'
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
@@ -37,6 +37,43 @@ const vReveal: Directive<HTMLElement, number | undefined> = {
   },
 }
 
+/** 数字滚动计数指令：进入视口时从 0 滚动到目标值，仅对以数字开头的文本生效 */
+const countupObservers = new WeakMap<HTMLElement, IntersectionObserver>()
+const vCountup: Directive<HTMLElement> = {
+  mounted(el) {
+    const original = el.textContent ?? ''
+    const match = /^(\d+(?:\.\d+)?)(.*)$/.exec(original.trim())
+    if (!match || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const target = Number(match[1])
+    const suffix = match[2] ?? ''
+    const decimals = match[1]!.includes('.') ? match[1]!.split('.')[1]!.length : 0
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return
+        io.disconnect()
+        countupObservers.delete(el)
+        const duration = 900
+        const start = performance.now()
+        const tick = (now: number) => {
+          const t = Math.min((now - start) / duration, 1)
+          const eased = 1 - Math.pow(1 - t, 3)
+          el.textContent = `${(target * eased).toFixed(decimals)}${suffix}`
+          if (t < 1) requestAnimationFrame(tick)
+          else el.textContent = original
+        }
+        requestAnimationFrame(tick)
+      },
+      { threshold: 0.4 },
+    )
+    io.observe(el)
+    countupObservers.set(el, io)
+  },
+  unmounted(el) {
+    countupObservers.get(el)?.disconnect()
+    countupObservers.delete(el)
+  },
+}
+
 const heroTemplate = defaultTemplates[0]!
 const heroRows = makeDemoRows(24).rows
 
@@ -64,6 +101,38 @@ const hiddenTemplateCount = computed(() =>
 
 const heroPanel = ref<HTMLElement | null>(null)
 const { width: heroPanelWidth } = useElementSize(heroPanel)
+
+/**
+ * Hero 装配叙事：首屏标签逐张“铺进”打印页（WAAPI，只动 transform/opacity），
+ * 裁切线在标签就位后淡入，呼应“导入名单 → 排版成页”的产品流程。
+ */
+onMounted(() => {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  const host = heroPanel.value
+  if (!host) return
+  const labels = host.querySelectorAll<HTMLElement>('.label-box')
+  labels.forEach((label, i) => {
+    label.animate(
+      [
+        { opacity: 0, transform: 'translateY(10px) scale(0.97)' },
+        { opacity: 1, transform: 'none' },
+      ],
+      {
+        duration: 400,
+        delay: 250 + i * 45,
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+        fill: 'backwards',
+      },
+    )
+  })
+  const cutLayer = host.querySelector<HTMLElement>('.cut-layer')
+  cutLayer?.animate([{ opacity: 0 }, { opacity: 1 }], {
+    duration: 400,
+    delay: 250 + labels.length * 45 + 100,
+    easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    fill: 'backwards',
+  })
+})
 
 /** 预览容器内边距：给纸张投影留出渐隐空间，避免被 overflow 裁出生硬切边 */
 const HERO_PAD_X = 16
@@ -284,7 +353,7 @@ const FAQS = [
           v-reveal="i * 70"
           class="text-center"
         >
-          <p class="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+          <p v-countup class="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
             {{ stat.value }}
           </p>
           <p class="mt-0.5 text-xs font-semibold text-slate-500">{{ stat.label }}</p>
@@ -323,15 +392,16 @@ const FAQS = [
           </div>
           <svg
             v-if="i < STEPS.length - 1"
-            class="hidden size-4 shrink-0 text-slate-300 sm:block"
-            viewBox="0 0 16 16"
+            v-reveal="i * 90 + 120"
+            class="draw-on-reveal hidden h-4 w-10 shrink-0 text-slate-300 sm:block"
+            viewBox="0 0 40 16"
             fill="none"
             stroke="currentColor"
             stroke-width="1.8"
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <path d="m6 4 4 4-4 4" />
+            <path d="M2 8h32m-5-5 5 5-5 5" pathLength="1" />
           </svg>
         </template>
       </div>
@@ -363,7 +433,9 @@ const FAQS = [
             class="relative bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-[size:12px_12px] px-8 pt-7 pb-5"
           >
             <div class="mx-auto max-w-56">
-              <div class="bg-white shadow-card">
+              <div
+                class="bg-white shadow-card transition-transform duration-200 ease-[var(--ease-standard)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+              >
                 <TemplateThumb :template="t" />
               </div>
             </div>

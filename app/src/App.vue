@@ -10,7 +10,11 @@ import ToastHost from '@/components/ui/ToastHost.vue'
   <div class="flex min-h-screen flex-col">
     <AppHeader />
     <main class="flex-1">
-      <RouterView />
+      <RouterView v-slot="{ Component }">
+        <Transition name="page" mode="out-in">
+          <component :is="Component" />
+        </Transition>
+      </RouterView>
     </main>
     <AppFooter />
     <ToastHost />
