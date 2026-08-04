@@ -74,8 +74,8 @@ export interface PageSpec {
   gapY: number
 }
 
-/** 模板场景分类：考试 / 教学 / 会议活动 / 生活办公 */
-export type TemplateCategory = 'exam' | 'teaching' | 'event' | 'life'
+/** 模板场景分类：考试 / 教学 / 幼儿教育 / 会议活动 / 婚庆喜宴 / 生活办公 */
+export type TemplateCategory = 'exam' | 'teaching' | 'kids' | 'event' | 'wedding' | 'life'
 
 export interface LabelTemplate {
   id: string

@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
-import { defaultTemplates } from '@/data/defaultTemplates'
+import { defaultTemplates, TEMPLATE_CATEGORIES } from '@/data/defaultTemplates'
 import { templateDetails } from '@/data/templateDetails'
+import type { TemplateCategory } from '@/types/template'
 
 const items = templateDetails
   .map((detail) => ({
@@ -9,6 +12,32 @@ const items = templateDetails
     template: defaultTemplates.find((t) => t.id === detail.slug),
   }))
   .filter((item) => !!item.template)
+
+type CategoryFilter = TemplateCategory | 'all'
+const activeCategory = ref<CategoryFilter>('all')
+const searchQuery = ref('')
+
+const categoryOptions = computed<{ id: CategoryFilter; name: string; count: number }[]>(() => [
+  { id: 'all', name: '全部', count: items.length },
+  ...TEMPLATE_CATEGORIES.map((c) => ({
+    id: c.id as CategoryFilter,
+    name: c.name,
+    count: items.filter((item) => item.template!.category === c.id).length,
+  })).filter((o) => o.count > 0),
+])
+
+const filteredItems = computed(() => {
+  let list = items
+  if (activeCategory.value !== 'all') {
+    list = list.filter((item) => item.template!.category === activeCategory.value)
+  }
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return list
+  return list.filter((item) => {
+    const t = item.template!
+    return `${t.name} ${t.scenario ?? ''} ${t.description}`.toLowerCase().includes(query)
+  })
+})
 </script>
 
 <template>
@@ -25,9 +54,55 @@ const items = templateDetails
       </p>
     </div>
 
-    <div class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="mt-8 flex flex-col items-center gap-3">
+      <label class="relative block w-full max-w-md">
+        <svg
+          class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="7" cy="7" r="4.5" />
+          <path d="m10.5 10.5 3 3" />
+        </svg>
+        <input
+          v-model="searchQuery"
+          type="search"
+          placeholder="搜索模板名称 / 场景，如“桌牌”“幼儿园”“胸卡”"
+          class="w-full rounded-lg border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm text-slate-700 shadow-sm placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
+        />
+      </label>
+      <div class="flex flex-wrap justify-center gap-1.5">
+        <button
+          v-for="opt in categoryOptions"
+          :key="opt.id"
+          type="button"
+          class="cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors duration-150"
+          :class="
+            activeCategory === opt.id
+              ? 'border-brand-500 bg-brand-600 text-white shadow-sm'
+              : 'border-slate-200 bg-white text-slate-500 hover:border-brand-300 hover:text-brand-600'
+          "
+          @click="activeCategory = opt.id"
+        >
+          {{ opt.name }}
+          <span :class="activeCategory === opt.id ? 'text-brand-100' : 'text-slate-400'">
+            {{ opt.count }}
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <p v-if="filteredItems.length === 0" class="mt-12 text-center text-sm text-slate-400">
+      没有匹配的模板，换个关键词试试，或从空白新建模板。
+    </p>
+
+    <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       <RouterLink
-        v-for="item in items"
+        v-for="item in filteredItems"
         :key="item.detail.slug"
         :to="`/templates/${item.detail.slug}`"
         class="group relative flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-brand-300 hover:shadow-card-hover"
