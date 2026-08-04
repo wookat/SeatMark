@@ -416,6 +416,28 @@ export async function onRequest(context) {
     return json({ ok: true }, 200, { ...storageHeader, 'Set-Cookie': sessionCookie('', 0) })
   }
 
+  // ----- 账号注销（删除与账号关联的全部个人信息） -----
+  if (path === '/api/account/delete' && method === 'POST') {
+    const email = await currentUserEmail(request, env)
+    if (!email) return json({ error: '请先登录' }, 401, storageHeader)
+    const shareCode = await kv.get(`share:owner:${email}`)
+    await kv.delete(`user:${email}`)
+    await kv.delete(`tpl:${email}`)
+    if (shareCode) {
+      await kv.delete(`share:owner:${email}`)
+      await kv.delete(`share:code:${shareCode}`)
+    }
+    try {
+      const usage = await kv.list({ prefix: `usage:${email}:`, limit: 64 })
+      for (const { name } of usage.keys || []) await kv.delete(name)
+      const bonus = await kv.list({ prefix: `bonus:${email}:`, limit: 64 })
+      for (const { name } of bonus.keys || []) await kv.delete(name)
+    } catch {
+      // 计数键按日过期，删除失败不阻塞注销
+    }
+    return json({ ok: true }, 200, { ...storageHeader, 'Set-Cookie': sessionCookie('', 0) })
+  }
+
   // ----- 云端模板 -----
   if (path === '/api/account/templates') {
     const email = await currentUserEmail(request, env)
@@ -458,7 +480,7 @@ export async function onRequest(context) {
         storageHeader,
       )
     }
-    return json({ error: 'Method Not Allowed' }, 405, storageHeader)
+    return json({ error: '请求方法不支持' }, 405, storageHeader)
   }
 
   // ----- 配额 -----
@@ -703,9 +725,9 @@ export async function onRequest(context) {
         await kv.put('announcement', JSON.stringify(announcement))
         return json({ ok: true, announcement }, 200, storageHeader)
       }
-      return json({ error: 'Method Not Allowed' }, 405, storageHeader)
+      return json({ error: '请求方法不支持' }, 405, storageHeader)
     }
   }
 
-  return json({ error: 'Not Found' }, 404, storageHeader)
+  return json({ error: '接口不存在' }, 404, storageHeader)
 }

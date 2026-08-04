@@ -11,9 +11,21 @@ const content = ref('')
 const contact = ref('')
 
 const TYPE_OPTIONS = [
-  { value: 'suggestion' as const, label: '功能建议', icon: '💡' },
-  { value: 'bug' as const, label: '问题反馈', icon: '🐛' },
-  { value: 'other' as const, label: '其他', icon: '💬' },
+  {
+    value: 'suggestion' as const,
+    label: '功能建议',
+    icon: 'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z',
+  },
+  {
+    value: 'bug' as const,
+    label: '问题反馈',
+    icon: 'M12 20a6 6 0 0 0 6-6v-2a6 6 0 1 0-12 0v2a6 6 0 0 0 6 6zM12 20v-8M6 13H3M21 13h-3M6.5 8 4 6M17.5 8 20 6M9 6a3 3 0 0 1 6 0',
+  },
+  {
+    value: 'other' as const,
+    label: '其他',
+    icon: 'M21 12a8 8 0 0 1-11.6 7.1L4 20l1-5.1A8 8 0 1 1 21 12z',
+  },
 ]
 
 function reset() {
@@ -130,7 +142,18 @@ async function submit() {
                     : 'border-slate-200 text-slate-500 hover:border-slate-300'"
                   @click="type = opt.value"
                 >
-                  <span>{{ opt.icon }}</span>
+                  <svg
+                    class="size-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path :d="opt.icon" />
+                  </svg>
                   <span>{{ opt.label }}</span>
                 </button>
               </div>

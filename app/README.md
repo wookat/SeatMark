@@ -32,7 +32,7 @@ npm run preview  # 本地预览构建产物
 src/
 ├── types/template.ts        # 模板 / 字段 / 页面规格类型（单位 mm）
 ├── data/
-│   ├── defaultTemplates.ts  # 内置模板（33 款：座签 / 桌牌 / 席卡 / 门贴 / 证卡等场景，支持分类筛选）
+│   ├── defaultTemplates.ts  # 内置模板（61 款：座签 / 桌牌 / 席卡 / 门贴 / 证卡等场景，支持分类筛选）
 │   └── fonts.ts             # 字体目录（系统本地 + 在线开源；中英文栈合并）
 ├── utils/
 │   ├── layout.ts            # mm 几何计算：标签定位、裁切线、溢出检测、居中

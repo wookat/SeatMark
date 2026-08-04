@@ -5,12 +5,14 @@
  * 请求体：{ type: 'bug'|'suggestion'|'other', content: string, contact?: string }
  *
  * 环境变量（EdgeOne Pages 控制台配置）：
- * - FEEDBACK_WEBHOOK  可选，飞书/钉钉/企业微信机器人 webhook URL
+ * - FEEDBACK_WEBHOOK  可选，飞书/钉钉/企业微信机器人 webhook URL（必须通过环境变量配置，禁止硬编码）
  *   配置后反馈会推送到对应群聊；未配置时仅返回成功（反馈丢弃但不报错）
  *
  * KV 绑定（变量名 seatmark_kv，可选）：绑定后反馈同时存档到 KV（fb: 前缀），
  * 供管理端 /api/admin/feedback 查看；未绑定时仅走 webhook 推送。
  */
+
+const FEEDBACK_IP_DAILY_LIMIT = 10
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -23,13 +25,13 @@ export async function onRequest(context) {
   const { request, env } = context
 
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 })
-  if (request.method !== 'POST') return json({ error: 'Method Not Allowed' }, 405)
+  if (request.method !== 'POST') return json({ error: '请求方法不支持' }, 405)
 
   let payload
   try {
     payload = await request.json()
   } catch {
-    return json({ error: 'Invalid JSON body' }, 400)
+    return json({ error: '请求体格式错误' }, 400)
   }
 
   const type = payload && typeof payload.type === 'string' ? payload.type : ''
@@ -37,15 +39,37 @@ export async function onRequest(context) {
   const contact = payload && typeof payload.contact === 'string' ? payload.contact.trim() : ''
 
   const validTypes = ['bug', 'suggestion', 'other']
-  if (!validTypes.includes(type)) return json({ error: 'Invalid feedback type' }, 400)
-  if (!content || content.length > 2000) return json({ error: 'Content required (max 2000 chars)' }, 400)
-  if (contact.length > 200) return json({ error: 'Contact too long' }, 400)
+  if (!validTypes.includes(type)) return json({ error: '反馈类型无效' }, 400)
+  if (!content || content.length > 2000) return json({ error: '请填写反馈内容（不超过 2000 字）' }, 400)
+  if (contact.length > 200) return json({ error: '联系方式过长' }, 400)
+
+  const kv =
+    (env && env.seatmark_kv) ||
+    (typeof globalThis !== 'undefined' ? globalThis.seatmark_kv : undefined)
+
+  // 防滥用：同一 IP 每日限量（IP 经单向哈希后仅用作限频计数）
+  try {
+    if (kv && typeof kv.get === 'function') {
+      const ip =
+        request.headers.get('EO-Connecting-IP') ||
+        request.headers.get('X-Forwarded-For') ||
+        'unknown'
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip))
+      const ipHash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
+      const day = new Date().toISOString().slice(0, 10)
+      const rlKey = `rl:fb:${ipHash}:${day}`
+      const count = Number((await kv.get(rlKey)) || 0)
+      if (count >= FEEDBACK_IP_DAILY_LIMIT) {
+        return json({ error: '今日反馈次数已达上限，请明天再试' }, 429)
+      }
+      await kv.put(rlKey, String(count + 1))
+    }
+  } catch {
+    // 限频失败不阻塞提交
+  }
 
   // KV 存档（供管理端查看），失败不阻塞
   try {
-    const kv =
-      (env && env.seatmark_kv) ||
-      (typeof globalThis !== 'undefined' ? globalThis.seatmark_kv : undefined)
     if (kv && typeof kv.put === 'function') {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
       await kv.put(
@@ -63,9 +87,9 @@ export async function onRequest(context) {
     // 存档失败静默忽略
   }
 
-  const webhook = (env && env.FEEDBACK_WEBHOOK) || 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=f987cae8-5740-41a8-9492-f11325d894e1'
+  const webhook = (env && env.FEEDBACK_WEBHOOK) || ''
   if (webhook) {
-    const typeLabel = { bug: '🐛 Bug', suggestion: '💡 建议', other: '💬 其他' }[type]
+    const typeLabel = { bug: '问题', suggestion: '建议', other: '其他' }[type]
     const text = [
       `【用户反馈】${typeLabel}`,
       `内容：${content}`,

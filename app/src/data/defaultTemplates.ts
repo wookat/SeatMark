@@ -5388,7 +5388,7 @@ export const defaultTemplates: LabelTemplate[] = [
     id: 'kidsAnimal',
     name: '入园姓名贴·萌趣款',
     category: 'kids',
-    description: '3 列 × 7 行圆角卡片，粉色描边配「小小新朋友」引导语，入园季萌趣首选。',
+    description: '3 列 × 7 行圆角卡片，粉色描边配「小小新朋友」引导语，适合幼儿园入园季使用。',
     scenario: '幼儿园 / 入园贴',
     accent: '#ec4899',
     builtin: true,
