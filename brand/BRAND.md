@@ -1,7 +1,8 @@
 # SeatMark 座签 · 品牌视觉规范
 
 > 本规范与 `app/DESIGN.md` 的 UI 设计规范衔接：DESIGN.md 管产品界面，本文件管品牌标识与对外物料。
-> 推荐 Logo：方案 A「座位格」（`logos/a-seatgrid-*`），其余方案为备选（见 `preview/logo-comparison.png`）。
+> **正式 Logo：方案 A「座位格」（`logos/a-seatgrid-*`），已拍板采用并全站落地**（favicon / Header / Footer / PWA 图标 / OG 分享图）。
+> 方案 B–F 为历史备选，仅作归档保留（见 `preview/logo-comparison.png`），不再用于任何新物料。
 
 ## 1. 品牌个性关键词
 
@@ -75,7 +76,7 @@
 ```
 brand/
 ├── BRAND.md               # 本规范
-├── logos/                 # 6 方案 × (mark / mark-mono / lockup-light / lockup-dark)
+├── logos/                 # 6 方案 × (mark / mark-mono / lockup-light / lockup-dark)；a-* 为正式版，b–f 为归档备选
 ├── materials/             # 物料模板 SVG + PNG
 ├── prototypes/            # UI/UX 原型（单文件 HTML）+ 各屏 PNG
 ├── preview/               # Logo 对比预览

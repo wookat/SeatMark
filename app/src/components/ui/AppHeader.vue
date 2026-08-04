@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import BrandMark from '@/components/ui/BrandMark.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -45,40 +46,7 @@ const SECTIONS = [
   >
     <div class="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4">
       <RouterLink to="/" class="group flex min-w-0 items-center gap-2.5">
-        <span
-          class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white"
-        >
-          <svg class="size-4.5" viewBox="0 0 24 24" fill="none">
-            <rect x="4" y="4" width="7" height="7" rx="1.2" fill="currentColor" />
-            <rect
-              x="13.5"
-              y="4"
-              width="6.5"
-              height="7"
-              rx="1.2"
-              stroke="currentColor"
-              stroke-width="1.6"
-            />
-            <rect
-              x="4"
-              y="13.5"
-              width="7"
-              height="6.5"
-              rx="1.2"
-              stroke="currentColor"
-              stroke-width="1.6"
-            />
-            <rect
-              x="13.5"
-              y="13.5"
-              width="6.5"
-              height="6.5"
-              rx="1.2"
-              stroke="currentColor"
-              stroke-width="1.6"
-            />
-          </svg>
-        </span>
+        <BrandMark class="size-8 shrink-0 text-brand-600" />
         <span class="truncate text-base font-bold tracking-tight text-slate-900">
           SeatMark <span class="text-brand-600">座签</span>
         </span>

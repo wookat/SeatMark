@@ -24,7 +24,9 @@ export function applySeo(path: string): void {
   setMeta('property', 'og:title', seo.title)
   setMeta('property', 'og:description', seo.description)
   setMeta('property', 'og:url', `${SITE_ORIGIN}${seo.path}`)
+  setMeta('property', 'og:image', `${SITE_ORIGIN}/og-image.png`)
   setMeta('name', 'twitter:title', seo.title)
+  setMeta('name', 'twitter:image', `${SITE_ORIGIN}/og-image.png`)
   setMeta('name', 'twitter:description', seo.description)
 
   let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')
