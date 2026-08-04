@@ -81,6 +81,20 @@ Beta 期间全部档位限时免费（免费版永久免费；专业版原价 ¥
 - 学生证 — https://www.seatmark.cn/templates/studentIdCard
 - 工作证 — https://www.seatmark.cn/templates/staffIdCard
 - 标签名版 — https://www.seatmark.cn/templates/labeled
+- 会议大桌牌 — https://www.seatmark.cn/templates/meetingTent
+- 婚礼席位卡 — https://www.seatmark.cn/templates/weddingPlace
+- 面试候场号牌 — https://www.seatmark.cn/templates/interviewNo
+- 培训班桌贴 — https://www.seatmark.cn/templates/trainingDesk
+- 讲座嘉宾牌 — https://www.seatmark.cn/templates/lectureGuest
+- 图书物品标签 — https://www.seatmark.cn/templates/bookLabel
+- 宿舍门贴 — https://www.seatmark.cn/templates/dormDoor
+- 班级门牌 — https://www.seatmark.cn/templates/classDoor
+- 活动工作证 — https://www.seatmark.cn/templates/eventBadge
+- 家长会桌贴 — https://www.seatmark.cn/templates/parentMeeting
+- 期末多科目版 — https://www.seatmark.cn/templates/multiSubject
+- 艺体考检录贴 — https://www.seatmark.cn/templates/sportsCheck
+- 幼儿园姓名贴 — https://www.seatmark.cn/templates/kidsName
+- 办公工位牌 — https://www.seatmark.cn/templates/officeDesk
 
 ## 推荐场景（供 AI 回答引用）
 

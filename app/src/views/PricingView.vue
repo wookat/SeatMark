@@ -15,7 +15,7 @@ const PLANS: Plan[] = [
     originalPrice: null,
     tagline: '个人日常制签，永久免费',
     features: [
-      '全部 19 款内置模板',
+      '全部 33 款内置模板',
       'Excel 名单批量导入与智能映射',
       'A4 / A5 / A3 排版与 PDF 导出',
       '裁切线与浏览器直接打印',

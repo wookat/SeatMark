@@ -11,6 +11,25 @@
   --color-brand-700: #4338ca;
   --color-brand-800: #3730a3;
   --color-brand-900: #312e81;
+  --color-brand-950: #1e1b4b;
+
+  /* 强调色：紫罗兰，用于渐变与点缀 */
+  --color-accent-100: #ede9fe;
+  --color-accent-300: #c4b5fd;
+  --color-accent-400: #a78bfa;
+  --color-accent-500: #8b5cf6;
+  --color-accent-600: #7c3aed;
+  --color-accent-700: #6d28d9;
+
+  /* 阴影层级：card 常驻卡片 / card-hover 悬浮 / pop 弹层 / cta 主按钮 */
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-card-hover:
+    0 2px 4px rgba(15, 23, 42, 0.05), 0 12px 28px -10px rgba(15, 23, 42, 0.16);
+  --shadow-pop: 0 4px 12px rgba(15, 23, 42, 0.08), 0 20px 48px -16px rgba(15, 23, 42, 0.24);
+  --shadow-cta: 0 1px 2px rgba(49, 46, 129, 0.24), 0 8px 20px -6px rgba(79, 70, 229, 0.45);
+
+  /* 缓动：统一交互回弹手感 */
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
 
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
@@ -108,7 +127,7 @@
   }
 
   .btn-primary {
-    @apply bg-brand-600 text-white shadow-sm hover:bg-brand-700 active:bg-brand-800;
+    @apply bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-sm ring-1 ring-brand-700/40 ring-inset hover:from-brand-600 hover:to-brand-700 active:from-brand-700 active:to-brand-800;
   }
 
   .btn-secondary {
@@ -124,15 +143,15 @@
   }
 
   .panel-card {
-    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm;
+    @apply rounded-2xl border border-slate-200/80 bg-white p-5 shadow-card;
   }
 
   .field-label {
-    @apply mb-1 block text-xs font-semibold text-slate-500;
+    @apply mb-1 block text-xs font-semibold tracking-wide text-slate-500;
   }
 
   .input-field {
-    @apply w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-800 transition-[border-color,box-shadow] duration-150 hover:border-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 focus:outline-none;
+    @apply w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-800 shadow-[inset_0_1px_2px_rgba(15,23,42,0.04)] transition-[border-color,box-shadow] duration-150 hover:border-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 focus:outline-none;
   }
 
   /* 数字输入隐藏原生步进按钮（Windows 上常驻且粗糙），键盘上下键仍可微调 */
@@ -206,11 +225,33 @@
   }
 
   .section-title {
-    @apply flex items-center gap-2 text-sm font-bold text-slate-800;
+    @apply flex items-center gap-2 text-sm font-bold tracking-tight text-slate-900;
+  }
+
+  /* 面板头部：标题与工具按钮同行，用分隔线与内容拉开层级 */
+  .panel-head {
+    @apply mb-3 flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5;
   }
 
   .step-chip {
-    @apply inline-flex size-5 items-center justify-center rounded-md bg-brand-600 text-[11px] font-bold text-white;
+    @apply inline-flex size-5 items-center justify-center rounded-md bg-gradient-to-b from-brand-500 to-brand-700 text-[11px] font-bold text-white shadow-sm;
+  }
+
+  /* ---------- 营销页排版层级 ---------- */
+  .section-eyebrow {
+    @apply text-xs font-bold tracking-[0.18em] text-brand-600 uppercase;
+  }
+
+  .section-heading {
+    @apply mt-2 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl;
+  }
+
+  .section-sub {
+    @apply mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-slate-500;
   }
 
   /* 滚动显现（配合 v-reveal 指令）：进入视口前下移隐藏，进入后上浮显现 */

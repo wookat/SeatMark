@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { guides } from '@/data/guides'
 
-const NAV_GROUPS = [
+const GROUPS = [
   {
     title: '产品',
     links: [
       { label: '标签工坊', to: '/studio' },
       { label: '模板库', to: '/templates' },
       { label: '定价（Beta 免费）', to: '/pricing' },
+      { label: '模板设计器', to: '/studio?design=new' },
+      { label: '演示数据体验', to: '/studio?demo=1' },
     ],
   },
   {
@@ -17,22 +19,71 @@ const NAV_GROUPS = [
       ...guides.slice(0, 4).map((g) => ({ label: g.title, to: `/guides/${g.slug}` })),
     ],
   },
+  {
+    title: '资源',
+    links: [
+      { label: '使用流程', to: '/#how' },
+      { label: '功能特性', to: '/#features' },
+      { label: '常见问题', to: '/#faq' },
+      { label: '隐私说明', to: '/#faq' },
+    ],
+  },
 ]
 </script>
 
 <template>
   <footer class="no-print border-t border-slate-200 bg-white">
-    <div class="mx-auto w-full max-w-6xl px-4 py-8">
-      <div class="grid gap-8 sm:grid-cols-[1.2fr_1fr_1.4fr]">
+    <div class="mx-auto w-full max-w-6xl px-4 py-10">
+      <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(3,1fr)]">
         <div>
-          <p class="text-sm font-bold text-slate-800">SeatMark 座签</p>
-          <p class="mt-1.5 text-xs leading-5 text-slate-500">
-            座签 · 桌牌席卡 · 门贴证卡批量生成工具。上传 Excel
-            名单，批量生成毫米级精确排版的标签打印页。
+          <div class="flex items-center gap-2.5">
+            <span
+              class="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm"
+            >
+              <svg class="size-4.5" viewBox="0 0 24 24" fill="none">
+                <rect x="4" y="4" width="7" height="7" rx="1.2" fill="currentColor" />
+                <rect
+                  x="13.5"
+                  y="4"
+                  width="6.5"
+                  height="7"
+                  rx="1.2"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                />
+                <rect
+                  x="4"
+                  y="13.5"
+                  width="7"
+                  height="6.5"
+                  rx="1.2"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                />
+                <rect
+                  x="13.5"
+                  y="13.5"
+                  width="6.5"
+                  height="6.5"
+                  rx="1.2"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                />
+              </svg>
+            </span>
+            <span class="text-base font-bold tracking-tight text-slate-900">
+              SeatMark <span class="text-brand-600">座签</span>
+            </span>
+          </div>
+          <p class="mt-3 max-w-xs text-xs leading-5 text-slate-500">
+            考场座签、桌牌席卡、门贴证卡在线批量生成工具。上传 Excel
+            名单即可输出毫米级精确排版的打印页。
           </p>
-          <div class="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
+          <p
+            class="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200"
+          >
             <svg
-              class="size-3.5 shrink-0 text-emerald-500"
+              class="size-3.5"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -42,33 +93,29 @@ const NAV_GROUPS = [
             >
               <path d="M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3z" />
             </svg>
-            <span>所有数据仅在浏览器本地处理，不会上传服务器</span>
-          </div>
+            所有数据仅在浏览器本地处理
+          </p>
         </div>
 
-        <nav
-          v-for="group in NAV_GROUPS"
-          :key="group.title"
-          :aria-label="group.title"
-          class="text-xs"
-        >
-          <p class="font-bold text-slate-700">{{ group.title }}</p>
-          <ul class="mt-2.5 flex flex-col gap-2">
-            <li v-for="link in group.links" :key="link.to">
+        <div v-for="group in GROUPS" :key="group.title">
+          <h3 class="text-xs font-bold tracking-wide text-slate-900">{{ group.title }}</h3>
+          <ul class="mt-3 space-y-2">
+            <li v-for="link in group.links" :key="link.label">
               <RouterLink
                 :to="link.to"
-                class="line-clamp-1 text-slate-500 transition-colors hover:text-brand-600"
+                class="line-clamp-1 text-xs text-slate-500 transition-colors hover:text-brand-600"
               >
                 {{ link.label }}
               </RouterLink>
             </li>
           </ul>
-        </nav>
+        </div>
       </div>
 
       <div
-        class="mt-8 flex flex-col items-center justify-between gap-2 border-t border-slate-100 pt-5 text-xs text-slate-400 sm:flex-row"
+        class="mt-9 flex flex-col items-center justify-between gap-2 border-t border-slate-200 pt-5 text-xs text-slate-400 sm:flex-row"
       >
+        <span>© 2026 SeatMark 座签. All rights reserved.</span>
         <a
           href="https://beian.miit.gov.cn"
           target="_blank"
@@ -77,7 +124,6 @@ const NAV_GROUPS = [
         >
           湘ICP备2026009844号
         </a>
-        <span>© 2026 SeatMark. All rights reserved.</span>
       </div>
     </div>
   </footer>

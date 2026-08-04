@@ -5,7 +5,7 @@
 ## 核心功能
 
 - Excel 名单批量导入，姓名/考场/座位号/准考证号等常见表头自动匹配
-- 19 款内置模板，尺寸与排版精确到毫米，可视化设计器自由自定义
+- 33 款内置模板（含会议桌牌、婚礼席位卡、宿舍/班级门牌、幼儿园姓名贴等场景），尺寸与排版精确到毫米，可视化设计器自由自定义
 - 照片按文件名批量匹配（人证核验），照片不上传服务器
 - A4 / A5 / A3 横竖向排版，裁切参考线，PDF 导出与浏览器直接打印
 - 数据质量检查：缺失项、重复准考证号、重复座位号自动统计
@@ -35,6 +35,8 @@
 - [考号贴（准考证号大字）](https://www.seatmark.cn/templates/examNo)
 - [照片核验版（人证比对）](https://www.seatmark.cn/templates/withPhoto)
 - [半页大桌牌（讲座/会议）](https://www.seatmark.cn/templates/deskHalf)
+- [家长会桌贴](https://www.seatmark.cn/templates/parentMeeting)
+- [婚礼席位卡](https://www.seatmark.cn/templates/weddingPlace)
 - [学生证 / 工作证 / 出入证胸卡（54×86 mm 标准卡）](https://www.seatmark.cn/templates/studentIdCard)
 
 ## 补充

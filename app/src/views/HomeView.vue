@@ -135,6 +135,13 @@ const FEATURES = [
   },
 ]
 
+const TRUST_STATS = [
+  { value: '100%', label: '数据本地处理' },
+  { value: `${defaultTemplates.length} 款`, label: '内置专业模板' },
+  { value: '0.1mm', label: '排版精度' },
+  { value: '免费', label: '无需注册即用' },
+]
+
 const FAQS = [
   {
     q: '除了考场座签还能生成什么？',
@@ -174,7 +181,7 @@ const FAQS = [
         class="pointer-events-none absolute top-1/4 -right-24 size-[28rem] rounded-full bg-sky-300/30 blur-3xl motion-safe:animate-blob-slow"
       ></div>
       <div
-        class="pointer-events-none absolute -bottom-24 left-1/3 size-80 rounded-full bg-violet-300/30 blur-3xl motion-safe:animate-blob [animation-delay:-13s]"
+        class="pointer-events-none absolute -bottom-24 left-1/3 size-80 rounded-full bg-accent-300/30 blur-3xl motion-safe:animate-blob [animation-delay:-13s]"
       ></div>
       <div
         class="relative mx-auto grid w-full max-w-6xl items-center gap-8 px-4 py-10 sm:py-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:py-20"
@@ -201,7 +208,7 @@ const FAQS = [
           >
             上传 Excel，批量生成<br />
             <span
-              class="bg-gradient-to-r from-brand-600 via-violet-500 to-sky-500 bg-[length:200%_auto] bg-clip-text text-transparent motion-safe:animate-gradient"
+              class="bg-gradient-to-r from-brand-600 via-accent-500 to-sky-500 bg-[length:200%_auto] bg-clip-text text-transparent motion-safe:animate-gradient"
             >
               座签 · 桌牌席卡 · 门贴证卡
             </span>
@@ -215,7 +222,7 @@ const FAQS = [
           <div class="mt-7 flex flex-wrap gap-3">
             <RouterLink
               to="/studio"
-              class="group btn btn-primary btn-lg w-full shadow-lg shadow-brand-600/25 transition-shadow hover:shadow-xl hover:shadow-brand-600/30 sm:w-auto"
+              class="group btn btn-primary btn-lg w-full shadow-cta transition-shadow hover:shadow-xl hover:shadow-brand-600/35 sm:w-auto"
             >
               开始生成标签
               <svg
@@ -290,8 +297,25 @@ const FAQS = [
       </div>
     </section>
 
-    <!-- 步骤 -->
+    <!-- 信任要素条 -->
     <section class="border-y border-slate-200 bg-white">
+      <div class="mx-auto grid w-full max-w-6xl grid-cols-2 gap-x-4 gap-y-5 px-4 py-7 sm:grid-cols-4">
+        <div
+          v-for="(stat, i) in TRUST_STATS"
+          :key="stat.label"
+          v-reveal="i * 70"
+          class="text-center"
+        >
+          <p class="text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
+            {{ stat.value }}
+          </p>
+          <p class="mt-0.5 text-xs font-semibold text-slate-500">{{ stat.label }}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 三步流程 -->
+    <section id="how" class="scroll-mt-16 border-b border-slate-200 bg-slate-50/70">
       <div
         class="mx-auto flex w-full max-w-6xl flex-col items-stretch gap-4 px-4 py-8 sm:flex-row sm:items-center"
       >
@@ -336,11 +360,11 @@ const FAQS = [
     </section>
 
     <!-- 模板展示 -->
-    <section class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
+    <section id="templates" class="mx-auto w-full max-w-6xl scroll-mt-16 px-4 py-10 sm:py-14">
       <div v-reveal class="text-center">
-        <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Templates</p>
-        <h2 class="mt-1 text-2xl font-black tracking-tight text-slate-900">选择适合你的模板</h2>
-        <p class="mt-2 text-sm text-slate-500">
+        <p class="section-eyebrow">Templates</p>
+        <h2 class="section-heading">选择适合你的模板</h2>
+        <p class="section-sub">
           {{ defaultTemplates.length }} 套内置模板覆盖座位标签、考场桌贴、考号贴、桌牌、学生证 /
           工作证、胸卡出入证、门贴门牌等场景，也可以在设计器中从零开始
         </p>
@@ -351,7 +375,7 @@ const FAQS = [
           :key="t.id"
           v-reveal="(i % 3) * 80"
           :to="`/studio?template=${t.id}`"
-          class="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-brand-300 hover:shadow-lg"
+          class="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand-300 hover:shadow-card-hover"
         >
           <span
             class="absolute inset-x-0 top-0 z-10 h-0.5 opacity-70"
@@ -479,20 +503,21 @@ const FAQS = [
     </section>
 
     <!-- 特性 -->
-    <section class="border-y border-slate-200 bg-white">
+    <section id="features" class="scroll-mt-16 border-y border-slate-200 bg-white">
       <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
         <div v-reveal class="text-center">
-          <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Features</p>
-          <h2 class="mt-1 text-2xl font-black tracking-tight text-slate-900">
-            为批量制签和打印交付打磨的细节
-          </h2>
+          <p class="section-eyebrow">Features</p>
+          <h2 class="section-heading">为批量制签和打印交付打磨的细节</h2>
+          <p class="section-sub">
+            从名单解析到裁切线，每一步都按真实考务与会务交付流程设计
+          </p>
         </div>
         <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div
             v-for="(feature, i) in FEATURES"
             :key="feature.title"
             v-reveal="(i % 3) * 80"
-            class="group rounded-2xl border border-slate-200 bg-slate-50/60 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white hover:shadow-md"
+            class="group rounded-2xl border border-slate-200 bg-slate-50/60 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white hover:shadow-card-hover"
           >
             <span
               class="flex size-9 items-center justify-center rounded-xl bg-white text-brand-600 shadow-sm ring-1 ring-slate-200 transition-all duration-200 group-hover:scale-110 group-hover:-rotate-6 group-hover:bg-brand-600 group-hover:text-white group-hover:ring-brand-600"
@@ -517,11 +542,11 @@ const FAQS = [
     </section>
 
     <!-- FAQ -->
-    <section class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
+    <section id="faq" class="mx-auto w-full max-w-6xl scroll-mt-16 px-4 py-10 sm:py-14">
       <div v-reveal class="text-center">
-        <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">FAQ</p>
-        <h2 class="mt-1 text-2xl font-black tracking-tight text-slate-900">常见问题</h2>
-        <p class="mt-2 text-sm text-slate-500">
+        <p class="section-eyebrow">FAQ</p>
+        <h2 class="section-heading">常见问题</h2>
+        <p class="section-sub">
           更多制作与打印实战技巧见
           <RouterLink to="/guides" class="font-semibold text-brand-600 hover:underline">教程中心</RouterLink>，
           商用与免费说明见
@@ -533,7 +558,7 @@ const FAQS = [
           v-for="(faq, i) in FAQS"
           :key="faq.q"
           v-reveal="(i % 2) * 90"
-          class="rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-brand-200"
+          class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card transition-all duration-200 hover:border-brand-200 hover:shadow-card-hover"
         >
           <h3 class="flex items-start gap-2 text-sm font-bold text-slate-900">
             <span
@@ -552,7 +577,7 @@ const FAQS = [
     <section class="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-16">
       <div
         v-reveal
-        class="relative flex flex-col items-center justify-between gap-5 overflow-hidden rounded-3xl bg-gradient-to-r from-brand-600 via-violet-600 to-brand-700 bg-[length:200%_auto] px-6 py-8 text-center motion-safe:animate-gradient sm:flex-row sm:px-8 sm:py-10 sm:text-left"
+        class="relative flex flex-col items-center justify-between gap-5 overflow-hidden rounded-3xl bg-gradient-to-r from-brand-600 via-accent-600 to-brand-700 bg-[length:200%_auto] px-6 py-10 text-center shadow-pop motion-safe:animate-gradient sm:flex-row sm:px-10 sm:py-12 sm:text-left"
       >
         <div
           class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,#ffffff22_1px,transparent_1px)] bg-[size:18px_18px]"
@@ -561,12 +586,14 @@ const FAQS = [
           class="pointer-events-none absolute -top-16 -right-10 size-48 rounded-full bg-white/15 blur-2xl motion-safe:animate-blob"
         ></div>
         <div class="relative">
-          <h2 class="text-xl font-black text-white">准备好了？</h2>
-          <p class="mt-1 text-sm text-brand-100">选择模板、上传 Excel，几分钟完成一批座签、门贴或证卡。</p>
+          <h2 class="text-xl font-black text-white sm:text-2xl">准备好了？现在就开始</h2>
+          <p class="mt-1.5 text-sm text-brand-100">
+            选择模板、上传 Excel，几分钟完成一批座签、门贴或证卡 —— 无需注册，数据不出浏览器。
+          </p>
         </div>
         <RouterLink
           to="/studio"
-          class="group btn btn-lg relative w-full shrink-0 bg-white text-brand-700 shadow-lg hover:bg-brand-50 sm:w-auto"
+          class="group btn btn-lg relative w-full shrink-0 bg-white text-brand-700 shadow-pop hover:bg-brand-50 sm:w-auto"
         >
           进入标签工坊
           <svg
