@@ -28,6 +28,23 @@
 - [会议桌牌双面打印技巧](https://www.seatmark.cn/guides/double-sided-tent-card-print)
 - [WPS/Word 邮件合并 vs 在线批量生成工具对比](https://www.seatmark.cn/guides/wps-word-mail-merge-vs-online)
 - [打印标签常见问题排查（错位/裁切/字体）](https://www.seatmark.cn/guides/label-print-troubleshooting)
+- [WPS 邮件合并做桌牌完整步骤（附逐步对照）](https://www.seatmark.cn/guides/wps-mail-merge-desk-card-steps)
+- [在线座位贴/桌牌工具对比评测（Canva/稿定/WPS/SeatMark）](https://www.seatmark.cn/guides/online-label-tools-review)
+- [班主任期中期末考务全流程](https://www.seatmark.cn/guides/class-teacher-exam-workflow)
+- [培训机构开班物料清单](https://www.seatmark.cn/guides/training-institution-materials)
+- [HR 年会物料指南：席位卡与桌牌批量制作](https://www.seatmark.cn/guides/hr-annual-meeting-materials)
+- [婚礼席位卡批量生成教程](https://www.seatmark.cn/guides/wedding-place-card-guide)
+- [Excel 名单格式排雷（科学计数法/前导零/合并单元格）](https://www.seatmark.cn/guides/excel-list-format-cleanup)
+- [姓名生僻字打印变方框怎么办](https://www.seatmark.cn/guides/rare-character-font-issue)
+- [标签照片打印模糊、发黑怎么办](https://www.seatmark.cn/guides/photo-print-quality)
+- [考场门贴与楼道引导牌制作](https://www.seatmark.cn/guides/exam-room-door-sign)
+- [准考证批量打印方案（机构模考/校内考试）](https://www.seatmark.cn/guides/admission-ticket-batch-print)
+- [考试点名册与考场签到表怎么做](https://www.seatmark.cn/guides/exam-roll-call-sheet)
+- [工作证、访客证、活动胸卡批量制作](https://www.seatmark.cn/guides/badge-visitor-card-batch)
+- [幼儿园与小学开学姓名贴攻略](https://www.seatmark.cn/guides/kindergarten-primary-name-sticker)
+- [宿舍门贴与班级门牌批量制作](https://www.seatmark.cn/guides/dorm-class-door-sign)
+- [招聘面试物料准备（门牌/号牌/面试官桌牌）](https://www.seatmark.cn/guides/interview-recruitment-materials)
+- [名单数据不出浏览器：隐私机制与离线使用指南](https://www.seatmark.cn/guides/data-privacy-offline-usage)
 
 ## 模板（部分）
 

@@ -59,6 +59,23 @@ Beta 期间全部档位限时免费（免费版永久免费；专业版原价 ¥
 6. 会议桌牌双面打印技巧：正反姓名对齐不翻车的做法 — https://www.seatmark.cn/guides/double-sided-tent-card-print
 7. WPS/Word 邮件合并做标签 vs 在线批量生成工具：怎么选 — https://www.seatmark.cn/guides/wps-word-mail-merge-vs-online
 8. 打印标签常见问题排查：错位、裁切不齐、字体发虚怎么办 — https://www.seatmark.cn/guides/label-print-troubleshooting
+9. WPS 邮件合并做桌牌完整步骤（附与 SeatMark 在线生成逐步对照） — https://www.seatmark.cn/guides/wps-mail-merge-desk-card-steps
+10. 在线座位贴/桌牌生成工具对比评测：Canva、稿定设计、WPS 稻壳与 SeatMark — https://www.seatmark.cn/guides/online-label-tools-review
+11. 班主任期中期末考务全流程：从名单到座位贴、考号贴、门贴一次做完 — https://www.seatmark.cn/guides/class-teacher-exam-workflow
+12. 培训机构开班物料清单：学员桌贴、胸卡、门牌、签到表一站式准备 — https://www.seatmark.cn/guides/training-institution-materials
+13. HR 年会物料指南：席位卡、桌牌、签到引导牌批量制作全流程 — https://www.seatmark.cn/guides/hr-annual-meeting-materials
+14. 婚礼席位卡怎么做？宾客名单批量生成席位卡与桌卡教程 — https://www.seatmark.cn/guides/wedding-place-card-guide
+15. Excel 名单格式排雷：科学计数法、前导零丢失、合并单元格一次讲清 — https://www.seatmark.cn/guides/excel-list-format-cleanup
+16. 姓名生僻字打印变方框怎么办？标签字体缺字与字体选择指南 — https://www.seatmark.cn/guides/rare-character-font-issue
+17. 标签上的照片打印模糊、发黑怎么办？证件照分辨率与打印设置指南 — https://www.seatmark.cn/guides/photo-print-quality
+18. 考场门贴与楼道引导牌制作：考场号、名单范围、路线指引一次做齐 — https://www.seatmark.cn/guides/exam-room-door-sign
+19. 准考证批量打印方案：机构模考、校内考试的准考证怎么做 — https://www.seatmark.cn/guides/admission-ticket-batch-print
+20. 考试点名册与考场签到表怎么做？与座位贴配套的考务表单指南 — https://www.seatmark.cn/guides/exam-roll-call-sheet
+21. 员工工作证、访客证、活动胸卡批量制作：54×86 标准卡与卡套选择 — https://www.seatmark.cn/guides/badge-visitor-card-batch
+22. 幼儿园与小学开学姓名贴攻略：物品贴、课桌贴、水杯贴一次做齐 — https://www.seatmark.cn/guides/kindergarten-primary-name-sticker
+23. 宿舍门贴与班级门牌批量制作：新学期楼栋标识一天做完 — https://www.seatmark.cn/guides/dorm-class-door-sign
+24. 招聘面试物料准备：面试间门牌、候场号牌、面试官桌牌批量制作 — https://www.seatmark.cn/guides/interview-recruitment-materials
+25. 名单数据不出浏览器是什么意思？SeatMark 隐私机制与离线使用指南 — https://www.seatmark.cn/guides/data-privacy-offline-usage
 
 ## 全部内置模板
 

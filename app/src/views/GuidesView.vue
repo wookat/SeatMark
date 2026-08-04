@@ -1,5 +1,26 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+
 import { guides } from '@/data/guides'
+
+const activeCategory = ref('全部')
+const activeAudience = ref('全部')
+
+const categories = computed(() => ['全部', ...new Set(guides.map((g) => g.category))])
+const audiences = computed(() => ['全部', ...new Set(guides.flatMap((g) => g.audiences))])
+
+const filteredGuides = computed(() =>
+  guides.filter(
+    (g) =>
+      (activeCategory.value === '全部' || g.category === activeCategory.value) &&
+      (activeAudience.value === '全部' || g.audiences.includes(activeAudience.value)),
+  ),
+)
+
+function resetFilters() {
+  activeCategory.value = '全部'
+  activeAudience.value = '全部'
+}
 </script>
 
 <template>
@@ -13,9 +34,62 @@ import { guides } from '@/data/guides'
       </p>
     </div>
 
-    <div class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <!-- 筛选器 -->
+    <div class="mt-8 grid gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="shrink-0 text-xs font-bold text-slate-400">主题</span>
+        <button
+          v-for="cat in categories"
+          :key="cat"
+          type="button"
+          class="rounded-full border px-3 py-1 text-xs font-bold transition-colors"
+          :class="
+            activeCategory === cat
+              ? 'border-brand-600 bg-brand-600 text-white'
+              : 'border-slate-200 bg-white text-slate-500 hover:border-brand-300 hover:text-brand-600'
+          "
+          @click="activeCategory = cat"
+        >
+          {{ cat }}
+        </button>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="shrink-0 text-xs font-bold text-slate-400">群体</span>
+        <button
+          v-for="aud in audiences"
+          :key="aud"
+          type="button"
+          class="rounded-full border px-3 py-1 text-xs font-bold transition-colors"
+          :class="
+            activeAudience === aud
+              ? 'border-brand-600 bg-brand-600 text-white'
+              : 'border-slate-200 bg-white text-slate-500 hover:border-brand-300 hover:text-brand-600'
+          "
+          @click="activeAudience = aud"
+        >
+          {{ aud }}
+        </button>
+      </div>
+      <p class="text-xs text-slate-400">共 {{ filteredGuides.length }} 篇教程</p>
+    </div>
+
+    <div
+      v-if="filteredGuides.length === 0"
+      class="mt-10 rounded-lg border border-slate-200 bg-slate-50 p-8 text-center"
+    >
+      <p class="text-sm text-slate-500">该组合下暂无教程，换个筛选条件试试。</p>
+      <button
+        type="button"
+        class="mt-3 text-xs font-bold text-brand-600 hover:underline"
+        @click="resetFilters"
+      >
+        清除筛选
+      </button>
+    </div>
+
+    <div v-else class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       <RouterLink
-        v-for="guide in guides"
+        v-for="guide in filteredGuides"
         :key="guide.slug"
         :to="`/guides/${guide.slug}`"
         class="group flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-brand-300 hover:shadow-card-hover"
