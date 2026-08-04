@@ -15,12 +15,15 @@ const props = withDefaults(
     highlightMissing?: boolean
     /** 屏幕预览模式下带圆角阴影；导出/打印时关闭 */
     screen?: boolean
+    /** 页脚角标水印（免费不限次导出/打印时叠加，不遮挡标签内容） */
+    watermark?: boolean
   }>(),
   {
     getPhoto: undefined,
     showCutLines: true,
     highlightMissing: false,
     screen: false,
+    watermark: false,
   },
 )
 
@@ -65,6 +68,7 @@ function textsFor(row: DataRow): Record<string, string> {
         :style="lineStyle(line)"
       ></div>
     </div>
+    <div v-if="watermark" class="sheet-watermark" aria-hidden="true">SeatMark 座签 · seatmark.cn</div>
     <div v-for="(row, idx) in rows" :key="idx" class="label-box" :style="boxStyle(idx)">
       <LabelCard
         :template="template"

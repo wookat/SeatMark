@@ -81,16 +81,24 @@ function howToJsonLd(name: string, steps: readonly { name: string; text: string 
 /** 定价页 FAQ（页面与 JSON-LD 共用） */
 export const PRICING_FAQS = [
   {
-    q: '每日生成次数怎么计算？',
-    a: '每次 PDF 导出或调起打印计一次生成，预览、排版、模板设计不限次数。未登录每天 3 次，登录后每天 10 次，每日 0 点自动恢复；分享专属链接还能额外获得当日次数。',
+    q: '带水印和无水印导出有什么区别？',
+    a: '带水印导出与打印完全不限次数，仅在页脚页边距区域叠加「SeatMark 座签 · seatmark.cn」小字角标，不遮挡任何标签内容；无水印导出未登录每天 1 次，登录后每天 3 次，每日 0 点自动恢复，预览、排版、模板设计始终不限次数。',
+  },
+  {
+    q: '无水印次数用完了怎么办？',
+    a: '可以随时选择带水印导出继续使用，不受任何限制；也可以登录（每天 3 次）或分享专属链接——每被点开 1 次即得 1 次无水印导出（服务端去重防刷，每日上限 10 次）。',
   },
   {
     q: '使用需要注册账号吗？',
-    a: '不登录也能使用全部功能（每日 3 次生成）。邮箱验证码登录后领取 Beta 会员：每日 10 次生成、自定义模板云端同步与跨设备找回。',
+    a: '不登录也能使用全部功能（带水印不限次，无水印每日 1 次）。邮箱验证码登录即开通专业版 Beta 免费试用：每日 3 次无水印导出、自定义模板云端同步与跨设备找回。',
   },
   {
     q: '我的名单数据安全吗？',
     a: 'Excel 名单与照片全部在你的浏览器本地解析和排版，不会上传到任何服务器。登录只用于配额与模板结构同步，不收集也不上传任何标签内容数据。',
+  },
+  {
+    q: '专业版怎么开通？',
+    a: '专业版定价 ¥29/月，Beta 期间限时免费试用：注册登录即自动开通，无需支付。正式收费前会提前在站内显著位置公告。',
   },
   {
     q: '团队版怎么购买？',
@@ -128,9 +136,9 @@ export function resolveSeo(path: string): PageSeo {
 
   if (p === '/pricing') {
     return {
-      title: '定价：免费每日生成配额，团队版 ¥99/月 - SeatMark 座签',
+      title: '定价：带水印免费不限次，专业版 Beta 免费试用 - SeatMark 座签',
       description:
-        'SeatMark 座签定价：免费版每日 3 次生成（登录后 10 次），分享可额外获得次数；专业版更高配额即将推出；团队版 ¥99/月支持预订登记。数据不出浏览器。',
+        'SeatMark 座签定价：带水印导出/打印不限次数；无水印导出每日 1 次（登录后 3 次），分享每被点开 1 次再送 1 次；专业版 ¥29/月 Beta 期间限时免费试用；团队版 ¥99/月支持预订登记。数据不出浏览器。',
       path: '/pricing',
       jsonLd: [
         {
@@ -141,14 +149,14 @@ export function resolveSeo(path: string): PageSeo {
               name: '免费版',
               price: '0',
               priceCurrency: 'CNY',
-              description: '每日 3 次生成，登录后每日 10 次，分享可额外获得次数',
+              description: '带水印导出/打印不限次数；无水印导出每日 1 次，登录后 3 次，分享可再送次数',
             },
             {
               '@type': 'Offer',
-              name: '专业版（即将推出）',
+              name: '专业版（Beta 限时免费试用）',
               price: '29',
               priceCurrency: 'CNY',
-              description: '更高每日配额与专业功能，定价 ¥29/月，即将推出',
+              description: '定价 ¥29/月，Beta 期间限时免费试用，注册登录即开通',
             },
             {
               '@type': 'Offer',
@@ -171,7 +179,7 @@ export function resolveSeo(path: string): PageSeo {
   if (p === '/account') {
     return {
       title: '个人中心 - SeatMark 座签',
-      description: 'SeatMark 个人中心：云端模板同步、使用统计、分享送次数与 Beta 会员权益。',
+      description: 'SeatMark 个人中心：云端模板同步、使用统计、分享送无水印次数与专业版 Beta 免费试用。',
       path: '/account',
       jsonLd: [],
       robots: 'noindex, nofollow',

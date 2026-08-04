@@ -3,8 +3,10 @@ import { computed, nextTick, ref, watch, watchEffect } from 'vue'
 
 import LabelSheet from '@/components/label/LabelSheet.vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
+import ModalDialog from '@/components/ui/ModalDialog.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
+import { useAuthStore } from '@/stores/auth'
 import { useQuotaStore } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -15,6 +17,7 @@ import { defaultRasterScale, exportPagesToPdf, rasterDpi } from '@/utils/pdfExpo
 const workspace = useWorkspaceStore()
 const toast = useToastStore()
 const quota = useQuotaStore()
+const auth = useAuthStore()
 
 const pageWidthPx = computed(() => workspace.template.page.paperWidth * MM_TO_PX)
 const pageHeightPx = computed(() => workspace.template.page.paperHeight * MM_TO_PX)
@@ -62,6 +65,11 @@ function jumpToPage() {
 // ---------- 导出 / 打印 ----------
 const renderHost = ref(false)
 const hostRef = ref<HTMLElement | null>(null)
+/** 本次导出/打印是否叠加页脚角标水印（带水印不限次，无水印计入每日配额） */
+const withWatermark = ref(false)
+/** 导出方式选择弹窗：pdf = 超清图片 PDF，print = 浏览器打印 */
+const exportChoiceOpen = ref(false)
+const pendingAction = ref<'pdf' | 'print'>('pdf')
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -71,9 +79,31 @@ async function mountHost() {
   await sleep(250)
 }
 
-async function onExportPdf() {
+function openExportChoice(action: 'pdf' | 'print') {
   if (!workspace.excel.rows.length) return
+  pendingAction.value = action
+  exportChoiceOpen.value = true
+}
+
+async function chooseClean() {
   if (!(await quota.tryConsume()).ok) return
+  exportChoiceOpen.value = false
+  withWatermark.value = false
+  await runPendingAction()
+}
+
+async function chooseWatermarked() {
+  exportChoiceOpen.value = false
+  withWatermark.value = true
+  await runPendingAction()
+}
+
+async function runPendingAction() {
+  if (pendingAction.value === 'pdf') await doExportPdf()
+  else await doPrint()
+}
+
+async function doExportPdf() {
   workspace.setLoading(true, '正在准备页面...')
   try {
     await mountHost()
@@ -101,9 +131,7 @@ async function onExportPdf() {
 /**
  * 浏览器打印：既是实体打印入口，也可选「另存为 PDF」导出矢量 PDF。
  */
-async function onPrint() {
-  if (!workspace.excel.rows.length) return
-  if (!(await quota.tryConsume()).ok) return
+async function doPrint() {
   await mountHost()
   window.print()
   renderHost.value = false
@@ -205,7 +233,7 @@ async function onPrint() {
           class="btn btn-primary btn-sm"
           title="经浏览器打印对话框输出：选「另存为 PDF」可得到矢量 PDF；直接打印请用对应纸张、无边距、缩放 100%"
           :disabled="!workspace.excel.rows.length"
-          @click="onPrint"
+          @click="openExportChoice('print')"
         >
           <svg
             class="size-3.5"
@@ -225,7 +253,7 @@ async function onPrint() {
           class="btn btn-secondary btn-sm"
           title="逐页渲染为超清 PNG 图片后合成 PDF（约 288–480dpi，页数越少越清晰）；文字不可选中，如需矢量文字请用「打印 / 矢量 PDF」"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
-          @click="onExportPdf"
+          @click="openExportChoice('pdf')"
         >
           <svg
             class="size-3.5"
@@ -293,6 +321,56 @@ async function onPrint() {
       </div>
     </div>
 
+    <ModalDialog
+      :open="exportChoiceOpen"
+      :title="pendingAction === 'pdf' ? '导出超清图片 PDF' : '打印 / 矢量 PDF'"
+      size="md"
+      @close="exportChoiceOpen = false"
+    >
+      <p class="leading-6">选择导出方式：</p>
+      <div class="mt-3 grid gap-3">
+        <button
+          type="button"
+          class="flex items-start gap-3 rounded-lg border p-4 text-left transition-colors"
+          :class="quota.remaining > 0 ? 'border-brand-200 bg-brand-50 hover:border-brand-300' : 'cursor-not-allowed border-slate-200 bg-slate-50 opacity-70'"
+          :disabled="quota.remaining <= 0"
+          @click="chooseClean"
+        >
+          <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white">
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m5 13 4 4 10-11" />
+            </svg>
+          </span>
+          <span>
+            <span class="block text-sm font-bold text-slate-900">无水印导出（今日剩余 {{ quota.remaining }} 次）</span>
+            <span class="mt-0.5 block text-xs leading-5 text-slate-500">
+              {{ quota.remaining > 0 ? '页面不叠加任何标识' : (auth.isLoggedIn ? '今日已用完，分享链接每被点开 1 次即得 1 次，或明日 0 点恢复' : '今日已用完，登录后每天 3 次，还可分享送次数') }}
+            </span>
+          </span>
+        </button>
+        <button
+          type="button"
+          class="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 text-left transition-colors hover:border-slate-300"
+          @click="chooseWatermarked"
+        >
+          <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-600 text-white">
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v18M3 12h18" />
+            </svg>
+          </span>
+          <span>
+            <span class="block text-sm font-bold text-slate-900">带水印导出（不限次数）</span>
+            <span class="mt-0.5 block text-xs leading-5 text-slate-500">
+              页脚叠加「SeatMark 座签 · seatmark.cn」角标，位于页边距区域，不遮挡标签内容
+            </span>
+          </span>
+        </button>
+      </div>
+      <p v-if="!auth.isLoggedIn" class="mt-3 text-xs leading-5 text-slate-400">
+        登录后无水印导出每天 3 次，分享链接每被点开 1 次再得 1 次；同时获得 Beta 专业版免费试用。
+      </p>
+    </ModalDialog>
+
     <Teleport to="body">
       <div v-if="renderHost" ref="hostRef" class="offscreen-host">
         <LabelSheet
@@ -303,6 +381,7 @@ async function onPrint() {
           :get-text="workspace.fieldText"
           :get-photo="workspace.photoFor"
           :show-cut-lines="workspace.showCutLines"
+          :watermark="withWatermark"
         />
       </div>
     </Teleport>

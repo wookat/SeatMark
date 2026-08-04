@@ -4,11 +4,11 @@ import { computed, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { apiFetch, ApiError } from '@/utils/api'
 
-/** 与 edge-functions/api/[[default]].js 保持一致 */
-export const QUOTA_ANON_DAILY = 3
-export const QUOTA_USER_DAILY = 10
+/** 与 edge-functions/api/[[default]].js 保持一致（计数对象：无水印导出/打印） */
+export const QUOTA_ANON_DAILY = 1
+export const QUOTA_USER_DAILY = 3
 
-const STORAGE_KEY = 'seatmark.daily-usage.v1'
+const STORAGE_KEY = 'seatmark.clean-export-usage.v1'
 
 interface LocalUsage {
   date: string
@@ -39,7 +39,7 @@ export type ConsumeResult =
   | { ok: false; reason: 'anon-limit' | 'user-limit' }
 
 /**
- * 每日生成配额（PDF 导出 / 打印计一次）：
+ * 每日无水印导出配额（带水印导出 / 打印不限次数，不计数）：
  * - 未登录：浏览器本地计数，每日 QUOTA_ANON_DAILY 次；
  * - 已登录：服务端计数，每日 QUOTA_USER_DAILY 次 + 分享赠送次数。
  */
@@ -68,7 +68,7 @@ export const useQuotaStore = defineStore('quota', () => {
     }
   }
 
-  /** 消耗一次生成配额；失败时返回原因并打开引导弹窗 */
+  /** 消耗一次无水印导出配额；失败时返回原因并打开引导弹窗 */
   async function tryConsume(): Promise<ConsumeResult> {
     if (auth.user) {
       try {

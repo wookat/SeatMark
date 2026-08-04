@@ -69,7 +69,7 @@ async function onVerify() {
   verifying.value = true
   try {
     await auth.verify(email.value.trim().toLowerCase(), code.value.trim())
-    toast.success('登录成功', '已领取 Beta 会员：更高配额与云端模板同步已生效')
+    toast.success('登录成功', '已开通 Beta 专业版免费试用：每日 3 次无水印导出与云端模板同步已生效')
     code.value = ''
     codeSent.value = false
   } catch (err) {
@@ -145,7 +145,7 @@ const shareLink = computed(() =>
 async function copyShareLink() {
   try {
     await navigator.clipboard.writeText(shareLink.value)
-    toast.success('分享链接已复制', '发给同事或群聊，每有 1 人访问当日 +2 次生成')
+    toast.success('分享链接已复制', '发给同事或群聊，每被点开 1 次即得 1 次无水印导出')
   } catch {
     toast.warning('复制失败', '请手动复制上方链接')
   }
@@ -171,8 +171,8 @@ function formatDate(iso: string | null | undefined): string {
         <div class="text-center">
           <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">登录 SeatMark</h1>
           <p class="mt-2 text-sm leading-6 text-slate-500">
-            邮箱验证码登录，无需设置密码。登录即领取 Beta 会员：每日
-            {{ QUOTA_USER_DAILY }} 次生成（未登录 {{ QUOTA_ANON_DAILY }} 次）、自定义模板云端同步与跨设备找回。
+            邮箱验证码登录，无需设置密码。登录即开通专业版 Beta 免费试用：每日
+            {{ QUOTA_USER_DAILY }} 次无水印导出（未登录 {{ QUOTA_ANON_DAILY }} 次）、自定义模板云端同步与跨设备找回；带水印导出/打印始终不限次数。
           </p>
         </div>
 
@@ -241,14 +241,14 @@ function formatDate(iso: string | null | undefined): string {
           <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m12 2 2.6 5.3 5.9.9-4.3 4.1 1 5.9L12 15.4 6.8 18.2l1-5.9L3.5 8.2l5.9-.9L12 2z" />
           </svg>
-          Beta 会员
+          Beta 会员 · 专业版免费试用中
         </span>
       </div>
 
       <div class="mt-8 grid gap-5 md:grid-cols-2">
         <!-- 今日配额 -->
         <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-card">
-          <h2 class="text-sm font-bold text-slate-900">今日生成配额</h2>
+          <h2 class="text-sm font-bold text-slate-900">今日无水印导出配额</h2>
           <div class="mt-3 flex items-end gap-2">
             <span class="text-3xl font-bold tracking-tight text-slate-900">
               {{ auth.user.quota.remaining }}
@@ -259,7 +259,7 @@ function formatDate(iso: string | null | undefined): string {
             <div class="h-full rounded-full bg-brand-600 transition-all" :style="{ width: `${quotaPercent}%` }" />
           </div>
           <p class="mt-2 text-xs leading-5 text-slate-500">
-            每次 PDF 导出或打印计一次；每日 0 点恢复为 {{ QUOTA_USER_DAILY }} 次，分享访问额外赠送（今日已 +{{ auth.user.quota.bonus }}）。
+            仅无水印导出/打印计次，带水印不限次数；每日 0 点恢复为 {{ QUOTA_USER_DAILY }} 次，分享被点开额外赠送（今日已 +{{ auth.user.quota.bonus }}）。
           </p>
         </section>
 
@@ -267,7 +267,7 @@ function formatDate(iso: string | null | undefined): string {
         <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-card">
           <h2 class="text-sm font-bold text-slate-900">分享送次数</h2>
           <p class="mt-2 text-xs leading-5 text-slate-500">
-            把专属链接发给同事或群聊，每有 1 人访问，当日配额 +{{ auth.user.share.bonusPerVisit }} 次（每日上限
+            把专属链接发给同事或群聊，每被点开 1 次即得 {{ auth.user.share.bonusPerVisit }} 次无水印导出（服务端去重防刷，每日上限
             {{ auth.user.share.bonusDailyCap }} 次）。
           </p>
           <div class="mt-3 flex gap-2">
@@ -344,7 +344,7 @@ function formatDate(iso: string | null | undefined): string {
               <dd class="font-medium text-slate-900">{{ auth.user.loginCount }} 次</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-slate-500">今日已生成</dt>
+              <dt class="text-slate-500">今日无水印导出</dt>
               <dd class="font-medium text-slate-900">{{ auth.user.quota.used }} 次</dd>
             </div>
           </dl>
@@ -373,7 +373,7 @@ function formatDate(iso: string | null | undefined): string {
 
     <!-- 未登录时也提示当前本地剩余次数 -->
     <p v-if="!auth.user && auth.ready" class="mt-8 text-center text-xs text-slate-400">
-      当前未登录：今日本设备剩余 {{ quota.anonRemaining }}/{{ QUOTA_ANON_DAILY }} 次生成
+      当前未登录：今日本设备剩余 {{ quota.anonRemaining }}/{{ QUOTA_ANON_DAILY }} 次无水印导出（带水印不限次）
     </p>
   </div>
 </template>
