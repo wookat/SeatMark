@@ -44,7 +44,7 @@ const TONE_PATH: Record<ToastType, string> = {
       <div
         v-for="toast in toasts"
         :key="toast.id"
-        class="pointer-events-auto relative flex items-start gap-2.5 overflow-hidden rounded-xl border border-slate-200/80 bg-white p-3 pl-4 shadow-pop"
+        class="pointer-events-auto relative flex items-start gap-2.5 overflow-hidden rounded-lg border border-slate-200/80 bg-white p-3 pl-4 shadow-pop"
       >
         <span class="absolute inset-y-0 left-0 w-1" :class="TONE_BAR[toast.type]"></span>
         <span

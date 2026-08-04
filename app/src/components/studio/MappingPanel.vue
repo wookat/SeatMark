@@ -43,7 +43,7 @@ function onPhotoFiles(event: Event) {
     </div>
 
     <div
-      class="rounded-xl border p-3 text-xs leading-5"
+      class="rounded-lg border p-3 text-xs leading-5"
       :class="TONE_CLASSES[workspace.mappingSummary.tone]"
     >
       <p class="font-bold">{{ workspace.mappingSummary.title }}</p>
@@ -77,7 +77,7 @@ function onPhotoFiles(event: Event) {
 
     <div
       v-if="workspace.hasDataQualityRisk"
-      class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800"
+      class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800"
     >
       <p class="font-bold">数据质量提醒</p>
       <ul class="mt-1 list-inside list-disc space-y-0.5">

@@ -72,7 +72,7 @@ function pick(icon: VectorIcon) {
         v-for="icon in VECTOR_ICONS"
         :key="icon.id"
         type="button"
-        class="group flex cursor-pointer flex-col items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-3 transition-colors hover:border-brand-300 hover:bg-brand-50/40"
+        class="group flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border border-slate-200 bg-white p-3 transition-colors hover:border-brand-300 hover:bg-brand-50/40"
         :title="`插入「${icon.name}」`"
         @click="pick(icon)"
       >

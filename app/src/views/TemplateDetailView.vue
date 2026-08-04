@@ -47,10 +47,10 @@ const others = computed(() => {
     <div class="mt-6 grid items-start gap-8 lg:grid-cols-[0.9fr_1.1fr]">
       <!-- 预览 -->
       <div
-        class="rounded-2xl border border-slate-200 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-white bg-[size:12px_12px] p-8 sm:p-10"
+        class="rounded-lg border border-slate-200 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-white bg-[size:12px_12px] p-8 sm:p-10"
       >
         <div class="mx-auto max-w-sm">
-          <div class="bg-white shadow-[0_12px_32px_-12px_rgba(15,23,42,0.4)]">
+          <div class="bg-white shadow-card">
             <TemplateThumb :template="template" />
           </div>
         </div>
@@ -73,14 +73,14 @@ const others = computed(() => {
         <span class="rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-bold text-brand-600">
           {{ template.scenario }}
         </span>
-        <h1 class="mt-3 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+        <h1 class="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
           {{ template.name }}
         </h1>
         <p class="mt-3 text-sm leading-7 text-slate-600">{{ detail.intro }}</p>
 
         <RouterLink
           :to="`/studio?template=${detail.slug}`"
-          class="group btn btn-primary btn-lg mt-6 w-full shadow-lg shadow-brand-600/25 sm:w-auto"
+          class="group btn btn-primary btn-lg mt-6 w-full sm:w-auto"
         >
           用此模板开始
           <svg
@@ -119,15 +119,15 @@ const others = computed(() => {
 
     <!-- 使用步骤 -->
     <section class="mt-12">
-      <h2 class="text-xl font-black tracking-tight text-slate-900">使用步骤</h2>
+      <h2 class="text-xl font-bold tracking-tight text-slate-900">使用步骤</h2>
       <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div
           v-for="(step, i) in TEMPLATE_STEPS"
           :key="step.name"
-          class="rounded-2xl border border-slate-200 bg-white p-4"
+          class="rounded-lg border border-slate-200 bg-white p-4"
         >
           <span
-            class="flex size-7 items-center justify-center rounded-lg bg-brand-50 text-sm font-black text-brand-600"
+            class="flex size-7 items-center justify-center rounded-lg bg-brand-50 text-sm font-bold text-brand-600"
           >
             {{ i + 1 }}
           </span>
@@ -139,7 +139,7 @@ const others = computed(() => {
 
     <!-- 打印建议 -->
     <section class="mt-10">
-      <h2 class="text-xl font-black tracking-tight text-slate-900">打印与使用建议</h2>
+      <h2 class="text-xl font-bold tracking-tight text-slate-900">打印与使用建议</h2>
       <ul class="mt-4 grid gap-2 text-sm text-slate-600">
         <li v-for="tip in detail.tips" :key="tip" class="flex items-start gap-2">
           <svg
@@ -171,7 +171,7 @@ const others = computed(() => {
           v-for="other in others"
           :key="other.detail.slug"
           :to="`/templates/${other.detail.slug}`"
-          class="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 transition-colors hover:border-brand-300"
+          class="group flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 transition-colors hover:border-brand-300"
         >
           <div class="w-20 shrink-0">
             <TemplateThumb :template="other.template" />

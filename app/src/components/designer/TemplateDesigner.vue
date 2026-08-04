@@ -1156,7 +1156,7 @@ function save(asNew: boolean) {
         </button>
         <div
           v-if="addMenuOpen"
-          class="absolute top-full left-0 z-40 mt-1 max-h-80 w-52 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl"
+          class="absolute top-full left-0 z-40 mt-1 max-h-80 w-52 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-pop"
         >
           <p class="px-2 pt-1 pb-0.5 text-[10px] font-bold tracking-wider text-slate-400">
             常用考务字段
@@ -1455,7 +1455,7 @@ function save(asNew: boolean) {
       <!-- 字段列表（图层） -->
       <aside
         class="flex shrink-0 flex-col border-r border-slate-200 bg-white"
-        :class="isMobile ? 'absolute inset-y-0 left-0 z-30 w-64 max-w-[80vw] shadow-xl transition-transform' : 'w-56'"
+        :class="isMobile ? 'absolute inset-y-0 left-0 z-30 w-64 max-w-[80vw] shadow-pop transition-transform' : 'w-56'"
         :style="isMobile ? { transform: mobilePanel === 'layers' ? 'translateX(0)' : 'translateX(-100%)' } : {}"
       >
         <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2.5">
@@ -1495,7 +1495,7 @@ function save(asNew: boolean) {
           </ul>
           <p
             v-else
-            class="m-1 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-3 text-center text-[11px] leading-4 text-slate-400"
+            class="m-1 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3 text-center text-[11px] leading-4 text-slate-400"
           >
             还没有字段<br />点击工具栏「+ 添加字段」开始
           </p>
@@ -1579,13 +1579,13 @@ function save(asNew: boolean) {
       <!-- 属性面板 -->
       <aside
         class="shrink-0 overflow-y-auto border-l border-slate-200 bg-white p-4"
-        :class="isMobile ? 'absolute inset-y-0 right-0 z-30 w-72 max-w-[85vw] shadow-xl transition-transform' : 'w-80'"
+        :class="isMobile ? 'absolute inset-y-0 right-0 z-30 w-72 max-w-[85vw] shadow-pop transition-transform' : 'w-80'"
         :style="isMobile ? { transform: mobilePanel === 'props' ? 'translateX(0)' : 'translateX(100%)' } : {}"
       >
         <!-- 选中字段属性 -->
         <p
           v-if="!selectedField"
-          class="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-3 text-[11px] leading-4 text-slate-400"
+          class="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3 text-[11px] leading-4 text-slate-400"
         >
           {{
             selectedIds.length > 1

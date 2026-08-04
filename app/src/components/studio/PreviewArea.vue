@@ -113,7 +113,7 @@ async function onPrint() {
 <template>
   <section class="flex h-full flex-col">
     <div
-      class="no-print sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/80 bg-white/95 px-3 py-2.5 shadow-card backdrop-blur sm:px-4"
+      class="no-print sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200/80 bg-white/95 px-3 py-2.5 shadow-card backdrop-blur sm:px-4"
     >
       <div class="flex items-center gap-1.5 text-xs">
         <span
@@ -241,7 +241,7 @@ async function onPrint() {
 
     <div
       ref="previewContainer"
-      class="no-print mt-3 flex-1 overflow-auto rounded-2xl border border-slate-200/80 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-slate-100/70 bg-[size:16px_16px] p-3 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)]"
+      class="no-print mt-3 flex-1 overflow-auto rounded-lg border border-slate-200/80 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-slate-100/70 bg-[size:16px_16px] p-3 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)]"
     >
       <div v-if="!workspace.excel.rows.length" class="flex h-full items-center justify-center py-12">
         <div class="max-w-xs text-center">

@@ -38,7 +38,7 @@ const GROUPS = [
         <div>
           <div class="flex items-center gap-2.5">
             <span
-              class="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm"
+              class="flex size-8 items-center justify-center rounded-lg bg-brand-600 text-white"
             >
               <svg class="size-4.5" viewBox="0 0 24 24" fill="none">
                 <rect x="4" y="4" width="7" height="7" rx="1.2" fill="currentColor" />

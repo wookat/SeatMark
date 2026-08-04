@@ -6,7 +6,7 @@ import { guides } from '@/data/guides'
   <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
     <div class="text-center">
       <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Guides</p>
-      <h1 class="mt-1 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">教程中心</h1>
+      <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">教程中心</h1>
       <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">
         座签、桌牌、席位卡、证卡的制作与打印实战教程：从 Excel 名单整理、模板选择到打印裁切，
         问答式讲解常见坑点，看完即可上手。
@@ -18,7 +18,7 @@ import { guides } from '@/data/guides'
         v-for="guide in guides"
         :key="guide.slug"
         :to="`/guides/${guide.slug}`"
-        class="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-brand-300 hover:shadow-lg"
+        class="group flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-brand-300 hover:shadow-card-hover"
       >
         <div class="flex items-center gap-2 text-[11px] font-bold">
           <span class="rounded-md bg-brand-50 px-2 py-0.5 text-brand-600">{{ guide.category }}</span>
@@ -51,7 +51,7 @@ import { guides } from '@/data/guides'
 
     <!-- CTA -->
     <div
-      class="mt-12 flex flex-col items-center justify-between gap-4 rounded-2xl border border-brand-200 bg-brand-50/60 px-6 py-6 text-center sm:flex-row sm:text-left"
+      class="mt-12 flex flex-col items-center justify-between gap-4 rounded-lg border border-brand-200 bg-brand-50/60 px-6 py-6 text-center sm:flex-row sm:text-left"
     >
       <div>
         <h2 class="text-base font-bold text-slate-900">边看边做，效果最好</h2>

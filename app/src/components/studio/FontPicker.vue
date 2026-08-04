@@ -130,7 +130,7 @@ onBeforeUnmount(() => {
     >
       <div
         v-if="open"
-        class="absolute right-0 left-0 z-30 mt-1.5 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+        class="absolute right-0 left-0 z-30 mt-1.5 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-pop"
       >
         <div class="border-b border-slate-100 p-2">
           <input

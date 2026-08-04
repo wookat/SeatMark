@@ -117,7 +117,7 @@ onMounted(() => {
   <div class="mx-auto w-full max-w-[1480px] px-4 py-5">
     <!-- 移动端分段切换：跟随页面吸顶，随时在设置与预览之间翻面 -->
     <div v-if="isMobile" class="sticky top-14 z-30 -mx-4 mb-3 bg-slate-50/90 px-4 py-2 backdrop-blur">
-      <div class="flex rounded-xl border border-slate-200 bg-white p-1 shadow-card">
+      <div class="flex rounded-lg border border-slate-200 bg-white p-1 shadow-card">
         <button
           v-for="tab in MOBILE_TABS"
           :key="tab.key"
@@ -125,7 +125,7 @@ onMounted(() => {
           class="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold transition-colors duration-150"
           :class="
             mobileTab === tab.key
-              ? 'bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-sm'
+              ? 'bg-brand-600 text-white'
               : 'text-slate-500 hover:bg-slate-50'
           "
           @click="mobileTab = tab.key"

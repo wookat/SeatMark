@@ -63,7 +63,7 @@ async function submit() {
 <template>
   <!-- 浮动按钮 -->
   <button
-    class="no-print fixed right-5 bottom-5 z-50 flex size-12 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/30 transition-all hover:scale-110 hover:bg-brand-700 active:scale-95"
+    class="no-print fixed right-5 bottom-5 z-50 flex size-12 items-center justify-center rounded-full bg-brand-600 text-white transition-all hover:bg-brand-700"
     aria-label="反馈"
     @click="open = true"
   >
@@ -82,7 +82,7 @@ async function submit() {
     >
       <div
         v-if="open"
-        class="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm"
+        class="fixed inset-0 z-[60] bg-slate-900/40"
         @click="close"
       ></div>
     </Transition>
@@ -98,7 +98,7 @@ async function submit() {
         v-if="open"
         class="fixed bottom-0 right-0 z-[61] w-full max-w-md p-4 sm:bottom-auto sm:right-1/2 sm:top-1/2 sm:translate-x-1/2 sm:-translate-y-1/2"
       >
-        <div class="rounded-2xl bg-white shadow-2xl">
+        <div class="rounded-lg bg-white shadow-pop">
           <!-- 头部 -->
           <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
             <h3 class="text-base font-bold text-slate-900">意见反馈</h3>

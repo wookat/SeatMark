@@ -13,66 +13,18 @@
   --color-brand-900: #312e81;
   --color-brand-950: #1e1b4b;
 
-  /* 强调色：紫罗兰，用于渐变与点缀 */
-  --color-accent-100: #ede9fe;
-  --color-accent-300: #c4b5fd;
-  --color-accent-400: #a78bfa;
-  --color-accent-500: #8b5cf6;
-  --color-accent-600: #7c3aed;
-  --color-accent-700: #6d28d9;
-
-  /* 阴影层级：card 常驻卡片 / card-hover 悬浮 / pop 弹层 / cta 主按钮 */
+  /* 阴影层级（仅 3 级）：card 常驻卡片 / card-hover 悬浮 / pop 弹层 */
   --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.06);
   --shadow-card-hover:
-    0 2px 4px rgba(15, 23, 42, 0.05), 0 12px 28px -10px rgba(15, 23, 42, 0.16);
-  --shadow-pop: 0 4px 12px rgba(15, 23, 42, 0.08), 0 20px 48px -16px rgba(15, 23, 42, 0.24);
-  --shadow-cta: 0 1px 2px rgba(49, 46, 129, 0.24), 0 8px 20px -6px rgba(79, 70, 229, 0.45);
+    0 2px 4px rgba(15, 23, 42, 0.05), 0 8px 20px -8px rgba(15, 23, 42, 0.12);
+  --shadow-pop: 0 4px 12px rgba(15, 23, 42, 0.08), 0 16px 40px -16px rgba(15, 23, 42, 0.2);
 
-  /* 缓动：统一交互回弹手感 */
-  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  /* 缓动：全站统一标准曲线，无回弹 */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', sans-serif;
-
-  /* ---------- 首页动效 ---------- */
-  --animate-float: float 7s ease-in-out infinite;
-  --animate-gradient: gradient-pan 7s ease-in-out infinite;
-  --animate-blob: blob 18s ease-in-out infinite;
-  --animate-blob-slow: blob 26s ease-in-out -9s infinite reverse;
-
-  @keyframes float {
-    0%,
-    100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-9px);
-    }
-  }
-
-  @keyframes gradient-pan {
-    0%,
-    100% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-  }
-
-  @keyframes blob {
-    0%,
-    100% {
-      transform: translate(0, 0) scale(1);
-    }
-    33% {
-      transform: translate(30px, -26px) scale(1.08);
-    }
-    66% {
-      transform: translate(-22px, 20px) scale(0.93);
-    }
-  }
 }
 
 @layer base {
@@ -111,7 +63,7 @@
 
 @layer components {
   .btn {
-    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-transparent font-semibold transition-colors duration-150 select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded border border-transparent font-semibold transition-colors duration-150 select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-md {
@@ -127,7 +79,7 @@
   }
 
   .btn-primary {
-    @apply bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-sm ring-1 ring-brand-700/40 ring-inset hover:from-brand-600 hover:to-brand-700 active:from-brand-700 active:to-brand-800;
+    @apply bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800;
   }
 
   .btn-secondary {
@@ -143,7 +95,7 @@
   }
 
   .panel-card {
-    @apply rounded-2xl border border-slate-200/80 bg-white p-5 shadow-card;
+    @apply rounded-lg border border-slate-200 bg-white p-5 shadow-card;
   }
 
   .field-label {
@@ -151,7 +103,7 @@
   }
 
   .input-field {
-    @apply w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-800 shadow-[inset_0_1px_2px_rgba(15,23,42,0.04)] transition-[border-color,box-shadow] duration-150 hover:border-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 focus:outline-none;
+    @apply w-full rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-800 shadow-[inset_0_1px_2px_rgba(15,23,42,0.04)] transition-[border-color,box-shadow] duration-150 hover:border-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 focus:outline-none;
   }
 
   /* 数字输入隐藏原生步进按钮（Windows 上常驻且粗糙），键盘上下键仍可微调 */
@@ -172,7 +124,7 @@
   }
 
   .article-body h2 {
-    @apply mt-9 text-xl font-black tracking-tight text-slate-900 first:mt-0;
+    @apply mt-9 text-xl font-bold tracking-tight text-slate-900 first:mt-0;
   }
 
   .article-body h3 {
@@ -234,16 +186,16 @@
   }
 
   .step-chip {
-    @apply inline-flex size-5 items-center justify-center rounded-md bg-gradient-to-b from-brand-500 to-brand-700 text-[11px] font-bold text-white shadow-sm;
+    @apply inline-flex size-5 items-center justify-center rounded bg-brand-600 text-[11px] font-bold text-white;
   }
 
   /* ---------- 营销页排版层级 ---------- */
   .section-eyebrow {
-    @apply text-xs font-bold tracking-[0.18em] text-brand-600 uppercase;
+    @apply text-xs font-semibold tracking-[0.18em] text-brand-600 uppercase;
   }
 
   .section-heading {
-    @apply mt-2 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl;
+    @apply mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl;
   }
 
   .section-sub {
@@ -251,16 +203,16 @@
   }
 
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-slate-500;
+    @apply inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-slate-500;
   }
 
   /* 滚动显现（配合 v-reveal 指令）：进入视口前下移隐藏，进入后上浮显现 */
   .reveal-init {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(12px);
     transition:
-      opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
-      transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+      opacity 0.3s var(--ease-standard),
+      transform 0.3s var(--ease-standard);
   }
 
   .reveal-init.reveal-in {
@@ -273,66 +225,6 @@
       opacity: 1;
       transform: none;
       transition: none;
-    }
-  }
-
-  /* ---------- 首页 Hero 示例排版动效 ---------- */
-
-  /* 扫描光带：在缩放后的 A4 页面上自上而下循环扫过，模拟批量生成进度 */
-  .hero-scanline {
-    position: absolute;
-    left: 0;
-    top: 0;
-    /* 与 Hero 的 A4 页面同宽（包装层布局宽度小于缩放前页面，不能用 inset-inline） */
-    width: 210mm;
-    height: 90px;
-    pointer-events: none;
-    background: linear-gradient(
-      to bottom,
-      transparent,
-      rgba(79, 70, 229, 0.06) 40%,
-      rgba(79, 70, 229, 0.16) 82%,
-      rgba(99, 102, 241, 0.4) 100%
-    );
-    border-bottom: 2px solid rgba(99, 102, 241, 0.5);
-    animation: hero-scan 6.5s ease-in-out infinite;
-    will-change: transform;
-  }
-
-  @keyframes hero-scan {
-    0% {
-      transform: translateY(-90px);
-      opacity: 0;
-    }
-    6% {
-      opacity: 1;
-    }
-    70% {
-      opacity: 1;
-    }
-    78%,
-    100% {
-      transform: translateY(297mm);
-      opacity: 0;
-    }
-  }
-
-  /* 标签逐枚“落版”进场：延迟随 LabelSheet 注入的 --i 序号递增 */
-  @media (prefers-reduced-motion: no-preference) {
-    .hero-sheet .label-box {
-      animation: hero-pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
-      animation-delay: calc(var(--i, 0) * 45ms + 250ms);
-    }
-  }
-
-  @keyframes hero-pop {
-    from {
-      opacity: 0;
-      transform: scale(0.65);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
     }
   }
 }

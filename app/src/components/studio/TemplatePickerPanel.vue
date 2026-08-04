@@ -175,7 +175,7 @@ function confirmDelete() {
         :key="t.id"
         role="button"
         tabindex="0"
-        class="relative cursor-pointer rounded-xl border-2 p-3 transition-all duration-150"
+        class="relative cursor-pointer rounded-lg border-2 p-3 transition-all duration-150"
         :class="
           workspace.selectedTemplateId === t.id
             ? 'border-brand-500 bg-brand-50/60 shadow-sm'
@@ -245,7 +245,7 @@ function confirmDelete() {
     <button
       v-if="library.allTemplates.length > visibleTemplates.length"
       type="button"
-      class="mt-2.5 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 py-2 text-xs font-semibold text-slate-500 transition-colors duration-150 hover:border-brand-400 hover:text-brand-600"
+      class="mt-2.5 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 py-2 text-xs font-semibold text-slate-500 transition-colors duration-150 hover:border-brand-400 hover:text-brand-600"
       @click="pickerOpen = true"
     >
       浏览全部 {{ library.allTemplates.length }} 款模板
@@ -302,7 +302,7 @@ function confirmDelete() {
           :key="t.id"
           role="button"
           tabindex="0"
-          class="relative mb-3 inline-block w-full cursor-pointer break-inside-avoid rounded-xl border-2 p-3 transition-all duration-150"
+          class="relative mb-3 inline-block w-full cursor-pointer break-inside-avoid rounded-lg border-2 p-3 transition-all duration-150"
           :class="
             workspace.selectedTemplateId === t.id
               ? 'border-brand-500 bg-brand-50/60 shadow-sm'

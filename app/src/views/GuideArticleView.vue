@@ -51,7 +51,7 @@ function onArticleClick(event: MouseEvent) {
     </nav>
 
     <header class="mt-4">
-      <h1 class="text-2xl leading-snug font-black tracking-tight text-slate-900 sm:text-3xl">
+      <h1 class="text-2xl leading-snug font-bold tracking-tight text-slate-900 sm:text-3xl">
         {{ guide.title }}
       </h1>
       <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
@@ -61,7 +61,7 @@ function onArticleClick(event: MouseEvent) {
         <span>更新于 {{ guide.dateModified }}</span>
         <span>约 {{ guide.readingMinutes }} 分钟读完</span>
       </div>
-      <p class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+      <p class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
         {{ guide.description }}
       </p>
     </header>
@@ -72,12 +72,12 @@ function onArticleClick(event: MouseEvent) {
 
     <!-- FAQ -->
     <section v-if="guide.faqs.length" class="mt-10">
-      <h2 class="text-xl font-black tracking-tight text-slate-900">常见问答</h2>
+      <h2 class="text-xl font-bold tracking-tight text-slate-900">常见问答</h2>
       <div class="mt-4 grid gap-3">
         <div
           v-for="faq in guide.faqs"
           :key="faq.q"
-          class="rounded-2xl border border-slate-200 bg-white p-4"
+          class="rounded-lg border border-slate-200 bg-white p-4"
         >
           <h3 class="text-sm font-bold text-slate-900">{{ faq.q }}</h3>
           <p class="mt-1.5 text-sm leading-6 text-slate-500">{{ faq.a }}</p>
@@ -87,10 +87,10 @@ function onArticleClick(event: MouseEvent) {
 
     <!-- CTA -->
     <div
-      class="mt-10 flex flex-col items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-brand-600 to-violet-600 px-6 py-6 text-center sm:flex-row sm:text-left"
+      class="mt-10 flex flex-col items-center justify-between gap-4 rounded-lg bg-brand-700 px-6 py-6 text-center sm:flex-row sm:text-left"
     >
       <div>
-        <h2 class="text-base font-bold text-white">现在就动手试试</h2>
+        <h2 class="text-base font-bold text-white">在标签工坊中实践本教程</h2>
         <p class="mt-1 text-sm text-brand-100">免费、无需注册，名单不出浏览器。</p>
       </div>
       <RouterLink
@@ -109,7 +109,7 @@ function onArticleClick(event: MouseEvent) {
           v-for="rel in relatedGuides"
           :key="rel!.slug"
           :to="`/guides/${rel!.slug}`"
-          class="group rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-brand-300"
+          class="group rounded-lg border border-slate-200 bg-white p-4 transition-colors hover:border-brand-300"
         >
           <p class="text-[11px] font-bold text-brand-600">{{ rel!.category }}</p>
           <h3 class="mt-1 line-clamp-2 text-xs leading-5 font-bold text-slate-700 group-hover:text-brand-600">
