@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="brand/logos/a-seatgrid-lockup-light.svg" alt="SeatMark 座签 Logo" width="240" />
+</p>
+
 # SeatMark 座签 — 考场座位标签在线批量生成
 
 <p>

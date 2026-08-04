@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { guides } from '@/data/guides'
+import BrandMark from '@/components/ui/BrandMark.vue'
 
 const GROUPS = [
   {
@@ -38,40 +39,7 @@ const GROUPS = [
       <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(3,1fr)]">
         <div>
           <div class="flex items-center gap-2.5">
-            <span
-              class="flex size-8 items-center justify-center rounded-lg bg-brand-600 text-white"
-            >
-              <svg class="size-4.5" viewBox="0 0 24 24" fill="none">
-                <rect x="4" y="4" width="7" height="7" rx="1.2" fill="currentColor" />
-                <rect
-                  x="13.5"
-                  y="4"
-                  width="6.5"
-                  height="7"
-                  rx="1.2"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                />
-                <rect
-                  x="4"
-                  y="13.5"
-                  width="7"
-                  height="6.5"
-                  rx="1.2"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                />
-                <rect
-                  x="13.5"
-                  y="13.5"
-                  width="6.5"
-                  height="6.5"
-                  rx="1.2"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                />
-              </svg>
-            </span>
+            <BrandMark class="size-8 shrink-0 text-brand-600" />
             <span class="text-base font-bold tracking-tight text-slate-900">
               SeatMark <span class="text-brand-600">座签</span>
             </span>
