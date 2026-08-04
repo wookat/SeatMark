@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <path d="M32 4 c-11 0 -20 8.6 -20 19.2 c0 8 4.8 13.4 10.4 19.6 c3.4 3.7 6.6 7.6 8 13.2 a1.7 1.7 0 0 0 3.2 0 c1.4 -5.6 4.6 -9.5 8 -13.2 c5.6 -6.2 10.4 -11.6 10.4 -19.6 c0 -10.6 -9 -19.2 -20 -19.2 z" fill="#4f46e5"/>
+      <path d="M25 14 v12 h11" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M22 26 h20 v6 h-20 z" fill="#fff" rx="2"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg>

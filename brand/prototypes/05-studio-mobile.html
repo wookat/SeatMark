@@ -1,0 +1,53 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>原型 · 工坊（移动端 390）</title><link rel="stylesheet" href="shared.css">
+<style>
+body { max-width:390px; margin:0 auto; background:var(--s50); min-height:100vh; display:flex; flex-direction:column; }
+.top { background:#fff; border-bottom:1px solid var(--s200); padding:12px 16px; display:flex; align-items:center; justify-content:space-between; }
+.stepbar { display:flex; gap:4px; padding:12px 16px; }
+.stepbar .s { flex:1; height:4px; border-radius:2px; background:var(--s200); }
+.stepbar .s.on { background:var(--brand-600); }
+.steplabel { padding:0 16px 10px; font-size:13px; color:var(--s600); display:flex; justify-content:space-between; }
+.canvas { flex:1; display:flex; align-items:center; justify-content:center; padding:8px 16px; }
+.page { width:100%; background:#fff; border:1px solid var(--s200); box-shadow:var(--shadow-card); padding:16px; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.lbl { border:1px dashed var(--s400); border-radius:2px; padding:14px 8px; text-align:center; }
+.lbl b { font-size:15px; display:block; } .lbl span { font-size:10px; color:var(--s500); }
+.lbl.sel { border:2px solid var(--brand-600); background:var(--brand-50); }
+.bar { background:#fff; border-top:1px solid var(--s200); padding:12px 16px 20px; }
+.props { display:flex; gap:8px; overflow-x:auto; padding-bottom:12px; }
+.props .p { flex:none; border:1px solid var(--s200); border-radius:4px; background:#fff; font-size:12px; color:var(--s600); padding:8px 12px; }
+.props .p b { color:var(--ink); font-weight:600; }
+.actions { display:flex; gap:10px; }
+</style></head><body>
+<div class="top">
+  <div class="logo" style="font-size:15px">
+    <svg class="mark" width="26" height="26" viewBox="0 0 64 64"><rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/><rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/><rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/><rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/><circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></svg>
+    <span>座签工坊</span>
+  </div>
+  <span style="font-size:13px;color:var(--s500)">名单 42 人</span>
+</div>
+<div class="stepbar"><div class="s on"></div><div class="s on"></div><div class="s on"></div><div class="s"></div></div>
+<div class="steplabel"><span style="color:var(--brand-600);font-weight:600">步骤 3 / 4 · 排版调整</span><span>A4 纵向 · 每页 10 枚</span></div>
+<div class="canvas">
+  <div class="page">
+    <div class="lbl"><b>陈晓</b><span>001 · 一考场</span></div>
+    <div class="lbl"><b>李文博</b><span>002 · 一考场</span></div>
+    <div class="lbl sel"><b>张三</b><span>003 · 一考场</span></div>
+    <div class="lbl"><b>王雨桐</b><span>004 · 一考场</span></div>
+    <div class="lbl"><b>刘一帆</b><span>005 · 一考场</span></div>
+    <div class="lbl"><b>赵思远</b><span>006 · 一考场</span></div>
+  </div>
+</div>
+<div class="bar">
+  <div class="props">
+    <span class="p">宽 <b>90.0 mm</b></span>
+    <span class="p">高 <b>54.0 mm</b></span>
+    <span class="p">间距 <b>4.0 mm</b></span>
+    <span class="p">裁切线 <b>开</b></span>
+    <span class="p">字段 <b>3 项</b></span>
+  </div>
+  <div class="actions">
+    <button class="btn btn-ghost" style="flex:1;justify-content:center">上一步</button>
+    <button class="btn btn-primary" style="flex:2;justify-content:center">下一步 · 导出打印</button>
+  </div>
+</div>
+</body></html>

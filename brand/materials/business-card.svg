@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2206" height="638" viewBox="0 0 2206 638" font-family="'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif"><!-- 正面 -->
+     <g>
+       <rect width="1063" height="638" fill="#fff" stroke="#e2e8f0"/>
+       <g transform="translate(80,80) scale(1.71875)">
+  <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+  <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+  <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+  <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+  <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></g>
+       <text x="220" y="140" font-size="54" font-weight="700" fill="#0f172a">座签 SeatMark</text>
+       <text x="220" y="192" font-size="26" fill="#64748b">考场座签 · 桌牌席卡 · 批量生成</text>
+       <text x="80" y="480" font-size="30" font-weight="600" fill="#0f172a">王小明 · 产品负责人</text>
+       <text x="80" y="530" font-size="24" fill="#475569">hello@seatmark.cn</text>
+       <text x="80" y="572" font-size="24" fill="#475569">www.seatmark.cn</text>
+     </g>
+     <!-- 反面 -->
+     <g transform="translate(1143,0)">
+       <rect width="1063" height="638" fill="#4f46e5"/>
+       <g transform="translate(451,189) scale(2.5)">
+  <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#ffffff" stroke-width="5"/>
+  <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#ffffff" stroke-width="5"/>
+  <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#ffffff" stroke-width="5"/>
+  <rect x="35" y="35" width="23" height="23" rx="6" fill="#ffffff"/>
+  <circle cx="46.5" cy="46.5" r="4.5" fill="#4f46e5"/></g>
+       <text x="531" y="460" text-anchor="middle" font-size="40" font-weight="700" fill="#fff">座签 SeatMark</text>
+       <text x="531" y="516" text-anchor="middle" font-size="24" fill="#c7d2fe">www.seatmark.cn</text>
+     </g></svg>
