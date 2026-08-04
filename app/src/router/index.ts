@@ -52,6 +52,21 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/AdminView.vue'),
   },
   {
+    path: '/papers',
+    name: 'papers',
+    component: () => import('@/views/PapersView.vue'),
+  },
+  {
+    path: '/papers/:slug',
+    name: 'paper-detail',
+    component: () => import('@/views/PaperDetailView.vue'),
+  },
+  {
+    path: '/seating',
+    name: 'seating',
+    component: () => import('@/views/SeatingView.vue'),
+  },
+  {
     path: '/terms',
     name: 'terms',
     component: () => import('@/views/TermsView.vue'),

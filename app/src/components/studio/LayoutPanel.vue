@@ -8,6 +8,8 @@ import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { LabelTemplate } from '@/types/template'
+import { labelPapers } from '@/data/labelPapers'
+import { applyLabelPaper, matchLabelPaper } from '@/utils/labelPaper'
 import { centerLayout, clamp, fitToPaper, layoutOverflow, round1 } from '@/utils/layout'
 import { matchPaperPreset, PAPER_PRESETS, paperLabel } from '@/utils/paper'
 
@@ -38,6 +40,30 @@ const paperId = computed({
 })
 
 const isCustomPaper = computed(() => paperId.value === 'custom')
+
+/** 不干胶纸型选择：选型号后自动锁定行列数、标签尺寸、边距与间距 */
+const labelPaperSlug = computed({
+  get: () =>
+    matchLabelPaper(workspace.template.page, workspace.template.label)?.slug ?? 'none',
+  set: (slug: string) => {
+    const spec = labelPapers.find((p) => p.slug === slug)
+    if (!spec) return
+    applyLabelPaper(workspace.template, spec)
+    toast.info(
+      '已按纸型锁定排版',
+      `${spec.name}：${spec.cols} 列 × ${spec.rows} 行，每页 ${spec.cols * spec.rows} 枚（${spec.labelWidth} × ${spec.labelHeight} mm）`,
+    )
+  },
+})
+
+const labelPaperOptions = computed<SelectOption[]>(() => [
+  { value: 'none', label: '不使用纸型（自由排版）' },
+  ...labelPapers.map((p) => ({
+    value: p.slug,
+    label: p.name,
+    hint: `${p.labelWidth} × ${p.labelHeight} mm`,
+  })),
+])
 
 const paperOptions = computed<SelectOption[]>(() => {
   const options: SelectOption[] = PAPER_PRESETS.map((p) => ({
@@ -110,6 +136,15 @@ function onCenterLayout() {
     </div>
 
     <div class="grid grid-cols-2 gap-2.5">
+      <div class="col-span-2">
+        <label class="field-label">
+          按不干胶纸型选择
+          <RouterLink to="/papers" class="ml-1 font-normal text-brand-600 hover:underline">
+            查看纸型库
+          </RouterLink>
+        </label>
+        <SelectField v-model="labelPaperSlug" :options="labelPaperOptions" />
+      </div>
       <div class="col-span-2">
         <label class="field-label">纸张规格</label>
         <SelectField v-model="paperId" :options="paperOptions" />
