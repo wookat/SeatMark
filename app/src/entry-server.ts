@@ -10,7 +10,7 @@ import { renderToString } from 'vue/server-renderer'
 import App from '@/App.vue'
 import { createAppRouter } from '@/router'
 
-export { prerenderPaths, resolveSeo, SITE_ORIGIN } from '@/data/seo'
+export { appShellPaths, prerenderPaths, resolveSeo, SITE_ORIGIN } from '@/data/seo'
 
 export async function render(url: string): Promise<string> {
   const app = createSSRApp(App)

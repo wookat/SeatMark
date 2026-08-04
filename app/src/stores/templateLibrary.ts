@@ -76,6 +76,23 @@ export const useTemplateLibrary = defineStore('templateLibrary', () => {
     persist()
   }
 
+  /** 从云端找回：按 id 升级合并（保留云端 id，避免反复找回产生重复），返回新增数量 */
+  function importTemplates(templates: LabelTemplate[]): number {
+    let added = 0
+    for (const template of templates) {
+      const copy = { ...cloneTemplate(template), builtin: false }
+      const idx = customTemplates.value.findIndex((t) => t.id === copy.id)
+      if (idx === -1) {
+        customTemplates.value.push(copy)
+        added += 1
+      } else {
+        customTemplates.value[idx] = copy
+      }
+    }
+    persist()
+    return added
+  }
+
   function isCustom(id: string): boolean {
     return customTemplates.value.some((t) => t.id === id)
   }
@@ -87,6 +104,7 @@ export const useTemplateLibrary = defineStore('templateLibrary', () => {
     saveAsCustom,
     updateCustom,
     removeCustom,
+    importTemplates,
     isCustom,
   }
 })

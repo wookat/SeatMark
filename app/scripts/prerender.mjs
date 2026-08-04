@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const distDir = join(root, 'dist')
 
-const { render, resolveSeo, prerenderPaths, SITE_ORIGIN } = await import(
+const { render, resolveSeo, prerenderPaths, appShellPaths, SITE_ORIGIN } = await import(
   join(root, 'dist-ssr', 'entry-server.js')
 )
 
@@ -68,6 +68,14 @@ function applyHead(html, seo) {
     // 移除模板中的静态 JSON-LD，改为按路由注入
     .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>\n?/, '')
 
+  if (seo.robots) {
+    if (/<meta\s+name="robots"[^>]*\/>/.test(out)) {
+      out = out.replace(/<meta\s+name="robots"[^>]*\/>/, `<meta name="robots" content="${escapeAttr(seo.robots)}" />`)
+    } else {
+      out = out.replace('</title>', `</title>\n    <meta name="robots" content="${escapeAttr(seo.robots)}" />`)
+    }
+  }
+
   const jsonLdTags = seo.jsonLd
     .map((data) => `<script type="application/ld+json" data-route-jsonld>${safeJsonLd(data)}</script>`)
     .join('\n    ')
@@ -75,12 +83,14 @@ function applyHead(html, seo) {
 }
 
 const paths = prerenderPaths()
-for (const path of paths) {
+// 应用壳路径（账号/管理页）：预渲染 HTML 壳供静态托管直达，noindex 且不进 sitemap
+const shellPaths = appShellPaths()
+for (const path of [...paths, ...shellPaths]) {
   const seo = resolveSeo(path)
   let html = applyHead(template, seo)
 
-  // /studio 为纯交互应用，保持 SPA 挂载即可（避免预渲染重型工坊组件）；其余路由注入正文
-  if (path !== '/studio') {
+  // /studio 与应用壳为纯交互应用，保持 SPA 挂载即可；其余路由注入正文
+  if (path !== '/studio' && !shellPaths.includes(path)) {
     const appHtml = await render(path)
     html = html.replace('<div id="app"></div>', `<div id="app">${appHtml}</div>`)
   }

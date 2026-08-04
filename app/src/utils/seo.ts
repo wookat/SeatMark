@@ -20,6 +20,7 @@ export function applySeo(path: string): void {
 
   document.title = seo.title
   setMeta('name', 'description', seo.description)
+  setMeta('name', 'robots', seo.robots ?? 'index,follow')
   setMeta('property', 'og:title', seo.title)
   setMeta('property', 'og:description', seo.description)
   setMeta('property', 'og:url', `${SITE_ORIGIN}${seo.path}`)

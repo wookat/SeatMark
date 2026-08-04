@@ -41,6 +41,16 @@ export const routes: RouteRecordRaw[] = [
     name: 'template-detail',
     component: () => import('@/views/TemplateDetailView.vue'),
   },
+  {
+    path: '/account',
+    name: 'account',
+    component: () => import('@/views/AccountView.vue'),
+  },
+  {
+    path: '/admin',
+    name: 'admin',
+    component: () => import('@/views/AdminView.vue'),
+  },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 

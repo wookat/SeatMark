@@ -20,6 +20,8 @@ export interface PageSeo {
   path: string
   /** 页面级 JSON-LD 对象列表 */
   jsonLd: Record<string, unknown>[]
+  /** robots 指令（账号/管理页 noindex），未设置时不输出 robots meta */
+  robots?: string
 }
 
 const SOFTWARE_APP_JSONLD: Record<string, unknown> = {
@@ -79,20 +81,20 @@ function howToJsonLd(name: string, steps: readonly { name: string; text: string 
 /** 定价页 FAQ（页面与 JSON-LD 共用） */
 export const PRICING_FAQS = [
   {
-    q: 'Beta 期间免费到什么时候？',
-    a: 'Beta 期间所有档位限时免费开放，全部功能不设限制。正式收费前会提前在站内公告，Beta 期间生成的模板与文件永久归你所有。',
+    q: '每日生成次数怎么计算？',
+    a: '每次 PDF 导出或调起打印计一次生成，预览、排版、模板设计不限次数。未登录每天 3 次，登录后每天 10 次，每日 0 点自动恢复；分享专属链接还能额外获得当日次数。',
   },
   {
-    q: '免费使用需要注册账号吗？',
-    a: '不需要。打开网页即可使用全部功能，无需注册、无需登录，也不收集任何个人信息。',
+    q: '使用需要注册账号吗？',
+    a: '不登录也能使用全部功能（每日 3 次生成）。邮箱验证码登录后领取 Beta 会员：每日 10 次生成、自定义模板云端同步与跨设备找回。',
   },
   {
     q: '我的名单数据安全吗？',
-    a: 'Excel 名单与照片全部在你的浏览器本地解析和排版，不会上传到任何服务器，页面关闭后即清空，可完全离线使用。',
+    a: 'Excel 名单与照片全部在你的浏览器本地解析和排版，不会上传到任何服务器。登录只用于配额与模板结构同步，不收集也不上传任何标签内容数据。',
   },
   {
-    q: '商用（学校/公司/机构）可以用吗？',
-    a: '可以。Beta 期间机构使用同样免费，内置开源字体均可免费商用；生成的 PDF 与打印页版权归你所有。',
+    q: '团队版怎么购买？',
+    a: '团队版 ¥99/月，支付通道即将开通。现在可在定价页预订登记（留邮箱与团队规模），开通后我们会第一时间邮件通知，预订用户享首批优惠。',
   },
 ]
 
@@ -126,28 +128,34 @@ export function resolveSeo(path: string): PageSeo {
 
   if (p === '/pricing') {
     return {
-      title: '定价：Beta 期间限时免费 - SeatMark 座签',
+      title: '定价：免费每日生成配额，团队版 ¥99/月 - SeatMark 座签',
       description:
-        'SeatMark 座签定价：免费版、专业版（原价 ¥29/月）、团队版（原价 ¥99/月）Beta 期间全部限时免费体验，无需注册即可使用全部功能，数据不出浏览器。',
+        'SeatMark 座签定价：免费版每日 3 次生成（登录后 10 次），分享可额外获得次数；专业版更高配额即将推出；团队版 ¥99/月支持预订登记。数据不出浏览器。',
       path: '/pricing',
       jsonLd: [
         {
           ...SOFTWARE_APP_JSONLD,
           offers: [
-            { '@type': 'Offer', name: '免费版', price: '0', priceCurrency: 'CNY' },
             {
               '@type': 'Offer',
-              name: '专业版（Beta 限时免费）',
+              name: '免费版',
               price: '0',
               priceCurrency: 'CNY',
-              description: '原价 ¥29/月，Beta 期间限时免费体验',
+              description: '每日 3 次生成，登录后每日 10 次，分享可额外获得次数',
             },
             {
               '@type': 'Offer',
-              name: '团队版（Beta 限时免费）',
-              price: '0',
+              name: '专业版（即将推出）',
+              price: '29',
               priceCurrency: 'CNY',
-              description: '原价 ¥99/月，Beta 期间限时免费体验',
+              description: '更高每日配额与专业功能，定价 ¥29/月，即将推出',
+            },
+            {
+              '@type': 'Offer',
+              name: '团队版',
+              price: '99',
+              priceCurrency: 'CNY',
+              description: '¥99/月，支付即将开通，现在可预订登记',
             },
           ],
         },
@@ -157,6 +165,26 @@ export function resolveSeo(path: string): PageSeo {
           { name: '定价', path: '/pricing' },
         ]),
       ],
+    }
+  }
+
+  if (p === '/account') {
+    return {
+      title: '个人中心 - SeatMark 座签',
+      description: 'SeatMark 个人中心：云端模板同步、使用统计、分享送次数与 Beta 会员权益。',
+      path: '/account',
+      jsonLd: [],
+      robots: 'noindex, nofollow',
+    }
+  }
+
+  if (p === '/admin') {
+    return {
+      title: '管理后台 - SeatMark 座签',
+      description: 'SeatMark 管理后台。',
+      path: '/admin',
+      jsonLd: [],
+      robots: 'noindex, nofollow',
     }
   }
 
@@ -272,6 +300,14 @@ export function resolveSeo(path: string): PageSeo {
 
   // 未知路径回落到首页 meta（SPA 内部会重定向到 /）
   return resolveSeo('/')
+}
+
+/**
+ * 需要预渲染但不进 sitemap 的应用壳路径（账号/管理页，noindex）：
+ * 预渲染仅为了静态托管下直接访问路径时能命中 HTML 文件。
+ */
+export function appShellPaths(): string[] {
+  return ['/account', '/admin']
 }
 
 /** 需要构建期预渲染的全部路径（同时是 sitemap 的路径清单） */
