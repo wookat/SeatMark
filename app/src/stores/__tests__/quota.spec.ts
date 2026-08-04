@@ -14,19 +14,19 @@ function mockUser(overrides: Partial<SessionUser['quota']> = {}): SessionUser {
     templateUpdatedAt: null,
     betaMember: true,
     isAdmin: false,
-    quota: { date: '2026-01-01', used: 0, limit: 10, bonus: 0, remaining: 10, ...overrides },
+    quota: { date: '2026-01-01', used: 0, limit: 3, bonus: 0, remaining: 3, ...overrides },
     share: {
       code: 'abcd1234',
       totalVisits: 0,
       totalBonus: 0,
       bonusToday: 0,
       bonusDailyCap: 10,
-      bonusPerVisit: 2,
+      bonusPerVisit: 1,
     },
   }
 }
 
-describe('quota store（每日生成配额）', () => {
+describe('quota store（每日无水印导出配额）', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
@@ -51,13 +51,13 @@ describe('quota store（每日生成配额）', () => {
   it('未登录：本地计数持久化到 localStorage 且跨日重置', async () => {
     const quota = useQuotaStore()
     await quota.tryConsume()
-    const raw = localStorage.getItem('seatmark.daily-usage.v1')
+    const raw = localStorage.getItem('seatmark.clean-export-usage.v1')
     expect(raw).toBeTruthy()
     expect(JSON.parse(raw!).used).toBe(1)
 
     // 模拟昨日残留数据：应重置为今日 0 次
     localStorage.setItem(
-      'seatmark.daily-usage.v1',
+      'seatmark.clean-export-usage.v1',
       JSON.stringify({ date: '2000-01-01', used: 99 }),
     )
     setActivePinia(createPinia())
@@ -67,18 +67,18 @@ describe('quota store（每日生成配额）', () => {
 
   it('已登录：走服务端计数，429 时打开引导弹窗', async () => {
     const auth = useAuthStore()
-    auth.user = mockUser({ used: 10, remaining: 0 })
+    auth.user = mockUser({ used: 3, remaining: 0 })
     const quota = useQuotaStore()
 
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ error: '今日生成次数已用完' }), { status: 429 }),
+      new Response(JSON.stringify({ error: '今日无水印导出次数已用完' }), { status: 429 }),
     )
     // refresh() 也会被调用，返回同一个用户
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ error: '今日生成次数已用完' }), { status: 429 }),
+      new Response(JSON.stringify({ error: '今日无水印导出次数已用完' }), { status: 429 }),
     )
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ user: mockUser({ used: 10, remaining: 0 }) }), {
+      new Response(JSON.stringify({ user: mockUser({ used: 3, remaining: 0 }) }), {
         status: 200,
       }),
     )
@@ -95,13 +95,13 @@ describe('quota store（每日生成配额）', () => {
     const quota = useQuotaStore()
 
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ ok: true, used: 1, limit: 10, remaining: 9 }), {
+      new Response(JSON.stringify({ ok: true, used: 1, limit: 3, remaining: 2 }), {
         status: 200,
       }),
     )
 
     const result = await quota.tryConsume()
     expect(result.ok).toBe(true)
-    expect(auth.user.quota.remaining).toBe(9)
+    expect(auth.user.quota.remaining).toBe(2)
   })
 })

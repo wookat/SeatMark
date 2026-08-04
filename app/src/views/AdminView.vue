@@ -11,6 +11,8 @@ interface Overview {
   templateSyncUsers: number
   templateTotal: number
   usageToday: number
+  trialUsers: number
+  activeTrialToday: number
   shareBonusToday: number
   reservationCount: number
   feedbackCount: number
@@ -153,14 +155,18 @@ watch(
 
     <template v-else-if="overview">
       <!-- 指标卡片 -->
-      <div class="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div class="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-5">
         <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-card">
-          <p class="text-xs text-slate-500">注册用户</p>
+          <p class="text-xs text-slate-500">注册用户（Beta 试用）</p>
           <p class="mt-1 text-2xl font-bold text-slate-900">{{ overview.totalUsers }}</p>
         </div>
         <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-card">
-          <p class="text-xs text-slate-500">今日生成消耗（登录用户）</p>
+          <p class="text-xs text-slate-500">今日无水印导出（登录用户）</p>
           <p class="mt-1 text-2xl font-bold text-slate-900">{{ overview.usageToday }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-card">
+          <p class="text-xs text-slate-500">今日活跃试用用户</p>
+          <p class="mt-1 text-2xl font-bold text-slate-900">{{ overview.activeTrialToday }}</p>
         </div>
         <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-card">
           <p class="text-xs text-slate-500">云端模板（用户 / 总数）</p>
@@ -169,7 +175,7 @@ watch(
           </p>
         </div>
         <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-card">
-          <p class="text-xs text-slate-500">今日分享赠送次数</p>
+          <p class="text-xs text-slate-500">今日分享送无水印次数</p>
           <p class="mt-1 text-2xl font-bold text-slate-900">{{ overview.shareBonusToday }}</p>
         </div>
       </div>

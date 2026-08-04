@@ -9,7 +9,7 @@
  *   GET  /api/account/templates  拉取云端模板
  *   PUT  /api/account/templates  上传（覆盖）云端模板
  *   GET  /api/quota              当前配额状态（登录用户）
- *   POST /api/quota/consume      消耗一次生成配额（登录用户，服务端计数）
+ *   POST /api/quota/consume      消耗一次无水印导出配额（登录用户，服务端计数）
  *   GET  /api/share/mine         我的分享码与裂变进度
  *   POST /api/share/visit        分享链接访问上报（IP+日去重，为分享者赠送次数）
  *   POST /api/team/reserve       团队版预订登记
@@ -31,10 +31,10 @@
  * 未绑定时自动降级为进程内存存储（数据不持久，仅用于联调）。
  */
 
-// ---------- 配额与裂变参数（前端 quota.ts 与此保持一致） ----------
-const QUOTA_ANON_DAILY = 3
-const QUOTA_USER_DAILY = 10
-const SHARE_BONUS_PER_VISIT = 2
+// ---------- 配额与裂变参数（前端 quota.ts 与此保持一致；计数对象为无水印导出，带水印不限次） ----------
+const QUOTA_ANON_DAILY = 1
+const QUOTA_USER_DAILY = 3
+const SHARE_BONUS_PER_VISIT = 1
 const SHARE_BONUS_DAILY_CAP = 10
 
 const SESSION_COOKIE = 'sm_session'
@@ -501,7 +501,7 @@ export async function onRequest(context) {
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
     const status = await quotaStatus(kv, email)
     if (status.remaining <= 0) {
-      return json({ error: '今日生成次数已用完', ...status }, 429, storageHeader)
+      return json({ error: '今日无水印导出次数已用完', ...status }, 429, storageHeader)
     }
     const used = status.used + 1
     await kv.put(`usage:${email}:${status.date}`, String(used))
@@ -623,8 +623,11 @@ export async function onRequest(context) {
       const date = today()
       let usageToday = 0
       let bonusToday = 0
+      let activeTrialToday = 0
       for (const u of users) {
-        usageToday += await getCounter(kv, `usage:${u.email}:${date}`)
+        const used = await getCounter(kv, `usage:${u.email}:${date}`)
+        usageToday += used
+        if (used > 0) activeTrialToday += 1
         bonusToday += await getCounter(kv, `bonus:${u.email}:${date}`)
       }
 
@@ -638,6 +641,8 @@ export async function onRequest(context) {
           templateSyncUsers: users.filter((u) => (u.templateCount || 0) > 0).length,
           templateTotal: users.reduce((s, u) => s + (u.templateCount || 0), 0),
           usageToday,
+          trialUsers: users.length,
+          activeTrialToday,
           shareBonusToday: bonusToday,
           reservationCount: reservations.keys.length,
           feedbackCount: feedback.keys.length,
