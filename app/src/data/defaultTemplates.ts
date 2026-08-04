@@ -1,6 +1,9 @@
 import type { LabelTemplate, TemplateCategory, TemplateField } from '@/types/template'
 
 import { DEFAULT_FONT_STACK, DEFAULT_FONT_STACK_EN } from './fonts'
+import { campusTemplates } from './defaultTemplatesCampus'
+import { eventTemplates } from './defaultTemplatesEvent'
+import { lifeTemplates } from './defaultTemplatesLife'
 
 /** 内置模板默认中文字体：宋体（正式考务文档气质，本机渲染零联网） */
 const FONT_FAMILY = DEFAULT_FONT_STACK
@@ -8292,6 +8295,9 @@ export const defaultTemplates: LabelTemplate[] = [
     ],
     showLabelBorder: true,
   },
+  ...campusTemplates,
+  ...eventTemplates,
+  ...lifeTemplates,
 ]
 
 /** 设计器“新建空白模板”的起点 */

@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import { defaultTemplates, TEMPLATE_CATEGORIES } from '@/data/defaultTemplates'
 import { templateDetails } from '@/data/templateDetails'
+import { TEMPLATE_SUBCATEGORIES, subcategoryOf } from '@/data/templateTaxonomy'
 import type { TemplateCategory } from '@/types/template'
 
 const items = templateDetails
@@ -15,7 +16,28 @@ const items = templateDetails
 
 type CategoryFilter = TemplateCategory | 'all'
 const activeCategory = ref<CategoryFilter>('all')
+const activeSubcategory = ref<string>('all')
 const searchQuery = ref('')
+
+function selectCategory(id: CategoryFilter) {
+  activeCategory.value = id
+  activeSubcategory.value = 'all'
+}
+
+const subcategoryOptions = computed<{ id: string; name: string; count: number }[]>(() => {
+  const cat = activeCategory.value
+  if (cat === 'all') return []
+  const list = items.filter((item) => item.template!.category === cat)
+  const options = TEMPLATE_SUBCATEGORIES[cat]
+    .map((sub) => ({
+      id: sub.id,
+      name: sub.name,
+      count: list.filter((item) => subcategoryOf(item.template!.id)?.id === sub.id).length,
+    }))
+    .filter((o) => o.count > 0)
+  if (options.length <= 1) return []
+  return [{ id: 'all', name: '全部', count: list.length }, ...options]
+})
 
 const categoryOptions = computed<{ id: CategoryFilter; name: string; count: number }[]>(() => [
   { id: 'all', name: '全部', count: items.length },
@@ -30,6 +52,9 @@ const filteredItems = computed(() => {
   let list = items
   if (activeCategory.value !== 'all') {
     list = list.filter((item) => item.template!.category === activeCategory.value)
+    if (activeSubcategory.value !== 'all') {
+      list = list.filter((item) => subcategoryOf(item.template!.id)?.id === activeSubcategory.value)
+    }
   }
   const query = searchQuery.value.trim().toLowerCase()
   if (!query) return list
@@ -42,6 +67,7 @@ const filteredItems = computed(() => {
 function resetSearch() {
   searchQuery.value = ''
   activeCategory.value = 'all'
+  activeSubcategory.value = 'all'
 }
 
 /** 搜索无结果时的推荐：当前分类下的模板优先，否则用常用模板兜底 */
@@ -100,11 +126,30 @@ const recommendedItems = computed(() => {
               ? 'border-brand-500 bg-brand-600 text-white shadow-sm'
               : 'border-slate-200 bg-white text-slate-500 hover:border-brand-300 hover:text-brand-600'
           "
-          @click="activeCategory = opt.id"
+          @click="selectCategory(opt.id)"
         >
           {{ opt.name }}
           <span :class="activeCategory === opt.id ? 'text-brand-100' : 'text-slate-400'">
             {{ opt.count }}
+          </span>
+        </button>
+      </div>
+      <div v-if="subcategoryOptions.length > 0" class="flex flex-wrap justify-center gap-1.5">
+        <button
+          v-for="sub in subcategoryOptions"
+          :key="sub.id"
+          type="button"
+          class="cursor-pointer rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors duration-150"
+          :class="
+            activeSubcategory === sub.id
+              ? 'border-brand-300 bg-brand-50 text-brand-700'
+              : 'border-transparent bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+          "
+          @click="activeSubcategory = sub.id"
+        >
+          {{ sub.name }}
+          <span :class="activeSubcategory === sub.id ? 'text-brand-400' : 'text-slate-400'">
+            {{ sub.count }}
           </span>
         </button>
       </div>

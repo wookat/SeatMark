@@ -3,6 +3,8 @@
  * slug 即模板 id，详情页路由为 /templates/:slug。
  */
 
+import { templateDetailsRound2 } from './templateDetailsRound2'
+
 export interface TemplateDetail {
   /** 与 defaultTemplates 中的模板 id 一致 */
   slug: string
@@ -16,6 +18,8 @@ export interface TemplateDetail {
   useCases: string[]
   /** 打印/使用建议 */
   tips: string[]
+  /** 常见问题（页面展示 + FAQPage JSON-LD） */
+  faqs?: { q: string; a: string }[]
 }
 
 /** 所有模板通用的使用步骤（模板详情页展示 + HowTo JSON-LD） */
@@ -979,6 +983,7 @@ export const templateDetails: TemplateDetail[] = [
       '同楼层按房间号排序打印，安装不跑错',
     ],
   },
+  ...templateDetailsRound2,
 ]
 
 export function findTemplateDetail(slug: string): TemplateDetail | undefined {

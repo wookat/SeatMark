@@ -158,6 +158,21 @@ const others = computed(() => {
       </p>
     </section>
 
+    <!-- 常见问题 -->
+    <section v-if="detail.faqs?.length" class="mt-10">
+      <h2 class="text-xl font-bold tracking-tight text-slate-900">常见问题</h2>
+      <div class="mt-4 grid gap-4 sm:grid-cols-2">
+        <div
+          v-for="faq in detail.faqs"
+          :key="faq.q"
+          class="rounded-lg border border-slate-200 bg-white p-4"
+        >
+          <h3 class="text-sm font-bold text-slate-900">{{ faq.q }}</h3>
+          <p class="mt-1.5 text-sm leading-6 text-slate-600">{{ faq.a }}</p>
+        </div>
+      </div>
+    </section>
+
     <!-- 其他模板 -->
     <section class="mt-12">
       <div class="flex items-center justify-between">

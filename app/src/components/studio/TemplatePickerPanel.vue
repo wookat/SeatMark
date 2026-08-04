@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import { TEMPLATE_CATEGORIES } from '@/data/defaultTemplates'
+import { TEMPLATE_SUBCATEGORIES, subcategoryOf } from '@/data/templateTaxonomy'
 import { useTemplateLibrary, isValidTemplate } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -40,6 +41,27 @@ const pickerOpen = ref(false)
 
 type CategoryFilter = TemplateCategory | 'all' | 'custom'
 const activeCategory = ref<CategoryFilter>('all')
+const activeSubcategory = ref<string>('all')
+
+function selectCategory(id: CategoryFilter) {
+  activeCategory.value = id
+  activeSubcategory.value = 'all'
+}
+
+const subcategoryOptions = computed<{ id: string; name: string; count: number }[]>(() => {
+  const cat = activeCategory.value
+  if (cat === 'all' || cat === 'custom') return []
+  const list = library.allTemplates.filter((t) => t.category === cat)
+  const options = TEMPLATE_SUBCATEGORIES[cat]
+    .map((sub) => ({
+      id: sub.id,
+      name: sub.name,
+      count: list.filter((t) => subcategoryOf(t.id)?.id === sub.id).length,
+    }))
+    .filter((o) => o.count > 0)
+  if (options.length <= 1) return []
+  return [{ id: 'all', name: '全部', count: list.length }, ...options]
+})
 
 const categoryOptions = computed<{ id: CategoryFilter; name: string; count: number }[]>(() => {
   const all = library.allTemplates
@@ -69,6 +91,9 @@ const filteredTemplates = computed<LabelTemplate[]>(() => {
   if (activeCategory.value === 'custom') list = all.filter((t) => !t.builtin)
   else if (activeCategory.value !== 'all') {
     list = all.filter((t) => t.category === activeCategory.value)
+    if (activeSubcategory.value !== 'all') {
+      list = list.filter((t) => subcategoryOf(t.id)?.id === activeSubcategory.value)
+    }
   }
   const query = searchQuery.value.trim().toLowerCase()
   if (!query) return list
@@ -321,13 +346,32 @@ function confirmDelete() {
               ? 'border-brand-500 bg-brand-600 text-white shadow-sm'
               : 'border-slate-200 bg-white text-slate-500 hover:border-brand-300 hover:text-brand-600'
           "
-          @click="activeCategory = opt.id"
+          @click="selectCategory(opt.id)"
         >
           {{ opt.name }}
           <span :class="activeCategory === opt.id ? 'text-brand-100' : 'text-slate-400'">
             {{ opt.count }}
           </span>
         </button>
+        </div>
+        <div v-if="subcategoryOptions.length > 0" class="mt-1.5 flex flex-wrap gap-1.5">
+          <button
+            v-for="sub in subcategoryOptions"
+            :key="sub.id"
+            type="button"
+            class="cursor-pointer rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors duration-150"
+            :class="
+              activeSubcategory === sub.id
+                ? 'border-brand-300 bg-brand-50 text-brand-700'
+                : 'border-transparent bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+            "
+            @click="activeSubcategory = sub.id"
+          >
+            {{ sub.name }}
+            <span :class="activeSubcategory === sub.id ? 'text-brand-400' : 'text-slate-400'">
+              {{ sub.count }}
+            </span>
+          </button>
         </div>
       </div>
       <p v-if="filteredTemplates.length === 0" class="py-8 text-center text-sm text-slate-400">
