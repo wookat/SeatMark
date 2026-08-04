@@ -25,7 +25,8 @@ const GROUPS = [
       { label: '使用流程', to: '/#how' },
       { label: '功能特性', to: '/#features' },
       { label: '常见问题', to: '/#faq' },
-      { label: '隐私说明', to: '/#faq' },
+      { label: '用户协议', to: '/terms' },
+      { label: '隐私政策', to: '/privacy' },
     ],
   },
 ]

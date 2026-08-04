@@ -1,0 +1,76 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>原型 · 工坊（桌面）</title><link rel="stylesheet" href="shared.css">
+<style>
+body { background:var(--s50); }
+.top { height:56px; background:#fff; border-bottom:1px solid var(--s200); display:flex; align-items:center; justify-content:space-between; padding:0 20px; }
+.stepbar { display:flex; gap:6px; align-items:center; font-size:13px; color:var(--s500); }
+.stepbar .on { color:var(--brand-600); font-weight:600; }
+.stepbar .dot { width:22px; height:22px; border-radius:50%; background:var(--s200); color:#fff; font-size:12px; display:inline-flex; align-items:center; justify-content:center; margin-right:6px; }
+.stepbar .on .dot { background:var(--brand-600); }
+.wrap { display:grid; grid-template-columns:280px 1fr 300px; gap:16px; padding:16px 20px; height:calc(100vh - 56px); }
+.panel { padding:16px; overflow:hidden; }
+.panel h4 { font-size:13px; color:var(--s500); font-weight:600; margin-bottom:12px; }
+.tpl { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.tpl .t { border:1px solid var(--s200); border-radius:4px; height:64px; background:#fff; position:relative; }
+.tpl .t.on { border:2px solid var(--brand-600); }
+.tpl .t::after { content:""; position:absolute; inset:10px 12px auto; height:8px; border-radius:2px; background:var(--brand-100); }
+.tpl .t::before { content:""; position:absolute; inset:auto 12px 10px; height:6px; border-radius:2px; background:var(--s200); }
+.canvas { display:flex; align-items:center; justify-content:center; }
+.page { width:520px; background:#fff; border:1px solid var(--s200); box-shadow:var(--shadow-pop); padding:24px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.lbl { border:1px dashed var(--s400); border-radius:2px; padding:16px 12px; text-align:center; }
+.lbl b { font-size:17px; display:block; } .lbl span { font-size:11px; color:var(--s500); }
+.lbl.sel { border:2px solid var(--brand-600); background:var(--brand-50); }
+.fields .row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--s200); font-size:14px; }
+.fields .row input { width:76px; border:1px solid var(--s200); border-radius:4px; padding:5px 8px; font-size:13px; text-align:right; color:var(--ink); }
+.unit { color:var(--s400); font-size:12px; margin-left:4px; }
+</style></head><body>
+<div class="top">
+  <div class="logo" style="font-size:16px">
+    <svg class="mark" width="28" height="28" viewBox="0 0 64 64"><rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/><rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/><rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/><rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/><circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></svg>
+    <span>座签工坊</span>
+  </div>
+  <div class="stepbar">
+    <span class="on"><span class="dot">1</span>导入名单</span><span>—</span>
+    <span class="on"><span class="dot">2</span>选择模板</span><span>—</span>
+    <span class="on"><span class="dot">3</span>排版调整</span><span>—</span>
+    <span><span class="dot">4</span>导出打印</span>
+  </div>
+  <div><button class="btn btn-ghost" style="padding:8px 14px;font-size:13px">保存草稿</button>
+  <button class="btn btn-primary" style="padding:8px 16px;font-size:13px;margin-left:8px">导出 PDF</button></div>
+</div>
+<div class="wrap">
+  <div class="panel card">
+    <h4>模板 · 15 款</h4>
+    <div class="tpl">
+      <div class="t on"></div><div class="t"></div><div class="t"></div><div class="t"></div>
+      <div class="t"></div><div class="t"></div><div class="t"></div><div class="t"></div>
+    </div>
+    <h4 style="margin-top:18px">名单 · 42 人</h4>
+    <div style="font-size:13px;color:var(--s600);line-height:2">张三 · 003 · 一考场<br>王雨桐 · 004 · 一考场<br>刘一帆 · 005 · 一考场<br>赵思远 · 006 · 一考场</div>
+  </div>
+  <div class="canvas">
+    <div class="page">
+      <div class="lbl"><b>陈晓</b><span>001 · 一考场 · 第 1 排</span></div>
+      <div class="lbl"><b>李文博</b><span>002 · 一考场 · 第 1 排</span></div>
+      <div class="lbl sel"><b>张三</b><span>003 · 一考场 · 第 2 排</span></div>
+      <div class="lbl"><b>王雨桐</b><span>004 · 一考场 · 第 2 排</span></div>
+      <div class="lbl"><b>刘一帆</b><span>005 · 一考场 · 第 3 排</span></div>
+      <div class="lbl"><b>赵思远</b><span>006 · 一考场 · 第 3 排</span></div>
+    </div>
+  </div>
+  <div class="panel card fields">
+    <h4>标签属性（mm）</h4>
+    <div class="row"><span>标签宽度</span><span><input value="90.0"><i class="unit">mm</i></span></div>
+    <div class="row"><span>标签高度</span><span><input value="54.0"><i class="unit">mm</i></span></div>
+    <div class="row"><span>水平间距</span><span><input value="4.0"><i class="unit">mm</i></span></div>
+    <div class="row"><span>垂直间距</span><span><input value="4.0"><i class="unit">mm</i></span></div>
+    <div class="row"><span>纸张</span><span style="color:var(--s600)">A4 纵向</span></div>
+    <div class="row"><span>每页</span><span style="color:var(--s600)">2 × 5 = 10 枚</span></div>
+    <div class="row"><span>裁切线</span><span class="chip">开启</span></div>
+    <h4 style="margin-top:16px">字段映射</h4>
+    <div class="row"><span>姓名</span><span class="chip">B 列</span></div>
+    <div class="row"><span>考号</span><span class="chip">C 列</span></div>
+    <div class="row"><span>考场</span><span class="chip">D 列</span></div>
+  </div>
+</div>
+</body></html>

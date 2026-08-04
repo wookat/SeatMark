@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="52" height="52" rx="12" fill="#4f46e5"/>
+      <text x="32" y="34" text-anchor="middle" dominant-baseline="central" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="34" font-weight="700" fill="#fff">座</text></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg>

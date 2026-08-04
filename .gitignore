@@ -1,6 +1,23 @@
-app/node_modules
+# 依赖
+node_modules/
+
+# 构建产物
 app/dist
+app/dist-ssr
+
+# 环境变量与本地配置
+.env
+.env.*
 *.local
+
+# 日志与测试产物
+*.log
+coverage/
+
+# 编辑器 / 系统文件
 .DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
 .cursor/
 chatcontinue/

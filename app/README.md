@@ -9,7 +9,7 @@
 | 框架 | Vue 3.5 + TypeScript（严格模式） | Composition API + `<script setup>` |
 | 构建 | Vite 7 | 按需代码分割，xlsx / pdf 依赖懒加载 |
 | 状态 | Pinia 3 | `workspace`（工作区）/ `templateLibrary`（模板库）/ `toast` |
-| 路由 | Vue Router 4 | `/` 落地页、`/studio` 标签工坊 |
+| 路由 | Vue Router 4 | `/` 落地页、`/studio` 工坊、`/templates` 模板库、`/guides` 教程、`/pricing` 定价、`/terms` `/privacy` 法务页 |
 | 样式 | Tailwind CSS 4 | 设计令牌 + mm 物理单位打印样式 |
 | Excel | SheetJS（xlsx 0.20.3 官方源） | 动态导入 |
 | PDF | jsPDF 4 + html2canvas-pro 2 | 图片型 PDF 直接下载；矢量 PDF 经浏览器打印「另存为 PDF」输出 |
@@ -32,7 +32,7 @@ npm run preview  # 本地预览构建产物
 src/
 ├── types/template.ts        # 模板 / 字段 / 页面规格类型（单位 mm）
 ├── data/
-│   ├── defaultTemplates.ts  # 内置模板（11 款：标准桌贴 / 极简 / 黑白对比 / 照片核验 / 大字远视 / 签到桌牌 / 半页大桌牌 / A5 紧凑 / 整页名牌 / 信息完整 / 出入证胸卡）
+│   ├── defaultTemplates.ts  # 内置模板（33 款：座签 / 桌牌 / 席卡 / 门贴 / 证卡等场景，支持分类筛选）
 │   └── fonts.ts             # 字体目录（系统本地 + 在线开源；中英文栈合并）
 ├── utils/
 │   ├── layout.ts            # mm 几何计算：标签定位、裁切线、溢出检测、居中
@@ -52,7 +52,7 @@ src/
 │   ├── studio/              # 模板选择、数据导入、字段映射、页面与版式、字体选择、预览导出
 │   ├── designer/            # 可视化模板设计器（拖拽吸附对齐线 / 八向缩放 / 键盘微调 / 预设字段库）
 │   └── ui/                  # 头尾、通知、加载遮罩、对话框
-└── views/                   # HomeView（落地页）、StudioView（工坊）
+└── views/                   # 落地页 / 工坊 / 模板库 / 教程 / 定价 / 用户协议 / 隐私政策
 ```
 
 ## 核心设计

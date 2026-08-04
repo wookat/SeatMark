@@ -1,0 +1,47 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>原型 · 落地页（移动端 390）</title><link rel="stylesheet" href="shared.css">
+<style>
+body { max-width:390px; margin:0 auto; }
+.mnav { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--s200); }
+.hero { background:linear-gradient(180deg,var(--brand-50),#fff 80%); padding:40px 20px 32px; text-align:center; }
+.hero h1 { font-size:28px; font-weight:700; line-height:1.35; }
+.hero h1 em { font-style:normal; color:var(--brand-600); }
+.hero p { color:var(--s600); font-size:14px; margin:14px 0 22px; line-height:1.7; }
+.sheet { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:16px; background:var(--s50); border-radius:8px; }
+.seat { background:#fff; border:1px solid var(--s200); border-radius:4px; padding:12px 8px; text-align:center; }
+.seat b { display:block; font-size:14px; } .seat i { font-style:normal; font-size:10px; color:var(--s400); }
+.seat.hl { background:var(--brand-600); border-color:var(--brand-600); color:#fff; }
+.seat.hl i { color:#c7d2fe; }
+.steps { padding:32px 20px; display:flex; flex-direction:column; gap:14px; }
+.step { padding:18px; display:flex; gap:14px; align-items:flex-start; }
+.step .no { width:28px; height:28px; flex:none; border-radius:4px; background:var(--brand-50); color:var(--brand-600); font-weight:600; display:flex; align-items:center; justify-content:center; }
+.step h3 { font-size:15px; margin-bottom:4px; } .step p { font-size:13px; color:var(--s600); line-height:1.6; }
+footer { border-top:1px solid var(--s200); padding:20px; text-align:center; color:var(--s400); font-size:12px; }
+</style></head><body>
+<div class="mnav">
+  <div class="logo" style="font-size:16px">
+    <svg class="mark" width="30" height="30" viewBox="0 0 64 64"><rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/><rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/><rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/><rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/><circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></svg>
+    <span>座签<small>SeatMark</small></span>
+  </div>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+</div>
+<section class="hero">
+  <span class="chip">数据仅在浏览器本地处理</span>
+  <h1 style="margin-top:14px">上传 Excel 名单<br>批量生成<em>座位标签</em></h1>
+  <p>考场座签、桌牌席卡、门贴证卡<br>排版精确到 0.1mm · 免费无需注册</p>
+  <button class="btn btn-primary" style="width:100%;justify-content:center;font-size:15px;padding:13px">上传名单，开始制作</button>
+  <button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:15px;padding:13px;margin-top:10px">查看 15 款模板</button>
+  <div class="card sheet" style="margin-top:24px">
+    <div class="seat"><b>陈晓</b><i>001 · 一考场</i></div>
+    <div class="seat hl"><b>张三</b><i>003 · 一考场</i></div>
+    <div class="seat"><b>王雨桐</b><i>004 · 一考场</i></div>
+    <div class="seat"><b>刘一帆</b><i>005 · 一考场</i></div>
+  </div>
+</section>
+<section class="steps">
+  <div class="step card"><div class="no">1</div><div><h3>导入名单</h3><p>拖入 Excel 或粘贴表格，自动识别字段。</p></div></div>
+  <div class="step card"><div class="no">2</div><div><h3>选择模板并排版</h3><p>15 款模板，行列自动重算，毫米级微调。</p></div></div>
+  <div class="step card"><div class="no">3</div><div><h3>导出打印</h3><p>PDF 导出或浏览器打印，裁切线对齐。</p></div></div>
+</section>
+<footer>© SeatMark 座签 · 数据不出浏览器</footer>
+</body></html>

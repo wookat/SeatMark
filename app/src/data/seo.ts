@@ -298,6 +298,36 @@ export function resolveSeo(path: string): PageSeo {
     }
   }
 
+  if (p === '/terms') {
+    return {
+      title: '用户协议 - SeatMark 座签',
+      description:
+        'SeatMark 座签用户协议：服务内容、用户权利义务、知识产权与免责声明。核心功能全程在浏览器本地运行，Beta 期间限时免费。',
+      path: '/terms',
+      jsonLd: [
+        breadcrumb([
+          { name: '首页', path: '/' },
+          { name: '用户协议', path: '/terms' },
+        ]),
+      ],
+    }
+  }
+
+  if (p === '/privacy') {
+    return {
+      title: '隐私政策 - SeatMark 座签',
+      description:
+        'SeatMark 座签隐私政策：Excel 名单与照片全部在浏览器本地解析排版，不上传任何服务器，页面关闭即清空，可完全离线使用。',
+      path: '/privacy',
+      jsonLd: [
+        breadcrumb([
+          { name: '首页', path: '/' },
+          { name: '隐私政策', path: '/privacy' },
+        ]),
+      ],
+    }
+  }
+
   // 未知路径回落到首页 meta（SPA 内部会重定向到 /）
   return resolveSeo('/')
 }
@@ -320,5 +350,7 @@ export function prerenderPaths(): string[] {
     ...guides.map((g) => `/guides/${g.slug}`),
     '/templates',
     ...templateDetails.map((t) => `/templates/${t.slug}`),
+    '/terms',
+    '/privacy',
   ]
 }
