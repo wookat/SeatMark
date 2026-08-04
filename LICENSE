@@ -1,0 +1,54 @@
+SeatMark 座签 专有软件许可证 / SeatMark Proprietary License
+
+Copyright (c) 2026 SeatMark (https://www.seatmark.cn). All Rights Reserved.
+版权所有 (c) 2026 SeatMark（https://www.seatmark.cn）。保留一切权利。
+
+【中文】
+
+1. 定义
+   「本软件」指本仓库（wookat/SeatMark）中的全部源代码、文档、设计资源
+   及相关文件。「官方服务」指在 https://www.seatmark.cn 运营的在线服务。
+
+2. 授予的权利（Source Available，源码可查阅）
+   在遵守本许可证的前提下，允许任何人：
+   a) 查阅、克隆本仓库源代码，用于学习、审计与安全研究；
+   b) 在本地构建并运行本软件，用于个人评估与非商业性验证
+      （例如核实「数据仅在浏览器本地处理」的隐私承诺）；
+   c) 通过 Issue / Pull Request 向本仓库贡献代码或建议。贡献一经提交，
+      即视为你授予版权持有人对该贡献不可撤销的、免费的、可再许可的
+      使用权（含商业使用）。
+
+3. 保留的权利（未经书面许可不得从事）
+   a) 将本软件或其修改版用于任何商业目的，包括但不限于对外提供
+      相同或类似的在线服务、销售、租赁或作为产品/服务的一部分分发；
+   b) 公开部署本软件的副本或修改版（无论是否收费）；
+   c) 移除或修改本软件中的版权声明、品牌标识；
+   d) 将本软件用于开发同类竞争产品。
+
+4. 第三方组件
+   本软件依赖的第三方开源组件（如 Vue、Vite、Tailwind CSS 等）
+   遵循其各自的开源许可证；内置开源字体遵循其各自的字体许可证
+   （如 SIL OFL）。本许可证不影响上述第三方许可证的效力。
+
+5. 免责声明
+   本软件按「现状」提供，不含任何明示或默示的保证，包括但不限于
+   适销性、特定用途适用性及不侵权的保证。在任何情况下，版权持有人
+   均不对因使用本软件产生的任何索赔、损害或其他责任负责。
+
+6. 终止
+   若你违反本许可证的任何条款，本许可证授予你的权利自动终止。
+
+【English (summary; the Chinese text prevails in case of conflict)】
+
+This is a proprietary, source-available license. You may view, clone,
+build and run this software locally for evaluation, learning, auditing
+and security research, and you may contribute via issues and pull
+requests. You may NOT use this software or derivatives for any
+commercial purpose, publicly deploy it, remove branding, or build
+competing products, without prior written permission from the copyright
+holder. Third-party dependencies and bundled open-source fonts remain
+under their own licenses. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT
+WARRANTY OF ANY KIND.
+
+For commercial licensing inquiries, please open a GitHub issue or
+contact us via the feedback entry at https://www.seatmark.cn.
