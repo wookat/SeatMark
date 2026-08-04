@@ -1,3 +1,69 @@
+<script lang="ts">
+import type { Directive } from 'vue'
+
+/** 字号自适应下限：不低于基准字号的一半，且不低于 5pt（保证可读性） */
+const AUTOFIT_MIN_RATIO = 0.5
+const AUTOFIT_MIN_PT = 5
+
+function autofitEl(el: HTMLElement): void {
+  const base = Number(el.dataset.autofitBase ?? '0')
+  if (!base) return
+  const body = el.querySelector<HTMLElement>('.label-field__body')
+  if (!body) return
+  el.style.fontSize = `${base}pt`
+  const cs = getComputedStyle(el)
+  const availHeight =
+    el.clientHeight - (parseFloat(cs.paddingTop) || 0) - (parseFloat(cs.paddingBottom) || 0)
+  const overflows = () =>
+    body.scrollHeight > body.clientHeight + 1 ||
+    body.scrollWidth > body.clientWidth + 1 ||
+    body.scrollHeight > availHeight + 1
+  if (!overflows()) return
+  let lo = Math.max(AUTOFIT_MIN_PT, base * AUTOFIT_MIN_RATIO)
+  let hi = base
+  for (let i = 0; i < 7; i++) {
+    const mid = (lo + hi) / 2
+    el.style.fontSize = `${mid}pt`
+    if (overflows()) hi = mid
+    else lo = mid
+  }
+  el.style.fontSize = `${lo}pt`
+  if (overflows()) el.style.fontSize = `${Math.max(AUTOFIT_MIN_PT, base * AUTOFIT_MIN_RATIO)}pt`
+}
+
+/** 已挂载的自适应字段：在线字体就绪后统一重排（字形宽度可能变化） */
+const autofitRegistry = new Set<HTMLElement>()
+let fontsListenerBound = false
+
+function bindFontsListener(): void {
+  if (fontsListenerBound || typeof document === 'undefined' || !('fonts' in document)) return
+  fontsListenerBound = true
+  document.fonts.addEventListener('loadingdone', () => {
+    for (const el of autofitRegistry) autofitEl(el)
+  })
+}
+
+/**
+ * v-autofit：文本超出字段框时按比例缩小字号直至放得下（或到达下限），
+ * 预览 / 缩略图 / 设计器 / 导出共用同一套缩放逻辑。
+ */
+const vAutofit: Directive<HTMLElement, number> = {
+  mounted(el, binding) {
+    el.dataset.autofitBase = String(binding.value)
+    autofitRegistry.add(el)
+    bindFontsListener()
+    autofitEl(el)
+  },
+  updated(el, binding) {
+    el.dataset.autofitBase = String(binding.value)
+    autofitEl(el)
+  },
+  unmounted(el) {
+    autofitRegistry.delete(el)
+  },
+}
+</script>
+
 <script setup lang="ts">
 import { computed, type CSSProperties } from 'vue'
 
@@ -47,13 +113,20 @@ const rootStyle = computed<CSSProperties>(() => {
 
 function textOf(field: TemplateField): string {
   if (field.fixedText != null) return field.fixedText
+  // 镜像字段：取源字段的内容（如折叠桌牌上半区重复下半区数据）
+  const source = field.mirrorOf
+    ? (props.template.fields.find((f) => f.id === field.mirrorOf) ?? field)
+    : field
   if (props.sampleMode) {
-    if (field.sample && field.sample !== 'photo') return field.sample
+    if (source.sample && source.sample !== 'photo') return source.sample
     return (
-      props.template.sampleData?.[field.id] ?? SAMPLE_FALLBACK[field.id] ?? field.label ?? field.id
+      props.template.sampleData?.[source.id] ??
+      SAMPLE_FALLBACK[source.id] ??
+      source.label ??
+      source.id
     )
   }
-  return props.texts?.[field.id] ?? ''
+  return props.texts?.[source.id] ?? ''
 }
 
 function imageSrcOf(field: TemplateField): string | null {
@@ -86,6 +159,7 @@ function fieldStyle(field: TemplateField): CSSProperties {
       : 'none',
     borderRadius: `${field.radius ?? 0}mm`,
     ...(field.background ? { background: field.background } : {}),
+    ...(field.rotate ? { transform: `rotate(${field.rotate}deg)` } : {}),
     justifyContent:
       field.verticalAlign === 'top'
         ? 'flex-start'
@@ -115,6 +189,7 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
     <template v-for="field in template.fields" :key="field.id">
       <div
         v-if="field.type === 'text'"
+        v-autofit="field.fontSize ?? 12"
         class="label-field label-field--text"
         :class="fieldClasses(field)"
         :style="fieldStyle(field)"

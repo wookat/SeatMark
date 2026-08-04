@@ -34,6 +34,13 @@ export interface TemplateField {
   background?: string
   /** hero 字段（如座位号）会以更重的字重展示 */
   emphasis?: 'hero'
+  /** 旋转角度（度，绕字段中心）：如折叠桌牌上半区镜像内容用 180 */
+  rotate?: number
+  /**
+   * 镜像字段：渲染另一字段（按 id）的内容，自身不参与 Excel 映射；
+   * 用于折叠桌牌上半区等需要重复同一数据的场景
+   */
+  mirrorOf?: string
   /** 标签名前缀（如「姓名」），渲染在内容前的小字标题 */
   caption?: string
   /** 缩略图与设计器中展示的示例内容 */
