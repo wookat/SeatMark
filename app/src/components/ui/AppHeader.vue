@@ -91,10 +91,37 @@ const SECTIONS = [
         </span>
         <RouterLink
           to="/"
-          class="btn btn-ghost btn-sm"
+          class="btn btn-ghost btn-sm hidden sm:inline-flex"
           :class="{ 'bg-slate-100 text-brand-600': route.name === 'home' }"
         >
           首页
+        </RouterLink>
+        <RouterLink
+          to="/templates"
+          class="btn btn-ghost btn-sm"
+          :class="{
+            'bg-slate-100 text-brand-600':
+              route.name === 'templates' || route.name === 'template-detail',
+          }"
+        >
+          模板
+        </RouterLink>
+        <RouterLink
+          to="/guides"
+          class="btn btn-ghost btn-sm"
+          :class="{
+            'bg-slate-100 text-brand-600':
+              route.name === 'guides' || route.name === 'guide-article',
+          }"
+        >
+          教程
+        </RouterLink>
+        <RouterLink
+          to="/pricing"
+          class="btn btn-ghost btn-sm hidden sm:inline-flex"
+          :class="{ 'bg-slate-100 text-brand-600': route.name === 'pricing' }"
+        >
+          定价
         </RouterLink>
         <RouterLink
           to="/studio"

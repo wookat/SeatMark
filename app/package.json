@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "vite",
     "dev:lan": "vite --host",
-    "build": "vue-tsc --noEmit -p tsconfig.json && vite build",
+    "build": "vue-tsc --noEmit -p tsconfig.json && vite build && npm run prerender",
+    "prerender": "vite build --ssr src/entry-server.ts --outDir dist-ssr && node scripts/prerender.mjs",
     "build:pages": "vue-tsc --noEmit -p tsconfig.json && vite build --base=/SeatMark/ && node --input-type=module -e \"import { copyFileSync } from 'node:fs'; copyFileSync('dist/index.html','dist/404.html')\"",
     "preview": "vite preview",
     "test": "vitest run"

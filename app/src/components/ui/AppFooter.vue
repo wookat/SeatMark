@@ -1,13 +1,22 @@
 <script setup lang="ts">
-/** 页脚分组：法务类为占位（纯静态站点，暂无独立页面，锚到首页对应区块） */
+import { guides } from '@/data/guides'
+
 const GROUPS = [
   {
     title: '产品',
     links: [
       { label: '标签工坊', to: '/studio' },
-      { label: '模板库', to: '/studio' },
+      { label: '模板库', to: '/templates' },
+      { label: '定价（Beta 免费）', to: '/pricing' },
       { label: '模板设计器', to: '/studio?design=new' },
       { label: '演示数据体验', to: '/studio?demo=1' },
+    ],
+  },
+  {
+    title: '教程',
+    links: [
+      { label: '教程中心', to: '/guides' },
+      ...guides.slice(0, 4).map((g) => ({ label: g.title, to: `/guides/${g.slug}` })),
     ],
   },
   {
@@ -16,15 +25,7 @@ const GROUPS = [
       { label: '使用流程', to: '/#how' },
       { label: '功能特性', to: '/#features' },
       { label: '常见问题', to: '/#faq' },
-      { label: '模板一览', to: '/#templates' },
-    ],
-  },
-  {
-    title: '法务',
-    links: [
       { label: '隐私说明', to: '/#faq' },
-      { label: '数据处理承诺', to: '/#features' },
-      { label: '字体授权说明', to: '/#faq' },
     ],
   },
 ]
@@ -102,7 +103,7 @@ const GROUPS = [
             <li v-for="link in group.links" :key="link.label">
               <RouterLink
                 :to="link.to"
-                class="text-xs text-slate-500 transition-colors hover:text-brand-600"
+                class="line-clamp-1 text-xs text-slate-500 transition-colors hover:text-brand-600"
               >
                 {{ link.label }}
               </RouterLink>
