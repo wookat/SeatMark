@@ -4,6 +4,8 @@
  * 每篇均为问答/步骤式结构，标题命中真实搜索词，便于搜索引擎与 AI 引擎直接引用。
  */
 
+import { guidesRound2 } from './guidesRound2'
+
 export interface GuideFaq {
   q: string
   a: string
@@ -73,7 +75,7 @@ export const guides: Guide[] = [
         a: '不会。SeatMark 是纯前端工具，Excel 解析、排版、PDF 生成全部在你自己的浏览器里完成，名单不会上传到任何服务器。',
       },
     ],
-    related: ['class-teacher-exam-workflow', 'a4-seat-card-size-layout', 'photo-verification-label', 'label-print-troubleshooting'],
+    related: ['exam-seating-arrangement-rules', 'a4-seat-card-size-layout', 'photo-verification-label', 'gaokao-zhongkao-desk-label-specs'],
     body: `
 <h2>考场座位贴为什么值得用工具批量做？</h2>
 <p>每逢期中期末、模拟考、标准化考试，考务老师都要给每个考场的每张课桌贴上座位标签：姓名、考场号、座位号、准考证号，一个都不能错。手工在 Word 里排表格，改一次名单就要重排一次；用邮件合并又要配置数据源、调字段、对齐边距，稍不注意打印出来就错位。一场 500 人的考试，手工方式往往要耗掉半天。</p>
@@ -168,7 +170,7 @@ export const guides: Guide[] = [
         a: '在 Excel 里加一行重新上传即可，模板和字段映射都会保留；或者用列筛选只勾选新增人员，单独打印补几张。',
       },
     ],
-    related: ['double-sided-tent-card-print', 'hr-annual-meeting-materials', 'wps-mail-merge-desk-card-steps'],
+    related: ['double-sided-tent-card-print', 'desk-card-etiquette-seating', 'wps-mail-merge-desk-card-steps'],
     body: `
 <h2>会议桌牌为什么不建议用 Word 一张张做？</h2>
 <p>会前准备桌牌是行政、会务人员最常见的琐碎工作之一。用 Word 做的典型流程是：建一个模板文件，复制 N 份，逐个改名字，再逐个检查字号有没有被挤变形。20 个人还能忍，遇到上百人的论坛、培训班，光改名字就要一两个小时，而且极容易漏改、错改——会场上摆错桌牌是很尴尬的事故。</p>
@@ -213,7 +215,7 @@ export const guides: Guide[] = [
 <li><strong>招聘面试</strong>：用<a href="/templates/fullPage">整页大名牌</a>做面试间门牌，姓名换成「第一面试间」等固定文本字段即可；</li>
 <li><strong>家长会</strong>：见专门的<a href="/guides/parent-meeting-desk-card">家长会桌牌教程</a>，可直接复用学生名单。</li>
 </ul>
-<p>整套流程熟练后，从拿到名单到打完一百张桌牌通常不超过十分钟，而且名单变了随时重出，不再有「改 Word 改到眼花」的问题。</p>
+<p>整套流程熟练后，从拿到名单到打完一百张桌牌通常不超过十分钟，而且名单变了随时重出，不再有「改 Word 改到眼花」的问题。座次有讲究的正式会议，摆放前建议再对照<a href="/guides/desk-card-etiquette-seating">座次礼仪与桌牌摆放规范</a>核一遍主次顺序，桌牌做得对、摆得也对，会务准备才算真正闭环。</p>
 `,
   },
   {
@@ -291,7 +293,7 @@ export const guides: Guide[] = [
 <li>会议桌牌（3–5 米）：姓名字高 30–50 mm；</li>
 <li>门牌 / 讲台名牌（5 米以上）：60 mm 以上，用<a href="/templates/fullPage">整页模板</a>。</li>
 </ul>
-<p>排好版后建议先打一页试印，实测尺寸与效果没问题再批量输出。遇到打印偏移、字体发虚等问题，可查阅<a href="/guides/label-print-troubleshooting">打印常见问题排查</a>。</p>
+<p>排好版后建议先打一页试印，实测尺寸与效果没问题再批量输出。打印出来偏大偏小、位置偏移，多数是缩放或边距设置的问题，按<a href="/guides/print-margin-calibration">边距校准教程</a>做一次五分钟校准即可；字体发虚等其他问题可查阅<a href="/guides/label-print-troubleshooting">打印常见问题排查</a>。</p>
 `,
   },
   {
@@ -329,7 +331,7 @@ export const guides: Guide[] = [
         a: '未匹配照片的标签照常生成，照片位显示为空。可开启「高亮缺失项」定位缺照片的人，补齐后重新上传即可，已匹配的照片会保留。',
       },
     ],
-    related: ['photo-print-quality', 'exam-seat-label-batch-print', 'badge-visitor-card-batch'],
+    related: ['photo-print-quality', 'batch-photo-naming-guide', 'kaoyan-exam-room-materials'],
     body: `
 <h2>为什么核验场景要用带照片的座签？</h2>
 <p>研究生考试、教师资格考试、大型招聘笔试等场景都要求「人证合一」核验。监考老师手里只有名单时，核对靠身份证反复比对，速度慢还容易排长队。把考生照片直接印在座位标签上，监考走一圈就能完成在座核验，效率完全不同。同理，带照片的<a href="/templates/badge">出入证</a>、<a href="/templates/studentIdCard">学生证</a>、<a href="/templates/staffIdCard">工作证</a>也是同样的制作逻辑。</p>
@@ -360,6 +362,13 @@ export const guides: Guide[] = [
 <li><strong>文件体积</strong>：几百张照片全部在浏览器内存中处理，建议单张控制在 500KB 以内，上传更快、导出 PDF 体积也更小；</li>
 <li><strong>打印设备</strong>：黑白激光打印的照片辨识度已足够核验用；彩色打印观感更好但成本高，按需选择；</li>
 <li><strong>纸张</strong>：160g 以上哑光卡纸,照片网点更实，不易蹭花。</li>
+</ul>
+
+<h2>照片准备的两个常见坑</h2>
+<p>实际操作中最耗时间的不是排版，而是照片本身的问题：</p>
+<ul>
+<li><strong>文件名对不上</strong>：报名系统导出的照片常以随机字符串命名，需要先批量改成「准考证号.jpg」这类能与名单列对应的名字，批量重命名的三种方法见<a href="/guides/batch-photo-naming-guide">照片批量命名教程</a>；</li>
+<li><strong>照片质量参差</strong>：过小的照片打印会发虚，横拍的照片会被裁切变形，建议按<a href="/guides/photo-print-quality">照片打印质量教程</a>先做一轮分辨率与方向的抽查。</li>
 </ul>
 
 <h2>隐私合规提醒</h2>
@@ -451,7 +460,7 @@ export const guides: Guide[] = [
         a: '有。最省事的是单面打印两份，把两张背对背粘合后再对折或插入桌牌座；插亚克力座的平片桌牌本来就只需单面。',
       },
     ],
-    related: ['excel-generate-desk-cards', 'parent-meeting-desk-card', 'label-print-troubleshooting'],
+    related: ['excel-generate-desk-cards', 'print-margin-calibration', 'desk-card-etiquette-seating'],
     body: `
 <h2>双面桌牌的两种实现思路</h2>
 <p>会议里最常用的「帐篷式」桌牌，要求对折立起后<strong>正反两面都能看到姓名</strong>。实现方式有两种，各有适用场景：</p>
@@ -587,7 +596,7 @@ export const guides: Guide[] = [
         a: '打印走的是浏览器渲染，所见即所得；若用了在线字体，需等字体加载完成（预览不再变化）再导出。导出 PDF 时字体会随排版一起栅格化/嵌入，不会被替换。',
       },
     ],
-    related: ['rare-character-font-issue', 'photo-print-quality', 'a4-seat-card-size-layout'],
+    related: ['print-margin-calibration', 'browser-print-vs-pdf-export', 'rare-character-font-issue'],
     body: `
 <h2>先建立一个排查原则</h2>
 <p>标签打印问题看似五花八门，其实 90% 出在三个环节：<strong>缩放设置、打印机物理偏差、字体渲染</strong>。按下面的症状对号入座，通常几分钟就能定位。以下方法适用于 <a href="/studio">SeatMark</a> 导出的 PDF，也适用于其他工具生成的标签文件。</p>
@@ -753,7 +762,7 @@ export const guides: Guide[] = [
         a: '优先选数据不上传服务器的本地处理工具。多数在线设计平台的文件保存在其云端；SeatMark 为纯前端实现，名单与照片仅在浏览器本地处理，可离线使用。',
       },
     ],
-    related: ['wps-word-mail-merge-vs-online', 'wps-mail-merge-desk-card-steps', 'exam-seat-label-batch-print'],
+    related: ['wps-word-mail-merge-vs-online', 'exam-system-vs-seatmark', 'wps-mail-merge-desk-card-steps'],
     body: `
 <h2>评测范围与方法</h2>
 <p>「在线做座位贴/桌牌哪个工具好」没有唯一答案，取决于你要的是<strong>设计自由度</strong>还是<strong>批量效率</strong>。本文选取国内用户实际会接触到的四类方案：Canva（可画）、稿定设计、WPS 稻壳模板（配合邮件合并）、SeatMark，统一用同一个任务实测：<strong>把一份 120 人的 Excel 名单做成 A4 座位贴并打印</strong>。评测尽量客观，各家优势场景都会写明。</p>
@@ -843,7 +852,7 @@ export const guides: Guide[] = [
         a: '这是常态（缺考、转班、补报名）。SeatMark 的模板与字段映射保存在浏览器本地，名单改完重新上传 Excel 即可重新生成，几分钟内出新 PDF；建议只重打有变化的考场页。',
       },
     ],
-    related: ['exam-seat-label-batch-print', 'exam-room-door-sign', 'exam-roll-call-sheet'],
+    related: ['final-exam-materials-timeline', 'exam-seating-arrangement-rules', 'exam-room-door-sign'],
     body: `
 <h2>把考务准备变成一条流水线</h2>
 <p>期中期末考试的考务准备，本质上是「一份名单派生出 N 种物料」：座位贴、考号贴、考场门贴、点名表/签到表，全都来自同一份考生名单。很多班主任的痛苦在于每种物料单独做一遍——Word 排座位贴、Excel 打印点名表、手写门贴——名单一变全部返工。正确的做法是：<strong>名单只维护一份，所有物料从它批量生成</strong>。下面按时间线走一遍。</p>
@@ -1391,7 +1400,7 @@ export const guides: Guide[] = [
         a: '从校门/楼门开始沿考生动线走一遍，每个「需要做选择」的节点（大门、楼梯口、楼层转角）放一张指引牌，标注「第 X–Y 考场 → 3 楼」。宁多勿少，考试日的走廊问路会显著减少。',
       },
     ],
-    related: ['class-teacher-exam-workflow', 'exam-seat-label-batch-print', 'a4-seat-card-size-layout'],
+    related: ['cet-exam-room-setup', 'gaokao-zhongkao-desk-label-specs', 'class-teacher-exam-workflow'],
     body: `
 <h2>门贴是考场的「第一块屏幕」</h2>
 <p>考生进入陌生校园，找考场靠的就是墙上的纸：楼门口的分布图、楼道的箭头、考场门口的门贴。这套标识做得好，开考前的走廊是安静的；做得差，监考老师要在门口回答一上午「老师请问 08 考场怎么走」。门贴数量不大（一个考点几十张），但内容和位置有讲究，本文把规范和批量做法一次讲清。</p>
@@ -1674,7 +1683,7 @@ export const guides: Guide[] = [
         a: '工具一样，数据源不同：老师上传全班名单一次生成全班的贴纸；家长只做一个孩子，用一行数据的表格或直接在模板里改成固定文本重复打印一页即可。',
       },
     ],
-    related: ['parent-meeting-desk-card', 'dorm-class-door-sign', 'a4-seat-card-size-layout'],
+    related: ['back-to-school-checklist', 'dorm-class-door-sign', 'parent-meeting-desk-card'],
     body: `
 <h2>开学季的姓名贴清单</h2>
 <p>幼儿园和小学低年级的开学准备里，姓名贴是刚需中的刚需：园方要求所有入园物品写名字，小学老师要给全班课桌贴名牌。逐个手写费时且不整齐，批量打印是标准解法。先列一张需求清单，不同物品对贴纸的尺寸和耐用性要求不一样：</p>
@@ -1746,7 +1755,7 @@ export const guides: Guide[] = [
         a: '宿管系统/迎新系统都能导出「楼栋-房间-姓名」表。注意导出后把同一房间多名学生整理为一行一房间（姓名合并到一个单元格，用顿号分隔），门贴以房间为单位生成。',
       },
     ],
-    related: ['kindergarten-primary-name-sticker', 'exam-room-door-sign', 'class-teacher-exam-workflow'],
+    related: ['kindergarten-primary-name-sticker', 'back-to-school-checklist', 'exam-room-door-sign'],
     body: `
 <h2>门牌是最容易被拖到最后的开学任务</h2>
 <p>每年开学前，宿管员和学生处都面临同一件事：全楼几百间宿舍的门贴要按新分配名单重做，各班教室门牌要按新学年更新。手工做法（Word 一间一间排）做一栋楼要好几天，所以经常拖到开学后半个月走廊还贴着去年的名单。其实门牌是典型的「名单驱动物料」，方法对了，<strong>一栋楼的门贴一个下午就能出齐</strong>。</p>
@@ -1892,7 +1901,7 @@ export const guides: Guide[] = [
         a: 'AI 设计辅助是可选功能，使用时会把你的设计需求描述发送给大模型服务，但不会发送你的名单数据；不使用该功能则没有任何业务数据出浏览器。',
       },
     ],
-    related: ['photo-verification-label', 'online-label-tools-review', 'exam-seat-label-batch-print'],
+    related: ['photo-verification-label', 'kaoyan-exam-room-materials', 'exam-system-vs-seatmark'],
     body: `
 <h2>为什么这件事值得单独写一篇</h2>
 <p>考生名单、学生学籍、员工花名册、婚礼宾客名单——批量做标签用到的数据源，几乎全是个人信息。老师和 HR 的顾虑非常合理：<strong>把名单传到一个网站上，数据去哪了？</strong>《个人信息保护法》实施后，学校与企业对「把个人信息交给第三方处理」也越来越谨慎。这篇文章把 SeatMark 的隐私机制讲透，并且教你<strong>自己动手验证</strong>，不要求你相信任何口头承诺。</p>
@@ -1943,6 +1952,7 @@ export const guides: Guide[] = [
 <p>隐私优先不是营销词，而是架构选择。你可以先用演示数据在<a href="/studio">标签工坊</a>体验全流程，再按上文方法自行验证后决定是否用于真实名单。Beta 期间<a href="/pricing">全部功能免费</a>。</p>
 `,
   },
+  ...guidesRound2,
 ]
 
 export function findGuide(slug: string): Guide | undefined {

@@ -61,7 +61,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'privacy',
     component: () => import('@/views/PrivacyView.vue'),
   },
-  { path: '/:pathMatch(.*)*', redirect: '/' },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    component: () => import('@/views/NotFoundView.vue'),
+  },
 ]
 
 /** SSR/预渲染环境无 window，使用内存路由 */

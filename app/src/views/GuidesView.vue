@@ -21,6 +21,17 @@ function resetFilters() {
   activeCategory.value = '全部'
   activeAudience.value = '全部'
 }
+
+/** 空结果时的推荐：优先同主题或同群体的教程，不足时用热门教程补齐 */
+const recommendedGuides = computed(() => {
+  const partial = guides.filter(
+    (g) =>
+      g.category === activeCategory.value ||
+      (activeAudience.value !== '全部' && g.audiences.includes(activeAudience.value)),
+  )
+  const pool = partial.length > 0 ? partial : guides
+  return pool.slice(0, 3)
+})
 </script>
 
 <template>
@@ -85,6 +96,22 @@ function resetFilters() {
       >
         清除筛选
       </button>
+      <div class="mt-6 border-t border-slate-200 pt-5 text-left">
+        <p class="text-xs font-bold text-slate-500">也许你想看这些教程</p>
+        <div class="mt-3 grid gap-3 sm:grid-cols-3">
+          <RouterLink
+            v-for="rec in recommendedGuides"
+            :key="rec.slug"
+            :to="`/guides/${rec.slug}`"
+            class="group rounded-lg border border-slate-200 bg-white p-4 transition-colors hover:border-brand-300"
+          >
+            <p class="text-[11px] font-bold text-brand-600">{{ rec.category }}</p>
+            <h3 class="mt-1 line-clamp-2 text-xs leading-5 font-bold text-slate-700 group-hover:text-brand-600">
+              {{ rec.title }}
+            </h3>
+          </RouterLink>
+        </div>
+      </div>
     </div>
 
     <div v-else class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

@@ -328,8 +328,15 @@ export function resolveSeo(path: string): PageSeo {
     }
   }
 
-  // 未知路径回落到首页 meta（SPA 内部会重定向到 /）
-  return resolveSeo('/')
+  // 未知路径：品牌化 404 页（noindex，预渲染为静态托管的 404.html）
+  return {
+    title: '页面不存在 - SeatMark 座签',
+    description:
+      '你访问的页面不存在或已被移动。可从首页、标签工坊、模板库与教程中心继续使用 SeatMark 座签。',
+    path: '/404',
+    jsonLd: [],
+    robots: 'noindex, follow',
+  }
 }
 
 /**

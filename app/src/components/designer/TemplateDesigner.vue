@@ -1646,7 +1646,7 @@ function save(asNew: boolean) {
                   v-if="selectedField.imageSrc"
                   :src="selectedField.imageSrc"
                   class="size-10 border border-slate-200 bg-white object-contain"
-                  alt=""
+                  alt="已上传的图片素材预览"
                 />
                 <button type="button" class="btn btn-secondary btn-sm" @click="logoInput?.click()">
                   上传图片
