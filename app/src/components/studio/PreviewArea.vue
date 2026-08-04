@@ -5,6 +5,7 @@ import LabelSheet from '@/components/label/LabelSheet.vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
+import { useQuotaStore } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { MM_TO_PX } from '@/utils/layout'
@@ -13,6 +14,7 @@ import { defaultRasterScale, exportPagesToPdf, rasterDpi } from '@/utils/pdfExpo
 
 const workspace = useWorkspaceStore()
 const toast = useToastStore()
+const quota = useQuotaStore()
 
 const pageWidthPx = computed(() => workspace.template.page.paperWidth * MM_TO_PX)
 const pageHeightPx = computed(() => workspace.template.page.paperHeight * MM_TO_PX)
@@ -71,6 +73,7 @@ async function mountHost() {
 
 async function onExportPdf() {
   if (!workspace.excel.rows.length) return
+  if (!(await quota.tryConsume()).ok) return
   workspace.setLoading(true, '正在准备页面...')
   try {
     await mountHost()
@@ -100,6 +103,7 @@ async function onExportPdf() {
  */
 async function onPrint() {
   if (!workspace.excel.rows.length) return
+  if (!(await quota.tryConsume()).ok) return
   await mountHost()
   window.print()
   renderHost.value = false

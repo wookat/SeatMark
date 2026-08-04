@@ -1,56 +1,118 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+
+import ModalDialog from '@/components/ui/ModalDialog.vue'
 import { PRICING_FAQS } from '@/data/seo'
+import { useAuthStore } from '@/stores/auth'
+import { QUOTA_ANON_DAILY, QUOTA_USER_DAILY } from '@/stores/quota'
+import { useToastStore } from '@/stores/toast'
+import { apiFetch, ApiError, isValidEmail } from '@/utils/api'
+
+const auth = useAuthStore()
+const toast = useToastStore()
 
 interface Plan {
   name: string
-  originalPrice: string | null
+  price: string
+  priceUnit: string
+  badge: string | null
   tagline: string
   features: string[]
   highlight: boolean
+  cta: 'signup' | 'pro-coming' | 'team-reserve'
 }
 
-const PLANS: Plan[] = [
+const PLANS = computed<Plan[]>(() => [
   {
     name: '免费版',
-    originalPrice: null,
-    tagline: '个人日常制签，永久免费',
+    price: '¥0',
+    priceUnit: '/ 永久',
+    badge: null,
+    tagline: '个人日常制签',
     features: [
-      '全部 33 款内置模板',
+      `每日 ${QUOTA_ANON_DAILY} 次生成（登录后 ${QUOTA_USER_DAILY} 次）`,
+      '分享链接可额外获得当日次数',
+      '全部 33 款内置模板与设计器',
       'Excel 名单批量导入与智能映射',
-      'A4 / A5 / A3 排版与 PDF 导出',
-      '裁切线与浏览器直接打印',
+      'A4 / A5 / A3 排版、PDF 导出与打印',
       '数据全程浏览器本地处理',
     ],
     highlight: false,
+    cta: 'signup',
   },
   {
     name: '专业版',
-    originalPrice: '¥29',
+    price: '¥29',
+    priceUnit: '/月',
+    badge: '即将推出',
     tagline: '考务与会务重度用户',
     features: [
       '含免费版全部功能',
+      '更高每日生成配额',
       '照片批量核验与覆盖率统计',
-      '可视化模板设计器（毫米级）',
-      '自定义模板保存与分享链接',
-      '在线开源字体库',
-      'AI 设计辅助',
+      '自定义模板云端同步不限量',
+      '在线开源字体库与 AI 设计辅助',
     ],
-    highlight: true,
+    highlight: false,
+    cta: 'pro-coming',
   },
   {
     name: '团队版',
-    originalPrice: '¥99',
+    price: '¥99',
+    priceUnit: '/月',
+    badge: '可预订',
     tagline: '学校 / 机构多人协作',
     features: [
       '含专业版全部功能',
+      '团队成员共享配额与模板',
       '模板分享链接团队分发',
-      '多设备使用不限次数',
       '机构商用授权',
       '优先反馈响应',
     ],
-    highlight: false,
+    highlight: true,
+    cta: 'team-reserve',
   },
-]
+])
+
+// ---------- 团队版预订 ----------
+const reserveOpen = ref(false)
+const reserveEmail = ref('')
+const reserveTeamSize = ref('')
+const reserveNote = ref('')
+const reserving = ref(false)
+const reserveError = ref('')
+const reserved = ref(false)
+
+function openReserve() {
+  reserveEmail.value = auth.user?.email ?? ''
+  reserveError.value = ''
+  reserveOpen.value = true
+}
+
+async function submitReserve() {
+  reserveError.value = ''
+  if (!isValidEmail(reserveEmail.value.trim())) {
+    reserveError.value = '请输入正确的邮箱地址'
+    return
+  }
+  reserving.value = true
+  try {
+    await apiFetch('/api/team/reserve', {
+      method: 'POST',
+      body: {
+        email: reserveEmail.value.trim(),
+        teamSize: reserveTeamSize.value.trim(),
+        note: reserveNote.value.trim(),
+      },
+    })
+    reserved.value = true
+    toast.success('预订登记成功', '团队版支付开通后我们会第一时间邮件通知你')
+  } catch (err) {
+    reserveError.value = err instanceof ApiError ? err.message : '提交失败，请稍后再试'
+  } finally {
+    reserving.value = false
+  }
+}
 </script>
 
 <template>
@@ -60,26 +122,10 @@ const PLANS: Plan[] = [
       <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
         定价方案
       </h1>
-      <p
-        class="mx-auto mt-4 inline-flex flex-wrap items-center justify-center gap-1.5 rounded border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-sm font-semibold text-emerald-700"
-      >
-        <svg
-          class="size-4"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83" />
-        </svg>
-        Beta 期间全部档位限时免费体验
-      </p>
-      <p class="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-500">
-        产品处于 Beta 公测阶段，专业版与团队版的全部功能现在
-        <strong class="text-slate-700">无需注册、完全免费</strong>使用。
-        正式定价生效前会提前公告。
+      <p class="mx-auto mt-4 max-w-xl text-sm leading-6 text-slate-500">
+        免费版每天可生成 {{ QUOTA_ANON_DAILY }} 次（登录后
+        {{ QUOTA_USER_DAILY }} 次），预览与排版不限次数。
+        专业版即将推出；团队版现已标价，支付开通前可预订登记。
       </p>
     </div>
 
@@ -91,39 +137,19 @@ const PLANS: Plan[] = [
         :class="plan.highlight ? 'border-brand-400 ring-2 ring-brand-500/20' : 'border-slate-200'"
       >
         <span
-          v-if="plan.highlight"
-          class="absolute -top-3 left-1/2 -translate-x-1/2 rounded bg-brand-600 px-3 py-0.5 text-[11px] font-semibold text-white"
+          v-if="plan.badge"
+          class="absolute -top-3 left-1/2 -translate-x-1/2 rounded px-3 py-0.5 text-[11px] font-semibold"
+          :class="plan.highlight ? 'bg-brand-600 text-white' : 'bg-slate-700 text-white'"
         >
-          最受欢迎
+          {{ plan.badge }}
         </span>
         <h2 class="text-base font-bold text-slate-900">{{ plan.name }}</h2>
         <p class="mt-0.5 text-xs text-slate-500">{{ plan.tagline }}</p>
 
         <div class="mt-4 flex items-end gap-2">
-          <span class="text-4xl font-bold tracking-tight text-slate-900">¥0</span>
-          <span v-if="plan.originalPrice" class="pb-1 text-sm font-semibold text-slate-400">
-            <s>{{ plan.originalPrice }}</s>/月
-          </span>
-          <span v-else class="pb-1 text-sm font-semibold text-slate-400">/ 永久</span>
+          <span class="text-4xl font-bold tracking-tight text-slate-900">{{ plan.price }}</span>
+          <span class="pb-1 text-sm font-semibold text-slate-400">{{ plan.priceUnit }}</span>
         </div>
-        <p
-          v-if="plan.originalPrice"
-          class="mt-1 inline-flex w-fit items-center gap-1 rounded bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700"
-        >
-          <svg
-            class="size-3"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M12 8v4l2.5 2.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-          </svg>
-          Beta 限时免费
-        </p>
-        <p v-else class="mt-1 text-[11px] font-bold text-emerald-600">始终免费</p>
 
         <ul class="mt-5 flex flex-1 flex-col gap-2.5 text-sm text-slate-600">
           <li v-for="feature in plan.features" :key="feature" class="flex items-start gap-2">
@@ -143,17 +169,33 @@ const PLANS: Plan[] = [
         </ul>
 
         <RouterLink
-          to="/studio"
-          class="btn btn-md mt-6 w-full"
-          :class="plan.highlight ? 'btn-primary' : 'btn-secondary'"
+          v-if="plan.cta === 'signup'"
+          :to="auth.user ? '/studio' : '/account'"
+          class="btn btn-secondary btn-md mt-6 w-full"
         >
-          免费开始使用
+          {{ auth.user ? '免费开始使用' : '免费领取 Beta 会员' }}
         </RouterLink>
+        <button
+          v-else-if="plan.cta === 'pro-coming'"
+          type="button"
+          class="btn btn-secondary btn-md mt-6 w-full cursor-default opacity-70"
+          disabled
+        >
+          即将推出
+        </button>
+        <button
+          v-else
+          type="button"
+          class="btn btn-primary btn-md mt-6 w-full"
+          @click="openReserve"
+        >
+          立即预订
+        </button>
       </div>
     </div>
 
     <p class="mt-6 text-center text-xs text-slate-400">
-      Beta 期间不接入任何支付，无隐藏收费；所有数据仅在浏览器本地处理，不会上传服务器。
+      团队版支付通道即将开通，预订登记不收取任何费用；所有名单数据仅在浏览器本地处理，不会上传服务器。
     </p>
 
     <!-- FAQ -->
@@ -173,8 +215,8 @@ const PLANS: Plan[] = [
 
     <!-- CTA -->
     <div class="mt-12 text-center">
-      <RouterLink to="/studio" class="btn btn-primary btn-lg">
-        进入标签工坊，免费开始
+      <RouterLink :to="auth.user ? '/studio' : '/account'" class="btn btn-primary btn-lg">
+        {{ auth.user ? '进入标签工坊' : '免费领取 Beta 会员' }}
         <svg
           class="size-4"
           viewBox="0 0 24 24"
@@ -191,5 +233,66 @@ const PLANS: Plan[] = [
         还不确定？先看看<RouterLink to="/guides" class="font-semibold text-brand-600 hover:underline">教程中心</RouterLink>或<RouterLink to="/templates" class="font-semibold text-brand-600 hover:underline">模板库</RouterLink>
       </p>
     </div>
+
+    <!-- 团队版预订弹窗 -->
+    <ModalDialog :open="reserveOpen" title="预订团队版" size="md" @close="reserveOpen = false">
+      <template v-if="!reserved">
+        <p class="leading-6">
+          团队版 ¥99/月，支付通道即将开通。留下邮箱与团队规模，开通后我们第一时间通知你，预订用户享首批优惠。
+        </p>
+        <form class="mt-4 grid gap-3" @submit.prevent="submitReserve">
+          <label class="grid gap-1.5">
+            <span class="text-sm font-semibold text-slate-700">联系邮箱</span>
+            <input
+              v-model="reserveEmail"
+              type="email"
+              required
+              placeholder="you@example.com"
+              class="h-10 rounded border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            />
+          </label>
+          <label class="grid gap-1.5">
+            <span class="text-sm font-semibold text-slate-700">团队规模（选填）</span>
+            <input
+              v-model="reserveTeamSize"
+              type="text"
+              maxlength="50"
+              placeholder="如：5-10 人 / 一所学校"
+              class="h-10 rounded border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            />
+          </label>
+          <label class="grid gap-1.5">
+            <span class="text-sm font-semibold text-slate-700">备注（选填）</span>
+            <textarea
+              v-model="reserveNote"
+              rows="2"
+              maxlength="500"
+              placeholder="使用场景或其他需求"
+              class="rounded border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            />
+          </label>
+          <p v-if="reserveError" class="text-sm font-medium text-red-600">{{ reserveError }}</p>
+          <button type="submit" class="btn btn-primary btn-md w-full" :disabled="reserving">
+            {{ reserving ? '提交中...' : '提交预订登记' }}
+          </button>
+        </form>
+      </template>
+      <template v-else>
+        <div class="py-4 text-center">
+          <span class="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+            <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m5 13 4 4 10-11" />
+            </svg>
+          </span>
+          <p class="mt-3 text-sm font-bold text-slate-900">预订登记成功</p>
+          <p class="mt-1 text-sm leading-6 text-slate-500">
+            团队版支付开通后我们会邮件通知 {{ reserveEmail }}，感谢支持。
+          </p>
+          <button type="button" class="btn btn-secondary btn-sm mt-4" @click="reserveOpen = false">
+            关闭
+          </button>
+        </div>
+      </template>
+    </ModalDialog>
   </div>
 </template>

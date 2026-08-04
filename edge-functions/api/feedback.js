@@ -7,6 +7,9 @@
  * 环境变量（EdgeOne Pages 控制台配置）：
  * - FEEDBACK_WEBHOOK  可选，飞书/钉钉/企业微信机器人 webhook URL
  *   配置后反馈会推送到对应群聊；未配置时仅返回成功（反馈丢弃但不报错）
+ *
+ * KV 绑定（变量名 seatmark_kv，可选）：绑定后反馈同时存档到 KV（fb: 前缀），
+ * 供管理端 /api/admin/feedback 查看；未绑定时仅走 webhook 推送。
  */
 
 function json(data, status = 200) {
@@ -37,6 +40,28 @@ export async function onRequest(context) {
   if (!validTypes.includes(type)) return json({ error: 'Invalid feedback type' }, 400)
   if (!content || content.length > 2000) return json({ error: 'Content required (max 2000 chars)' }, 400)
   if (contact.length > 200) return json({ error: 'Contact too long' }, 400)
+
+  // KV 存档（供管理端查看），失败不阻塞
+  try {
+    const kv =
+      (env && env.seatmark_kv) ||
+      (typeof globalThis !== 'undefined' ? globalThis.seatmark_kv : undefined)
+    if (kv && typeof kv.put === 'function') {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      await kv.put(
+        `fb:${id}`,
+        JSON.stringify({
+          type,
+          content,
+          contact,
+          page: typeof payload.page === 'string' ? payload.page.slice(0, 200) : '',
+          createdAt: new Date().toISOString(),
+        }),
+      )
+    }
+  } catch {
+    // 存档失败静默忽略
+  }
 
   const webhook = (env && env.FEEDBACK_WEBHOOK) || 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=f987cae8-5740-41a8-9492-f11325d894e1'
   if (webhook) {

@@ -6,9 +6,12 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vite'
 
+import { devApiPlugin } from './scripts/devApi.mjs'
+
 export default defineConfig(({ isSsrBuild }) => ({
   plugins: [
     vue(),
+    devApiPlugin(),
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
