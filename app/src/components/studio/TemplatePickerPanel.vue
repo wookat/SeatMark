@@ -4,10 +4,11 @@ import { useRouter } from 'vue-router'
 
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
+import { TEMPLATE_CATEGORIES } from '@/data/defaultTemplates'
 import { useTemplateLibrary, isValidTemplate } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
-import type { LabelTemplate } from '@/types/template'
+import type { LabelTemplate, TemplateCategory } from '@/types/template'
 import { uid } from '@/utils/id'
 import { copyToClipboard, encodeTemplateForShare, SHARE_HASH_PREFIX } from '@/utils/share'
 
@@ -34,8 +35,33 @@ const visibleTemplates = computed<LabelTemplate[]>(() => {
   return selected ? [selected, ...head.slice(0, COLLAPSED_COUNT - 1)] : head
 })
 
-// ---------- 全部模板弹窗 ----------
+// ---------- 全部模板弹窗：按场景分类筛选 ----------
 const pickerOpen = ref(false)
+
+type CategoryFilter = TemplateCategory | 'all' | 'custom'
+const activeCategory = ref<CategoryFilter>('all')
+
+const categoryOptions = computed<{ id: CategoryFilter; name: string; count: number }[]>(() => {
+  const all = library.allTemplates
+  const options: { id: CategoryFilter; name: string; count: number }[] = [
+    { id: 'all', name: '全部', count: all.length },
+    ...TEMPLATE_CATEGORIES.map((c) => ({
+      id: c.id as CategoryFilter,
+      name: c.name,
+      count: all.filter((t) => t.category === c.id).length,
+    })),
+  ]
+  const customCount = all.filter((t) => !t.builtin).length
+  if (customCount > 0) options.push({ id: 'custom', name: '自定义', count: customCount })
+  return options.filter((o) => o.count > 0)
+})
+
+const filteredTemplates = computed<LabelTemplate[]>(() => {
+  const all = library.allTemplates
+  if (activeCategory.value === 'all') return all
+  if (activeCategory.value === 'custom') return all.filter((t) => !t.builtin)
+  return all.filter((t) => t.category === activeCategory.value)
+})
 
 function pickFromModal(t: LabelTemplate) {
   workspace.selectTemplate(t)
@@ -251,9 +277,28 @@ function confirmDelete() {
       size="xl"
       @close="pickerOpen = false"
     >
+      <div class="sticky -top-1 z-10 -mx-1 mb-3 flex flex-wrap gap-1.5 bg-white/95 px-1 py-1.5 backdrop-blur">
+        <button
+          v-for="opt in categoryOptions"
+          :key="opt.id"
+          type="button"
+          class="cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors duration-150"
+          :class="
+            activeCategory === opt.id
+              ? 'border-brand-500 bg-brand-600 text-white shadow-sm'
+              : 'border-slate-200 bg-white text-slate-500 hover:border-brand-300 hover:text-brand-600'
+          "
+          @click="activeCategory = opt.id"
+        >
+          {{ opt.name }}
+          <span :class="activeCategory === opt.id ? 'text-brand-100' : 'text-slate-400'">
+            {{ opt.count }}
+          </span>
+        </button>
+      </div>
       <div class="columns-1 gap-3 sm:columns-2 lg:columns-3">
         <article
-          v-for="t in library.allTemplates"
+          v-for="t in filteredTemplates"
           :key="t.id"
           role="button"
           tabindex="0"
