@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { guides } from '@/data/guides'
+import BeianInfo from '@/components/ui/BeianInfo.vue'
 import BrandMark from '@/components/ui/BrandMark.vue'
 
 const GROUPS = [
@@ -84,15 +85,8 @@ const GROUPS = [
       <div
         class="mt-9 flex flex-col items-center justify-between gap-2 border-t border-slate-200 pt-5 text-xs text-slate-400 sm:flex-row"
       >
-        <span>© 2026 SeatMark 座签. All rights reserved.</span>
-        <a
-          href="https://beian.miit.gov.cn"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="transition-colors hover:text-slate-600"
-        >
-          湘ICP备2026009844号
-        </a>
+        <span>© 2026 SeatMark 座签 · 版权所有</span>
+        <BeianInfo />
       </div>
     </div>
   </footer>

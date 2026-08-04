@@ -116,6 +116,27 @@ async function onRestoreFromCloud() {
   }
 }
 
+// ---------- 账号注销 ----------
+const deleting = ref(false)
+
+async function onDeleteAccount() {
+  if (!auth.user) return
+  const ok = window.confirm(
+    '确定注销账号？将删除服务器上与你账号关联的邮箱、云端模板与分享数据，此操作不可恢复。浏览器本地保存的模板不受影响。',
+  )
+  if (!ok) return
+  deleting.value = true
+  try {
+    await apiFetch('/api/account/delete', { method: 'POST' })
+    auth.user = null
+    toast.success('账号已注销', '服务器上与你账号关联的个人信息已删除')
+  } catch (err) {
+    toast.danger('注销失败', err instanceof ApiError ? err.message : '请稍后再试')
+  } finally {
+    deleting.value = false
+  }
+}
+
 // ---------- 分享 ----------
 const shareLink = computed(() =>
   auth.user ? `https://www.seatmark.cn/?ref=${auth.user.share.code}` : '',
@@ -334,9 +355,19 @@ function formatDate(iso: string | null | undefined): string {
         <p class="text-xs leading-5 text-slate-500">
           名单与照片数据从不上云。退出登录后本设备的模板与配额计数仍保留在浏览器本地。
         </p>
-        <RouterLink v-if="auth.user.isAdmin" to="/admin" class="btn btn-secondary btn-sm">
-          进入管理后台
-        </RouterLink>
+        <div class="flex items-center gap-2">
+          <RouterLink v-if="auth.user.isAdmin" to="/admin" class="btn btn-secondary btn-sm">
+            进入管理后台
+          </RouterLink>
+          <button
+            type="button"
+            class="btn btn-sm border border-red-200 bg-white text-red-600 hover:bg-red-50"
+            :disabled="deleting"
+            @click="onDeleteAccount"
+          >
+            {{ deleting ? '注销中...' : '注销账号' }}
+          </button>
+        </div>
       </div>
     </template>
 

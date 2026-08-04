@@ -92,7 +92,7 @@ export const guides: Guide[] = [
 <h2>第二步：选择合适的座签模板</h2>
 <p>SeatMark 内置了 20 款免费模板，考务场景常用的有：</p>
 <ul>
-<li><a href="/templates/standard">标准考场版</a>：60×32 mm，A4 一页 24 枚，座位号大字 + 姓名/考场/准考证号分栏，宋体正式风格，是最通用的选择；</li>
+<li><a href="/templates/standard">标准考场版</a>：60×32 mm，A4 一页 24 枚，座位号大字 + 姓名/考场/准考证号分栏，宋体正式风格，适用场景广泛；</li>
 <li><a href="/templates/seatOnly">座位号贴</a>：以超大座位号为主体，适合只需要快速标注座位的场景；</li>
 <li><a href="/templates/examNo">考号贴</a>：准考证号大字居中，专为答题卡与桌面贴号设计；</li>
 <li><a href="/templates/large">大字远视版</a>：一页 8 枚的大标签，大教室后排也能看清；</li>
@@ -781,8 +781,8 @@ export const guides: Guide[] = [
 <li><strong>批量免费</strong>：上传 Excel 自动匹配字段，120 人名单从上传到出 PDF 实测 3 分钟内，Beta 期间<a href="/pricing">全部功能免费</a>、无需注册；</li>
 <li><strong>毫米级打印排版</strong>：模板与页面均以 mm 定义，A4/A5/A3 自动重算行列并居中，带裁切参考线，这是设计类工具不覆盖的能力；</li>
 <li><strong>数据不出浏览器</strong>：纯前端实现，名单与照片本地处理，可离线使用，适合学生名单、员工名单等敏感数据；</li>
-<li><strong>照片批量匹配</strong>：按文件名自动匹配照片（人证核验场景），四个方案中唯一内置此能力；</li>
-<li><strong>局限也说明白</strong>：模板以实用版式为主（33 款），设计自由度不如 Canva/稿定；只覆盖标签/桌牌/证卡类，做海报、邀请函不在能力范围。</li>
+<li><strong>照片批量匹配</strong>：按文件名自动匹配照片（人证核验场景），本次实测的其他三个方案未内置此能力；</li>
+<li><strong>局限也说明白</strong>：模板以实用版式为主（61 款），设计自由度不如 Canva/稿定；只覆盖标签/桌牌/证卡类，做海报、邀请函不在能力范围。</li>
 </ul>
 
 <h2>对比总表</h2>

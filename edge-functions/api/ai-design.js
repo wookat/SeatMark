@@ -63,23 +63,23 @@ export async function onRequest(context) {
   const { request, env } = context
 
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 })
-  if (request.method !== 'POST') return json({ error: 'Method Not Allowed' }, 405)
+  if (request.method !== 'POST') return json({ error: '请求方法不支持' }, 405)
 
   let payload
   try {
     payload = await request.json()
   } catch {
-    return json({ error: 'Invalid JSON body' }, 400)
+    return json({ error: '请求体格式错误' }, 400)
   }
 
   const messages = payload && Array.isArray(payload.messages) ? payload.messages : null
   if (!messages || !messages.length || messages.length > 8) {
-    return json({ error: 'Invalid messages' }, 400)
+    return json({ error: '消息格式无效' }, 400)
   }
   for (const item of messages) {
     const roleOk = item && (item.role === 'system' || item.role === 'user')
     const contentOk = item && typeof item.content === 'string' && item.content.length <= 20000
-    if (!roleOk || !contentOk) return json({ error: 'Invalid message item' }, 400)
+    if (!roleOk || !contentOk) return json({ error: '消息内容无效' }, 400)
   }
 
   async function callUpstream(baseUrl, apiKey, model) {
@@ -146,6 +146,6 @@ export async function onRequest(context) {
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })
   } catch {
-    return json({ error: 'Upstream request failed' }, 502)
+    return json({ error: 'AI 服务暂时不可用，请稍后再试' }, 502)
   }
 }

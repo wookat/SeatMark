@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+import { defaultTemplates } from '@/data/defaultTemplates'
+
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import { PRICING_FAQS } from '@/data/seo'
 import { useAuthStore } from '@/stores/auth'
@@ -26,13 +28,13 @@ const PLANS = computed<Plan[]>(() => [
   {
     name: '免费版',
     price: '¥0',
-    priceUnit: '/ 永久',
+    priceUnit: '/月',
     badge: null,
     tagline: '个人日常制签',
     features: [
       `每日 ${QUOTA_ANON_DAILY} 次生成（登录后 ${QUOTA_USER_DAILY} 次）`,
       '分享链接可额外获得当日次数',
-      '全部 33 款内置模板与设计器',
+      `全部 ${defaultTemplates.length} 款内置模板与设计器`,
       'Excel 名单批量导入与智能映射',
       'A4 / A5 / A3 排版、PDF 导出与打印',
       '数据全程浏览器本地处理',
