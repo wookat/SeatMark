@@ -5,6 +5,7 @@ import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import { defaultTemplates, TEMPLATE_CATEGORIES } from '@/data/defaultTemplates'
 import { templateDetails } from '@/data/templateDetails'
 import type { TemplateCategory } from '@/types/template'
+import { matchesChineseQuery } from '@/utils/pinyin'
 
 const items = templateDetails
   .map((detail) => ({
@@ -31,11 +32,11 @@ const filteredItems = computed(() => {
   if (activeCategory.value !== 'all') {
     list = list.filter((item) => item.template!.category === activeCategory.value)
   }
-  const query = searchQuery.value.trim().toLowerCase()
+  const query = searchQuery.value.trim()
   if (!query) return list
   return list.filter((item) => {
     const t = item.template!
-    return `${t.name} ${t.scenario ?? ''} ${t.description}`.toLowerCase().includes(query)
+    return matchesChineseQuery(`${t.name} ${t.scenario ?? ''} ${t.description}`, query)
   })
 })
 
@@ -85,7 +86,7 @@ const recommendedItems = computed(() => {
         <input
           v-model="searchQuery"
           type="search"
-          placeholder="搜索模板名称 / 场景，如“桌牌”“幼儿园”“胸卡”"
+          placeholder="搜索模板名称 / 场景，支持拼音首字母，如“桌牌”“jkz”"
           class="w-full rounded-lg border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm text-slate-700 shadow-sm placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
         />
       </label>

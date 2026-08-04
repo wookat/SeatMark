@@ -35,6 +35,12 @@ interface FeedbackItem {
   createdAt: string
 }
 
+interface Health {
+  kvBound: boolean
+  mailConfigured: boolean
+  authSecretConfigured: boolean
+}
+
 interface Reservation {
   email: string
   teamSize: string
@@ -48,6 +54,7 @@ const toast = useToastStore()
 const loading = ref(true)
 const forbidden = ref(false)
 const overview = ref<Overview | null>(null)
+const health = ref<Health | null>(null)
 const users = ref<AdminUser[]>([])
 const feedback = ref<FeedbackItem[]>([])
 const reservations = ref<Reservation[]>([])
@@ -64,8 +71,9 @@ async function loadAll() {
   loading.value = true
   forbidden.value = false
   try {
-    const [ov, us, fb, rs, an] = await Promise.all([
+    const [ov, he, us, fb, rs, an] = await Promise.all([
       apiFetch<Overview>('/api/admin/overview'),
+      apiFetch<Health>('/api/admin/health'),
       apiFetch<{ users: AdminUser[] }>('/api/admin/users'),
       apiFetch<{ items: FeedbackItem[] }>('/api/admin/feedback'),
       apiFetch<{ items: Reservation[] }>('/api/admin/reservations'),
@@ -74,6 +82,7 @@ async function loadAll() {
       ),
     ])
     overview.value = ov
+    health.value = he
     users.value = us.users
     feedback.value = fb.items
     reservations.value = rs.items
@@ -111,6 +120,32 @@ function formatDate(iso: string | undefined): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('zh-CN', { hour12: false })
 }
+
+const HEALTH_ITEMS: {
+  key: keyof Health
+  name: string
+  okText: string
+  badText: string
+}[] = [
+  {
+    key: 'kvBound',
+    name: 'KV 存储',
+    okText: '已绑定 EdgeOne KV，数据持久化',
+    badText: '未绑定 KV，数据仅存内存不持久（控制台 → KV 存储 → 绑定变量名 seatmark_kv）',
+  },
+  {
+    key: 'mailConfigured',
+    name: '邮件服务',
+    okText: 'RESEND_API_KEY 已配置，验证码正常发送',
+    badText: '未配置 RESEND_API_KEY，线上无法发送登录验证码',
+  },
+  {
+    key: 'authSecretConfigured',
+    name: '会话密钥',
+    okText: 'AUTH_SECRET 已配置',
+    badText: '未配置 AUTH_SECRET，正在使用开发默认密钥（不安全，请尽快配置）',
+  },
+]
 
 const FEEDBACK_LABEL: Record<string, string> = {
   bug: 'Bug',
@@ -179,6 +214,38 @@ watch(
           <p class="mt-1 text-2xl font-bold text-slate-900">{{ overview.shareBonusToday }}</p>
         </div>
       </div>
+
+      <!-- 环境健康检查 -->
+      <section v-if="health" class="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-card">
+        <h2 class="text-sm font-bold text-slate-900">环境健康检查</h2>
+        <p class="mt-1 text-xs text-slate-400">在 EdgeOne Pages 控制台完成配置后刷新本页自检。</p>
+        <ul class="mt-3 grid gap-2 sm:grid-cols-3">
+          <li
+            v-for="item in HEALTH_ITEMS"
+            :key="item.key"
+            class="flex items-start gap-2.5 rounded-lg border p-3"
+            :class="health[item.key] ? 'border-emerald-200 bg-emerald-50/50' : 'border-amber-200 bg-amber-50/50'"
+          >
+            <span
+              class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-white"
+              :class="health[item.key] ? 'bg-emerald-500' : 'bg-amber-500'"
+            >
+              <svg v-if="health[item.key]" class="size-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m3.5 8.5 3 3 6-7" />
+              </svg>
+              <svg v-else class="size-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                <path d="M8 3.5v6m0 2.5v.5" />
+              </svg>
+            </span>
+            <span>
+              <span class="block text-xs font-bold text-slate-900">{{ item.name }}</span>
+              <span class="mt-0.5 block text-[11px] leading-4 text-slate-500">
+                {{ health[item.key] ? item.okText : item.badText }}
+              </span>
+            </span>
+          </li>
+        </ul>
+      </section>
 
       <!-- 增长曲线 -->
       <section class="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-card">

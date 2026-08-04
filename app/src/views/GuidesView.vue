@@ -2,9 +2,11 @@
 import { computed, ref } from 'vue'
 
 import { guides } from '@/data/guides'
+import { matchesChineseQuery } from '@/utils/pinyin'
 
 const activeCategory = ref('全部')
 const activeAudience = ref('全部')
+const searchQuery = ref('')
 
 const categories = computed(() => ['全部', ...new Set(guides.map((g) => g.category))])
 const audiences = computed(() => ['全部', ...new Set(guides.flatMap((g) => g.audiences))])
@@ -13,13 +15,15 @@ const filteredGuides = computed(() =>
   guides.filter(
     (g) =>
       (activeCategory.value === '全部' || g.category === activeCategory.value) &&
-      (activeAudience.value === '全部' || g.audiences.includes(activeAudience.value)),
+      (activeAudience.value === '全部' || g.audiences.includes(activeAudience.value)) &&
+      matchesChineseQuery(`${g.title} ${g.description} ${g.category}`, searchQuery.value),
   ),
 )
 
 function resetFilters() {
   activeCategory.value = '全部'
   activeAudience.value = '全部'
+  searchQuery.value = ''
 }
 
 /** 空结果时的推荐：优先同主题或同群体的教程，不足时用热门教程补齐 */
@@ -47,6 +51,26 @@ const recommendedGuides = computed(() => {
 
     <!-- 筛选器 -->
     <div class="mt-8 grid gap-3">
+      <label class="relative mx-auto block w-full max-w-md">
+        <svg
+          class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="7" cy="7" r="4.5" />
+          <path d="m10.5 10.5 3 3" />
+        </svg>
+        <input
+          v-model="searchQuery"
+          type="search"
+          placeholder="搜索教程，支持拼音首字母，如“打印”“jkz”"
+          class="w-full rounded-lg border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm text-slate-700 shadow-sm placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
+        />
+      </label>
       <div class="flex flex-wrap items-center gap-2">
         <span class="shrink-0 text-xs font-bold text-slate-400">主题</span>
         <button
@@ -88,7 +112,7 @@ const recommendedGuides = computed(() => {
       v-if="filteredGuides.length === 0"
       class="mt-10 rounded-lg border border-slate-200 bg-slate-50 p-8 text-center"
     >
-      <p class="text-sm text-slate-500">该组合下暂无教程，换个筛选条件试试。</p>
+      <p class="text-sm text-slate-500">该条件下暂无教程，换个关键词或筛选条件试试。</p>
       <button
         type="button"
         class="mt-3 text-xs font-bold text-brand-600 hover:underline"

@@ -151,6 +151,20 @@ async function copyShareLink() {
   }
 }
 
+const shareCopyText = computed(
+  () =>
+    `推荐一个好用的工具：SeatMark 座签，上传 Excel 名单就能批量生成考场座位标签、桌牌、席位卡，排版精确到毫米，数据全程不出浏览器。点我的链接直接用：${shareLink.value}`,
+)
+
+async function copyShareText() {
+  try {
+    await navigator.clipboard.writeText(shareCopyText.value)
+    toast.success('推荐文案已复制', '含你的专属链接，直接粘贴到群聊或朋友圈即可')
+  } catch {
+    toast.warning('复制失败', '请手动复制分享链接')
+  }
+}
+
 const quotaPercent = computed(() => {
   if (!auth.user) return 0
   const { used, limit } = auth.user.quota
@@ -264,7 +278,7 @@ function formatDate(iso: string | null | undefined): string {
         </section>
 
         <!-- 分享送次数 -->
-        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-card">
+        <section id="share" class="scroll-mt-20 rounded-lg border border-slate-200 bg-white p-5 shadow-card">
           <h2 class="text-sm font-bold text-slate-900">分享送次数</h2>
           <p class="mt-2 text-xs leading-5 text-slate-500">
             把专属链接发给同事或群聊，每被点开 1 次即得 {{ auth.user.share.bonusPerVisit }} 次无水印导出（服务端去重防刷，每日上限
@@ -281,6 +295,17 @@ function formatDate(iso: string | null | undefined): string {
               复制链接
             </button>
           </div>
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm mt-2 w-full"
+            @click="copyShareText"
+          >
+            <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="11" height="11" rx="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+            一键复制推荐文案（含链接）
+          </button>
           <dl class="mt-3 grid grid-cols-3 gap-2 text-center">
             <div class="rounded bg-slate-50 py-2">
               <dt class="text-[11px] text-slate-500">累计访问</dt>

@@ -43,7 +43,7 @@ function close() {
       </RouterLink>
 
       <RouterLink
-        to="/account"
+        :to="isLoggedIn ? '/account#share' : '/account'"
         class="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300"
         @click="close"
       >

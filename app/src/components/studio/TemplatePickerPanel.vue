@@ -10,6 +10,7 @@ import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { LabelTemplate, TemplateCategory } from '@/types/template'
 import { uid } from '@/utils/id'
+import { matchesChineseQuery } from '@/utils/pinyin'
 import { copyToClipboard, encodeTemplateForShare, SHARE_HASH_PREFIX } from '@/utils/share'
 
 const emit = defineEmits<{ openDesigner: [template: LabelTemplate | null] }>()
@@ -59,8 +60,7 @@ const categoryOptions = computed<{ id: CategoryFilter; name: string; count: numb
 const searchQuery = ref('')
 
 function matchesQuery(t: LabelTemplate, query: string): boolean {
-  const haystack = `${t.name} ${t.scenario ?? ''} ${t.description}`.toLowerCase()
-  return haystack.includes(query)
+  return matchesChineseQuery(`${t.name} ${t.scenario ?? ''} ${t.description}`, query)
 }
 
 const filteredTemplates = computed<LabelTemplate[]>(() => {
@@ -70,7 +70,7 @@ const filteredTemplates = computed<LabelTemplate[]>(() => {
   else if (activeCategory.value !== 'all') {
     list = all.filter((t) => t.category === activeCategory.value)
   }
-  const query = searchQuery.value.trim().toLowerCase()
+  const query = searchQuery.value.trim()
   if (!query) return list
   return list.filter((t) => matchesQuery(t, query))
 })
@@ -306,7 +306,7 @@ function confirmDelete() {
           <input
             v-model="searchQuery"
             type="search"
-            placeholder="搜索模板名称 / 场景，如“桌牌”“幼儿园”"
+            placeholder="搜索模板名称 / 场景，支持拼音首字母，如“jkz”"
             class="w-full rounded-lg border border-slate-200 bg-white py-1.5 pr-3 pl-8 text-xs text-slate-700 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
           />
         </label>

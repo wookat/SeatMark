@@ -14,6 +14,7 @@
  *   POST /api/share/visit        分享链接访问上报（IP+日去重，为分享者赠送次数）
  *   POST /api/team/reserve       团队版预订登记
  *   GET  /api/announcement       公告（公开）
+ *   GET  /api/admin/health       环境健康检查（KV/邮件/AUTH_SECRET 配置状态）
  *   GET  /api/admin/overview     管理端总览（用户数/增长/模板同步/配额/裂变/预订）
  *   GET  /api/admin/users        用户列表
  *   GET  /api/admin/feedback     反馈列表（KV 存档，见 feedback.js）
@@ -24,7 +25,7 @@
  * 环境变量（EdgeOne Pages 控制台配置）：
  * - AUTH_SECRET      JWT 签名密钥（必配，未配置时使用开发默认值并在响应头标记）
  * - ADMIN_EMAILS     管理员邮箱白名单，逗号分隔（未配置则管理端全部 403）
- * - RESEND_API_KEY   Resend 邮件发送密钥（未配置时验证码以 devCode 形式返回，仅供联调）
+ * - RESEND_API_KEY   Resend 邮件发送密钥（未配置时仅本地开发环境以 devCode 形式返回验证码）
  * - MAIL_FROM        发件地址（默认 SeatMark <noreply@seatmark.cn>）
  *
  * KV 绑定（EdgeOne Pages 控制台 → KV 存储 → 绑定命名空间，变量名 seatmark_kv）：
@@ -273,7 +274,7 @@ async function publicUser(kv, email, env) {
 // ---------- 验证码发送 ----------
 async function sendCodeMail(env, email, code) {
   const apiKey = env && env.RESEND_API_KEY
-  if (!apiKey) return { delivered: false }
+  if (!apiKey) return { configured: false, delivered: false }
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -288,10 +289,17 @@ async function sendCodeMail(env, email, code) {
         text: `你的登录验证码是：${code}，10 分钟内有效。如非本人操作请忽略本邮件。`,
       }),
     })
-    return { delivered: res.ok }
+    return { configured: true, delivered: res.ok }
   } catch {
-    return { delivered: false }
+    return { configured: true, delivered: false }
   }
+}
+
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
+
+/** 是否本地开发环境：仅此时允许在邮件未配置的情况下把 devCode 返回给前端 */
+function isLocalDev(url, env) {
+  return LOCAL_HOSTNAMES.has(url.hostname) || Boolean(env && env.DEV)
 }
 
 // ---------- 路由处理 ----------
@@ -349,10 +357,16 @@ export async function onRequest(context) {
     )
     await kv.put(ipKey, String(ipCount + 1))
 
-    const { delivered } = await sendCodeMail(env, email, code)
+    const { configured, delivered } = await sendCodeMail(env, email, code)
     if (delivered) return json({ ok: true, delivery: 'email' }, 200, storageHeader)
-    // 邮件服务未配置：返回 devCode 供联调（邮件密钥就位后自动切换为正式发送）
-    return json({ ok: true, delivery: 'stub', devCode: code }, 200, storageHeader)
+    if (!configured) {
+      // 邮件服务未配置：仅本地开发环境把 devCode 回显给前端供联调，线上一律报错
+      if (isLocalDev(url, env)) {
+        return json({ ok: true, delivery: 'stub', devCode: code }, 200, storageHeader)
+      }
+      return json({ error: '邮件服务未配置，请联系管理员' }, 503, storageHeader)
+    }
+    return json({ error: '验证码发送失败，请稍后再试' }, 502, storageHeader)
   }
 
   if (path === '/api/auth/verify' && method === 'POST') {
@@ -590,6 +604,18 @@ export async function onRequest(context) {
     const email = await currentUserEmail(request, env)
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
     if (!isAdmin(email, env)) return json({ error: '无管理权限' }, 403, storageHeader)
+
+    if (path === '/api/admin/health' && method === 'GET') {
+      return json(
+        {
+          kvBound: persistent,
+          mailConfigured: Boolean(env && env.RESEND_API_KEY),
+          authSecretConfigured: Boolean(env && env.AUTH_SECRET),
+        },
+        200,
+        storageHeader,
+      )
+    }
 
     if (path === '/api/admin/overview' && method === 'GET') {
       const users = []

@@ -1,22 +1,14 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import NotFoundView from '@/views/NotFoundView.vue'
 import { findGuide, guides } from '@/data/guides'
 
 const route = useRoute()
 const router = useRouter()
 
 const guide = computed(() => findGuide(String(route.params.slug ?? '')))
-
-// slug 无效时回教程列表（客户端导航场景）
-watch(
-  guide,
-  (g) => {
-    if (!g && typeof window !== 'undefined') void router.replace('/guides')
-  },
-  { immediate: true },
-)
 
 const relatedGuides = computed(() =>
   (guide.value?.related ?? [])
@@ -119,4 +111,5 @@ function onArticleClick(event: MouseEvent) {
       </div>
     </section>
   </div>
+  <NotFoundView v-else />
 </template>
