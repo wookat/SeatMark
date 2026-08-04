@@ -7,6 +7,7 @@
 
 import { defaultTemplates } from '@/data/defaultTemplates'
 import { findGuide, guides } from '@/data/guides'
+import { findLabelPaper, labelPapers } from '@/data/labelPapers'
 import { findTemplateDetail, TEMPLATE_STEPS, templateDetails } from '@/data/templateDetails'
 
 export const SITE_ORIGIN = 'https://www.seatmark.cn'
@@ -306,6 +307,99 @@ export function resolveSeo(path: string): PageSeo {
     }
   }
 
+  if (p === '/papers') {
+    return {
+      title: 'A4 不干胶纸型库：选型号自动对版 - SeatMark 座签',
+      description: `收录 ${labelPapers.length} 种国产常见 A4 不干胶分切规格：2×4、3×7、3×10、圆角模切等。选好纸型，行列数、边距与间距自动锁定，标签打印即对版免调参。`,
+      path: '/papers',
+      jsonLd: [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: 'A4 不干胶纸型库 - SeatMark 座签',
+          url: `${SITE_ORIGIN}/papers`,
+          inLanguage: 'zh-CN',
+          hasPart: labelPapers.map((paper) => ({
+            '@type': 'WebPage',
+            name: paper.name,
+            url: `${SITE_ORIGIN}/papers/${paper.slug}`,
+          })),
+        },
+        breadcrumb([
+          { name: '首页', path: '/' },
+          { name: '纸型库', path: '/papers' },
+        ]),
+      ],
+    }
+  }
+
+  if (p.startsWith('/papers/')) {
+    const slug = p.slice('/papers/'.length)
+    const paper = findLabelPaper(slug)
+    if (paper) {
+      return {
+        title: `${paper.name}：规格参数与打印模板 - SeatMark 座签`,
+        description: `${paper.description}单枚 ${paper.labelWidth}×${paper.labelHeight} mm，${paper.cols} 列×${paper.rows} 行每页 ${paper.cols * paper.rows} 枚。在线选此纸型自动对版，上传 Excel 即可批量打印。`,
+        path: `/papers/${slug}`,
+        jsonLd: [
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Product',
+            name: paper.name,
+            alternateName: paper.aliases,
+            description: paper.description,
+            url: `${SITE_ORIGIN}/papers/${paper.slug}`,
+            additionalProperty: [
+              { '@type': 'PropertyValue', name: '整张纸', value: 'A4 210×297 mm' },
+              {
+                '@type': 'PropertyValue',
+                name: '单枚标签',
+                value: `${paper.labelWidth}×${paper.labelHeight} mm`,
+              },
+              {
+                '@type': 'PropertyValue',
+                name: '排列',
+                value: `${paper.cols} 列 × ${paper.rows} 行，每页 ${paper.cols * paper.rows} 枚`,
+              },
+              {
+                '@type': 'PropertyValue',
+                name: '切角',
+                value: paper.corner === 'rounded' ? '圆角' : '直角',
+              },
+            ],
+          },
+          breadcrumb([
+            { name: '首页', path: '/' },
+            { name: '纸型库', path: '/papers' },
+            { name: paper.name, path: `/papers/${paper.slug}` },
+          ]),
+        ],
+      }
+    }
+  }
+
+  if (p === '/seating') {
+    return {
+      title: '班级座位表在线制作打印，一键生成桌贴 - SeatMark 座签',
+      description:
+        '免费在线生成教室座位表：粘贴学生名单、设置排列与过道、标注讲台，生成 A4 教室平面座位表直接打印；还能一键把同一份名单带入标签工坊批量生成课桌桌贴。数据不出浏览器。',
+      path: '/seating',
+      jsonLd: [
+        SOFTWARE_APP_JSONLD,
+        howToJsonLd('在线制作班级座位表并打印', [
+          { name: '粘贴名单', text: '把学生姓名粘贴进名单框，每行一人，支持逗号、顿号分隔。' },
+          { name: '设置教室布局', text: '设置排数与列数，点击列间隙添加过道，可标注讲台位置。' },
+          { name: '预览并打印', text: '确认 A4 横向座位表效果后直接打印，或另存为 PDF。' },
+          { name: '一键生成桌贴', text: '同一份名单带入标签工坊，选模板即可批量生成课桌桌贴。' },
+        ]),
+        breadcrumb([
+          { name: '首页', path: '/' },
+          { name: '座位表打印', path: '/seating' },
+        ]),
+      ],
+    }
+  }
+
   if (p === '/terms') {
     return {
       title: '用户协议 - SeatMark 座签',
@@ -365,6 +459,9 @@ export function prerenderPaths(): string[] {
     ...guides.map((g) => `/guides/${g.slug}`),
     '/templates',
     ...templateDetails.map((t) => `/templates/${t.slug}`),
+    '/papers',
+    ...labelPapers.map((paper) => `/papers/${paper.slug}`),
+    '/seating',
     '/terms',
     '/privacy',
   ]

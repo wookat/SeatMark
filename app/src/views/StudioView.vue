@@ -12,12 +12,15 @@ import PreviewArea from '@/components/studio/PreviewArea.vue'
 import TemplatePickerPanel from '@/components/studio/TemplatePickerPanel.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import { createBlankTemplate } from '@/data/defaultTemplates'
+import { findLabelPaper } from '@/data/labelPapers'
 import { useTemplateLibrary } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { LabelTemplate } from '@/types/template'
 import { uid } from '@/utils/id'
 import { cloneTemplate } from '@/utils/layout'
+import { applyLabelPaper } from '@/utils/labelPaper'
+import { takeSeatingHandoff } from '@/utils/seating'
 import { decodeSharedTemplate, extractSharePayload } from '@/utils/share'
 
 const route = useRoute()
@@ -104,6 +107,26 @@ onMounted(() => {
   }
   if (route.query.demo === '1' && !workspace.excel.rows.length) {
     workspace.useDemoData()
+  }
+  // 从纸型落地页进入：按纸型锁定排版
+  if (typeof route.query.paper === 'string') {
+    const spec = findLabelPaper(route.query.paper)
+    if (spec) {
+      applyLabelPaper(workspace.template, spec)
+      toast.info('已按纸型锁定排版', `${spec.name}：每页 ${spec.cols * spec.rows} 枚`)
+    }
+  }
+  // 从教室座位表一键带入同一份名单
+  if (route.query.from === 'seating') {
+    const handoff = takeSeatingHandoff()
+    if (handoff) {
+      workspace.applyDataset(
+        `${handoff.title || '教室座位表'}.名单`,
+        Object.keys(handoff.rows[0]!),
+        handoff.rows,
+      )
+      toast.success('座位表名单已带入', `共 ${handoff.rows.length} 人，选好模板即可批量生成桌贴`)
+    }
   }
   // 从主页「从空白新建模板」进入时直接打开设计器
   if (route.query.design === 'new') {

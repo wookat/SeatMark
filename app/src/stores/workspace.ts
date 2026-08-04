@@ -368,6 +368,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     })
   }
 
+  /** 由站内功能（如教室座位表）直接注入名单数据，等效于导入一份 Excel */
+  function applyDataset(fileName: string, headers: string[], rows: DataRow[]) {
+    applyExcel({ fileName, sheetName: '站内数据', headers, rows })
+    isDemoData.value = false
+  }
+
   function useDemoData() {
     const demo = makeDemoRows(30)
     applyExcel({ fileName: '演示数据.xlsx', sheetName: '示例', ...demo })
@@ -486,6 +492,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     withLoading,
     selectTemplate,
     importExcel,
+    applyDataset,
     useDemoData,
     clearData,
     setMappingValue,
