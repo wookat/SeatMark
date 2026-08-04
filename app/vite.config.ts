@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vite'
 
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
   plugins: [
     vue(),
     tailwindcss(),
@@ -52,14 +52,17 @@ export default defineConfig({
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-pdf': ['jspdf', 'html2canvas-pro'],
-          'vendor-xlsx': ['xlsx'],
-        },
+        // SSR 预渲染构建中依赖被外部化，不能再手动分块
+        manualChunks: isSsrBuild
+          ? undefined
+          : {
+              'vendor-pdf': ['jspdf', 'html2canvas-pro'],
+              'vendor-xlsx': ['xlsx'],
+            },
       },
     },
   },
   test: {
     environment: 'jsdom',
   },
-})
+}))

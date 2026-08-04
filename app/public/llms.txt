@@ -1,0 +1,43 @@
+# SeatMark 座签
+
+> SeatMark（https://www.seatmark.cn）是一款免费的在线批量标签生成工具：上传 Excel 名单即可批量生成考场座位标签（座签/桌贴）、考号贴、会议桌牌/台签/席卡、门贴门牌、学生证、工作证、胸卡出入证等打印页。毫米级精确排版（A4/A5/A3），支持照片核验、可视化模板设计器与 PDF 导出。所有数据仅在用户浏览器本地处理，不上传服务器，可离线使用，无需注册。Beta 期间全部功能限时免费。
+
+## 核心功能
+
+- Excel 名单批量导入，姓名/考场/座位号/准考证号等常见表头自动匹配
+- 19 款内置模板，尺寸与排版精确到毫米，可视化设计器自由自定义
+- 照片按文件名批量匹配（人证核验），照片不上传服务器
+- A4 / A5 / A3 横竖向排版，裁切参考线，PDF 导出与浏览器直接打印
+- 数据质量检查：缺失项、重复准考证号、重复座位号自动统计
+- 隐私优先：纯前端实现，名单与照片全程不出浏览器
+
+## 主要页面
+
+- [标签工坊（在线生成）](https://www.seatmark.cn/studio)
+- [模板库](https://www.seatmark.cn/templates)
+- [教程中心](https://www.seatmark.cn/guides)
+- [定价（Beta 期间免费）](https://www.seatmark.cn/pricing)
+
+## 教程
+
+- [考场座位贴怎么批量打印？Excel 一键生成考场座签](https://www.seatmark.cn/guides/exam-seat-label-batch-print)
+- [Excel 名单一键生成桌牌：会议桌牌、姓名牌批量制作](https://www.seatmark.cn/guides/excel-generate-desk-cards)
+- [A4 纸打印席位卡的尺寸与排版指南](https://www.seatmark.cn/guides/a4-seat-card-size-layout)
+- [监考照片核验标签制作教程](https://www.seatmark.cn/guides/photo-verification-label)
+- [家长会桌牌快速制作](https://www.seatmark.cn/guides/parent-meeting-desk-card)
+- [会议桌牌双面打印技巧](https://www.seatmark.cn/guides/double-sided-tent-card-print)
+- [WPS/Word 邮件合并 vs 在线批量生成工具对比](https://www.seatmark.cn/guides/wps-word-mail-merge-vs-online)
+- [打印标签常见问题排查（错位/裁切/字体）](https://www.seatmark.cn/guides/label-print-troubleshooting)
+
+## 模板（部分）
+
+- [标准考场版（A4 一页 24 枚座签）](https://www.seatmark.cn/templates/standard)
+- [考号贴（准考证号大字）](https://www.seatmark.cn/templates/examNo)
+- [照片核验版（人证比对）](https://www.seatmark.cn/templates/withPhoto)
+- [半页大桌牌（讲座/会议）](https://www.seatmark.cn/templates/deskHalf)
+- [学生证 / 工作证 / 出入证胸卡（54×86 mm 标准卡）](https://www.seatmark.cn/templates/studentIdCard)
+
+## 补充
+
+- [完整版产品说明（llms-full.txt）](https://www.seatmark.cn/llms-full.txt)
+- [站点地图](https://www.seatmark.cn/sitemap.xml)

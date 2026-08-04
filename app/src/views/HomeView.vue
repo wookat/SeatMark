@@ -441,7 +441,7 @@ const FAQS = [
         </RouterLink>
       </div>
 
-      <div v-if="hiddenTemplateCount > 0" class="mt-7 text-center">
+      <div v-if="hiddenTemplateCount > 0" class="mt-7 flex flex-wrap items-center justify-center gap-3 text-center">
         <button
           type="button"
           class="btn btn-secondary btn-md"
@@ -461,6 +461,20 @@ const FAQS = [
             <path d="m4 6 4 4 4-4" />
           </svg>
         </button>
+        <RouterLink to="/templates" class="btn btn-ghost btn-md text-brand-600">
+          浏览模板库详情
+          <svg
+            class="size-3.5"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M3 8h10m-4-4 4 4-4 4" />
+          </svg>
+        </RouterLink>
       </div>
     </section>
 
@@ -507,6 +521,12 @@ const FAQS = [
       <div v-reveal class="text-center">
         <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">FAQ</p>
         <h2 class="mt-1 text-2xl font-black tracking-tight text-slate-900">常见问题</h2>
+        <p class="mt-2 text-sm text-slate-500">
+          更多制作与打印实战技巧见
+          <RouterLink to="/guides" class="font-semibold text-brand-600 hover:underline">教程中心</RouterLink>，
+          商用与免费说明见
+          <RouterLink to="/pricing" class="font-semibold text-brand-600 hover:underline">定价页</RouterLink>
+        </p>
       </div>
       <div class="mt-8 grid gap-4 sm:grid-cols-2">
         <div

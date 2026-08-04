@@ -1,30 +1,70 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import {
+  createMemoryHistory,
+  createRouter,
+  createWebHistory,
+  type RouteRecordRaw,
+} from 'vue-router'
 
-export const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
-    {
-      path: '/',
-      name: 'home',
-      component: () => import('@/views/HomeView.vue'),
-      meta: { title: '座签·桌牌席卡·门贴证卡批量生成 - SeatMark 座签' },
-    },
-    {
-      path: '/studio',
-      name: 'studio',
-      component: () => import('@/views/StudioView.vue'),
-      meta: { title: '标签工坊 - SeatMark 座签' },
-    },
-    { path: '/:pathMatch(.*)*', redirect: '/' },
-  ],
-  scrollBehavior(_to, _from, savedPosition) {
-    return savedPosition ?? { top: 0 }
+export const routes: RouteRecordRaw[] = [
+  {
+    path: '/',
+    name: 'home',
+    component: () => import('@/views/HomeView.vue'),
   },
-})
+  {
+    path: '/studio',
+    name: 'studio',
+    component: () => import('@/views/StudioView.vue'),
+  },
+  {
+    path: '/pricing',
+    name: 'pricing',
+    component: () => import('@/views/PricingView.vue'),
+  },
+  {
+    path: '/guides',
+    name: 'guides',
+    component: () => import('@/views/GuidesView.vue'),
+  },
+  {
+    path: '/guides/:slug',
+    name: 'guide-article',
+    component: () => import('@/views/GuideArticleView.vue'),
+  },
+  {
+    path: '/templates',
+    name: 'templates',
+    component: () => import('@/views/TemplatesView.vue'),
+  },
+  {
+    path: '/templates/:slug',
+    name: 'template-detail',
+    component: () => import('@/views/TemplateDetailView.vue'),
+  },
+  { path: '/:pathMatch(.*)*', redirect: '/' },
+]
 
-router.afterEach((to) => {
-  const title = to.meta.title
-  if (typeof title === 'string') document.title = title
+/** SSR/预渲染环境无 window，使用内存路由 */
+export function createAppRouter() {
+  return createRouter({
+    history:
+      typeof window === 'undefined'
+        ? createMemoryHistory(import.meta.env.BASE_URL)
+        : createWebHistory(import.meta.env.BASE_URL),
+    routes,
+    scrollBehavior(_to, _from, savedPosition) {
+      return savedPosition ?? { top: 0 }
+    },
+  })
+}
+
+export const router = createAppRouter()
+
+router.afterEach(async (to) => {
+  if (typeof window === 'undefined') return
+
+  const { applySeo } = await import('@/utils/seo')
+  applySeo(to.path)
 
   const path = to.fullPath
 
@@ -33,7 +73,7 @@ router.afterEach((to) => {
   if (typeof w.gtag === 'function') {
     w.gtag('event', 'page_view', {
       page_path: path,
-      page_title: title ?? document.title,
+      page_title: document.title,
     })
   }
 
