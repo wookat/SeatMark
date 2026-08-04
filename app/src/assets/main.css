@@ -19,8 +19,15 @@
     0 2px 4px rgba(15, 23, 42, 0.05), 0 8px 20px -8px rgba(15, 23, 42, 0.12);
   --shadow-pop: 0 4px 12px rgba(15, 23, 42, 0.08), 0 16px 40px -16px rgba(15, 23, 42, 0.2);
 
-  /* 缓动：全站统一标准曲线，无回弹 */
+  /* 缓动：全站统一标准曲线，无回弹；exit 用于离场（先快后慢收尾） */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* 动效时长令牌：press 按压反馈 / fast hover 与小控件 / base 进出场 / reveal 滚动显现与绘制 */
+  --duration-press: 100ms;
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-reveal: 500ms;
 
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
@@ -63,7 +70,7 @@
 
 @layer components {
   .btn {
-    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded border border-transparent font-semibold transition-colors duration-150 select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded border border-transparent font-semibold transition-[color,background-color,border-color,box-shadow,transform] duration-150 select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100;
   }
 
   .btn-md {
@@ -220,12 +227,94 @@
     transform: translateY(0);
   }
 
+  /* 路径绘制（配合 v-reveal）：SVG path 需带 pathLength="1"，显现时从头绘制到尾 */
+  .draw-on-reveal path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset var(--duration-reveal) var(--ease-standard) 120ms;
+  }
+
+  .draw-on-reveal.reveal-in path {
+    stroke-dashoffset: 0;
+  }
+
+  /* Toast 语义图标：进场时描边绘制（对勾 / 叉 / 感叹号），path 需带 pathLength="1" */
+  .toast-draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: path-draw 0.45s var(--ease-standard) 100ms forwards;
+  }
+
+  @keyframes path-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .reveal-init {
       opacity: 1;
       transform: none;
       transition: none;
     }
+
+    .draw-on-reveal path {
+      stroke-dashoffset: 0;
+      transition: none;
+    }
+
+    .toast-draw {
+      stroke-dashoffset: 0;
+      animation: none;
+    }
+  }
+}
+
+/* ---------- 页面切换转场（App.vue <RouterView> Transition） ---------- */
+.page-enter-active {
+  transition:
+    opacity var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
+}
+
+.page-leave-active {
+  transition: opacity var(--duration-fast) var(--ease-exit);
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.page-leave-to {
+  opacity: 0;
+}
+
+/* ---------- 工坊预览翻页过渡（只动 opacity，保证大页面 60fps） ---------- */
+.preview-page-enter-active {
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.preview-page-leave-active {
+  transition: opacity 100ms var(--ease-exit);
+}
+
+.preview-page-enter-from,
+.preview-page-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active,
+  .page-leave-active,
+  .preview-page-enter-active,
+  .preview-page-leave-active {
+    transition: none;
+  }
+
+  .page-enter-from {
+    opacity: 1;
+    transform: none;
   }
 }
 

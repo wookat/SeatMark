@@ -60,7 +60,7 @@ const TONE_PATH: Record<ToastType, string> = {
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <path :d="TONE_PATH[toast.type]" />
+            <path class="toast-draw" :d="TONE_PATH[toast.type]" pathLength="1" />
           </svg>
         </span>
         <div class="min-w-0 flex-1">

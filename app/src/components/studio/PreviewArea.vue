@@ -274,17 +274,23 @@ async function onPrint() {
           class="relative origin-top-left"
           :style="{ width: `${pageWidthPx * scale}px`, height: `${pageHeightPx * scale}px` }"
         >
-          <div class="absolute top-0 left-0 origin-top-left" :style="{ transform: `scale(${scale})` }">
-            <LabelSheet
-              :template="workspace.template"
-              :rows="workspace.currentPageRows"
-              :get-text="workspace.fieldText"
-              :get-photo="workspace.photoFor"
-              :show-cut-lines="workspace.showCutLines"
-              :highlight-missing="workspace.highlightMissing"
-              screen
-            />
-          </div>
+          <Transition name="preview-page" mode="out-in">
+            <div
+              :key="workspace.previewPage"
+              class="absolute top-0 left-0 origin-top-left"
+              :style="{ transform: `scale(${scale})` }"
+            >
+              <LabelSheet
+                :template="workspace.template"
+                :rows="workspace.currentPageRows"
+                :get-text="workspace.fieldText"
+                :get-photo="workspace.photoFor"
+                :show-cut-lines="workspace.showCutLines"
+                :highlight-missing="workspace.highlightMissing"
+                screen
+              />
+            </div>
+          </Transition>
         </div>
       </div>
     </div>

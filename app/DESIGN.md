@@ -48,12 +48,30 @@
 
 ## 动效
 
-- 时长：120–300ms；进出场 200ms 上下，hover/press 反馈 150ms。
-- 缓动：统一 `--ease-standard: cubic-bezier(0.4, 0, 0.2, 1)`；不用回弹（overshoot）曲线。
-- 动效只用于状态反馈（hover、展开、进出场），禁止环境动画：漂浮（float）、光斑漂移（blob）、
-  渐变流动（gradient-pan）、扫描线等纯装饰动画一律不用。
-- 卡片 hover 用边框/阴影变化表达，不做位移、旋转、放大。
-- 尊重 `prefers-reduced-motion`。
+### 令牌
+
+| 令牌 | 值 | 用途 |
+|---|---|---|
+| `--duration-press` | 100ms | 按钮按压反馈 |
+| `--duration-fast` | 150ms | hover、小控件状态切换、离场 |
+| `--duration-base` | 200ms | 进出场、页面转场 |
+| `--duration-reveal` | 500ms | 滚动显现、路径绘制 |
+| `--ease-standard` | `cubic-bezier(0.4, 0, 0.2, 1)` | 进场与状态变化，无回弹 |
+| `--ease-exit` | `cubic-bezier(0.4, 0, 1, 1)` | 离场（加速离开） |
+
+### 原则
+
+- 缓动不用回弹（overshoot）曲线；按压反馈用轻微 scale 下压（`active:scale-[0.98]`），不做弹起。
+- 只动 `transform` / `opacity`（含 SVG `stroke-dashoffset`），保证 60fps；不动 layout 属性。
+- 动效只用于状态反馈与叙事引导（hover、展开、进出场、滚动显现、首屏装配叙事、数字计数、
+  路径绘制），禁止环境动画：漂浮（float）、光斑漂移（blob）、渐变流动（gradient-pan）、
+  扫描线等纯装饰循环动画一律不用。叙事动效只播一次，不循环。
+- 卡片本体 hover 用边框/阴影变化表达，不做位移、旋转、放大；卡片内的「内容预览」
+  （如模板缩略图）允许 ≤1.03 的轻微放大以示可交互。
+- 页面切换：`<RouterView>` 外层 `Transition name="page"`（进场 200ms 上浮淡入，离场 150ms 淡出）。
+- 滚动显现用 `v-reveal`（交错延迟 ≤90ms/项）；SVG 路径绘制用 `.draw-on-reveal` + `pathLength="1"`。
+- 全部动效尊重 `prefers-reduced-motion`：媒体查询下直接呈现最终状态，脚本动效（WAAPI、
+  计数）在挂载时检测并跳过。
 
 ## 组件约定
 
