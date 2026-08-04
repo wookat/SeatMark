@@ -1,25 +1,17 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
+import NotFoundView from '@/views/NotFoundView.vue'
 import { defaultTemplates } from '@/data/defaultTemplates'
 import { findTemplateDetail, TEMPLATE_STEPS, templateDetails } from '@/data/templateDetails'
 
 const route = useRoute()
-const router = useRouter()
 
 const slug = computed(() => String(route.params.slug ?? ''))
 const detail = computed(() => findTemplateDetail(slug.value))
 const template = computed(() => defaultTemplates.find((t) => t.id === slug.value))
-
-watch(
-  detail,
-  (d) => {
-    if (!d && typeof window !== 'undefined') void router.replace('/templates')
-  },
-  { immediate: true },
-)
 
 /** 同类推荐：模板库里除自己外取 3 款 */
 const others = computed(() => {
@@ -186,4 +178,5 @@ const others = computed(() => {
       </div>
     </section>
   </div>
+  <NotFoundView v-else />
 </template>
