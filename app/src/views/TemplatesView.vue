@@ -38,6 +38,20 @@ const filteredItems = computed(() => {
     return `${t.name} ${t.scenario ?? ''} ${t.description}`.toLowerCase().includes(query)
   })
 })
+
+function resetSearch() {
+  searchQuery.value = ''
+  activeCategory.value = 'all'
+}
+
+/** 搜索无结果时的推荐：当前分类下的模板优先，否则用常用模板兜底 */
+const recommendedItems = computed(() => {
+  const inCategory =
+    activeCategory.value === 'all'
+      ? items
+      : items.filter((item) => item.template!.category === activeCategory.value)
+  return (inCategory.length > 0 ? inCategory : items).slice(0, 3)
+})
 </script>
 
 <template>
@@ -96,9 +110,47 @@ const filteredItems = computed(() => {
       </div>
     </div>
 
-    <p v-if="filteredItems.length === 0" class="mt-12 text-center text-sm text-slate-400">
-      没有匹配的模板，换个关键词试试，或从空白新建模板。
-    </p>
+    <div
+      v-if="filteredItems.length === 0"
+      class="mt-10 rounded-lg border border-slate-200 bg-slate-50 p-8 text-center"
+    >
+      <p class="text-sm text-slate-500">
+        没有匹配“{{ searchQuery }}”的模板，换个关键词试试，或在设计器里从空白新建。
+      </p>
+      <div class="mt-3 flex flex-wrap items-center justify-center gap-4">
+        <button
+          type="button"
+          class="cursor-pointer text-xs font-bold text-brand-600 hover:underline"
+          @click="resetSearch"
+        >
+          清除搜索条件
+        </button>
+        <RouterLink to="/studio?design=new" class="text-xs font-bold text-brand-600 hover:underline">
+          从空白新建模板
+        </RouterLink>
+      </div>
+      <div class="mt-6 border-t border-slate-200 pt-5 text-left">
+        <p class="text-xs font-bold text-slate-500">也许这些模板能满足需求</p>
+        <div class="mt-3 grid gap-4 sm:grid-cols-3">
+          <RouterLink
+            v-for="rec in recommendedItems"
+            :key="rec.detail.slug"
+            :to="`/templates/${rec.detail.slug}`"
+            class="group flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 transition-colors hover:border-brand-300"
+          >
+            <div class="w-16 shrink-0">
+              <TemplateThumb :template="rec.template!" />
+            </div>
+            <div class="min-w-0">
+              <h3 class="truncate text-sm font-bold text-slate-800 group-hover:text-brand-600">
+                {{ rec.template!.name }}
+              </h3>
+              <p class="mt-0.5 truncate text-xs text-slate-400">{{ rec.template!.scenario }}</p>
+            </div>
+          </RouterLink>
+        </div>
+      </div>
+    </div>
 
     <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       <RouterLink

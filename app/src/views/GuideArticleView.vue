@@ -47,7 +47,7 @@ function onArticleClick(event: MouseEvent) {
       <span>/</span>
       <RouterLink to="/guides" class="hover:text-brand-600">教程中心</RouterLink>
       <span>/</span>
-      <span class="text-slate-500">{{ guide.category }}</span>
+      <span class="line-clamp-1 text-slate-500" aria-current="page">{{ guide.title }}</span>
     </nav>
 
     <header class="mt-4">
@@ -103,7 +103,7 @@ function onArticleClick(event: MouseEvent) {
 
     <!-- 相关文章 -->
     <section v-if="relatedGuides.length" class="mt-10">
-      <h2 class="text-base font-bold text-slate-900">相关教程</h2>
+      <h2 class="text-base font-bold text-slate-900">相关阅读</h2>
       <div class="mt-3 grid gap-3 sm:grid-cols-3">
         <RouterLink
           v-for="rel in relatedGuides"

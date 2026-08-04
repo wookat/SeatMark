@@ -130,7 +130,11 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
         :class="fieldClasses(field)"
         :style="fieldStyle(field)"
       >
-        <img v-if="imageSrcOf(field)" :src="imageSrcOf(field)!" alt="" />
+        <img
+          v-if="imageSrcOf(field)"
+          :src="imageSrcOf(field)!"
+          :alt="field.imageSrc != null ? '模板图片素材' : '标签照片'"
+        />
         <span v-else class="label-field__placeholder">{{ field.imageSrc != null ? '图片' : '照片' }}</span>
       </div>
     </template>
