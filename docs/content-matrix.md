@@ -119,8 +119,36 @@
 | 74 | 批量照片按学号/考号命名 | 排障 | 考务/HR | /guides/photo-verification-label（部分） | 🆕 batch-photo-naming-guide |
 | 75 | 期末多年级统考考务排期 | 信息 | 教务处 | 无 | 🆕 final-exam-materials-timeline |
 
+## 九、新功能专项教程（第三轮新增：功能上线配套）
+
+| # | 需求 / 搜索词 | 意图 | 目标群体 | 现有承接页 | 缺口与承接 |
+|---|---|---|---|---|---|
+| 76 | 标签打印偏移校准 / 校准向导怎么用 | 功能 | 全部 | /guides/print-margin-calibration（部分） | 🆕 calibration-page-measurement-tips（校准页测量与常见量错纠正） |
+| 77 | 批量标签裁切后怎么按顺序分拣 | 功能 | 考务/会务 | 无 | 🆕 cut-stack-sort-order（裁切排序·摞优先详解） |
+| 78 | 多列内容拼接到一个字段（组合字段） | 功能 | 进阶用户 | 无 | 🆕 composite-field-template-string（{列名} 模板串语法） |
+| 79 | 只改一张标签内容 / 个别修改 | 功能 | 全部 | 无 | 🆕 single-label-override-edit（单张覆写，不动名单数据） |
+| 80 | 不干胶标签纸型号怎么选（21/24/65 枚） | 功能 | 全部 | /papers | 🆕 sticker-paper-size-picker（按纸型选择与对格打印） |
+| 81 | 教室座位表随机排座 / 男女混排 / 换座 | 功能 | 班主任 | /guides/classroom-seating-chart-print（部分） | 🆕 seating-random-shuffle-swap（/seating 三大排座功能专讲） |
+| 82 | 微信里打开网页下载不了 PDF | 排障 | 全部 | 无 | 🆕 wechat-browser-print-guide（微信内使用完整指南） |
+| 83 | 分享送无水印导出次数怎么玩 | 功能 | 全部 | /pricing（部分） | 🆕 share-unlock-watermark-free（分享激励玩法与配额说明） |
+
+## 十、模板类型场景教程（第三轮新增：模板库大类承接）
+
+| # | 需求 / 搜索词 | 意图 | 目标群体 | 现有承接页 | 缺口与承接 |
+|---|---|---|---|---|---|
+| 84 | 酒店婚宴席位卡布置 / 摆放 | 场景 | 婚庆/策划 | /guides/wedding-place-card-guide（部分） | 🆕 hotel-wedding-place-card-setup（从名单到摆台全流程） |
+| 85 | 公司年会桌牌 / 年会物料方案 | 场景 | 行政/HR | /guides/hr-annual-meeting-materials（部分） | 🆕 annual-meeting-desk-card-plan（席位桌牌+抽奖+签到全套） |
+| 86 | 幼儿园开学物品贴名字 | 场景 | 家长/幼师 | /guides/kindergarten-primary-name-sticker（部分） | 🆕 kindergarten-item-sticker-pack（水杯书包被褥全套攻略） |
+| 87 | 医院床头卡规范 / 床头牌制作 | 场景 | 医护/养老机构 | 无 | 🆕 hospital-ward-bed-card-standard（信息项、级别色标、批量插芯） |
+| 88 | 档案盒标签批量打印 / 盒脊标签 | 场景 | 行政/档案 | 无 | 🆕 archive-box-file-label（台账驱动的盒签批量生成） |
+| 89 | 展会胸卡 / 参展证批量制作 | 场景 | 会务 | /guides/badge-visitor-card-batch（部分） | 🆕 expo-badge-lanyard-guide（尺寸、挂绳、分色、半天流水线） |
+| 90 | 毕业典礼座位安排 / 席位卡 | 场景 | 教务/学生处 | /guides/graduation-ceremony-materials（部分） | 🆕 graduation-ceremony-seat-plan（主席台+毕业生区+家长席三体系） |
+| 91 | 电竞比赛桌牌 / 赛位牌 | 场景 | 赛事主办 | 无 | 🆕 esports-tournament-seat-card（赛位牌+机位贴+对阵轮换） |
+| 92 | 政务大厅窗口牌 / 工号牌 | 场景 | 政务/银行 | 无 | 🆕 government-service-window-plate（窗口标识四件套与轮岗更换） |
+| 93 | 餐厅宴会桌牌 / 预留席卡 / 菜品标签 | 场景 | 餐饮门店 | 无 | 🆕 restaurant-banquet-table-signs（宴席+日常+自助餐全套） |
+
 ## 汇总
 
-- 需求条目共 **75 条**（第二轮新增调研 7 条）；本轮 PR 新增教程 **16 篇**（🆕 标记），覆盖季节性热点（开学季/期末/艺考/四六级/考研）、地区差异（中高考各省规范）、格式技巧（边距校准/浏览器 vs PDF/批量照片命名）与对比评测（考务系统 vs SeatMark）四大类。
-- 教程总数 25 + 16 = **41 篇**，配合 61 个模板详情页，矩阵承接率约 95%；剩余 ⏳ 条目（监考证独立教程等）留待下一轮迭代。
+- 需求条目共 **93 条**（第三轮新增调研 18 条）；第三轮 PR 新增教程 **18 篇**（第九、十节 🆕 标记）：8 篇新功能专项（打印校准、裁切排序、组合字段、单张覆写、纸型选择、座位表排座、微信内使用、分享送次数）+ 10 篇模板类型场景（婚宴/年会/幼儿园/医院/档案/展会/毕业典礼/电竞/政务/餐饮）。
+- 教程总数 44 + 18 = **62 篇**，配合模板详情页与纸型库页面，矩阵承接率约 97%；剩余 ⏳ 条目（监考证独立教程等）留待下一轮迭代。
 - 转化策略：对比类与排障类文章承接「高意图搜索」，文末以克制 CTA 引导进入 /studio 与注册 Beta 免费会员；场景类文章负责「第一眼吸引 + 留存」，通过相关阅读互链提高浏览深度。
