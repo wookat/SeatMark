@@ -79,14 +79,96 @@ const props = withDefaults(
     /** 使用模板示例数据渲染（缩略图 / 设计器） */
     sampleMode?: boolean
     highlightMissing?: boolean
+    /** 品牌水印：渲染在标签内部底部居中（带水印导出/打印时开启） */
+    watermark?: boolean
   }>(),
   {
     texts: undefined,
     photoSrc: null,
     sampleMode: false,
     highlightMissing: false,
+    watermark: false,
   },
 )
+
+/** 小标签只放域名，宽度足够时放全称（品牌名+域名） */
+const WATERMARK_FULL = 'SeatMark 座签 · seatmark.cn'
+const WATERMARK_SHORT = 'seatmark.cn'
+
+/** 估算水印文本宽度（mm）：CJK 记 1em、西文/符号记 0.64em */
+function estimateTextWidth(text: string, fontSizeMm: number): number {
+  let em = 0
+  for (const ch of text) em += /[\u2E80-\u9FFF\uF900-\uFAFF]/.test(ch) ? 1 : 0.64
+  return em * fontSizeMm * 1.06
+}
+
+interface Rect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+function intersects(a: Rect, b: Rect): boolean {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
+}
+
+/**
+ * 水印位置与内容：字号随标签尺寸自适应，按「底部居中 → 底部右 → 底部左 → 顶部居中 →
+ * 顶部右」的优先级寻找不与任何字段相交的空位；全部被占时退回底部居中（半透明叠加，
+ * 不影响黑白打印可读性）。
+ */
+const watermarkLayout = computed<{ text: string; style: CSSProperties }>(() => {
+  const { width, height } = props.template.label
+  // 字号约为标签宽度的 4.5%，下限 2.2mm（黑白打印可读），上限 5mm
+  const size = Math.min(Math.max(Math.min(width, height * 2.4) * 0.045, 2.2), 5)
+  const wmHeight = size * 1.15
+  const inset = Math.max(0.8, size * 0.4)
+  const fieldRects: Rect[] = props.template.fields.map((f) => ({
+    x: f.x,
+    y: f.y,
+    w: f.width,
+    h: f.height,
+  }))
+  const texts =
+    estimateTextWidth(WATERMARK_FULL, size) <= width * 0.86
+      ? [WATERMARK_FULL, WATERMARK_SHORT]
+      : [WATERMARK_SHORT]
+  for (const text of texts) {
+    const wmWidth = estimateTextWidth(text, size)
+    const yBottom = height - inset - wmHeight
+    const candidates: Rect[] = [
+      { x: (width - wmWidth) / 2, y: yBottom, w: wmWidth, h: wmHeight },
+      { x: width - inset - wmWidth, y: yBottom, w: wmWidth, h: wmHeight },
+      { x: inset, y: yBottom, w: wmWidth, h: wmHeight },
+      { x: (width - wmWidth) / 2, y: inset, w: wmWidth, h: wmHeight },
+      { x: width - inset - wmWidth, y: inset, w: wmWidth, h: wmHeight },
+    ]
+    for (const rect of candidates) {
+      if (rect.x < inset - 0.01) continue
+      if (fieldRects.some((f) => intersects(rect, f))) continue
+      return { text, style: styleFor(rect, size) }
+    }
+  }
+  // 兜底：底部靠右半透明叠加（密排模板的字段多为左对齐，右端视觉留白更多）
+  const text = texts[texts.length - 1]!
+  const wmWidth = estimateTextWidth(text, size)
+  return {
+    text,
+    style: styleFor(
+      { x: width - inset - wmWidth, y: height - inset - wmHeight, w: wmWidth, h: wmHeight },
+      size,
+    ),
+  }
+})
+
+function styleFor(rect: Rect, size: number): CSSProperties {
+  return {
+    left: `${Math.max(0, rect.x)}mm`,
+    top: `${rect.y}mm`,
+    fontSize: `${size}mm`,
+  }
+}
 
 const SAMPLE_FALLBACK: Record<string, string> = {
   seatNo: '12',
@@ -229,5 +311,8 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
         <span v-else class="label-field__placeholder">{{ field.imageSrc != null ? '图片' : '照片' }}</span>
       </div>
     </template>
+    <div v-if="watermark" class="label-watermark" :style="watermarkLayout.style" aria-hidden="true">
+      {{ watermarkLayout.text }}
+    </div>
   </div>
 </template>

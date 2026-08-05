@@ -582,7 +582,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           <span>
             <span class="block text-sm font-bold text-slate-900">带水印导出（不限次数）</span>
             <span class="mt-0.5 block text-xs leading-5 text-slate-500">
-              页脚叠加「SeatMark 座签 · seatmark.cn」角标，位于页边距区域，不遮挡标签内容
+              每张标签内底部叠加半透明「SeatMark 座签 · seatmark.cn」品牌水印，不遮挡姓名等核心内容
             </span>
           </span>
         </button>
