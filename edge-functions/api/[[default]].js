@@ -12,6 +12,8 @@
  *   POST /api/quota/consume      消耗一次无水印导出配额（登录用户，服务端计数）
  *   GET  /api/share/mine         我的分享码与裂变进度
  *   POST /api/share/visit        分享链接访问上报（IP+日去重，为分享者赠送次数）
+ *   POST /api/share/tpl          模板短码寄存（微信扫码短链，内容寻址）
+ *   GET  /api/share/tpl          按短码取回模板负载
  *   POST /api/team/reserve       团队版预订登记
  *   GET  /api/announcement       公告（公开）
  *   GET  /api/admin/health       环境健康检查（KV/邮件/AUTH_SECRET 配置状态）
@@ -573,6 +575,27 @@ export async function onRequest(context) {
       return json({ ok: true, counted: true, granted }, 200, storageHeader)
     }
     return json({ ok: true, counted: true, granted: 0 }, 200, storageHeader)
+  }
+
+  // ----- 模板短码分享（微信扫码用短 URL，KV 只存模板设计负载，不含任何名单数据） -----
+  if (path === '/api/share/tpl' && method === 'POST') {
+    const body = await readBody()
+    const payload = typeof body?.payload === 'string' ? body.payload.trim() : ''
+    if (!/^v[01]\.[A-Za-z0-9_-]{1,20000}$/.test(payload)) {
+      return json({ error: '模板负载无效' }, 400, storageHeader)
+    }
+    // 内容寻址短码：同一模板重复分享得到同一短码，天然去重
+    const code = (await sha256Hex(payload)).slice(0, 10)
+    await kv.put(`tplshare:${code}`, payload)
+    return json({ ok: true, code }, 200, storageHeader)
+  }
+
+  if (path === '/api/share/tpl' && method === 'GET') {
+    const code = (url.searchParams.get('code') || '').trim()
+    if (!/^[0-9a-f]{10}$/.test(code)) return json({ error: '短码无效' }, 400, storageHeader)
+    const payload = await kv.get(`tplshare:${code}`)
+    if (!payload) return json({ error: '短码不存在或已过期' }, 404, storageHeader)
+    return json({ ok: true, payload }, 200, storageHeader)
   }
 
   // ----- 团队版预订 -----

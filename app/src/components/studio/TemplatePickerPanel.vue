@@ -6,6 +6,7 @@ import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import { TEMPLATE_CATEGORIES } from '@/data/defaultTemplates'
 import { TEMPLATE_SUBCATEGORIES, subcategoryOf } from '@/data/templateTaxonomy'
+import { useAuthStore } from '@/stores/auth'
 import { useTemplateLibrary, isValidTemplate } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -15,11 +16,18 @@ import { matchLabelPaper } from '@/utils/labelPaper'
 import { evaluatePaperFit, rankTemplatesForPaper, type PaperFit } from '@/utils/paperFit'
 import { matchesChineseQuery } from '@/utils/pinyin'
 import { qrToSvg } from '@/utils/qrcode'
-import { copyToClipboard, encodeTemplateForShare, SHARE_HASH_PREFIX } from '@/utils/share'
+import {
+  copyToClipboard,
+  createShortShareCode,
+  encodeTemplateForShare,
+  SHARE_HASH_PREFIX,
+  SHARE_SHORT_PARAM,
+} from '@/utils/share'
 
 const emit = defineEmits<{ openDesigner: [template: LabelTemplate | null] }>()
 
 const workspace = useWorkspaceStore()
+const auth = useAuthStore()
 const library = useTemplateLibrary()
 const toast = useToastStore()
 const router = useRouter()
@@ -134,6 +142,8 @@ const SHARE_URL_LIMIT = 8000
 
 /** 微信扫码弹窗：分享链接的 QR SVG（前端生成，零依赖零上传） */
 const shareQrSvg = ref<string | null>(null)
+/** 短码模式：模板寄存到同源边缘函数，二维码只编短 URL，密度低易识别 */
+const shareQrIsShort = ref(false)
 
 async function buildShareUrl(): Promise<string | null> {
   const payload = await encodeTemplateForShare(workspace.template)
@@ -144,6 +154,18 @@ async function buildShareUrl(): Promise<string | null> {
 
 async function showShareQr() {
   try {
+    // 优先短码：二维码只编 `/?s=短码` 的短 URL，手机远距离也能识别；
+    // 登录用户附带 ref 分享码，扫码访问照常计入分享 +1
+    const payload = await encodeTemplateForShare(workspace.template)
+    const short = await createShortShareCode(payload)
+    if (short) {
+      const refCode = auth.user?.share.code
+      const shortUrl = `${location.origin}/?${SHARE_SHORT_PARAM}=${short}${refCode ? `&ref=${refCode}` : ''}`
+      shareQrIsShort.value = true
+      shareQrSvg.value = qrToSvg(shortUrl, 'M')
+      return
+    }
+    // 短码服务不可用（如离线）：回退长链接，用低纠错级降低密度
     const url = await buildShareUrl()
     if (!url) {
       toast.warning(
@@ -152,7 +174,8 @@ async function showShareQr() {
       )
       return
     }
-    shareQrSvg.value = qrToSvg(url)
+    shareQrIsShort.value = false
+    shareQrSvg.value = qrToSvg(url, 'L')
   } catch {
     toast.danger('生成二维码失败', '请改用「复制分享链接」')
   }
@@ -382,9 +405,13 @@ function confirmDelete() {
     <ModalDialog :open="!!shareQrSvg" title="微信扫码打开此模板" @close="shareQrSvg = null">
       <div class="flex flex-col items-center gap-3">
         <!-- eslint-disable-next-line vue/no-v-html -->
-        <div class="w-48 rounded-lg border border-slate-200 p-2" v-html="shareQrSvg"></div>
+        <div class="w-64 max-w-full rounded-lg border border-slate-200 p-2" v-html="shareQrSvg"></div>
         <p class="text-center text-xs leading-5 text-slate-500">
-          用微信「扫一扫」即可在手机上打开当前模板；模板数据全部编码在链接里，不经过任何服务器。
+          用微信「扫一扫」即可在手机上打开当前模板；{{
+            shareQrIsShort
+              ? '二维码只包含一个短链接，模板设计经加密信道寄存，名单数据始终不离开浏览器。'
+              : '模板数据全部编码在链接里，不经过任何服务器。'
+          }}
           微信内下载 PDF 受限，打印导出请点右上角菜单选「在浏览器打开」。
         </p>
       </div>

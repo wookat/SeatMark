@@ -155,6 +155,23 @@ describe('LabelCard', () => {
     })
     expect(wrapper.find('.label-watermark').exists()).toBe(false)
   })
+
+  it('decorSvg 内部 id 每个实例唯一化，url(#) 同步改写', () => {
+    const aurora = defaultTemplates.find((t) => t.id === 'deluxeConfAurora')!
+    const a = mount(LabelCard, { props: { template: aurora, sampleMode: true } })
+    const b = mount(LabelCard, { props: { template: aurora, sampleMode: true } })
+    const htmlA = a.find('.label-decor').html()
+    const htmlB = b.find('.label-decor').html()
+    // 原始 id 不再原样出现（已加实例后缀）
+    expect(htmlA).not.toContain('id="dxaur-a"')
+    expect(htmlA).toMatch(/id="dxaur-a-u\d+"/)
+    // url(#) 引用与新 id 一致
+    const id = /id="(dxaur-a-u\d+)"/.exec(htmlA)![1]!
+    expect(htmlA).toContain(`url(#${id})`)
+    // 两个实例的 id 不冲突
+    const idB = /id="(dxaur-a-u\d+)"/.exec(htmlB)![1]!
+    expect(idB).not.toBe(id)
+  })
 })
 
 describe('LabelSheet', () => {
