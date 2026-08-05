@@ -297,6 +297,7 @@ export function resolveSeo(path: string): PageSeo {
         jsonLd: [
           SOFTWARE_APP_JSONLD,
           howToJsonLd(`使用「${template.name}」模板批量生成标签`, TEMPLATE_STEPS),
+          ...(detail.faqs?.length ? [faqJsonLd(detail.faqs)] : []),
           breadcrumb([
             { name: '首页', path: '/' },
             { name: '模板库', path: '/templates' },
