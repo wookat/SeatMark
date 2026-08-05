@@ -1,4 +1,5 @@
 import { isValidTemplate } from '@/stores/templateLibrary'
+import { apiFetch } from '@/utils/api'
 import type { LabelTemplate } from '@/types/template'
 
 /**
@@ -82,6 +83,40 @@ export async function decodeSharedTemplate(payload: string): Promise<LabelTempla
     }
     const parsed: unknown = JSON.parse(new TextDecoder().decode(utf8))
     return isValidTemplate(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 短码分享（微信扫码）：把模板负载寄存到同源边缘函数 KV，二维码只编码
+ * `https://域名/?s=短码` 这样的短 URL，扫码密度低、手机远距离可识别。
+ * 短码由负载内容寻址（sha256 前 10 位），同一模板重复分享短码一致。
+ */
+export const SHARE_SHORT_PARAM = 's'
+export const SHARE_SHORT_CODE_RE = /^[0-9a-f]{10}$/
+
+/** 寄存模板负载换取短码；网络/服务不可用时返回 null（调用方回退长链接） */
+export async function createShortShareCode(payload: string): Promise<string | null> {
+  try {
+    const res = await apiFetch<{ code?: string }>('/api/share/tpl', {
+      method: 'POST',
+      body: { payload },
+    })
+    return typeof res.code === 'string' && SHARE_SHORT_CODE_RE.test(res.code) ? res.code : null
+  } catch {
+    return null
+  }
+}
+
+/** 按短码取回模板负载；不存在/网络失败返回 null */
+export async function fetchSharedPayload(code: string): Promise<string | null> {
+  if (!SHARE_SHORT_CODE_RE.test(code)) return null
+  try {
+    const res = await apiFetch<{ payload?: string }>(
+      `/api/share/tpl?code=${encodeURIComponent(code)}`,
+    )
+    return typeof res.payload === 'string' ? res.payload : null
   } catch {
     return null
   }
