@@ -4,9 +4,13 @@ import { computed, ref } from 'vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { isCompositeMapping, templateColumnsValid } from '@/utils/fieldTemplate'
 
 const workspace = useWorkspaceStore()
 const photoInput = ref<HTMLInputElement | null>(null)
+
+/** 下拉中「自定义组合」选项的哨兵值（不会与真实表头冲突） */
+const COMPOSITE_OPTION = '__composite__'
 
 const TONE_CLASSES: Record<string, string> = {
   muted: 'border-slate-200 bg-slate-50 text-slate-600',
@@ -21,7 +25,57 @@ const headerOptions = computed<SelectOption[]>(() =>
 const mappingOptions = computed<SelectOption[]>(() => [
   { value: '', label: '未映射' },
   ...headerOptions.value,
+  { value: COMPOSITE_OPTION, label: '自定义组合…' },
 ])
+
+function isComposite(value: string | undefined): boolean {
+  return !!value && isCompositeMapping(value, workspace.excel.headers)
+}
+
+/** 下拉显示值：组合映射时选中「自定义组合」项 */
+function selectValueFor(fieldId: string): string {
+  const value = workspace.mapping[fieldId] ?? ''
+  return isComposite(value) ? COMPOSITE_OPTION : value
+}
+
+// ---------- 组合字段编辑器 ----------
+const compositeEditing = ref<string | null>(null)
+const compositeDraft = ref('')
+
+function onSelectMapping(fieldId: string, value: string) {
+  if (value === COMPOSITE_OPTION) {
+    openCompositeEditor(fieldId)
+    return
+  }
+  compositeEditing.value = null
+  workspace.setMappingValue(fieldId, value)
+}
+
+function openCompositeEditor(fieldId: string) {
+  const current = workspace.mapping[fieldId] ?? ''
+  compositeDraft.value = isComposite(current) ? current : current ? `{${current}}` : ''
+  compositeEditing.value = fieldId
+}
+
+function insertColumn(header: string) {
+  compositeDraft.value += `{${header}}`
+}
+
+const compositeDraftValid = computed(
+  () =>
+    isCompositeMapping(compositeDraft.value, workspace.excel.headers) &&
+    templateColumnsValid(compositeDraft.value, workspace.excel.headers),
+)
+
+function saveComposite() {
+  if (!compositeEditing.value || !compositeDraftValid.value) return
+  workspace.setMappingValue(compositeEditing.value, compositeDraft.value)
+  compositeEditing.value = null
+}
+
+function cancelComposite() {
+  compositeEditing.value = null
+}
 
 const photoColumnOptions = computed<SelectOption[]>(() => [
   { value: '', label: '请选择 Excel 中的一列' },
@@ -68,10 +122,62 @@ function onPhotoFiles(event: Event) {
         </span>
         <span class="text-center text-slate-300">→</span>
         <SelectField
-          :model-value="workspace.mapping[field.id] ?? ''"
+          :model-value="selectValueFor(field.id)"
           :options="mappingOptions"
-          @update:model-value="workspace.setMappingValue(field.id, $event)"
+          @update:model-value="onSelectMapping(field.id, $event)"
         />
+        <div
+          v-if="isComposite(workspace.mapping[field.id]) && compositeEditing !== field.id"
+          class="col-span-3 -mt-0.5 flex items-center justify-between gap-2 rounded-lg bg-brand-50/60 px-2 py-1.5"
+        >
+          <code class="truncate text-[11px] text-brand-700">{{ workspace.mapping[field.id] }}</code>
+          <button
+            type="button"
+            class="shrink-0 text-[11px] font-bold text-brand-600 hover:text-brand-700"
+            @click="openCompositeEditor(field.id)"
+          >
+            编辑
+          </button>
+        </div>
+        <div
+          v-if="compositeEditing === field.id"
+          class="col-span-3 rounded-lg border border-brand-200 bg-brand-50/50 p-2.5"
+        >
+          <label class="field-label">组合模板：用 {列名} 引用列，其余文字原样输出</label>
+          <input
+            v-model="compositeDraft"
+            type="text"
+            class="input-field w-full"
+            placeholder="如：第{考场}考场-{座位号}号"
+          />
+          <div class="mt-1.5 flex flex-wrap gap-1">
+            <button
+              v-for="header in workspace.excel.headers"
+              :key="header"
+              type="button"
+              class="rounded-full border border-brand-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-brand-700 hover:bg-brand-50"
+              @click="insertColumn(header)"
+            >
+              + {{ header }}
+            </button>
+          </div>
+          <p v-if="compositeDraft && !compositeDraftValid" class="mt-1.5 text-[11px] text-amber-600">
+            模板需至少引用一个 {列名}，且引用的列必须存在于当前表头
+          </p>
+          <div class="mt-2 flex justify-end gap-2">
+            <button type="button" class="btn btn-secondary btn-sm" @click="cancelComposite">
+              取消
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              :disabled="!compositeDraftValid"
+              @click="saveComposite"
+            >
+              应用组合
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 

@@ -24,18 +24,49 @@ export interface PagedPdfExportOptions extends PdfExportOptions {
   getPage: (index: number) => Promise<HTMLElement> | HTMLElement
 }
 
-/** 按页数选取渲染倍率：页少时可更高清，页多时控制体积、内存与耗时 */
+/**
+ * 按页数选取渲染倍率（96 CSS px/in × scale ≈ DPI）：
+ * 页少时 300dpi 足够打印清晰，页多时降到 150–200dpi 控制体积、内存与耗时
+ */
 export function defaultRasterScale(pageCount: number): number {
-  if (pageCount <= 2) return 5
-  if (pageCount <= 6) return 4
-  if (pageCount <= 12) return 3
-  if (pageCount <= 30) return 2.5
-  return 2
+  if (pageCount <= 2) return 3.125 // 300dpi
+  if (pageCount <= 6) return 2.5 // 240dpi
+  if (pageCount <= 12) return 2.2 // ~211dpi
+  if (pageCount <= 30) return 2 // 192dpi
+  return 1.75 // 168dpi
 }
 
-/** 按页数选取栅格格式：页多时用 JPEG 控制单页体积与 PDF 总大小 */
-export function defaultImageFormat(pageCount: number): 'png' | 'jpeg' {
-  return pageCount <= 6 ? 'png' : 'jpeg'
+/** JPEG 压缩质量：0.9 档在文字标签页上肉眼无损且体积约为 PNG 的 1/10 */
+export const JPEG_QUALITY = 0.92
+
+/** 栅格格式统一用 JPEG 有损压缩：标签页以文字为主，PNG 无损嵌入会导致体积失控 */
+export function defaultImageFormat(_pageCount: number): 'png' | 'jpeg' {
+  return 'jpeg'
+}
+
+/** 经验字节率（字节/像素）：文字为主的标签页在对应格式下的近似压缩比 */
+const BYTES_PER_PIXEL: Record<'png' | 'jpeg', number> = { png: 0.35, jpeg: 0.09 }
+
+/** 导出前的 PDF 体积预估（字节）：像素总量 × 经验字节率，供用户确认后再导出 */
+export function estimatePdfBytes(options: {
+  pageCount: number
+  scale: number
+  pageWidth: number
+  pageHeight: number
+  imageFormat?: 'png' | 'jpeg'
+}): number {
+  const { pageCount, scale, pageWidth, pageHeight } = options
+  const format = options.imageFormat ?? defaultImageFormat(pageCount)
+  const pxPerMm = (96 / 25.4) * scale
+  const pixelsPerPage = pageWidth * pxPerMm * (pageHeight * pxPerMm)
+  return Math.round(pageCount * pixelsPerPage * BYTES_PER_PIXEL[format])
+}
+
+/** 字节数 → 人类可读体积文案（如「12.3 MB」） */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 /** 近似 DPI（96 CSS px/in × scale） */
@@ -55,7 +86,7 @@ async function canvasToImageBytes(
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error('页面栅格化失败（toBlob 返回空）'))),
       format === 'png' ? 'image/png' : 'image/jpeg',
-      format === 'png' ? undefined : 0.92,
+      format === 'png' ? undefined : JPEG_QUALITY,
     )
   })
   return new Uint8Array(await blob.arrayBuffer())

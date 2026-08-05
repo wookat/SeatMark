@@ -18,6 +18,10 @@ const props = withDefaults(
     screen?: boolean
     /** 页脚角标水印（免费不限次导出/打印时叠加，不遮挡标签内容） */
     watermark?: boolean
+    /** 预览交互模式：标签可点击（单张覆写入口） */
+    interactive?: boolean
+    /** 含单张覆写的行集合：预览时给对应标签叠加角标 */
+    overriddenRows?: Set<DataRow>
   }>(),
   {
     getPhoto: undefined,
@@ -25,8 +29,12 @@ const props = withDefaults(
     highlightMissing: false,
     screen: false,
     watermark: false,
+    interactive: false,
+    overriddenRows: undefined,
   },
 )
+
+const emit = defineEmits<{ labelClick: [row: DataRow] }>()
 
 const lines = computed(() => cutLines(props.template))
 
@@ -70,7 +78,14 @@ function textsFor(row: DataRow): Record<string, string> {
       ></div>
     </div>
     <div v-if="watermark" class="sheet-watermark" aria-hidden="true">SeatMark 座签 · seatmark.cn</div>
-    <div v-for="(row, idx) in rows" :key="idx" class="label-box" :style="boxStyle(idx)">
+    <div
+      v-for="(row, idx) in rows"
+      :key="idx"
+      class="label-box"
+      :class="interactive && row ? 'cursor-pointer transition-shadow hover:ring-2 hover:ring-brand-400' : ''"
+      :style="boxStyle(idx)"
+      @click="interactive && row && emit('labelClick', row)"
+    >
       <LabelCard
         v-if="row"
         :template="template"
@@ -78,6 +93,13 @@ function textsFor(row: DataRow): Record<string, string> {
         :photo-src="getPhoto ? getPhoto(row) : null"
         :highlight-missing="highlightMissing"
       />
+      <span
+        v-if="row && overriddenRows?.has(row)"
+        class="pointer-events-none absolute top-0.5 right-0.5 z-10 rounded-full bg-brand-600 px-1.5 py-0.5 text-[8px] font-bold text-white"
+        aria-label="此标签含单张覆写"
+      >
+        已改
+      </span>
     </div>
   </div>
 </template>
