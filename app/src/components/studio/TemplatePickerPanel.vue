@@ -11,6 +11,8 @@ import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { LabelTemplate, TemplateCategory } from '@/types/template'
 import { uid } from '@/utils/id'
+import { matchLabelPaper } from '@/utils/labelPaper'
+import { evaluatePaperFit, rankTemplatesForPaper, type PaperFit } from '@/utils/paperFit'
 import { matchesChineseQuery } from '@/utils/pinyin'
 import { qrToSvg } from '@/utils/qrcode'
 import { copyToClipboard, encodeTemplateForShare, SHARE_HASH_PREFIX } from '@/utils/share'
@@ -25,11 +27,27 @@ const router = useRouter()
 const importInput = ref<HTMLInputElement | null>(null)
 const deleteTarget = ref<LabelTemplate | null>(null)
 
+// ---------- 模板 × 纸型适配度：选了纸型后模板按适配度排序推荐 ----------
+const currentPaper = computed(() =>
+  matchLabelPaper(workspace.template.page, workspace.template.label),
+)
+
+function fitOf(t: LabelTemplate): PaperFit | null {
+  return currentPaper.value ? evaluatePaperFit(t, currentPaper.value) : null
+}
+
+/** 已选纸型时按适配度降序（同分保持原顺序），未选纸型时保持原顺序 */
+function sortByFit(list: LabelTemplate[]): LabelTemplate[] {
+  const paper = currentPaper.value
+  if (!paper) return list
+  return rankTemplatesForPaper(list, paper).map((r) => r.template)
+}
+
 // ---------- 面板只露出少量模板，全部模板用弹窗浏览 ----------
 const COLLAPSED_COUNT = 3
 
 const visibleTemplates = computed<LabelTemplate[]>(() => {
-  const all = library.allTemplates
+  const all = sortByFit(library.allTemplates)
   if (all.length <= COLLAPSED_COUNT) return all
   const head = all.slice(0, COLLAPSED_COUNT)
   if (head.some((t) => t.id === workspace.selectedTemplateId)) return head
@@ -97,8 +115,8 @@ const filteredTemplates = computed<LabelTemplate[]>(() => {
     }
   }
   const query = searchQuery.value.trim()
-  if (!query) return list
-  return list.filter((t) => matchesQuery(t, query))
+  if (query) list = list.filter((t) => matchesQuery(t, query))
+  return sortByFit(list)
 })
 
 function pickFromModal(t: LabelTemplate) {
@@ -269,14 +287,28 @@ function confirmDelete() {
           <div class="min-w-0 flex-1">
             <div class="flex items-start justify-between gap-2">
               <h3 class="text-sm font-bold text-slate-900">{{ t.name }}</h3>
-              <span
-                v-if="!t.builtin"
-                class="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700"
-              >
-                自定义
+              <span class="flex shrink-0 gap-1">
+                <span
+                  v-if="fitOf(t)?.level === 'recommended'"
+                  class="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700"
+                >
+                  适配
+                </span>
+                <span
+                  v-if="!t.builtin"
+                  class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700"
+                >
+                  自定义
+                </span>
               </span>
             </div>
             <p class="mt-1 line-clamp-2 text-xs leading-4 text-slate-500">{{ t.description }}</p>
+            <p
+              v-if="fitOf(t)?.level === 'incompatible'"
+              class="mt-1 text-[11px] leading-4 text-slate-400"
+            >
+              {{ fitOf(t)?.reason }}
+            </p>
             <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400">
               <span>{{ t.label.width }} × {{ t.label.height }} mm</span>
               <span>{{ t.page.cols * t.page.rows }} 枚 / 页</span>
@@ -458,19 +490,33 @@ function confirmDelete() {
               <path d="m3.5 8.5 3 3 6-7" />
             </svg>
           </span>
-          <TemplateThumb :template="t" />
+          <TemplateThumb :template="t" :class="fitOf(t)?.level === 'incompatible' ? 'opacity-50' : ''" />
           <div class="mt-2 flex items-start justify-between gap-2">
             <h3 class="truncate text-sm font-bold text-slate-900">{{ t.name }}</h3>
-            <span
-              v-if="!t.builtin"
-              class="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700"
-            >
-              自定义
+            <span class="flex shrink-0 gap-1">
+              <span
+                v-if="fitOf(t)?.level === 'recommended'"
+                class="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700"
+              >
+                适配
+              </span>
+              <span
+                v-if="!t.builtin"
+                class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700"
+              >
+                自定义
+              </span>
             </span>
           </div>
           <p class="mt-1 text-[11px] text-slate-400">
             {{ t.label.width }} × {{ t.label.height }} mm · {{ t.page.cols * t.page.rows }}
             枚/页<template v-if="t.scenario"> · {{ t.scenario }}</template>
+          </p>
+          <p
+            v-if="fitOf(t)?.level === 'incompatible'"
+            class="mt-1 text-[11px] leading-4 text-slate-400"
+          >
+            {{ fitOf(t)?.reason }}
           </p>
           <div class="mt-2 flex gap-1.5">
             <button type="button" class="btn btn-ghost btn-sm" @click.stop="openDesignerFromModal(t)">
