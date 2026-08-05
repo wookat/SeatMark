@@ -2,7 +2,7 @@ import type { TemplateCategory } from '@/types/template'
 
 /**
  * 模板二级分类：在六大场景分类之下按用途细分，
- * 支撑 150+ 模板量级下的选择器与模板库筛选。
+ * 支撑 200+ 模板量级下的选择器与模板库筛选。
  * 每个内置模板 id 必须且只能出现在一个二级分类中（由单元测试保证）。
  */
 export interface TemplateSubcategory {
@@ -33,6 +33,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'examDoor',
         'listeningSeat',
         'practicalExam',
+        'monoSeatCard',
       ],
     },
     {
@@ -73,6 +74,9 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'seniorDesk',
         'gradeGroupDesk',
         'stuGroupTable',
+        'monoDeskName',
+        'warmDeskName',
+        'warmParentSeat',
       ],
     },
     {
@@ -91,6 +95,8 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'honorStrip',
         'clubBooth',
         'artworkLabel',
+        'warmMessage',
+        'retroCertLabel',
       ],
     },
     {
@@ -113,22 +119,27 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
       name: '宿舍收纳',
       templateIds: ['cubbyLabel', 'dormBed'],
     },
+    {
+      id: 'teaching-care',
+      name: '托管研学',
+      templateIds: ['afterSchoolPickup', 'studyCampTeam'],
+    },
   ],
   kids: [
     {
       id: 'kids-name',
       name: '姓名与物品',
-      templateIds: ['kidsName', 'kidsAnimal', 'kidsCandy', 'kidsCup', 'kidsBagCubby'],
+      templateIds: ['kidsName', 'kidsAnimal', 'kidsCandy', 'kidsCup', 'kidsBagCubby', 'macaronName', 'macaronCubby'],
     },
     {
       id: 'kids-daily',
       name: '一日流程',
-      templateIds: ['kidsPickup', 'morningCheck', 'kidsBed', 'kidsBus', 'kidsMeal'],
+      templateIds: ['kidsPickup', 'morningCheck', 'kidsBed', 'kidsBus', 'kidsMeal', 'macaronMeal'],
     },
     {
       id: 'kids-class',
       name: '班级环创',
-      templateIds: ['kidsBirthday', 'kidsHelper', 'kidsCorner', 'kidsGrowth'],
+      templateIds: ['kidsBirthday', 'kidsHelper', 'kidsCorner', 'kidsGrowth', 'macaronBirthday'],
     },
   ],
   event: [
@@ -156,12 +167,19 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'deluxeVipMarble',
         'deluxeAnnualStar',
         'deluxeAnnualRibbon',
+        'monoConfCard',
+        'navyConfCard',
+        'navyLectern',
+        'redGoldAnnual',
+        'techLaunchCard',
+        'retroAwardSeat',
+        'retroHonorCard',
       ],
     },
     {
       id: 'event-badge',
       name: '证件胸牌',
-      templateIds: ['eventBadge', 'expoBadgeH', 'expoBadgeV', 'volunteerCard', 'seminarSticker'],
+      templateIds: ['eventBadge', 'expoBadgeH', 'expoBadgeV', 'volunteerCard', 'seminarSticker', 'navyBadge', 'techBadge'],
     },
     {
       id: 'event-guide',
@@ -179,6 +197,18 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'parkingPass',
         'staffMealTicket',
         'teaBreakLabel',
+      ],
+    },
+    {
+      id: 'event-culture',
+      name: '文体现场',
+      templateIds: [
+        'calligraphySeat',
+        'chessTableNo',
+        'esportsSeat',
+        'techEsportsSeat',
+        'filmSlateCard',
+        'donationDesk',
       ],
     },
   ],
@@ -199,12 +229,15 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'deluxeWedGoldDot',
         'deluxeAnnivDeco',
         'deluxeBanquetFrame',
+        'redGoldWedPlace',
+        'redGoldTableNo',
+        'forestWedPlace',
       ],
     },
     {
       id: 'wedding-welcome',
       name: '迎宾签到',
-      templateIds: ['weddingWelcome', 'weddingCheckin', 'deluxeWedLace'],
+      templateIds: ['weddingWelcome', 'weddingCheckin', 'deluxeWedLace', 'redGoldWelcome'],
     },
     {
       id: 'wedding-gift',
@@ -223,12 +256,15 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'visitorTemp',
         'assetTag',
         'windowCounter',
+        'archiveBoxSpine',
+        'streamGearTag',
+        'sharedDesk',
       ],
     },
     {
       id: 'life-medical',
       name: '医疗健康',
-      templateIds: ['clinicDoor', 'wardBed', 'clinicQueue', 'medCabinet', 'sampleRack'],
+      templateIds: ['clinicDoor', 'wardBed', 'clinicQueue', 'medCabinet', 'sampleRack', 'postpartumBed', 'freeClinicDesk'],
     },
     {
       id: 'life-gov',
@@ -243,17 +279,40 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'life-storage',
       name: '仓储物流',
-      templateIds: ['warehouseShelf', 'inventoryCount', 'parcelShelf', 'pickupZone', 'toolCabinet'],
+      templateIds: ['warehouseShelf', 'inventoryCount', 'parcelShelf', 'pickupZone', 'toolCabinet', 'lostFoundShelf'],
     },
     {
       id: 'life-service',
       name: '生活服务',
-      templateIds: ['gymLocker', 'gymClassDoor', 'spaHook', 'hotelWelcome', 'bnbRoomDoor', 'petBoarding'],
+      templateIds: [
+        'gymLocker',
+        'gymClassDoor',
+        'spaHook',
+        'hotelWelcome',
+        'bnbRoomDoor',
+        'petBoarding',
+        'hotelDoorHanger',
+        'breakfastVoucher',
+        'ktvRoomDoor',
+        'petCageCard',
+        'drivingStudentPlate',
+        'showroomPrice',
+      ],
     },
     {
       id: 'life-community',
       name: '社区家庭',
-      templateIds: ['bookLabel', 'dormDoor', 'mailboxLabel', 'parkingSpot', 'communityBooth', 'plantTag'],
+      templateIds: [
+        'bookLabel',
+        'dormDoor',
+        'mailboxLabel',
+        'parkingSpot',
+        'communityBooth',
+        'plantTag',
+        'plantAdoptTag',
+        'communityGrid',
+        'forestPlantTag',
+      ],
     },
   ],
 }
