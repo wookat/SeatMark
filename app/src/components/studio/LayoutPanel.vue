@@ -5,18 +5,33 @@ import FontPicker from '@/components/studio/FontPicker.vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import NumberField from '@/components/ui/NumberField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
+import { useTemplateLibrary } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { LabelTemplate } from '@/types/template'
 import { labelPapers } from '@/data/labelPapers'
 import { applyLabelPaper, isPaperCompatible, matchLabelPaper } from '@/utils/labelPaper'
+import {
+  bestPaperForTemplate,
+  evaluatePaperFit,
+  FIT_LEVEL_LABELS,
+  rankPapersForTemplate,
+} from '@/utils/paperFit'
 import { centerLayout, clamp, fitToPaper, layoutOverflow, round1 } from '@/utils/layout'
 import { matchPaperPreset, PAPER_PRESETS, paperLabel } from '@/utils/paper'
 
 const emit = defineEmits<{ openDesigner: [template: LabelTemplate] }>()
 
 const workspace = useWorkspaceStore()
+const library = useTemplateLibrary()
 const toast = useToastStore()
+
+/** 适配度评分基于模板设计尺寸（库中原始模板），而非已被纸型缩放后的副本 */
+const designTemplate = computed(
+  () => library.findById(workspace.selectedTemplateId) ?? workspace.template,
+)
+
+const recommendedPaper = computed(() => bestPaperForTemplate(designTemplate.value))
 
 const overflow = computed(() => layoutOverflow(workspace.template))
 const hasOverflow = computed(() => overflow.value.x > 0 || overflow.value.y > 0)
@@ -56,6 +71,17 @@ const labelPaperSlug = computed({
       return
     }
     applyLabelPaper(workspace.template, spec)
+    const fit = evaluatePaperFit(designTemplate.value, spec)
+    if (fit.level === 'marginal' || fit.level === 'incompatible') {
+      const best = recommendedPaper.value
+      toast.warning(
+        `该纸型与当前模板适配度：${FIT_LEVEL_LABELS[fit.level]}`,
+        best && best.spec.slug !== spec.slug
+          ? `${fit.reason}；建议改用「${best.spec.name}」`
+          : fit.reason,
+      )
+      return
+    }
     toast.info(
       '已按纸型锁定排版',
       `${spec.name}：${spec.cols} 列 × ${spec.rows} 行，每页 ${spec.cols * spec.rows} 枚（${spec.labelWidth} × ${spec.labelHeight} mm）`,
@@ -63,15 +89,27 @@ const labelPaperSlug = computed({
   },
 })
 
+/** 纸型选项按适配度降序：推荐置顶加徽标，不适配排后并提示原因 */
 const labelPaperOptions = computed<SelectOption[]>(() => [
   { value: 'none', label: '不使用纸型（自由排版）' },
-  ...labelPapers.map((p) => {
+  ...rankPapersForTemplate(designTemplate.value).map(({ spec: p, fit }, index) => {
     const compatible = isPaperCompatible(workspace.template, p)
+    const poor = fit.level === 'marginal' || fit.level === 'incompatible'
     return {
       value: p.slug,
       label: p.name,
       hint: compatible ? `${p.labelWidth} × ${p.labelHeight} mm` : '与当前整页/折叠模板不兼容',
       disabled: !compatible,
+      badge:
+        index === 0 && fit.level === 'recommended'
+          ? '推荐'
+          : poor
+            ? FIT_LEVEL_LABELS[fit.level]
+            : undefined,
+      badgeTone: (poor ? (fit.level === 'incompatible' ? 'danger' : 'warning') : 'positive') as
+        | 'positive'
+        | 'warning'
+        | 'danger',
     }
   }),
 ])
@@ -155,6 +193,33 @@ function onCenterLayout() {
           </RouterLink>
         </label>
         <SelectField v-model="labelPaperSlug" :options="labelPaperOptions" />
+        <p
+          v-if="recommendedPaper && labelPaperSlug !== recommendedPaper.spec.slug"
+          class="mt-1.5 flex items-start gap-1 text-[11px] leading-4 text-slate-500"
+        >
+          <svg
+            class="mt-0.5 size-3 shrink-0 text-emerald-500"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M8 1.5 9.9 5.6l4.4.5-3.3 3 1 4.4L8 11.2l-4 2.3 1-4.4-3.3-3 4.4-.5z" />
+          </svg>
+          <span>
+            推荐纸型：
+            <button
+              type="button"
+              class="cursor-pointer font-semibold text-brand-600 hover:underline"
+              @click="labelPaperSlug = recommendedPaper.spec.slug"
+            >
+              {{ recommendedPaper.spec.name }}
+            </button>
+            ，{{ recommendedPaper.fit.reason }}
+          </span>
+        </p>
       </div>
       <div class="col-span-2">
         <label class="field-label">纸张规格</label>

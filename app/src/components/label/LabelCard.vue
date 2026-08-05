@@ -44,6 +44,27 @@ function bindFontsListener(): void {
 }
 
 /**
+ * SVG 内部 id（渐变/图案等 paint server）全局唯一化：
+ * 同一模板会同时渲染多份（缩略图 / 预览 / 打印宿主），重复 id 会让 url(#id)
+ * 解析到文档中第一个同名节点；打印时屏幕预览所在的 #app 被 display:none，
+ * 引用到隐藏子树里的渐变会整体失效，导致彩色装饰打印丢色甚至整卡空白。
+ */
+let decorInstanceSeq = 0
+
+export function uniquifySvgIds(svg: string, suffix: string): string {
+  const ids = new Set<string>()
+  for (const m of svg.matchAll(/\sid="([^"]+)"/g)) ids.add(m[1]!)
+  let out = svg
+  for (const id of ids) {
+    const esc = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    out = out
+      .replace(new RegExp(`(\\sid=")${esc}(")`, 'g'), `$1${id}-${suffix}$2`)
+      .replace(new RegExp(`(url\\(#)${esc}(\\))`, 'g'), `$1${id}-${suffix}$2`)
+  }
+  return out
+}
+
+/**
  * v-autofit：文本超出字段框时按比例缩小字号直至放得下（或到达下限），
  * 预览 / 缩略图 / 设计器 / 导出共用同一套缩放逻辑。
  */
@@ -187,9 +208,11 @@ function isSafeDecorSvg(svg: string): boolean {
   return !/<script|<foreignobject|\son\w+\s*=|javascript:|\shref\s*=|xlink:href/i.test(s)
 }
 
+const decorUid = `u${++decorInstanceSeq}`
+
 const decorSvg = computed(() => {
   const svg = props.template.label.decorSvg
-  return svg && isSafeDecorSvg(svg) ? svg : null
+  return svg && isSafeDecorSvg(svg) ? uniquifySvgIds(svg, decorUid) : null
 })
 
 const rootStyle = computed<CSSProperties>(() => {

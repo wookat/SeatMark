@@ -9,7 +9,8 @@ import type { DataRow, FieldMapping, LabelTemplate, TemplateField } from '@/type
 import { autoMapFields } from '@/utils/autoMap'
 import { evaluateFieldTemplate, isCompositeMapping } from '@/utils/fieldTemplate'
 import { applyLabelPaper, isPaperCompatible, matchLabelPaper } from '@/utils/labelPaper'
-import { compareCellText, makeDemoRows, parseExcelFile } from '@/utils/excel'
+import { demoExcelFor } from '@/data/demoDatasets'
+import { compareCellText, parseExcelFile } from '@/utils/excel'
 import { stackSortRows } from '@/utils/cutSort'
 import { chunkRows, cloneTemplate, labelsPerPage } from '@/utils/layout'
 import { loadPhotoFiles } from '@/utils/photos'
@@ -426,10 +427,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function useDemoData() {
-    const demo = makeDemoRows(30)
-    applyExcel({ fileName: '演示数据.xlsx', sheetName: '示例', ...demo })
+    const demo = demoExcelFor(template.value)
+    applyExcel(demo)
+    // 演示数据自带精确映射（含模板专属补充列），覆盖自动匹配可能漏掉的槽位
+    Object.assign(mapping, demo.mapping)
     isDemoData.value = true
-    toast.info('已载入演示数据', '体验完整流程后可清空并上传自己的 Excel')
+    toast.info(`已载入「${demo.sheetName}」演示数据`, '体验完整流程后可清空并上传自己的 Excel')
   }
 
   function clearData() {

@@ -12,6 +12,8 @@
  *   POST /api/quota/consume      消耗一次无水印导出配额（登录用户，服务端计数）
  *   GET  /api/share/mine         我的分享码与裂变进度
  *   POST /api/share/visit        分享链接访问上报（IP+日去重，为分享者赠送次数）
+ *   POST /api/share/tpl          模板短码寄存（微信扫码短链，内容寻址）
+ *   GET  /api/share/tpl          按短码取回模板负载
  *   POST /api/team/reserve       团队版预订登记
  *   GET  /api/announcement       公告（公开）
  *   GET  /api/admin/health       环境健康检查（KV/邮件/AUTH_SECRET 配置状态）
@@ -32,9 +34,14 @@
  * - RESEND_API_KEY   Resend 邮件发送密钥（腾讯云未配置时的备用通道；都未配置时仅本地开发环境以 devCode 形式返回验证码）
  * - MAIL_FROM        发件地址（默认 SeatMark <noreply@seatmark.cn>）
  *
- * KV 绑定（EdgeOne Pages 控制台 → KV 存储 → 绑定命名空间，变量名 seatmark_kv）：
- * 未绑定时自动降级为进程内存存储（数据不持久，仅用于联调）。
+ * 存储三级后备（见 _storage.js）：
+ * - KV 绑定（变量名 seatmark_kv）优先；
+ * - 未绑定时降级 EdgeOne Pages Blob（@edgeone/pages-blob，自动创建、持久化、强一致读）；
+ * - 两者皆不可用时降级进程内存（数据不持久，仅本地联调）。
+ * 云端模板（tpl:）体积大，Blob 可用时优先存 Blob，读取兼容 KV 存量数据。
  */
+
+import { getStorage, probeBlob } from './_storage.js'
 
 // ---------- 配额与裂变参数（前端 quota.ts 与此保持一致；计数对象为无水印导出，带水印不限次） ----------
 const QUOTA_ANON_DAILY = 1
@@ -49,42 +56,6 @@ const CODE_RESEND_INTERVAL_MS = 60 * 1000
 const CODE_MAX_ATTEMPTS = 5
 const CODE_IP_DAILY_LIMIT = 20
 const TEMPLATES_MAX_BYTES = 512 * 1024
-
-const memoryStore = new Map()
-
-/** KV 抽象：优先 EdgeOne KV 绑定（变量名 seatmark_kv），未绑定降级为内存 Map */
-function getKv(env) {
-  const kv =
-    (env && env.seatmark_kv) ||
-    (typeof globalThis !== 'undefined' ? globalThis.seatmark_kv : undefined)
-  if (kv && typeof kv.get === 'function') return { kv, persistent: true }
-  return {
-    persistent: false,
-    kv: {
-      async get(key) {
-        return memoryStore.has(key) ? memoryStore.get(key) : null
-      },
-      async put(key, value) {
-        memoryStore.set(key, String(value))
-      },
-      async delete(key) {
-        memoryStore.delete(key)
-      },
-      async list({ prefix = '', limit = 256, cursor = '' } = {}) {
-        const keys = [...memoryStore.keys()]
-          .filter((k) => k.startsWith(prefix))
-          .sort()
-        const start = cursor ? keys.indexOf(cursor) + 1 : 0
-        const page = keys.slice(start, start + limit)
-        return {
-          keys: page.map((name) => ({ name })),
-          complete: start + limit >= keys.length,
-          cursor: page.length ? page[page.length - 1] : '',
-        }
-      },
-    },
-  }
-}
 
 function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
@@ -439,8 +410,44 @@ export async function onRequest(context) {
 
   if (method === 'OPTIONS') return new Response(null, { status: 204 })
 
-  const { kv, persistent } = getKv(env)
-  const storageHeader = { 'X-SeatMark-Storage': persistent ? 'kv' : 'memory' }
+  const { kv, storage, blobStore } = await getStorage(env)
+  const storageHeader = { 'X-SeatMark-Storage': storage }
+
+  /** 云端模板体积大：Blob 可用时优先 Blob，读取保留 KV 存量兜底 */
+  const templateStore = {
+    async get(email) {
+      if (blobStore) {
+        try {
+          const fromBlob = await blobStore.get(`tpl:${email}`, { consistency: 'strong' })
+          if (fromBlob !== null) return fromBlob
+        } catch {
+          // Blob 读失败回退 KV
+        }
+      }
+      return kv.get(`tpl:${email}`)
+    },
+    async put(email, serialized) {
+      if (blobStore) {
+        try {
+          await blobStore.set(`tpl:${email}`, serialized)
+          return
+        } catch {
+          // Blob 写失败回退 KV
+        }
+      }
+      await kv.put(`tpl:${email}`, serialized)
+    },
+    async delete(email) {
+      if (blobStore) {
+        try {
+          await blobStore.delete(`tpl:${email}`)
+        } catch {
+          // 删除失败不阻塞
+        }
+      }
+      await kv.delete(`tpl:${email}`)
+    },
+  }
 
   async function readBody() {
     try {
@@ -564,7 +571,7 @@ export async function onRequest(context) {
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
     const shareCode = await kv.get(`share:owner:${email}`)
     await kv.delete(`user:${email}`)
-    await kv.delete(`tpl:${email}`)
+    await templateStore.delete(email)
     if (shareCode) {
       await kv.delete(`share:owner:${email}`)
       await kv.delete(`share:code:${shareCode}`)
@@ -586,7 +593,7 @@ export async function onRequest(context) {
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
 
     if (method === 'GET') {
-      const raw = await kv.get(`tpl:${email}`)
+      const raw = await templateStore.get(email)
       let templates = []
       if (raw) {
         try {
@@ -607,7 +614,7 @@ export async function onRequest(context) {
       if (serialized.length > TEMPLATES_MAX_BYTES) {
         return json({ error: '模板数据超过 512KB 上限' }, 413, storageHeader)
       }
-      await kv.put(`tpl:${email}`, serialized)
+      await templateStore.put(email, serialized)
       const user = (await getUser(kv, email)) || {
         email,
         createdAt: new Date().toISOString(),
@@ -698,6 +705,27 @@ export async function onRequest(context) {
     return json({ ok: true, counted: true, granted: 0 }, 200, storageHeader)
   }
 
+  // ----- 模板短码分享（微信扫码用短 URL，KV 只存模板设计负载，不含任何名单数据） -----
+  if (path === '/api/share/tpl' && method === 'POST') {
+    const body = await readBody()
+    const payload = typeof body?.payload === 'string' ? body.payload.trim() : ''
+    if (!/^v[01]\.[A-Za-z0-9_-]{1,20000}$/.test(payload)) {
+      return json({ error: '模板负载无效' }, 400, storageHeader)
+    }
+    // 内容寻址短码：同一模板重复分享得到同一短码，天然去重
+    const code = (await sha256Hex(payload)).slice(0, 10)
+    await kv.put(`tplshare:${code}`, payload)
+    return json({ ok: true, code }, 200, storageHeader)
+  }
+
+  if (path === '/api/share/tpl' && method === 'GET') {
+    const code = (url.searchParams.get('code') || '').trim()
+    if (!/^[0-9a-f]{10}$/.test(code)) return json({ error: '短码无效' }, 400, storageHeader)
+    const payload = await kv.get(`tplshare:${code}`)
+    if (!payload) return json({ error: '短码不存在或已过期' }, 404, storageHeader)
+    return json({ ok: true, payload }, 200, storageHeader)
+  }
+
   // ----- 团队版预订 -----
   if (path === '/api/team/reserve' && method === 'POST') {
     const body = await readBody()
@@ -736,7 +764,9 @@ export async function onRequest(context) {
     if (path === '/api/admin/health' && method === 'GET') {
       return json(
         {
-          kvBound: persistent,
+          kvBound: storage === 'kv',
+          blobAvailable: await probeBlob(blobStore),
+          storage,
           mailConfigured: mailChannel(env) !== 'none',
           mailChannel: mailChannel(env),
           authSecretConfigured: Boolean(env && env.AUTH_SECRET),
@@ -801,7 +831,7 @@ export async function onRequest(context) {
           shareBonusToday: bonusToday,
           reservationCount: reservations.keys.length,
           feedbackCount: feedback.keys.length,
-          storage: persistent ? 'kv' : 'memory',
+          storage,
         },
         200,
         storageHeader,

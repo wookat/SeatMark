@@ -99,6 +99,11 @@ export interface LabelTemplate {
   accent?: string
   builtin?: boolean
   sampleData?: Record<string, string>
+  /**
+   * 关联的场景演示数据集 id（见 src/data/demoDatasets.ts）；
+   * 未设置时按分类默认映射，特殊模板可用此字段覆写
+   */
+  demoDataset?: string
   /** 模板全局中文（主）字体栈 */
   fontFamily?: string
   /** 模板全局西文字体栈（英文/数字），合并时置于中文字体前 */

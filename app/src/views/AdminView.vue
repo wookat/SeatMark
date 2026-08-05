@@ -16,7 +16,7 @@ interface Overview {
   shareBonusToday: number
   reservationCount: number
   feedbackCount: number
-  storage: 'kv' | 'memory'
+  storage: 'kv' | 'blob' | 'memory'
 }
 
 interface AdminUser {
@@ -37,6 +37,8 @@ interface FeedbackItem {
 
 interface Health {
   kvBound: boolean
+  blobAvailable: boolean
+  storage: 'kv' | 'blob' | 'memory'
   mailConfigured: boolean
   mailChannel: 'tencent-ses' | 'resend' | 'none'
   authSecretConfigured: boolean
@@ -130,7 +132,7 @@ const MAIL_CHANNEL_TEXT: Record<Health['mailChannel'], string> = {
 
 const HEALTH_ITEMS = computed<
   {
-    key: 'kvBound' | 'mailConfigured' | 'authSecretConfigured'
+    key: Exclude<keyof Health, 'storage' | 'mailChannel'>
     name: string
     okText: string
     badText: string
@@ -141,6 +143,12 @@ const HEALTH_ITEMS = computed<
     name: 'KV 存储',
     okText: '已绑定 EdgeOne KV，数据持久化',
     badText: '未绑定 KV，数据仅存内存不持久（控制台 → KV 存储 → 绑定变量名 seatmark_kv）',
+  },
+  {
+    key: 'blobAvailable',
+    name: 'Blob 存储',
+    okText: 'EdgeOne Pages Blob 可用（KV 未绑定时作为持久化后备，云端模板优先存储）',
+    badText: 'Blob 不可用（未安装 @edgeone/pages-blob 依赖或探测失败）；KV 未绑定时将降级内存存储',
   },
   {
     key: 'mailConfigured',
@@ -181,9 +189,9 @@ watch(
       <span
         v-if="overview"
         class="rounded px-2.5 py-1 text-[11px] font-semibold"
-        :class="overview.storage === 'kv' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'"
+        :class="overview.storage === 'memory' ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'"
       >
-        存储：{{ overview.storage === 'kv' ? 'EdgeOne KV（持久化）' : '内存（未绑定 KV，数据不持久）' }}
+        存储：{{ overview.storage === 'kv' ? 'EdgeOne KV（持久化）' : overview.storage === 'blob' ? 'EdgeOne Blob（持久化后备）' : '内存（KV/Blob 均不可用，数据不持久）' }}
       </span>
     </div>
 
@@ -228,7 +236,7 @@ watch(
       <section v-if="health" class="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-card">
         <h2 class="text-sm font-bold text-slate-900">环境健康检查</h2>
         <p class="mt-1 text-xs text-slate-400">在 EdgeOne Pages 控制台完成配置后刷新本页自检。</p>
-        <ul class="mt-3 grid gap-2 sm:grid-cols-3">
+        <ul class="mt-3 grid gap-2 sm:grid-cols-2">
           <li
             v-for="item in HEALTH_ITEMS"
             :key="item.key"

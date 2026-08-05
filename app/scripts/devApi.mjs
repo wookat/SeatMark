@@ -33,9 +33,37 @@ const devKv = {
   },
 }
 
+/** 模拟 EdgeOne Pages Blob Store（与 @edgeone/pages-blob Store 同接口子集） */
+const devBlobStore = new Map()
+const devBlob = {
+  async get(key) {
+    return devBlobStore.has(key) ? devBlobStore.get(key) : null
+  },
+  async set(key, value) {
+    devBlobStore.set(key, String(value))
+  },
+  async delete(key) {
+    devBlobStore.delete(key)
+  },
+  async list({ prefix = '', limit = 1000, cursor = '' } = {}) {
+    const keys = [...devBlobStore.keys()].filter((k) => k.startsWith(prefix)).sort()
+    const start = cursor ? keys.indexOf(cursor) + 1 : 0
+    const page = keys.slice(start, start + limit)
+    const hasMore = start + limit < keys.length
+    return {
+      blobs: page.map((key) => ({ key, etag: '' })),
+      directories: [],
+      ...(hasMore && page.length ? { cursor: page[page.length - 1] } : {}),
+    }
+  },
+}
+
 function devEnv() {
+  // DEV_FORCE_BLOB=1 时不绑 KV，联调 Blob 后备链路（KV → Blob → 内存）
+  const forceBlob = process.env.DEV_FORCE_BLOB === '1'
   return {
-    seatmark_kv: devKv,
+    ...(forceBlob ? {} : { seatmark_kv: devKv }),
+    seatmark_blob: devBlob,
     AUTH_SECRET: process.env.AUTH_SECRET || 'seatmark-dev-secret',
     ADMIN_EMAILS: process.env.ADMIN_EMAILS || 'admin@seatmark.cn',
     RESEND_API_KEY: process.env.RESEND_API_KEY || '',

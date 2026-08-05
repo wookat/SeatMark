@@ -1,0 +1,9 @@
+{
+  "name": "seatmark",
+  "private": true,
+  "type": "module",
+  "description": "SeatMark 座签 — 仓库根依赖（供 edge-functions 使用，前端应用依赖见 app/package.json）",
+  "dependencies": {
+    "@edgeone/pages-blob": "^0.0.15"
+  }
+}
