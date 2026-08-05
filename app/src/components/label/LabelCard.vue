@@ -79,14 +79,36 @@ const props = withDefaults(
     /** 使用模板示例数据渲染（缩略图 / 设计器） */
     sampleMode?: boolean
     highlightMissing?: boolean
+    /** 品牌水印：渲染在标签内部底部居中（带水印导出/打印时开启） */
+    watermark?: boolean
   }>(),
   {
     texts: undefined,
     photoSrc: null,
     sampleMode: false,
     highlightMissing: false,
+    watermark: false,
   },
 )
+
+/** 小标签只放域名，宽度足够时放全称（品牌名+域名） */
+const WATERMARK_FULL = 'SeatMark 座签 · seatmark.cn'
+const WATERMARK_SHORT = 'seatmark.cn'
+const WATERMARK_FULL_MIN_WIDTH = 52
+
+const watermarkText = computed(() =>
+  props.template.label.width >= WATERMARK_FULL_MIN_WIDTH ? WATERMARK_FULL : WATERMARK_SHORT,
+)
+
+const watermarkStyle = computed<CSSProperties>(() => {
+  const { width, height } = props.template.label
+  // 字号随标签尺寸自适应：约为宽度的 4.5%，下限 2.2mm（黑白打印可读），上限 5mm
+  const size = Math.min(Math.max(Math.min(width, height * 2.4) * 0.045, 2.2), 5)
+  return {
+    fontSize: `${size}mm`,
+    bottom: `${Math.max(0.7, size * 0.4)}mm`,
+  }
+})
 
 const SAMPLE_FALLBACK: Record<string, string> = {
   seatNo: '12',
@@ -229,5 +251,8 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
         <span v-else class="label-field__placeholder">{{ field.imageSrc != null ? '图片' : '照片' }}</span>
       </div>
     </template>
+    <div v-if="watermark" class="label-watermark" :style="watermarkStyle" aria-hidden="true">
+      {{ watermarkText }}
+    </div>
   </div>
 </template>

@@ -109,6 +109,41 @@ describe('LabelCard', () => {
     expect(wrapper.find('.label-field__caption').text()).toBe('性别')
     expect(wrapper.text()).toContain('男')
   })
+
+  it('watermark 开启时在标签内渲染品牌水印', () => {
+    const wrapper = mount(LabelCard, {
+      props: {
+        template: standard,
+        texts: { seatNo: '1', name: 'n', room: 'r', examId: 'e' },
+        watermark: true,
+      },
+    })
+    const wm = wrapper.find('.label-watermark')
+    expect(wm.exists()).toBe(true)
+    // standard 标签宽 60mm ≥ 52mm，使用全称
+    expect(wm.text()).toBe('SeatMark 座签 · seatmark.cn')
+    expect(wm.attributes('style')).toMatch(/font-size: [\d.]+mm/)
+  })
+
+  it('小标签水印退回短版域名', () => {
+    const t = cloneTemplate(standard)
+    t.label.width = 40
+    const wrapper = mount(LabelCard, {
+      props: {
+        template: t,
+        texts: { seatNo: '1', name: 'n', room: 'r', examId: 'e' },
+        watermark: true,
+      },
+    })
+    expect(wrapper.find('.label-watermark').text()).toBe('seatmark.cn')
+  })
+
+  it('watermark 关闭时不渲染水印', () => {
+    const wrapper = mount(LabelCard, {
+      props: { template: standard, texts: { seatNo: '1', name: 'n', room: 'r', examId: 'e' } },
+    })
+    expect(wrapper.find('.label-watermark').exists()).toBe(false)
+  })
 })
 
 describe('LabelSheet', () => {
@@ -145,5 +180,13 @@ describe('LabelSheet', () => {
     const second = wrapper.findAll('.label-box')[1]!
     expect(second.attributes('style')).toContain('left: 75mm')
     expect(second.attributes('style')).toContain('top: 10mm')
+  })
+
+  it('watermark 透传到每张标签内部', () => {
+    const wrapper = mount(LabelSheet, {
+      props: { template: standard, rows, getText, watermark: true },
+    })
+    expect(wrapper.findAll('.label-watermark')).toHaveLength(3)
+    expect(wrapper.find('.sheet-watermark').exists()).toBe(true)
   })
 })

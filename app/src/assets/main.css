@@ -257,6 +257,23 @@
   user-select: none;
 }
 
+/* 标签内品牌水印：底部居中、半透明灰，字号/定位由 LabelCard 按标签尺寸内联注入 */
+.label-watermark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  text-align: center;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  color: rgba(100, 116, 139, 0.52);
+  text-shadow: 0 0 0.4mm rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+  user-select: none;
+}
+
 .sheet-page--screen {
   border-radius: 6px;
   box-shadow:

@@ -16,7 +16,7 @@ const props = withDefaults(
     highlightMissing?: boolean
     /** 屏幕预览模式下带圆角阴影；导出/打印时关闭 */
     screen?: boolean
-    /** 页脚角标水印（免费不限次导出/打印时叠加，不遮挡标签内容） */
+    /** 品牌水印：每张标签内部底部居中 + 页脚角标（免费不限次导出/打印时叠加） */
     watermark?: boolean
     /** 预览交互模式：标签可点击（单张覆写入口） */
     interactive?: boolean
@@ -92,6 +92,7 @@ function textsFor(row: DataRow): Record<string, string> {
         :texts="textsFor(row)"
         :photo-src="getPhoto ? getPhoto(row) : null"
         :highlight-missing="highlightMissing"
+        :watermark="watermark"
       />
       <span
         v-if="row && overriddenRows?.has(row)"
