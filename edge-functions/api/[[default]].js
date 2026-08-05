@@ -25,7 +25,11 @@
  * 环境变量（EdgeOne Pages 控制台配置）：
  * - AUTH_SECRET      JWT 签名密钥（必配，未配置时使用开发默认值并在响应头标记）
  * - ADMIN_EMAILS     管理员邮箱白名单，逗号分隔（未配置则管理端全部 403）
- * - RESEND_API_KEY   Resend 邮件发送密钥（未配置时仅本地开发环境以 devCode 形式返回验证码）
+ * - TENCENT_SES_SECRET_ID    腾讯云 SES SecretId（配置后优先走腾讯云 SES 发送验证码）
+ * - TENCENT_SES_SECRET_KEY   腾讯云 SES SecretKey
+ * - TENCENT_SES_REGION       腾讯云 SES 地域（默认 ap-guangzhou）
+ * - TENCENT_SES_TEMPLATE_ID  腾讯云 SES 模板 ID（可选；配置后用模板发送，变量 {code}/{ttl}）
+ * - RESEND_API_KEY   Resend 邮件发送密钥（腾讯云未配置时的备用通道；都未配置时仅本地开发环境以 devCode 形式返回验证码）
  * - MAIL_FROM        发件地址（默认 SeatMark <noreply@seatmark.cn>）
  *
  * KV 绑定（EdgeOne Pages 控制台 → KV 存储 → 绑定命名空间，变量名 seatmark_kv）：
@@ -271,19 +275,135 @@ async function publicUser(kv, email, env) {
   }
 }
 
+// ---------- 腾讯云 TC3-HMAC-SHA256 签名（边缘环境无 SDK，基于 Web Crypto 手写） ----------
+async function hmacSha256Raw(keyBytes, message) {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyBytes,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(message))
+  return new Uint8Array(sig)
+}
+
+function hex(bytes) {
+  return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * 计算腾讯云 API TC3-HMAC-SHA256 签名，返回 Authorization 头。
+ * 规范见 https://cloud.tencent.com/document/api/1288/51889
+ * @param {{secretId:string,secretKey:string,service:string,host:string,action:string,payload:string,timestamp:number}} params
+ */
+export async function tc3Authorization({ secretId, secretKey, service, host, action, payload, timestamp }) {
+  const date = new Date(timestamp * 1000).toISOString().slice(0, 10)
+  const signedHeaders = 'content-type;host;x-tc-action'
+  const hashedPayload = await sha256Hex(payload)
+  const canonicalRequest = [
+    'POST',
+    '/',
+    '',
+    `content-type:application/json; charset=utf-8\nhost:${host}\nx-tc-action:${action.toLowerCase()}\n`,
+    signedHeaders,
+    hashedPayload,
+  ].join('\n')
+
+  const credentialScope = `${date}/${service}/tc3_request`
+  const stringToSign = [
+    'TC3-HMAC-SHA256',
+    String(timestamp),
+    credentialScope,
+    await sha256Hex(canonicalRequest),
+  ].join('\n')
+
+  const secretDate = await hmacSha256Raw(encoder.encode(`TC3${secretKey}`), date)
+  const secretService = await hmacSha256Raw(secretDate, service)
+  const secretSigning = await hmacSha256Raw(secretService, 'tc3_request')
+  const signature = hex(await hmacSha256Raw(secretSigning, stringToSign))
+
+  return `TC3-HMAC-SHA256 Credential=${secretId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`
+}
+
 // ---------- 验证码发送 ----------
-async function sendCodeMail(env, email, code) {
-  const apiKey = env && env.RESEND_API_KEY
-  if (!apiKey) return { configured: false, delivered: false }
+const SES_HOST = 'ses.tencentcloudapi.com'
+const SES_VERSION = '2020-10-02'
+
+/** 当前生效的邮件通道：tencent-ses / resend / none */
+export function mailChannel(env) {
+  if (env && env.TENCENT_SES_SECRET_ID && env.TENCENT_SES_SECRET_KEY) return 'tencent-ses'
+  if (env && env.RESEND_API_KEY) return 'resend'
+  return 'none'
+}
+
+function mailFrom(env) {
+  return (env && env.MAIL_FROM) || 'SeatMark <noreply@seatmark.cn>'
+}
+
+async function sendCodeMailTencent(env, email, code) {
+  const subject = `【SeatMark 座签】登录验证码 ${code}`
+  const text = `你的登录验证码是：${code}，10 分钟内有效。如非本人操作请忽略本邮件。`
+  const templateId = Number(env.TENCENT_SES_TEMPLATE_ID)
+  const payloadObj = {
+    FromEmailAddress: mailFrom(env),
+    Destination: [email],
+    Subject: subject,
+  }
+  if (Number.isFinite(templateId) && templateId > 0) {
+    // 国内站触发类邮件建议（部分地域强制）使用审核通过的模板发送
+    payloadObj.Template = {
+      TemplateID: templateId,
+      TemplateData: JSON.stringify({ code, ttl: '10' }),
+    }
+  } else {
+    payloadObj.Simple = {
+      Text: btoa(String.fromCharCode(...encoder.encode(text))),
+    }
+  }
+  const payload = JSON.stringify(payloadObj)
+  const timestamp = Math.floor(Date.now() / 1000)
+  const authorization = await tc3Authorization({
+    secretId: env.TENCENT_SES_SECRET_ID,
+    secretKey: env.TENCENT_SES_SECRET_KEY,
+    service: 'ses',
+    host: SES_HOST,
+    action: 'SendEmail',
+    payload,
+    timestamp,
+  })
+  try {
+    const res = await fetch(`https://${SES_HOST}`, {
+      method: 'POST',
+      headers: {
+        Authorization: authorization,
+        'Content-Type': 'application/json; charset=utf-8',
+        Host: SES_HOST,
+        'X-TC-Action': 'SendEmail',
+        'X-TC-Version': SES_VERSION,
+        'X-TC-Timestamp': String(timestamp),
+        'X-TC-Region': (env && env.TENCENT_SES_REGION) || 'ap-guangzhou',
+      },
+      body: payload,
+    })
+    if (!res.ok) return { configured: true, delivered: false }
+    const data = await res.json().catch(() => null)
+    return { configured: true, delivered: !data?.Response?.Error }
+  } catch {
+    return { configured: true, delivered: false }
+  }
+}
+
+async function sendCodeMailResend(env, email, code) {
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: (env && env.MAIL_FROM) || 'SeatMark <noreply@seatmark.cn>',
+        from: mailFrom(env),
         to: [email],
         subject: `【SeatMark 座签】登录验证码 ${code}`,
         text: `你的登录验证码是：${code}，10 分钟内有效。如非本人操作请忽略本邮件。`,
@@ -293,6 +413,14 @@ async function sendCodeMail(env, email, code) {
   } catch {
     return { configured: true, delivered: false }
   }
+}
+
+/** 发送优先级：腾讯云 SES → Resend → 未配置 */
+async function sendCodeMail(env, email, code) {
+  const channel = mailChannel(env)
+  if (channel === 'tencent-ses') return sendCodeMailTencent(env, email, code)
+  if (channel === 'resend') return sendCodeMailResend(env, email, code)
+  return { configured: false, delivered: false }
 }
 
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
@@ -609,7 +737,8 @@ export async function onRequest(context) {
       return json(
         {
           kvBound: persistent,
-          mailConfigured: Boolean(env && env.RESEND_API_KEY),
+          mailConfigured: mailChannel(env) !== 'none',
+          mailChannel: mailChannel(env),
           authSecretConfigured: Boolean(env && env.AUTH_SECRET),
         },
         200,

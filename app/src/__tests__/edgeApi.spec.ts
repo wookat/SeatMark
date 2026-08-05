@@ -94,6 +94,7 @@ describe('/api/admin/health', () => {
     expect(data).toEqual({
       kvBound: false,
       mailConfigured: false,
+      mailChannel: 'none',
       authSecretConfigured: true,
     })
   })

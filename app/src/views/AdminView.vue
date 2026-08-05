@@ -38,6 +38,7 @@ interface FeedbackItem {
 interface Health {
   kvBound: boolean
   mailConfigured: boolean
+  mailChannel: 'tencent-ses' | 'resend' | 'none'
   authSecretConfigured: boolean
 }
 
@@ -121,12 +122,20 @@ function formatDate(iso: string | undefined): string {
   return new Date(iso).toLocaleString('zh-CN', { hour12: false })
 }
 
-const HEALTH_ITEMS: {
-  key: keyof Health
-  name: string
-  okText: string
-  badText: string
-}[] = [
+const MAIL_CHANNEL_TEXT: Record<Health['mailChannel'], string> = {
+  'tencent-ses': '当前通道：腾讯云 SES（TENCENT_SES_*），验证码正常发送',
+  resend: '当前通道：Resend（RESEND_API_KEY），验证码正常发送',
+  none: '未配置邮件通道（TENCENT_SES_* 或 RESEND_API_KEY），线上无法发送登录验证码',
+}
+
+const HEALTH_ITEMS = computed<
+  {
+    key: 'kvBound' | 'mailConfigured' | 'authSecretConfigured'
+    name: string
+    okText: string
+    badText: string
+  }[]
+>(() => [
   {
     key: 'kvBound',
     name: 'KV 存储',
@@ -136,8 +145,8 @@ const HEALTH_ITEMS: {
   {
     key: 'mailConfigured',
     name: '邮件服务',
-    okText: 'RESEND_API_KEY 已配置，验证码正常发送',
-    badText: '未配置 RESEND_API_KEY，线上无法发送登录验证码',
+    okText: MAIL_CHANNEL_TEXT[health.value?.mailChannel ?? 'none'],
+    badText: MAIL_CHANNEL_TEXT.none,
   },
   {
     key: 'authSecretConfigured',
@@ -145,7 +154,7 @@ const HEALTH_ITEMS: {
     okText: 'AUTH_SECRET 已配置',
     badText: '未配置 AUTH_SECRET，正在使用开发默认密钥（不安全，请尽快配置）',
   },
-]
+])
 
 const FEEDBACK_LABEL: Record<string, string> = {
   bug: 'Bug',
