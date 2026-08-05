@@ -15,7 +15,14 @@ import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { MM_TO_PX } from '@/utils/layout'
 import { paperLabel, setPrintPageSize } from '@/utils/paper'
-import { defaultRasterScale, exportPagedPdf, rasterDpi } from '@/utils/pdfExport'
+import type { DataRow } from '@/types/template'
+import {
+  defaultRasterScale,
+  estimatePdfBytes,
+  exportPagedPdf,
+  formatBytes,
+  rasterDpi,
+} from '@/utils/pdfExport'
 
 const workspace = useWorkspaceStore()
 const toast = useToastStore()
@@ -90,6 +97,59 @@ const withWatermark = ref(false)
 /** 导出方式选择弹窗：pdf = 图片版 PDF，print = 浏览器打印 */
 const exportChoiceOpen = ref(false)
 const pendingAction = ref<'pdf' | 'print'>('pdf')
+
+/** 图片版 PDF 导出前的参数与体积预估（弹窗内展示，避免导出后才发现体积过大） */
+const exportEstimate = computed(() => {
+  const pageCount = workspace.totalPages
+  if (!pageCount) return null
+  const scale = defaultRasterScale(pageCount)
+  const bytes = estimatePdfBytes({
+    pageCount,
+    scale,
+    pageWidth: workspace.template.page.paperWidth,
+    pageHeight: workspace.template.page.paperHeight,
+  })
+  return { pageCount, dpi: rasterDpi(scale), size: formatBytes(bytes) }
+})
+
+// ---------- 单张覆写（Edit One） ----------
+const editRow = ref<DataRow | null>(null)
+const editValues = ref<Record<string, string>>({})
+
+const overriddenRows = computed(() => new Set(workspace.rowOverrides.keys()))
+const editRowHasOverride = computed(
+  () => editRow.value != null && !!workspace.overridesFor(editRow.value),
+)
+
+function openEditOne(row: DataRow) {
+  const values: Record<string, string> = {}
+  for (const field of workspace.mappableFields) {
+    values[field.id] = workspace.fieldText(row, field.id)
+  }
+  editValues.value = values
+  editRow.value = row
+}
+
+function saveEditOne() {
+  const row = editRow.value
+  if (!row) return
+  const override: Record<string, string> = {}
+  for (const field of workspace.mappableFields) {
+    const value = editValues.value[field.id] ?? ''
+    if (value !== workspace.baseFieldText(row, field.id)) override[field.id] = value
+  }
+  workspace.setRowOverride(row, override)
+  editRow.value = null
+  toast.success(
+    Object.keys(override).length ? '单张覆写已保存' : '内容与名单一致，未保留覆写',
+    '覆写只影响这一张标签；重新导入名单时会自动清除并提示',
+  )
+}
+
+function clearEditOne() {
+  if (editRow.value) workspace.clearRowOverride(editRow.value)
+  editRow.value = null
+}
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -371,7 +431,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         </button>
         <button
           type="button"
-          class="btn btn-primary btn-sm"
+          class="btn btn-primary btn-sm relative"
           title="经浏览器打印对话框输出：选「另存为 PDF」可得到矢量 PDF；直接打印请用对应纸张、无边距、缩放 100%"
           :disabled="!workspace.excel.rows.length"
           @click="openExportChoice('print')"
@@ -388,10 +448,15 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             <path d="M7 8V3h10v5M7 17H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3m-10-3h10v7H7v-7z" />
           </svg>
           打印<span class="hidden sm:inline"> / 矢量 PDF</span>
+          <span
+            class="absolute -top-2 -right-1.5 rounded-full px-1.5 py-px text-[9px] font-bold"
+            :class="quota.remaining > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'"
+            :title="`今日无水印导出剩余 ${quota.remaining}/${quota.limit} 次；带水印不限次`"
+          >无水印 {{ quota.remaining }}</span>
         </button>
         <button
           type="button"
-          class="btn btn-secondary btn-sm"
+          class="btn btn-secondary btn-sm relative"
           title="逐页渲染为高清图片后合成 PDF，所见即所得、任何设备打开都一致（推荐）；文字不可选中，如需矢量文字请用「打印 / 矢量 PDF」"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="openExportChoice('pdf')"
@@ -408,6 +473,11 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             <path d="M12 4v12m0 0 5-5m-5 5-5-5M4 20h16" />
           </svg>
           图片版 PDF<span class="hidden sm:inline">（推荐）</span>
+          <span
+            class="absolute -top-2 -right-1.5 rounded-full px-1.5 py-px text-[9px] font-bold"
+            :class="quota.remaining > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'"
+            :title="`今日无水印导出剩余 ${quota.remaining}/${quota.limit} 次；带水印不限次`"
+          >无水印 {{ quota.remaining }}</span>
         </button>
       </div>
     </div>
@@ -455,7 +525,10 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
               :get-photo="workspace.photoFor"
               :show-cut-lines="workspace.showCutLines"
               :highlight-missing="workspace.highlightMissing"
+              :overridden-rows="overriddenRows"
               screen
+              interactive
+              @label-click="openEditOne"
             />
           </div>
         </div>
@@ -469,6 +542,13 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
       @close="exportChoiceOpen = false"
     >
       <p class="leading-6">选择导出方式：</p>
+      <p
+        v-if="pendingAction === 'pdf' && exportEstimate"
+        class="mt-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500"
+      >
+        共 {{ exportEstimate.pageCount }} 页 · 每页约 {{ exportEstimate.dpi }}dpi ·
+        预估体积约 <span class="font-bold text-slate-700">{{ exportEstimate.size }}</span>（按页数自适应清晰度与压缩）
+      </p>
       <div class="mt-3 grid gap-3">
         <button
           type="button"
@@ -510,6 +590,35 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
       <p v-if="!auth.isLoggedIn" class="mt-3 text-xs leading-5 text-slate-400">
         登录后无水印导出每天 3 次，分享链接每被点开 1 次再得 1 次；同时获得 Beta 专业版免费试用。
       </p>
+    </ModalDialog>
+
+    <ModalDialog
+      :open="editRow != null"
+      title="单张覆写：只改这一张标签"
+      size="md"
+      @close="editRow = null"
+    >
+      <p class="text-xs leading-5 text-slate-500">
+        修改只影响这一张标签，不改动名单数据；重新导入名单时覆写会自动清除并提示。
+      </p>
+      <div class="mt-3 grid gap-2.5">
+        <div v-for="field in workspace.mappableFields" :key="field.id">
+          <label class="field-label">{{ field.label || field.id }}</label>
+          <input v-model="editValues[field.id]" type="text" class="input-field w-full" />
+        </div>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
+        <button
+          v-if="editRowHasOverride"
+          type="button"
+          class="btn btn-secondary btn-sm mr-auto text-amber-600"
+          @click="clearEditOne"
+        >
+          清除本张覆写
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" @click="editRow = null">取消</button>
+        <button type="button" class="btn btn-primary btn-sm" @click="saveEditOne">保存覆写</button>
+      </div>
     </ModalDialog>
 
     <CalibrationDialog :open="calibrationOpen" @close="calibrationOpen = false" />

@@ -7,6 +7,7 @@ import { isValidTemplate } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import type { DataRow, FieldMapping, LabelTemplate, TemplateField } from '@/types/template'
 import { autoMapFields } from '@/utils/autoMap'
+import { evaluateFieldTemplate, isCompositeMapping } from '@/utils/fieldTemplate'
 import { applyLabelPaper, isPaperCompatible, matchLabelPaper } from '@/utils/labelPaper'
 import { compareCellText, makeDemoRows, parseExcelFile } from '@/utils/excel'
 import { stackSortRows } from '@/utils/cutSort'
@@ -83,6 +84,40 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   })
   const isDemoData = ref(false)
   const mapping = reactive<FieldMapping>({})
+
+  // ---------- 单张覆写（Edit One） ----------
+  /** 数据行 -> 字段 id -> 覆写文本；以行对象为键，筛选/排序不影响对应关系 */
+  const rowOverrides = ref(new Map<DataRow, Record<string, string>>())
+  const overrideCount = computed(() => rowOverrides.value.size)
+
+  function overridesFor(row: DataRow): Record<string, string> | undefined {
+    return rowOverrides.value.get(row)
+  }
+
+  /** 设置某行的字段覆写；传空对象等价于清除该行覆写 */
+  function setRowOverride(row: DataRow, values: Record<string, string>) {
+    const next = new Map(rowOverrides.value)
+    if (Object.keys(values).length) next.set(row, values)
+    else next.delete(row)
+    rowOverrides.value = next
+  }
+
+  function clearRowOverride(row: DataRow) {
+    if (!rowOverrides.value.has(row)) return
+    const next = new Map(rowOverrides.value)
+    next.delete(row)
+    rowOverrides.value = next
+  }
+
+  /** 清空全部单张覆写；重新导入名单时调用并提示 */
+  function clearAllOverrides(options: { silent?: boolean } = {}) {
+    const count = rowOverrides.value.size
+    if (!count) return
+    rowOverrides.value = new Map()
+    if (!options.silent) {
+      toast.info('单张覆写已清除', `名单已更新，原有 ${count} 张标签的单独改字已一并清除`)
+    }
+  }
 
   // ---------- 照片 ----------
   const photoColumn = ref('')
@@ -244,7 +279,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       ).length
     }
 
-    const examIdColumn = mapping.examId
+    const examIdColumn = columnOf('examId')
     if (examIdColumn) {
       const seen = new Set<string>()
       const dup = new Set<string>()
@@ -257,8 +292,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       result.duplicateExamIds = dup.size
     }
 
-    const roomColumn = mapping.room
-    const seatColumn = mapping.seatNo
+    const roomColumn = columnOf('room')
+    const seatColumn = columnOf('seatNo')
     if (roomColumn && seatColumn) {
       const seen = new Set<string>()
       const dup = new Set<string>()
@@ -366,6 +401,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     previewPage.value = 1
     clearPhotos()
     resetDataView()
+    clearAllOverrides()
     for (const key of Object.keys(mapping)) delete mapping[key]
     Object.assign(mapping, autoMapFields(template.value.fields, data.headers))
   }
@@ -405,6 +441,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     for (const key of Object.keys(mapping)) delete mapping[key]
     clearPhotos()
     resetDataView()
+    clearAllOverrides({ silent: true })
     previewPage.value = 1
     toast.info('数据已清空', '可以重新导入新的 Excel 与照片')
   }
@@ -446,12 +483,28 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   // ---------- 取值辅助 ----------
-  function fieldText(row: DataRow, fieldId: string): string {
+  /** 某字段映射到的单一 Excel 列；组合字段（模板串）返回空 */
+  function columnOf(fieldId: string): string {
+    const value = mapping[fieldId]
+    if (!value || isCompositeMapping(value, excel.headers)) return ''
+    return value
+  }
+
+  /** 不含单张覆写的基础取值：固定文本 / 镜像 / 组合模板串 / 单列映射 */
+  function baseFieldText(row: DataRow, fieldId: string): string {
     const field = template.value.fields.find((f) => f.id === fieldId)
     if (field?.fixedText != null) return field.fixedText
     if (field?.mirrorOf != null) return fieldText(row, field.mirrorOf)
-    const column = mapping[fieldId]
-    return column ? String(row[column] ?? '') : ''
+    const value = mapping[fieldId]
+    if (!value) return ''
+    if (isCompositeMapping(value, excel.headers)) return evaluateFieldTemplate(value, row)
+    return String(row[value] ?? '')
+  }
+
+  function fieldText(row: DataRow, fieldId: string): string {
+    const override = rowOverrides.value.get(row)?.[fieldId]
+    if (override != null) return override
+    return baseFieldText(row, fieldId)
   }
 
   function isFieldEmpty(row: DataRow, fieldId: string): boolean {
@@ -514,6 +567,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     setPhotoColumn,
     importPhotos,
     clearPhotos,
+    rowOverrides,
+    overrideCount,
+    overridesFor,
+    setRowOverride,
+    clearRowOverride,
+    clearAllOverrides,
+    baseFieldText,
     fieldText,
     isFieldEmpty,
     photoFor,
