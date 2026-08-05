@@ -60,6 +60,27 @@ describe('autoMapFields', () => {
     expect(mapping.school).toBe('学校名称')
   })
 
+  it('精确匹配优先：座位号/考号/准考证号/考场号 相近词不错配', () => {
+    const mapping = autoMapFields(standardFields, ['考号', '座位号', '考场号', '姓名'])
+    expect(mapping.seatNo).toBe('座位号')
+    expect(mapping.examId).toBe('考号')
+    expect(mapping.room).toBe('考场号')
+    expect(mapping.name).toBe('姓名')
+  })
+
+  it('只有准考证号列时不会被座位号字段抢占', () => {
+    const mapping = autoMapFields(standardFields, ['准考证号', '姓名', '座位号'])
+    expect(mapping.examId).toBe('准考证号')
+    expect(mapping.seatNo).toBe('座位号')
+  })
+
+  it('表头含空格/括号仍可精确匹配', () => {
+    const mapping = autoMapFields(standardFields, ['座位 号', '姓名（考生）', '考场'])
+    expect(mapping.seatNo).toBe('座位 号')
+    expect(mapping.name).toBe('姓名（考生）')
+    expect(mapping.room).toBe('考场')
+  })
+
   it('固定文本字段不参与映射', () => {
     const fixed = { ...textField('caption', '姓名'), fixedText: '请对号入座' }
     const mapping = autoMapFields([fixed, textField('name', '姓名')], ['姓名'])

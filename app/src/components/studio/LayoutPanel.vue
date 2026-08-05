@@ -9,7 +9,7 @@ import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { LabelTemplate } from '@/types/template'
 import { labelPapers } from '@/data/labelPapers'
-import { applyLabelPaper, matchLabelPaper } from '@/utils/labelPaper'
+import { applyLabelPaper, isPaperCompatible, matchLabelPaper } from '@/utils/labelPaper'
 import { centerLayout, clamp, fitToPaper, layoutOverflow, round1 } from '@/utils/layout'
 import { matchPaperPreset, PAPER_PRESETS, paperLabel } from '@/utils/paper'
 
@@ -48,6 +48,13 @@ const labelPaperSlug = computed({
   set: (slug: string) => {
     const spec = labelPapers.find((p) => p.slug === slug)
     if (!spec) return
+    if (!isPaperCompatible(workspace.template, spec)) {
+      toast.warning(
+        '当前模板与该纸型不兼容',
+        '整页/折叠桌牌类模板需整页排版，请选择每页 1 枚的整版纸型或更换模板',
+      )
+      return
+    }
     applyLabelPaper(workspace.template, spec)
     toast.info(
       '已按纸型锁定排版',
@@ -58,11 +65,15 @@ const labelPaperSlug = computed({
 
 const labelPaperOptions = computed<SelectOption[]>(() => [
   { value: 'none', label: '不使用纸型（自由排版）' },
-  ...labelPapers.map((p) => ({
-    value: p.slug,
-    label: p.name,
-    hint: `${p.labelWidth} × ${p.labelHeight} mm`,
-  })),
+  ...labelPapers.map((p) => {
+    const compatible = isPaperCompatible(workspace.template, p)
+    return {
+      value: p.slug,
+      label: p.name,
+      hint: compatible ? `${p.labelWidth} × ${p.labelHeight} mm` : '与当前整页/折叠模板不兼容',
+      disabled: !compatible,
+    }
+  }),
 ])
 
 const paperOptions = computed<SelectOption[]>(() => {

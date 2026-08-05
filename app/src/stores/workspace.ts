@@ -7,6 +7,7 @@ import { isValidTemplate } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import type { DataRow, FieldMapping, LabelTemplate, TemplateField } from '@/types/template'
 import { autoMapFields } from '@/utils/autoMap'
+import { applyLabelPaper, isPaperCompatible, matchLabelPaper } from '@/utils/labelPaper'
 import { compareCellText, makeDemoRows, parseExcelFile } from '@/utils/excel'
 import { stackSortRows } from '@/utils/cutSort'
 import { chunkRows, cloneTemplate, labelsPerPage } from '@/utils/layout'
@@ -311,16 +312,30 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  /** 切换模板：保留已有人工映射，对缺口字段重新自动匹配 */
+  /** 切换模板：保留已有人工映射与已选纸型，对缺口字段重新自动匹配 */
   function selectTemplate(next: LabelTemplate, options: { silent?: boolean } = {}) {
+    // 切换前记录当前已选纸型：兼容的新模板继续沿用，避免重选
+    const currentPaper = matchLabelPaper(template.value.page, template.value.label)
     template.value = cloneTemplate(next)
     selectedTemplateId.value = next.id
     previewPage.value = 1
+    let paperNote = ''
+    if (currentPaper) {
+      if (isPaperCompatible(template.value, currentPaper)) {
+        applyLabelPaper(template.value, currentPaper)
+        paperNote = `，已保留纸型「${currentPaper.name}」`
+      } else if (!options.silent) {
+        toast.warning(
+          '已选纸型与新模板不兼容',
+          `「${currentPaper.name}」不适用于整页/折叠类模板，已恢复模板默认排版`,
+        )
+      }
+    }
     remapForTemplate()
     // 模板若使用了在线字体（自定义 / 分享 / 导入），后台补载
     useFontsStore().ensureTemplateFonts(template.value)
     if (!options.silent) {
-      toast.info('模板已切换', `当前模板：${next.name}`)
+      toast.info('模板已切换', `当前模板：${next.name}${paperNote}`)
     }
   }
 

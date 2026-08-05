@@ -3,7 +3,13 @@ import { describe, expect, it } from 'vitest'
 import { defaultTemplates } from '@/data/defaultTemplates'
 import { LABEL_PAPER_SHEET, labelPapers } from '@/data/labelPapers'
 import { templateDetails } from '@/data/templateDetails'
-import { applyLabelPaper, labelPaperGeometry, matchLabelPaper } from '@/utils/labelPaper'
+import {
+  applyLabelPaper,
+  isFullPageTemplate,
+  isPaperCompatible,
+  labelPaperGeometry,
+  matchLabelPaper,
+} from '@/utils/labelPaper'
 import { cloneTemplate, labelsPerPage, layoutOverflow } from '@/utils/layout'
 
 describe('纸型库几何计算', () => {
@@ -56,6 +62,44 @@ describe('纸型库几何计算', () => {
       } else {
         expect(template.label.radius).toBe(0)
       }
+    }
+  })
+
+  it('applyLabelPaper 字段随标签尺寸等比缩放，内容不会落在标签外', () => {
+    const base = cloneTemplate(defaultTemplates[0]!)
+    for (const spec of labelPapers) {
+      if (!isPaperCompatible(base, spec)) continue
+      const template = cloneTemplate(base)
+      applyLabelPaper(template, spec)
+      for (const field of template.fields) {
+        expect(field.x + field.width, `${spec.slug} ${field.id} 横向`).toBeLessThanOrEqual(
+          spec.labelWidth + 0.5,
+        )
+        expect(field.y + field.height, `${spec.slug} ${field.id} 纵向`).toBeLessThanOrEqual(
+          spec.labelHeight + 0.5,
+        )
+      }
+    }
+  })
+
+  it('整页/折叠模板（vTent、fullPage）与多格小纸型不兼容，仅允许整版纸型', () => {
+    const vTent = defaultTemplates.find((t) => t.id === 'vTent')!
+    const fullPage = defaultTemplates.find((t) => t.id === 'fullPage')!
+    expect(isFullPageTemplate(vTent)).toBe(true)
+    expect(isFullPageTemplate(fullPage)).toBe(true)
+    for (const t of [vTent, fullPage]) {
+      for (const spec of labelPapers) {
+        const compatible = isPaperCompatible(t, spec)
+        expect(compatible, `${t.id} × ${spec.slug}`).toBe(spec.cols * spec.rows === 1)
+      }
+    }
+  })
+
+  it('普通多格模板与所有纸型兼容', () => {
+    const standard = defaultTemplates[0]!
+    expect(isFullPageTemplate(standard)).toBe(false)
+    for (const spec of labelPapers) {
+      expect(isPaperCompatible(standard, spec), spec.slug).toBe(true)
     }
   })
 
