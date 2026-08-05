@@ -65,6 +65,12 @@ export interface LabelSpec {
   borderWidth?: number
   borderColor?: string
   background?: string
+  /**
+   * 背景装饰层：内联 SVG 标记（viewBox 用户单位 = mm），
+   * 渲染在所有字段之下、随标签整体缩放，不参与 Excel 映射；
+   * 仅站内模板数据维护，不含用户输入
+   */
+  decorSvg?: string
 }
 
 /** 整页纸张与排版规格，单位 mm */

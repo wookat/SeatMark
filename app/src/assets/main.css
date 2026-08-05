@@ -290,6 +290,19 @@
   box-sizing: border-box;
 }
 
+/* 标签背景装饰层：内联 SVG 铺满标签面、位于所有字段之下 */
+.label-decor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.label-decor svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .label-field {
   position: absolute;
   display: flex;

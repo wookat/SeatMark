@@ -95,6 +95,21 @@ const SAMPLE_FALLBACK: Record<string, string> = {
   examId: '2025053002',
 }
 
+/**
+ * 装饰层安全门禁：模板可能来自分享链接 / 导入 JSON，
+ * 仅允许纯 svg 矢量标记，拒绝脚本、事件处理器与外部引用
+ */
+function isSafeDecorSvg(svg: string): boolean {
+  const s = svg.trim()
+  if (!s.startsWith('<svg')) return false
+  return !/<script|<foreignobject|\son\w+\s*=|javascript:|\shref\s*=|xlink:href/i.test(s)
+}
+
+const decorSvg = computed(() => {
+  const svg = props.template.label.decorSvg
+  return svg && isSafeDecorSvg(svg) ? svg : null
+})
+
 const rootStyle = computed<CSSProperties>(() => {
   const { label, showLabelBorder } = props.template
   return {
@@ -186,6 +201,7 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
 
 <template>
   <div :style="rootStyle">
+    <div v-if="decorSvg" class="label-decor" aria-hidden="true" v-html="decorSvg"></div>
     <template v-for="field in template.fields" :key="field.id">
       <div
         v-if="field.type === 'text'"

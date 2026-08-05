@@ -8,6 +8,7 @@ import FeedbackButton from '@/components/ui/FeedbackButton.vue'
 import LoadingOverlay from '@/components/ui/LoadingOverlay.vue'
 import QuotaLimitDialog from '@/components/ui/QuotaLimitDialog.vue'
 import ToastHost from '@/components/ui/ToastHost.vue'
+import WeChatGuideOverlay from '@/components/ui/WeChatGuideOverlay.vue'
 import { useAuthStore } from '@/stores/auth'
 import { apiFetch } from '@/utils/api'
 
@@ -41,5 +42,6 @@ onMounted(() => {
     <LoadingOverlay />
     <FeedbackButton />
     <QuotaLimitDialog />
+    <WeChatGuideOverlay />
   </div>
 </template>
