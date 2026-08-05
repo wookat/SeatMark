@@ -197,8 +197,8 @@ const FAQS = [
             <span class="text-brand-600"><span class="whitespace-nowrap">座签</span> · <span class="whitespace-nowrap">桌牌席卡</span> · <span class="whitespace-nowrap">门贴证卡</span></span>
           </h1>
           <p class="mt-4 max-w-lg text-base leading-7 text-slate-600">
-            制作考场座签、课桌桌贴、考号贴、会议桌牌 / 桌签 / 台签 / 席卡、
-            门贴门牌、学生证 / 工作证、胸卡出入证。{{ defaultTemplates.length }}
+            制作考场座签、课桌桌贴、考号贴、会议桌牌 / 桌签 / 台签 / 席卡 /
+            坐席卡、座位背签、门贴门牌、学生证 / 工作证、胸卡出入证。{{ defaultTemplates.length }}
             款内置模板、数百种成品方案，覆盖考试、会议、婚庆、校园、医疗、政务、
             餐饮与仓储物流等场景：导入名单即可输出排版精确到毫米的打印页，
             支持照片核验、开源字体与自定义模板设计。
@@ -223,6 +223,23 @@ const FAQS = [
             </RouterLink>
             <RouterLink to="/studio?demo=1" class="btn btn-secondary btn-lg w-full sm:w-auto">
               用演示数据先试试
+            </RouterLink>
+          </div>
+          <div class="mt-5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <span class="font-semibold">快捷入口：</span>
+            <RouterLink
+              v-for="chip in [
+                { text: '台签在线制作', to: '/guides/desk-sign-online-maker' },
+                { text: '席卡生成器', to: '/guides/place-card-generator-online' },
+                { text: '考场桌贴', to: '/guides/exam-seat-label-batch-print' },
+                { text: '批量座位背签', to: '/guides/seat-back-sticker-batch' },
+                { text: '电子座签 800×480', to: '/guides/eink-800x480-desk-card' },
+              ]"
+              :key="chip.to"
+              :to="chip.to"
+              class="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-600"
+            >
+              {{ chip.text }}
             </RouterLink>
           </div>
           <div class="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-xs font-semibold text-slate-500">
