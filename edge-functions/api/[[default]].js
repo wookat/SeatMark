@@ -28,9 +28,14 @@
  * - RESEND_API_KEY   Resend 邮件发送密钥（未配置时仅本地开发环境以 devCode 形式返回验证码）
  * - MAIL_FROM        发件地址（默认 SeatMark <noreply@seatmark.cn>）
  *
- * KV 绑定（EdgeOne Pages 控制台 → KV 存储 → 绑定命名空间，变量名 seatmark_kv）：
- * 未绑定时自动降级为进程内存存储（数据不持久，仅用于联调）。
+ * 存储三级后备（见 _storage.js）：
+ * - KV 绑定（变量名 seatmark_kv）优先；
+ * - 未绑定时降级 EdgeOne Pages Blob（@edgeone/pages-blob，自动创建、持久化、强一致读）；
+ * - 两者皆不可用时降级进程内存（数据不持久，仅本地联调）。
+ * 云端模板（tpl:）体积大，Blob 可用时优先存 Blob，读取兼容 KV 存量数据。
  */
+
+import { getStorage, probeBlob } from './_storage.js'
 
 // ---------- 配额与裂变参数（前端 quota.ts 与此保持一致；计数对象为无水印导出，带水印不限次） ----------
 const QUOTA_ANON_DAILY = 1
@@ -45,42 +50,6 @@ const CODE_RESEND_INTERVAL_MS = 60 * 1000
 const CODE_MAX_ATTEMPTS = 5
 const CODE_IP_DAILY_LIMIT = 20
 const TEMPLATES_MAX_BYTES = 512 * 1024
-
-const memoryStore = new Map()
-
-/** KV 抽象：优先 EdgeOne KV 绑定（变量名 seatmark_kv），未绑定降级为内存 Map */
-function getKv(env) {
-  const kv =
-    (env && env.seatmark_kv) ||
-    (typeof globalThis !== 'undefined' ? globalThis.seatmark_kv : undefined)
-  if (kv && typeof kv.get === 'function') return { kv, persistent: true }
-  return {
-    persistent: false,
-    kv: {
-      async get(key) {
-        return memoryStore.has(key) ? memoryStore.get(key) : null
-      },
-      async put(key, value) {
-        memoryStore.set(key, String(value))
-      },
-      async delete(key) {
-        memoryStore.delete(key)
-      },
-      async list({ prefix = '', limit = 256, cursor = '' } = {}) {
-        const keys = [...memoryStore.keys()]
-          .filter((k) => k.startsWith(prefix))
-          .sort()
-        const start = cursor ? keys.indexOf(cursor) + 1 : 0
-        const page = keys.slice(start, start + limit)
-        return {
-          keys: page.map((name) => ({ name })),
-          complete: start + limit >= keys.length,
-          cursor: page.length ? page[page.length - 1] : '',
-        }
-      },
-    },
-  }
-}
 
 function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
@@ -311,8 +280,44 @@ export async function onRequest(context) {
 
   if (method === 'OPTIONS') return new Response(null, { status: 204 })
 
-  const { kv, persistent } = getKv(env)
-  const storageHeader = { 'X-SeatMark-Storage': persistent ? 'kv' : 'memory' }
+  const { kv, storage, blobStore } = await getStorage(env)
+  const storageHeader = { 'X-SeatMark-Storage': storage }
+
+  /** 云端模板体积大：Blob 可用时优先 Blob，读取保留 KV 存量兜底 */
+  const templateStore = {
+    async get(email) {
+      if (blobStore) {
+        try {
+          const fromBlob = await blobStore.get(`tpl:${email}`, { consistency: 'strong' })
+          if (fromBlob !== null) return fromBlob
+        } catch {
+          // Blob 读失败回退 KV
+        }
+      }
+      return kv.get(`tpl:${email}`)
+    },
+    async put(email, serialized) {
+      if (blobStore) {
+        try {
+          await blobStore.set(`tpl:${email}`, serialized)
+          return
+        } catch {
+          // Blob 写失败回退 KV
+        }
+      }
+      await kv.put(`tpl:${email}`, serialized)
+    },
+    async delete(email) {
+      if (blobStore) {
+        try {
+          await blobStore.delete(`tpl:${email}`)
+        } catch {
+          // 删除失败不阻塞
+        }
+      }
+      await kv.delete(`tpl:${email}`)
+    },
+  }
 
   async function readBody() {
     try {
@@ -436,7 +441,7 @@ export async function onRequest(context) {
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
     const shareCode = await kv.get(`share:owner:${email}`)
     await kv.delete(`user:${email}`)
-    await kv.delete(`tpl:${email}`)
+    await templateStore.delete(email)
     if (shareCode) {
       await kv.delete(`share:owner:${email}`)
       await kv.delete(`share:code:${shareCode}`)
@@ -458,7 +463,7 @@ export async function onRequest(context) {
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
 
     if (method === 'GET') {
-      const raw = await kv.get(`tpl:${email}`)
+      const raw = await templateStore.get(email)
       let templates = []
       if (raw) {
         try {
@@ -479,7 +484,7 @@ export async function onRequest(context) {
       if (serialized.length > TEMPLATES_MAX_BYTES) {
         return json({ error: '模板数据超过 512KB 上限' }, 413, storageHeader)
       }
-      await kv.put(`tpl:${email}`, serialized)
+      await templateStore.put(email, serialized)
       const user = (await getUser(kv, email)) || {
         email,
         createdAt: new Date().toISOString(),
@@ -608,7 +613,9 @@ export async function onRequest(context) {
     if (path === '/api/admin/health' && method === 'GET') {
       return json(
         {
-          kvBound: persistent,
+          kvBound: storage === 'kv',
+          blobAvailable: await probeBlob(blobStore),
+          storage,
           mailConfigured: Boolean(env && env.RESEND_API_KEY),
           authSecretConfigured: Boolean(env && env.AUTH_SECRET),
         },
@@ -672,7 +679,7 @@ export async function onRequest(context) {
           shareBonusToday: bonusToday,
           reservationCount: reservations.keys.length,
           feedbackCount: feedback.keys.length,
-          storage: persistent ? 'kv' : 'memory',
+          storage,
         },
         200,
         storageHeader,
