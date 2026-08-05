@@ -15,7 +15,7 @@ import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { MM_TO_PX } from '@/utils/layout'
 import { paperLabel, setPrintPageSize } from '@/utils/paper'
-import { defaultRasterScale, exportPagesToPdf, rasterDpi } from '@/utils/pdfExport'
+import { defaultRasterScale, exportPagedPdf, rasterDpi } from '@/utils/pdfExport'
 
 const workspace = useWorkspaceStore()
 const toast = useToastStore()
@@ -78,18 +78,37 @@ function jumpToPage() {
 // ---------- 导出 / 打印 ----------
 const renderHost = ref(false)
 const hostRef = ref<HTMLElement | null>(null)
+/** 导出时仅挂载正在渲染的那一页（分页分批），null = 全部挂载（打印用） */
+const hostPageIndex = ref<number | null>(null)
+const hostPages = computed<(typeof workspace.pages)>(() =>
+  hostPageIndex.value == null
+    ? workspace.pages
+    : workspace.pages.slice(hostPageIndex.value, hostPageIndex.value + 1),
+)
 /** 本次导出/打印是否叠加页脚角标水印（带水印不限次，无水印计入每日配额） */
 const withWatermark = ref(false)
-/** 导出方式选择弹窗：pdf = 超清图片 PDF，print = 浏览器打印 */
+/** 导出方式选择弹窗：pdf = 图片版 PDF，print = 浏览器打印 */
 const exportChoiceOpen = ref(false)
 const pendingAction = ref<'pdf' | 'print'>('pdf')
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-async function mountHost() {
+async function mountHost(pageIndex: number | null = null) {
+  hostPageIndex.value = pageIndex
   renderHost.value = true
   await nextTick()
-  await sleep(250)
+  // 等在线字体就绪，避免栅格化/打印时字形回退
+  try {
+    await document.fonts.ready
+  } catch {
+    /* 旧浏览器无 fonts API：跳过 */
+  }
+  await sleep(pageIndex == null ? 250 : 60)
+}
+
+function unmountHost() {
+  renderHost.value = false
+  hostPageIndex.value = null
 }
 
 function openExportChoice(action: 'pdf' | 'print') {
@@ -98,8 +117,12 @@ function openExportChoice(action: 'pdf' | 'print') {
   exportChoiceOpen.value = true
 }
 
+/** 无水印导出：配额只在导出成功后消耗，失败/取消不扣次数 */
 async function chooseClean() {
-  if (!(await quota.tryConsume()).ok) return
+  if (quota.remaining <= 0) {
+    quota.limitDialogOpen = true
+    return
+  }
   exportChoiceOpen.value = false
   withWatermark.value = false
   await runPendingAction()
@@ -127,29 +150,47 @@ async function confirmDuplexPrint() {
   await doPrint()
 }
 
+/** 导出/打印成功后消耗无水印配额（失败不扣，可直接重试） */
+async function consumeQuotaAfterSuccess() {
+  if (withWatermark.value) return
+  await quota.tryConsume()
+}
+
 async function doExportPdf() {
   workspace.setLoading(true, '正在准备页面...')
   try {
-    await mountHost()
-    const pages = Array.from(hostRef.value?.querySelectorAll<HTMLElement>('.sheet-page') ?? [])
-    const scale = defaultRasterScale(pages.length)
-    await exportPagesToPdf(pages, {
+    const pageCount = workspace.totalPages
+    const scale = defaultRasterScale(pageCount)
+    await exportPagedPdf({
+      pageCount,
+      // 分页分批：每次只挂载并栅格化一页，60+ 页任务内存占用恒定
+      getPage: async (i) => {
+        workspace.setLoading(true, `正在渲染第 ${i + 1}/${pageCount} 页...`)
+        await mountHost(i)
+        const el = hostRef.value?.querySelector<HTMLElement>('.sheet-page')
+        if (!el) throw new Error('页面节点未挂载')
+        return el
+      },
       scale,
-      imageFormat: 'png',
       pageWidth: workspace.template.page.paperWidth,
       pageHeight: workspace.template.page.paperHeight,
       calibration: calibrationStore.active ? calibrationStore.calibration : undefined,
-      onProgress: (done, total) => workspace.setLoading(true, `正在渲染第 ${done}/${total} 页...`),
+      onProgress: (done, total) =>
+        workspace.setLoading(true, `已完成 ${done}/${total} 页，正在写入 PDF...`),
     })
+    await consumeQuotaAfterSuccess()
     toast.success(
-      '超清图片 PDF 已生成',
-      `每页为 ${rasterDpi(scale)}dpi 无损 PNG 栅格，放大打印仍清晰；文字需可选中请用「打印 / 矢量 PDF」`,
+      '图片版 PDF 已生成',
+      `每页为 ${rasterDpi(scale)}dpi 高清栅格，放大打印仍清晰；文字需可选中请用「打印 / 矢量 PDF」`,
     )
   } catch (err) {
-    toast.danger('PDF 生成失败', err instanceof Error ? err.message : String(err))
+    toast.danger(
+      'PDF 生成失败',
+      `${err instanceof Error ? err.message : String(err)}；本次未扣除无水印次数，可直接重试`,
+    )
   } finally {
     workspace.setLoading(false)
-    renderHost.value = false
+    unmountHost()
   }
 }
 
@@ -157,14 +198,33 @@ async function doExportPdf() {
  * 浏览器打印：既是实体打印入口，也可选「另存为 PDF」导出矢量 PDF。
  */
 async function doPrint() {
-  await mountHost()
+  workspace.setLoading(true, `正在准备 ${workspace.totalPages} 页打印内容...`)
+  try {
+    await mountHost()
+  } finally {
+    workspace.setLoading(false)
+  }
   window.print()
-  renderHost.value = false
+  unmountHost()
+  await consumeQuotaAfterSuccess()
   toast.info(
     '已调起浏览器打印',
     `目标打印机选「另存为 PDF」即可导出矢量 PDF；直接打印请用 ${currentPaperLabel.value} 纸张、无边距、缩放 100%`,
   )
 }
+
+// ---------- 开关说明（移动端可点击查看，不依赖 hover title） ----------
+const HINTS: Record<string, { title: string; text: string }> = {
+  cutSort: {
+    title: '裁切排序（摞优先）',
+    text: '多页叠齐一起裁切后，每摞标签天然按考场/座位号连续有序，免人工分拣。仅改变标签在页面上的排列顺序，不改变内容。',
+  },
+  mirror: {
+    title: '对折双联（镜像）',
+    text: '桌牌上半区 180° 镜像重复下半区内容，沿中线对折后两面都能正读。关闭后只印单面内容。',
+  },
+}
+const hintKey = ref<keyof typeof HINTS | null>(null)
 </script>
 
 <template>
@@ -253,20 +313,47 @@ async function doPrint() {
           class="text-xs font-semibold text-slate-600"
           label="高亮缺失"
         />
-        <CheckboxField
+        <span
           v-if="workspace.totalPages > 1 || workspace.cutStackSort"
-          v-model="workspace.cutStackSort"
-          class="text-xs font-semibold text-slate-600"
-          title="摞优先重排顺序：多页叠齐裁切后，每摞标签天然按考场/座位号连续有序，免人工分拣"
-          label="裁切排序"
-        />
-        <CheckboxField
-          v-if="workspace.hasMirrorFields"
-          v-model="workspace.showMirror"
-          class="text-xs font-semibold text-slate-600"
-          title="桌牌上半区 180° 镜像重复下半区内容，对折后两面都能正读；关闭后只印单面"
-          label="对折双联（镜像）"
-        />
+          class="flex items-center gap-0.5"
+        >
+          <CheckboxField
+            v-model="workspace.cutStackSort"
+            class="text-xs font-semibold text-slate-600"
+            :title="HINTS.cutSort!.text"
+            label="裁切排序"
+          />
+          <button
+            type="button"
+            class="grid size-4 place-items-center rounded-full text-slate-400 hover:text-slate-600"
+            aria-label="裁切排序说明"
+            @click="hintKey = 'cutSort'"
+          >
+            <svg class="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="6.4" />
+              <path d="M6.4 6.2a1.6 1.6 0 1 1 2.4 1.4c-.5.3-.8.6-.8 1.2m0 2h.01" />
+            </svg>
+          </button>
+        </span>
+        <span v-if="workspace.hasMirrorFields" class="flex items-center gap-0.5">
+          <CheckboxField
+            v-model="workspace.showMirror"
+            class="text-xs font-semibold text-slate-600"
+            :title="HINTS.mirror!.text"
+            label="对折双联（镜像）"
+          />
+          <button
+            type="button"
+            class="grid size-4 place-items-center rounded-full text-slate-400 hover:text-slate-600"
+            aria-label="对折双联说明"
+            @click="hintKey = 'mirror'"
+          >
+            <svg class="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="6.4" />
+              <path d="M6.4 6.2a1.6 1.6 0 1 1 2.4 1.4c-.5.3-.8.6-.8 1.2m0 2h.01" />
+            </svg>
+          </button>
+        </span>
         <button
           type="button"
           class="btn btn-secondary btn-sm"
@@ -305,7 +392,7 @@ async function doPrint() {
         <button
           type="button"
           class="btn btn-secondary btn-sm"
-          title="逐页渲染为超清 PNG 图片后合成 PDF（约 288–480dpi，页数越少越清晰）；文字不可选中，如需矢量文字请用「打印 / 矢量 PDF」"
+          title="逐页渲染为高清图片后合成 PDF，所见即所得、任何设备打开都一致（推荐）；文字不可选中，如需矢量文字请用「打印 / 矢量 PDF」"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="openExportChoice('pdf')"
         >
@@ -320,7 +407,7 @@ async function doPrint() {
           >
             <path d="M12 4v12m0 0 5-5m-5 5-5-5M4 20h16" />
           </svg>
-          超清<span class="hidden sm:inline">图片 PDF</span>
+          图片版 PDF<span class="hidden sm:inline">（推荐）</span>
         </button>
       </div>
     </div>
@@ -377,7 +464,7 @@ async function doPrint() {
 
     <ModalDialog
       :open="exportChoiceOpen"
-      :title="pendingAction === 'pdf' ? '导出超清图片 PDF' : '打印 / 矢量 PDF'"
+      :title="pendingAction === 'pdf' ? '导出图片版 PDF（推荐）' : '打印 / 矢量 PDF'"
       size="md"
       @close="exportChoiceOpen = false"
     >
@@ -433,11 +520,20 @@ async function doPrint() {
       @confirm="confirmDuplexPrint"
     />
 
+    <ModalDialog
+      :open="hintKey != null"
+      :title="hintKey ? HINTS[hintKey]!.title : ''"
+      size="md"
+      @close="hintKey = null"
+    >
+      <p class="text-sm leading-6 text-slate-600">{{ hintKey ? HINTS[hintKey]!.text : '' }}</p>
+    </ModalDialog>
+
     <Teleport to="body">
       <div v-if="renderHost" ref="hostRef" class="offscreen-host">
         <LabelSheet
-          v-for="(pageRows, i) in workspace.pages"
-          :key="i"
+          v-for="(pageRows, i) in hostPages"
+          :key="hostPageIndex != null ? hostPageIndex : i"
           :template="workspace.renderTemplate"
           :rows="pageRows"
           :get-text="workspace.fieldText"
