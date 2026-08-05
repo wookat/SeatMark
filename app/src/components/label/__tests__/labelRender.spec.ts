@@ -120,9 +120,20 @@ describe('LabelCard', () => {
     })
     const wm = wrapper.find('.label-watermark')
     expect(wm.exists()).toBe(true)
-    // standard 标签宽 60mm ≥ 52mm，使用全称
-    expect(wm.text()).toBe('SeatMark 座签 · seatmark.cn')
+    expect(wm.text()).toContain('seatmark.cn')
     expect(wm.attributes('style')).toMatch(/font-size: [\d.]+mm/)
+  })
+
+  it('底部有空位的大标签使用品牌全称水印', () => {
+    const t = cloneTemplate(standard)
+    t.label.width = 180
+    t.label.height = 128
+    // 只保留顶部一个字段，底部留空
+    t.fields = [{ id: 'name', label: '姓名', type: 'text', x: 10, y: 10, width: 160, height: 40 }]
+    const wrapper = mount(LabelCard, {
+      props: { template: t, texts: { name: '测试' }, watermark: true },
+    })
+    expect(wrapper.find('.label-watermark').text()).toBe('SeatMark 座签 · seatmark.cn')
   })
 
   it('小标签水印退回短版域名', () => {
