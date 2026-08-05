@@ -138,6 +138,7 @@ describe('/api/admin/health', () => {
       blobAvailable: false,
       storage: 'memory',
       mailConfigured: false,
+      mailChannel: 'none',
       authSecretConfigured: true,
     })
   })
