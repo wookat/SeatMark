@@ -5,7 +5,17 @@ export interface SelectOption {
   label: string
   /** 右侧辅助说明（如纸张尺寸） */
   hint?: string
+  /** 名称右侧小徽标（如「推荐」「勉强」） */
+  badge?: string
+  /** 徽标色调：positive 绿 / warning 琥珀 / danger 红 */
+  badgeTone?: 'positive' | 'warning' | 'danger'
   disabled?: boolean
+}
+
+const BADGE_TONE_CLASS: Record<NonNullable<SelectOption['badgeTone']>, string> = {
+  positive: 'bg-emerald-100 text-emerald-700',
+  warning: 'bg-amber-100 text-amber-700',
+  danger: 'bg-red-100 text-red-600',
 }
 </script>
 
@@ -111,6 +121,13 @@ onBeforeUnmount(() => {
             @click="pick(option)"
           >
             <span class="min-w-0 flex-1 truncate">{{ option.label }}</span>
+            <span
+              v-if="option.badge"
+              class="shrink-0 rounded px-1 py-0.5 text-[10px] leading-none font-bold"
+              :class="BADGE_TONE_CLASS[option.badgeTone ?? 'positive']"
+            >
+              {{ option.badge }}
+            </span>
             <span v-if="option.hint" class="shrink-0 text-[10px] text-slate-400">
               {{ option.hint }}
             </span>
