@@ -5,6 +5,8 @@ import { campusTemplates } from './defaultTemplatesCampus'
 import { deluxeTemplates } from './defaultTemplatesDeluxe'
 import { eventTemplates } from './defaultTemplatesEvent'
 import { lifeTemplates } from './defaultTemplatesLife'
+import { round4Templates } from './defaultTemplatesRound4'
+import { styleSeriesTemplates } from './defaultTemplatesStyleSeries'
 
 /** 内置模板默认中文字体：宋体（正式考务文档气质，本机渲染零联网） */
 const FONT_FAMILY = DEFAULT_FONT_STACK
@@ -8300,6 +8302,8 @@ export const defaultTemplates: LabelTemplate[] = [
   ...eventTemplates,
   ...lifeTemplates,
   ...deluxeTemplates,
+  ...round4Templates,
+  ...styleSeriesTemplates,
 ]
 
 /** 设计器“新建空白模板”的起点 */
