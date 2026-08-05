@@ -7,6 +7,7 @@
 import { guidesRound2 } from './guidesRound2'
 import { guidesRound3 } from './guidesRound3'
 import { guidesRound4 } from './guidesRound4'
+import { guidesRound5 } from './guidesRound5'
 
 export interface GuideFaq {
   q: string
@@ -1957,6 +1958,7 @@ export const guides: Guide[] = [
   ...guidesRound2,
   ...guidesRound3,
   ...guidesRound4,
+  ...guidesRound5,
 ]
 
 export function findGuide(slug: string): Guide | undefined {

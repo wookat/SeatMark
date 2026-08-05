@@ -127,9 +127,9 @@ export function resolveSeo(path: string): PageSeo {
 
   if (p === '/studio') {
     return {
-      title: '标签工坊 - SeatMark 座签',
+      title: '标签工坊：座签·台签·席卡·桌签在线制作 - SeatMark 座签',
       description:
-        '在线标签工坊：选择模板、上传 Excel 名单、批量照片核验，批量生成座签、桌牌、证卡打印页，支持 A4/A5/A3 与 PDF 导出，数据全程在浏览器本地处理。',
+        '免费在线制作台签、席卡、桌签、座签与证卡：选择模板、上传 Excel 名单即批量生成打印页，坐席卡、座位背签也能做，支持 A4/A5/A3 与 PDF 导出，数据全程在浏览器本地处理。',
       path: '/studio',
       jsonLd: [SOFTWARE_APP_JSONLD],
     }

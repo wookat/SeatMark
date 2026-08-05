@@ -5,6 +5,7 @@ import { guides } from '@/data/guides'
 import { guidesRound2 } from '@/data/guidesRound2'
 import { guidesRound3 } from '@/data/guidesRound3'
 import { guidesRound4 } from '@/data/guidesRound4'
+import { guidesRound5 } from '@/data/guidesRound5'
 import { prerenderPaths, resolveSeo } from '@/data/seo'
 import { templateDetails } from '@/data/templateDetails'
 
@@ -59,7 +60,7 @@ describe('教程内容质量', () => {
 
   it('正文字数达标（第二轮及以后新增 ≥1200，存量 ≥800）', () => {
     const longFormSlugs = new Set(
-      [...guidesRound2, ...guidesRound3, ...guidesRound4].map((g) => g.slug),
+      [...guidesRound2, ...guidesRound3, ...guidesRound4, ...guidesRound5].map((g) => g.slug),
     )
     for (const g of guides) {
       const textLength = g.body.replace(/<[^>]+>/g, '').replace(/\s/g, '').length
