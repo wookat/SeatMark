@@ -2,6 +2,7 @@ import type { LabelTemplate, TemplateCategory, TemplateField } from '@/types/tem
 
 import { DEFAULT_FONT_STACK, DEFAULT_FONT_STACK_EN } from './fonts'
 import { campusTemplates } from './defaultTemplatesCampus'
+import { deluxeTemplates } from './defaultTemplatesDeluxe'
 import { eventTemplates } from './defaultTemplatesEvent'
 import { lifeTemplates } from './defaultTemplatesLife'
 
@@ -8298,6 +8299,7 @@ export const defaultTemplates: LabelTemplate[] = [
   ...campusTemplates,
   ...eventTemplates,
   ...lifeTemplates,
+  ...deluxeTemplates,
 ]
 
 /** 设计器“新建空白模板”的起点 */

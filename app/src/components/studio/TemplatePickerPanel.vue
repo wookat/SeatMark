@@ -12,6 +12,7 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import type { LabelTemplate, TemplateCategory } from '@/types/template'
 import { uid } from '@/utils/id'
 import { matchesChineseQuery } from '@/utils/pinyin'
+import { qrToSvg } from '@/utils/qrcode'
 import { copyToClipboard, encodeTemplateForShare, SHARE_HASH_PREFIX } from '@/utils/share'
 
 const emit = defineEmits<{ openDesigner: [template: LabelTemplate | null] }>()
@@ -113,12 +114,36 @@ function openDesignerFromModal(t: LabelTemplate) {
 /** 链接长度超过该阈值时提示改用 JSON 文件分享（聊天工具对超长 URL 不友好） */
 const SHARE_URL_LIMIT = 8000
 
+/** 微信扫码弹窗：分享链接的 QR SVG（前端生成，零依赖零上传） */
+const shareQrSvg = ref<string | null>(null)
+
+async function buildShareUrl(): Promise<string | null> {
+  const payload = await encodeTemplateForShare(workspace.template)
+  const studioPath = router.resolve({ name: 'studio' }).href
+  const url = `${location.origin}${studioPath}${SHARE_HASH_PREFIX}${payload}`
+  return url.length > SHARE_URL_LIMIT ? null : url
+}
+
+async function showShareQr() {
+  try {
+    const url = await buildShareUrl()
+    if (!url) {
+      toast.warning(
+        '模板体积过大，不适合扫码分享',
+        '通常是包含了固定图片（Logo）。请改用「导出 JSON」分享文件。',
+      )
+      return
+    }
+    shareQrSvg.value = qrToSvg(url)
+  } catch {
+    toast.danger('生成二维码失败', '请改用「复制分享链接」')
+  }
+}
+
 async function shareCurrentTemplate() {
   try {
-    const payload = await encodeTemplateForShare(workspace.template)
-    const studioPath = router.resolve({ name: 'studio' }).href
-    const url = `${location.origin}${studioPath}${SHARE_HASH_PREFIX}${payload}`
-    if (url.length > SHARE_URL_LIMIT) {
+    const url = await buildShareUrl()
+    if (!url) {
       toast.warning(
         '模板体积过大，不适合用链接分享',
         '通常是包含了固定图片（Logo）。请改用「导出 JSON」分享文件。',
@@ -303,10 +328,35 @@ function confirmDelete() {
       <button type="button" class="btn btn-secondary btn-sm" @click="shareCurrentTemplate">
         复制当前模板分享链接
       </button>
+      <button type="button" class="btn btn-secondary btn-sm" @click="showShareQr">
+        <svg
+          class="size-3.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h3v3h-3zM20 14v2M17 20h3M20 18h.01" />
+        </svg>
+        微信扫码打开
+      </button>
       <button type="button" class="btn btn-ghost btn-sm" @click="exportCurrentTemplate">
         导出 JSON
       </button>
     </div>
+
+    <ModalDialog :open="!!shareQrSvg" title="微信扫码打开此模板" @close="shareQrSvg = null">
+      <div class="flex flex-col items-center gap-3">
+        <!-- eslint-disable-next-line vue/no-v-html -->
+        <div class="w-48 rounded-lg border border-slate-200 p-2" v-html="shareQrSvg"></div>
+        <p class="text-center text-xs leading-5 text-slate-500">
+          用微信「扫一扫」即可在手机上打开当前模板；模板数据全部编码在链接里，不经过任何服务器。
+          微信内下载 PDF 受限，打印导出请点右上角菜单选「在浏览器打开」。
+        </p>
+      </div>
+    </ModalDialog>
 
     <ModalDialog
       :open="pickerOpen"

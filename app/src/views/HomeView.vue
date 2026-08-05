@@ -518,6 +518,104 @@ const FAQS = [
       </div>
     </section>
 
+    <!-- 隐私实测对比 -->
+    <section id="privacy" class="scroll-mt-16 border-b border-slate-200 bg-slate-50/70">
+      <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
+        <div v-reveal class="text-center">
+          <p class="section-eyebrow">Privacy Proof</p>
+          <h2 class="section-heading">实测网络面板：名单零上传</h2>
+          <p class="section-sub">
+            打开浏览器开发者工具（F12 → Network）就能自己验证：
+            在 SeatMark 上传 Excel、生成、导出全程，没有任何一个携带名单数据的网络请求
+          </p>
+        </div>
+        <div class="mt-8 grid gap-4 md:grid-cols-2">
+          <div
+            v-reveal
+            class="rounded-lg border-2 border-emerald-200 bg-white p-5 shadow-card"
+          >
+            <div class="flex items-center gap-2">
+              <span
+                class="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600"
+              >
+                <svg
+                  class="size-4.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 3 4 6v5c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6l-8-3z" />
+                  <path d="m9 12 2 2 4-4" />
+                </svg>
+              </span>
+              <h3 class="text-sm font-bold text-slate-900">SeatMark：名单只在你的浏览器里</h3>
+            </div>
+            <ul class="mt-4 space-y-2.5 text-xs leading-5 text-slate-600">
+              <li class="flex gap-2">
+                <svg class="mt-0.5 size-3.5 flex-none text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7" /></svg>
+                上传 Excel 后网络面板<strong>零新增请求</strong>：解析由本地 JS 完成
+              </li>
+              <li class="flex gap-2">
+                <svg class="mt-0.5 size-3.5 flex-none text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7" /></svg>
+                照片、PDF 渲染同样在本地内存中进行，<strong>断网也能继续导出</strong>
+              </li>
+              <li class="flex gap-2">
+                <svg class="mt-0.5 size-3.5 flex-none text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7" /></svg>
+                关闭页面即清空，没有任何服务器存过你的学生 / 员工名单
+              </li>
+            </ul>
+          </div>
+          <div v-reveal="120" class="rounded-lg border border-slate-200 bg-white p-5 shadow-card">
+            <div class="flex items-center gap-2">
+              <span
+                class="flex size-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600"
+              >
+                <svg
+                  class="size-4.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M17.5 19a4.5 4.5 0 1 0-.4-8.98 6 6 0 0 0-11.54 1.7A4 4 0 0 0 6 19h11.5z" />
+                  <path d="M12 11v4M12 17.5h.01" />
+                </svg>
+              </span>
+              <h3 class="text-sm font-bold text-slate-900">云端设计类工具：名单需先上云</h3>
+            </div>
+            <ul class="mt-4 space-y-2.5 text-xs leading-5 text-slate-600">
+              <li class="flex gap-2">
+                <svg class="mt-0.5 size-3.5 flex-none text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                批量套数据需把名单上传到服务器，网络面板可见<strong>整表 POST 出网</strong>
+              </li>
+              <li class="flex gap-2">
+                <svg class="mt-0.5 size-3.5 flex-none text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                名单在对方服务器的留存时长、访问范围，用户无法自行验证
+              </li>
+              <li class="flex gap-2">
+                <svg class="mt-0.5 size-3.5 flex-none text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                含身份证号 / 照片的考生名单出网，可能触碰学校与单位的合规红线
+              </li>
+            </ul>
+          </div>
+        </div>
+        <p v-reveal class="mt-5 text-center text-xs text-slate-500">
+          完整验证步骤见教程
+          <RouterLink
+            to="/guides/roster-privacy-network-test"
+            class="font-semibold text-brand-600 hover:underline"
+          >
+            《实测网络面板：为什么名单类工具必须零上传》
+          </RouterLink>
+        </p>
+      </div>
+    </section>
+
     <!-- FAQ -->
     <section id="faq" class="mx-auto w-full max-w-6xl scroll-mt-16 px-4 py-10 sm:py-14">
       <div v-reveal class="text-center">
