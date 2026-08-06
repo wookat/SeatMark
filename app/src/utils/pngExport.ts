@@ -136,6 +136,10 @@ export function toOutputCanvas(
       ctx.textAlign = 'center'
       ctx.textBaseline = 'bottom'
       ctx.fillText(options.watermarkText, canvas.width / 2, canvas.height - fontSize * 0.5)
+      // 文字抗锯齿会引入灰度像素，再二值化一次保持纯黑白（阈值放宽保住笔画）
+      const stamped = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      binarizePixelData(stamped.data, 200)
+      ctx.putImageData(stamped, 0, 0)
     }
   }
   return canvas
