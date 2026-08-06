@@ -760,7 +760,7 @@ export const eventTemplates: LabelTemplate[] = [
     id: 'eink800',
     name: '电子座签 800×480',
     category: 'event',
-    description: '按 7.5 英寸电子墨水屏 800×480（5:3）比例排版，纯黑白高对比，每页 1 枚，导出后转 PNG 推送电子桌牌。',
+    description: '按 7.5 英寸电子墨水屏 800×480（5:3）比例排版，纯黑白高对比，每页 1 枚，一键导出精确 800×480 PNG 直接推送电子桌牌。',
     scenario: '电子墨水屏桌牌',
     accent: '#0f172a',
     sampleData: { name: '刘志远', title: '副局长', org: '市教育局' },

@@ -14,7 +14,7 @@ import { useQuotaStore } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { dismissStudioGuide } from '@/utils/firstVisit'
-import { MM_TO_PX } from '@/utils/layout'
+import { labelPosition, labelsPerPage, MM_TO_PX } from '@/utils/layout'
 import { paperLabel, setPrintPageSize } from '@/utils/paper'
 import { copyToClipboard } from '@/utils/share'
 import type { DataRow } from '@/types/template'
@@ -28,6 +28,14 @@ import {
   rasterDpi,
   settleWithin,
 } from '@/utils/pdfExport'
+import {
+  defaultPngExportName,
+  exactPixelHeight,
+  exportPagedPng,
+  isValidExactPixelWidth,
+  MAX_EXACT_PIXEL_WIDTH,
+  MIN_EXACT_PIXEL_WIDTH,
+} from '@/utils/pngExport'
 
 const workspace = useWorkspaceStore()
 const toast = useToastStore()
@@ -99,9 +107,57 @@ const hostPages = computed<(typeof workspace.pages)>(() =>
 )
 /** 本次导出/打印是否叠加页脚角标水印（带水印不限次，无水印计入每日配额） */
 const withWatermark = ref(false)
-/** 导出方式选择弹窗：pdf = 图片版 PDF，print = 浏览器打印 */
+/** 导出方式选择弹窗：pdf = 图片版 PDF，print = 浏览器打印，png = 图片 PNG */
 const exportChoiceOpen = ref(false)
-const pendingAction = ref<'pdf' | 'print'>('pdf')
+const pendingAction = ref<'pdf' | 'print' | 'png'>('pdf')
+
+// ---------- PNG 导出参数 ----------
+/** 尺寸模式：standard = 按页数自适应清晰度；exact = 精确像素（电子墨水屏等场景） */
+const pngSizeMode = ref<'standard' | 'exact'>('standard')
+/** 精确像素目标宽度；高度按模板宽高比自动推导 */
+const pngExactWidth = ref(800)
+/** 纯黑白输出（电子墨水屏只认纯黑纯白） */
+const pngMonochrome = ref(false)
+
+/** 电子座签模板：默认精确 800×480 + 纯黑白 */
+const isEinkTemplate = computed(() => workspace.template.id === 'eink800')
+
+watch(
+  () => workspace.template.id,
+  () => {
+    pngSizeMode.value = isEinkTemplate.value ? 'exact' : 'standard'
+    pngExactWidth.value = 800
+    pngMonochrome.value = isEinkTemplate.value
+  },
+  { immediate: true },
+)
+
+const PNG_SIZE_OPTIONS = computed<SelectOption[]>(() => [
+  { value: 'standard', label: '标准清晰度（按页数自适应）' },
+  { value: 'exact', label: isEinkTemplate.value ? '精确像素（电子墨水屏 800×480）' : '精确像素（自定义宽度）' },
+])
+
+const pngExactWidthValid = computed(() => isValidExactPixelWidth(pngExactWidth.value))
+
+/**
+ * 精确像素模式的设计区域（mm）：每页 1 枚的模板（如电子座签）取标签本体，
+ * 不含纸张留白边距；多枚模板取整页
+ */
+const pngCropRect = computed(() => {
+  const template = workspace.renderTemplate
+  if (labelsPerPage(template) !== 1) return null
+  const pos = labelPosition(template, 0)
+  return { x: pos.left, y: pos.top, width: template.label.width, height: template.label.height }
+})
+
+const pngExactHeight = computed(() => {
+  if (!pngExactWidthValid.value) return 0
+  const design = pngCropRect.value ?? {
+    width: workspace.template.page.paperWidth,
+    height: workspace.template.page.paperHeight,
+  }
+  return exactPixelHeight(pngExactWidth.value, design.width, design.height)
+})
 
 /** 图片版 PDF 导出前的参数与体积预估（弹窗内展示，避免导出后才发现体积过大） */
 const exportEstimate = computed(() => {
@@ -240,7 +296,7 @@ async function rebuildHost() {
   await nextTick()
 }
 
-function openExportChoice(action: 'pdf' | 'print') {
+function openExportChoice(action: 'pdf' | 'print' | 'png') {
   if (!workspace.excel.rows.length) return
   pendingAction.value = action
   exportChoiceOpen.value = true
@@ -266,6 +322,8 @@ async function chooseWatermarked() {
 async function runPendingAction() {
   if (pendingAction.value === 'pdf') {
     await doExportPdf()
+  } else if (pendingAction.value === 'png') {
+    await doExportPng()
   } else if (workspace.hasMirrorFields) {
     // 对折双联（镜像）桌牌：打印前先弹双面/对折引导
     duplexGuideOpen.value = true
@@ -325,6 +383,60 @@ async function doExportPdf() {
       toast.info('已取消导出', '本次未扣除无水印次数，可随时重新导出')
     } else {
       toast.danger('PDF 生成失败', `${message}；本次未扣除无水印次数，可直接重试`)
+    }
+  } finally {
+    workspace.setLoading(false)
+    unmountHost()
+  }
+}
+
+async function doExportPng() {
+  if (pngSizeMode.value === 'exact' && !pngExactWidthValid.value) {
+    toast.warning('像素宽度无效', `请输入 ${MIN_EXACT_PIXEL_WIDTH}–${MAX_EXACT_PIXEL_WIDTH} 之间的整数像素宽度`)
+    return
+  }
+  const abort = new AbortController()
+  const cancel = () => abort.abort()
+  workspace.setLoading(true, '正在准备页面...', cancel)
+  try {
+    const pageCount = workspace.totalPages
+    const exact = pngSizeMode.value === 'exact'
+    await exportPagedPng({
+      pageCount,
+      signal: abort.signal,
+      getPage: async (i) => {
+        workspace.setLoading(true, `正在渲染第 ${i + 1}/${pageCount} 页...`, cancel)
+        await mountHost(i)
+        const el = hostRef.value?.querySelector<HTMLElement>('.sheet-page')
+        if (!el) throw new Error('页面节点未挂载')
+        return el
+      },
+      rebuildHost,
+      pageWidth: workspace.template.page.paperWidth,
+      pageHeight: workspace.template.page.paperHeight,
+      exactPixels: exact
+        ? { width: pngExactWidth.value, height: pngExactHeight.value }
+        : undefined,
+      cropRect: exact ? (pngCropRect.value ?? undefined) : undefined,
+      monochrome: pngMonochrome.value,
+      fileName: defaultPngExportName(),
+      onProgress: (done, total) =>
+        workspace.setLoading(true, `已完成 ${done}/${total} 页，正在生成图片...`, cancel),
+    })
+    await consumeQuotaAfterSuccess()
+    toast.success(
+      pageCount === 1 ? 'PNG 图片已生成' : `PNG 图片已生成（${pageCount} 页打包为 zip）`,
+      exact
+        ? `每页精确 ${pngExactWidth.value}×${pngExactHeight.value} 像素${pngMonochrome.value ? '、纯黑白' : ''}，可直接导入电子桌牌系统`
+        : '每页一张高清 PNG，可直接用于屏显或二次编辑',
+    )
+    maybeShowSharePrompt()
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (message === EXPORT_CANCELLED_MESSAGE) {
+      toast.info('已取消导出', '本次未扣除无水印次数，可随时重新导出')
+    } else {
+      toast.danger('PNG 生成失败', `${message}；本次未扣除无水印次数，可直接重试`)
     }
   } finally {
     workspace.setLoading(false)
@@ -561,6 +673,28 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             :title="`今日无水印导出剩余 ${quota.remaining}/${quota.limit} 次；带水印不限次`"
           >无水印 {{ quota.remaining }}</span>
         </button>
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm"
+          title="每页导出一张 PNG 图片：单页直接下载，多页自动打包 zip；电子座签模板支持精确 800×480 像素输出"
+          :disabled="!workspace.excel.rows.length || workspace.loading.active"
+          @click="openExportChoice('png')"
+        >
+          <svg
+            class="size-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <path d="m21 15-5-5L5 21" />
+          </svg>
+          图片 PNG
+        </button>
       </div>
     </div>
 
@@ -580,7 +714,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         <strong class="text-slate-800">成品已拿到，觉得好用？</strong>
         {{ auth.isLoggedIn ? '把工具分享给同事，他们每点开 1 次你就再得 1 次无水印导出' : '登录后无水印导出每天 3 次，自定义模板可同步云端，还可分享送次数' }}
       </p>
-      <div class="flex shrink-0 items-center gap-1.5">
+      <div class="flex shrink-0 items-center gap-1.5 max-sm:basis-full max-sm:justify-end">
         <button
           v-if="auth.isLoggedIn"
           type="button"
@@ -684,10 +818,38 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
 
     <ModalDialog
       :open="exportChoiceOpen"
-      :title="pendingAction === 'pdf' ? '导出图片版 PDF（推荐）' : '打印 / 矢量 PDF'"
+      :title="pendingAction === 'pdf' ? '导出图片版 PDF（推荐）' : pendingAction === 'png' ? '导出图片（PNG）' : '打印 / 矢量 PDF'"
       size="md"
       @close="exportChoiceOpen = false"
     >
+      <div v-if="pendingAction === 'png'" class="mb-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+        <label class="field-label">输出尺寸</label>
+        <SelectField v-model="pngSizeMode" size="sm" :options="PNG_SIZE_OPTIONS" />
+        <div v-if="pngSizeMode === 'exact'" class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+          <label class="font-semibold" for="png-exact-width">宽度（px）</label>
+          <input
+            id="png-exact-width"
+            v-model.number="pngExactWidth"
+            type="number"
+            :min="MIN_EXACT_PIXEL_WIDTH"
+            :max="MAX_EXACT_PIXEL_WIDTH"
+            class="input-field w-24 text-center"
+            :class="pngExactWidthValid ? '' : '!border-red-400'"
+          />
+          <span v-if="pngExactWidthValid" class="text-slate-500">
+            输出 <strong class="text-slate-700">{{ pngExactWidth }}×{{ pngExactHeight }}</strong> 像素（高度按模板比例自动推导）
+          </span>
+          <span v-else class="text-red-500">请输入 {{ MIN_EXACT_PIXEL_WIDTH }}–{{ MAX_EXACT_PIXEL_WIDTH }} 之间的整数</span>
+        </div>
+        <CheckboxField
+          v-model="pngMonochrome"
+          class="mt-2 text-xs font-semibold text-slate-600"
+          label="纯黑白输出（电子墨水屏推荐）"
+        />
+        <p class="mt-2 text-xs leading-5 text-slate-400">
+          单页直接下载 PNG，多页自动打包为 zip；{{ isEinkTemplate ? '电子座签模板默认精确 800×480 像素 + 纯黑白，可直接导入电子桌牌系统。' : '需要精确像素（如电子墨水屏）时选「精确像素」并填写目标宽度。' }}
+        </p>
+      </div>
       <p class="leading-6">选择导出方式：</p>
       <p
         v-if="pendingAction === 'pdf' && exportEstimate"
