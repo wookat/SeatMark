@@ -225,7 +225,7 @@ export const guidesRound5: Guide[] = [
     slug: 'eink-800x480-desk-card',
     title: '电子座签模板 800×480 怎么做？电子墨水屏桌牌图片制作与导出教程',
     description:
-      '电子桌牌、电子墨水屏座签常用 800×480 像素（7.5 英寸 5:3）图片。本文讲清 800×480 电子座签模板的排版要点，以及用 SeatMark 按 5:3 比例批量排版、导出 PDF 再转成 800×480 图片的完整方法。',
+      '电子桌牌、电子墨水屏座签常用 800×480 像素（7.5 英寸 5:3）图片。本文讲清 800×480 电子座签模板的排版要点，以及用 SeatMark 按 5:3 比例批量排版、一键导出精确 800×480 纯黑白 PNG 的完整方法。',
     keywords: ['电子座签模板 800X480', '电子桌牌模板', '电子墨水屏座签', '800×480 桌牌图片', '会议电子桌牌'],
     category: '会务',
     audiences: ['行政/HR', '会务人员', 'IT 管理员'],
@@ -235,7 +235,7 @@ export const guidesRound5: Guide[] = [
     quickStart: {
       label: '一键载入「电子座签 800×480」+ 演示名单',
       to: '/studio?template=eink800&demo=1',
-      note: '内置 5:3 黑白高对比模板，导出 PDF 后转 PNG 即可推送电子桌牌',
+      note: '内置 5:3 黑白高对比模板，一键导出精确 800×480 PNG 直接推送电子桌牌',
     },
     howTo: {
       name: '制作 800×480 电子座签图片',
@@ -243,8 +243,8 @@ export const guidesRound5: Guide[] = [
         { name: '确认屏幕参数', text: '查电子桌牌说明书确认分辨率（常见 800×480）与支持的图片格式（多为 PNG/JPG/BMP）。' },
         { name: '选电子座签模板', text: '在标签工坊选内置「电子座签 800×480」模板（200×120 mm，恰好 5:3，每页 1 枚）。' },
         { name: '设计黑白高对比版式', text: '墨水屏多为黑白双色，用大号粗体黑字白底，避免灰阶与细线条。' },
-        { name: '批量生成导出 PDF', text: '上传名单批量生成，导出高清 PDF（每人一页）。' },
-        { name: '转成 800×480 图片', text: '用转换工具把 PDF 每页输出为 800×480 像素 PNG，导入桌牌管理系统。' },
+        { name: '批量生成名单', text: '上传 Excel 名单批量生成，每人恰好一页。' },
+        { name: '一键导出 800×480 PNG', text: '点「图片 PNG」导出：默认精确 800×480 像素 + 纯黑白，多页自动打包 zip，直接导入桌牌管理系统。' },
       ],
     },
     faqs: [
@@ -254,7 +254,7 @@ export const guidesRound5: Guide[] = [
       },
       {
         q: 'SeatMark 能直接导出 800×480 的 PNG 吗？',
-        a: '目前 SeatMark 导出的是高清 PDF（渲染精度约 384 dpi，远超墨水屏需求），暂不支持直接指定像素尺寸导出图片。用内置「电子座签 800×480」模板（5:3 比例）导出 PDF，再用免费工具批量转成 800×480 PNG 即可，一次转换几百人的名单也只要一两分钟。',
+        a: '可以。在标签工坊点「图片 PNG」，电子座签模板默认启用「精确像素 800×480」与「纯黑白输出」：单页直接下载 PNG，多页自动打包 zip，几百人的名单一次导出即可直接推送，不再需要 ImageMagick 等转换工具；导出 PDF 再转换的老方法仍可作为备选。',
       },
       {
         q: '墨水屏显示发虚、有残影怎么办？',
@@ -281,16 +281,13 @@ export const guidesRound5: Guide[] = [
 <p>SeatMark 已内置专门的<a href="/templates/eink800">电子座签 800×480 模板</a>：200×120 mm（恰好 5:3）、每页 1 枚，单位小字居上、姓名超大号粗体居中、职务加粗居下，纯黑白高对比，不需要自己改尺寸与配色。在<a href="/studio?template=eink800&demo=1">标签工坊中一键载入该模板与演示数据</a>先看效果，之后上传 Excel 名单，几百人的桌牌版面一次生成，每人恰好一页。需要微调字段时进设计器拖拽即可。</p>
 <p>参会名单往往涉密，SeatMark 全程在浏览器本地排版、<a href="/guides/data-privacy-offline-usage">不上传任何数据</a>，符合政企内网使用要求。</p>
 
-<h2>导出 PDF → 批量转 800×480 PNG</h2>
-<p>SeatMark 目前导出的是高清图像型 PDF（渲染精度约 384 dpi，单页像素约 3000×1800，远超墨水屏需求），暂不支持直接指定「800×480 像素 PNG」导出。补上最后一步转换即可，两条免费路径：</p>
-<ul>
-<li><strong>命令行（推荐批量）</strong>：装 ImageMagick 后一行命令 <code>magick -density 150 cards.pdf -resize 800x480! -colorspace Gray -type Bilevel card-%03d.png</code>，把整份 PDF 按页输出为 800×480 黑白 PNG；</li>
-<li><strong>在线转换</strong>：用「PDF 转图片」类免费网站按页导出 PNG，再用批量改尺寸工具统一缩放到 800×480（比例本来就是 5:3，缩放不会变形）。</li>
-</ul>
-<p>转换后的 PNG 按「姓名/座位号」命名，导入电子桌牌管理系统批量推送即可。文件名与名单的对应技巧可参考<a href="/guides/photo-print-quality">批量图片处理经验</a>。</p>
+<h2>一键导出精确 800×480 PNG</h2>
+<p>SeatMark 已支持直接导出图片：在标签工坊点「图片 PNG」，电子座签模板默认启用<strong>精确像素 800×480</strong>与<strong>纯黑白输出</strong>，单页直接下载 PNG，多页自动打包为 zip，几百人的名单一次导出即可导入桌牌管理系统批量推送，不再需要 ImageMagick 等转换工具。如果贵司桌牌是 1280×720 的 10.2 英寸款，在导出弹窗里把像素宽度改成 1280 即可（高度按模板比例自动推导）。</p>
+<p>仍习惯 PDF 流程的话，老方法依然可用作备选：导出高清 PDF 后用 ImageMagick 一行命令 <code>magick -density 150 cards.pdf -resize 800x480! -colorspace Gray -type Bilevel card-%03d.png</code> 按页转换，或用「PDF 转图片」类在线工具导出后统一缩放。</p>
+<p>导出的 PNG 按页码命名（如 座签-001.png），与名单顺序一致，导入电子桌牌管理系统批量推送即可。文件名与名单的对应技巧可参考<a href="/guides/photo-print-quality">批量图片处理经验</a>。</p>
 
 <h2>常见问题排查</h2>
-<p><strong>推送后四周有黑边</strong>：图片不是恰好 800×480，重新用 <code>800x480!</code> 强制尺寸转换。<strong>字发虚</strong>：转换时 density 设太低，用 150 以上再缩小，或直接检查是否误用了 JPG。<strong>名字显示成方块</strong>：生僻字字体缺失，在 SeatMark 里换用覆盖生僻字的字体后重新导出（见<a href="/guides/rare-character-font-issue">生僻字解决方案</a>）。如果贵司的桌牌是 1280×720 的 10.2 英寸款，把上面所有 800×480 替换成 1280×720（16:9，对应 200×112.5 mm）即可，流程完全相同。</p>
+<p><strong>推送后四周有黑边</strong>：图片不是恰好 800×480，用 SeatMark「图片 PNG」的精确像素模式重新导出，或转换时用 <code>800x480!</code> 强制尺寸。<strong>字发虚</strong>：优先用内置 PNG 导出（先高倍率渲染再缩到目标尺寸）；若走 PDF 转换，density 用 150 以上再缩小，并检查是否误用了 JPG。<strong>名字显示成方块</strong>：生僻字字体缺失，在 SeatMark 里换用覆盖生僻字的字体后重新导出（见<a href="/guides/rare-character-font-issue">生僻字解决方案</a>）。如果贵司的桌牌是 1280×720 的 10.2 英寸款，把上面所有 800×480 替换成 1280×720（16:9，对应 200×112.5 mm）即可，流程完全相同。</p>
 `,
   },
 ]

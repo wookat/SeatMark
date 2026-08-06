@@ -229,26 +229,30 @@ async function canvasToImageBytes(
   return new Uint8Array(await blob.arrayBuffer())
 }
 
+type Html2CanvasFn = (
+  el: HTMLElement,
+  options: { scale: number; useCORS: boolean; backgroundColor: string; logging: boolean },
+) => Promise<HTMLCanvasElement>
+
+export interface PageRendererOptions {
+  pageCount: number
+  getPage: (index: number) => Promise<HTMLElement> | HTMLElement
+  scale: number
+  signal?: AbortSignal
+  pageTimeoutMs?: number
+  rebuildHost?: () => Promise<void> | void
+}
+
 /**
- * 分页分批导出：逐页栅格化后立即写入 PDF 并释放画布内存，
- * 单页失败会抛错并附带页码；页面尺寸跟随模板纸张。
- * 依赖按需加载，避免拖慢首屏。
+ * 单页渲染链路（PDF 与 PNG 导出共用）：
+ * 看门狗超时 + 空白检测 + 自动重试一次 + 重建容器兜底重渲，
+ * 任一环节挂起或失败都会以「第 N/M 页渲染失败」报错，绝不静默输出空白页。
  */
-export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<void> {
-  const { pageCount, getPage } = options
-  if (!pageCount) throw new Error('没有可导出的页面')
-
-  const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
-    import('jspdf'),
-    import('html2canvas-pro'),
-  ])
-
-  const scale = options.scale ?? defaultRasterScale(pageCount)
-  const imageFormat = options.imageFormat ?? defaultImageFormat(pageCount)
-  const pageWidth = options.pageWidth ?? 210
-  const pageHeight = options.pageHeight ?? 297
-  const orientation = pageWidth > pageHeight ? 'landscape' : 'portrait'
-  const doc = new jsPDF({ orientation, unit: 'mm', format: [pageWidth, pageHeight] })
+export function createPageRenderer(
+  options: PageRendererOptions,
+  html2canvas: Html2CanvasFn,
+): (index: number) => Promise<HTMLCanvasElement> {
+  const { pageCount, getPage, scale } = options
   const pageTimeoutMs = options.pageTimeoutMs ?? DEFAULT_PAGE_TIMEOUT_MS
   const throwIfCancelled = () => {
     if (options.signal?.aborted) throw new Error(EXPORT_CANCELLED_MESSAGE)
@@ -282,35 +286,73 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<vo
   const isCancelError = (err: unknown) =>
     err instanceof Error && err.message === EXPORT_CANCELLED_MESSAGE
 
-  for (let i = 0; i < pageCount; i++) {
-    throwIfCancelled()
-    if (i > 0) doc.addPage([pageWidth, pageHeight], orientation)
-    let bytes: Uint8Array
+  return async function renderPage(i: number): Promise<HTMLCanvasElement> {
     try {
-      let canvas: HTMLCanvasElement
       try {
-        canvas = await renderOnce(i)
+        return await renderOnce(i)
       } catch (firstErr) {
         // 超时或空白自动重试一次；用户取消不重试
         if (isCancelError(firstErr)) throw firstErr
         try {
-          canvas = await renderOnce(i)
+          return await renderOnce(i)
         } catch (secondErr) {
           // 重试仍失败：重建离屏容器后做最后一次重渲（长会话容器劣化的兜底）
           if (isCancelError(secondErr) || !options.rebuildHost) throw secondErr
           await options.rebuildHost()
-          canvas = await renderOnce(i)
+          return await renderOnce(i)
         }
       }
-      bytes = await canvasToImageBytes(canvas, imageFormat)
-      // 释放大画布内存，避免大页数任务累计占用
-      canvas.width = 0
-      canvas.height = 0
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
       if (detail === EXPORT_CANCELLED_MESSAGE) throw new Error(EXPORT_CANCELLED_MESSAGE)
       throw new Error(`第 ${i + 1}/${pageCount} 页渲染失败：${detail}`)
     }
+  }
+}
+
+/**
+ * 分页分批导出：逐页栅格化后立即写入 PDF 并释放画布内存，
+ * 单页失败会抛错并附带页码；页面尺寸跟随模板纸张。
+ * 依赖按需加载，避免拖慢首屏。
+ */
+export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<void> {
+  const { pageCount } = options
+  if (!pageCount) throw new Error('没有可导出的页面')
+
+  const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
+    import('jspdf'),
+    import('html2canvas-pro'),
+  ])
+
+  const scale = options.scale ?? defaultRasterScale(pageCount)
+  const imageFormat = options.imageFormat ?? defaultImageFormat(pageCount)
+  const pageWidth = options.pageWidth ?? 210
+  const pageHeight = options.pageHeight ?? 297
+  const orientation = pageWidth > pageHeight ? 'landscape' : 'portrait'
+  const doc = new jsPDF({ orientation, unit: 'mm', format: [pageWidth, pageHeight] })
+  const throwIfCancelled = () => {
+    if (options.signal?.aborted) throw new Error(EXPORT_CANCELLED_MESSAGE)
+  }
+  const renderPage = createPageRenderer(
+    {
+      pageCount,
+      getPage: options.getPage,
+      scale,
+      signal: options.signal,
+      pageTimeoutMs: options.pageTimeoutMs,
+      rebuildHost: options.rebuildHost,
+    },
+    html2canvas,
+  )
+
+  for (let i = 0; i < pageCount; i++) {
+    throwIfCancelled()
+    if (i > 0) doc.addPage([pageWidth, pageHeight], orientation)
+    const canvas = await renderPage(i)
+    const bytes = await canvasToImageBytes(canvas, imageFormat)
+    // 释放大画布内存，避免大页数任务累计占用
+    canvas.width = 0
+    canvas.height = 0
     const cal = options.calibration
     const x = cal?.offsetX ?? 0
     const y = cal?.offsetY ?? 0
