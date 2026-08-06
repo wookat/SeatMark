@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 
 import { useWorkspaceStore } from '@/stores/workspace'
-import { dismissStudioGuide, isStudioGuideDismissed } from '@/utils/firstVisit'
+import { dismissStudioGuide, studioGuideDismissed } from '@/utils/firstVisit'
 
 const workspace = useWorkspaceStore()
 
-const visible = ref(!isStudioGuideDismissed())
+// 响应式联动：导出/打印成功后（dismissStudioGuide）引导卡片当场消失
+const visible = computed(() => !studioGuideDismissed.value)
 
 const hasRows = computed(() => workspace.excel.rows.length > 0)
 
@@ -22,7 +23,6 @@ const steps = computed(() => [
 
 function close() {
   dismissStudioGuide()
-  visible.value = false
 }
 
 function tryDemo() {

@@ -26,6 +26,11 @@ export interface PagedPdfExportOptions extends PdfExportOptions {
   signal?: AbortSignal
   /** 单页渲染看门狗超时（毫秒），超时自动重试一次，仍超时则报错中止 */
   pageTimeoutMs?: number
+  /**
+   * 重建离屏渲染容器：长会话（多次模板切换）后容器可能劣化，
+   * 单页「重试仍失败」时调用一次并做最后一次重渲，仍失败才报错
+   */
+  rebuildHost?: () => Promise<void> | void
 }
 
 /** 用户主动取消导出时抛出的错误文案（用于上层区分取消与真实失败） */
@@ -115,26 +120,41 @@ export function isCanvasBlank(canvas: HTMLCanvasElement): boolean {
   }
 }
 
+/** 就绪等待属于尽力而为：给 Promise 加“到时即放行”的兜底，防止其永不落定拖死导出 */
+export function settleWithin<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
+  return Promise.race([
+    promise.catch(() => undefined),
+    new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), ms)),
+  ])
+}
+
+/** 字体就绪等待上限：在线字体加载卡死时 document.fonts.ready 可能永不落定 */
+export const FONTS_READY_WAIT_MS = 3_000
+/** 图片 decode / load 等待上限：失效的图片源不应拖死整次导出 */
+export const IMAGES_READY_WAIT_MS = 5_000
+
 /**
  * 等待页面节点真正就绪再截图：字体加载完成（document.fonts.ready）
  * + 节点内图片全部 decode + 双 requestAnimationFrame 确保完成布局与绘制。
+ * 各项等待均有时间上限：就绪等待只能拖慢截图，不允许永久挂起导出。
  */
 export async function waitForElementReady(el: HTMLElement): Promise<void> {
-  try {
-    await document.fonts.ready
-  } catch {
-    /* 旧浏览器无 fonts API：跳过 */
+  if (typeof document !== 'undefined' && 'fonts' in document) {
+    await settleWithin(document.fonts.ready.then(() => undefined), FONTS_READY_WAIT_MS)
   }
   const images = Array.from(el.querySelectorAll('img'))
-  await Promise.all(
-    images.map((img) =>
-      img.complete
-        ? img.decode().catch(() => undefined)
-        : new Promise<void>((resolve) => {
-            img.addEventListener('load', () => resolve(), { once: true })
-            img.addEventListener('error', () => resolve(), { once: true })
-          }),
+  await settleWithin(
+    Promise.all(
+      images.map((img) =>
+        img.complete
+          ? img.decode().catch(() => undefined)
+          : new Promise<void>((resolve) => {
+              img.addEventListener('load', () => resolve(), { once: true })
+              img.addEventListener('error', () => resolve(), { once: true })
+            }),
+      ),
     ),
+    IMAGES_READY_WAIT_MS,
   )
   await new Promise<void>((resolve) =>
     requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
@@ -235,25 +255,32 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<vo
   }
 
   /** 渲染单页一次：等节点完全就绪后再截图，并做空白页检测 */
-  async function renderOnce(i: number): Promise<HTMLCanvasElement> {
-    const injected = devForcedExportFailure(i)
-    if (injected) throw injected
-    const el = await getPage(i)
-    await waitForElementReady(el)
-    throwIfCancelled()
-    const canvas = await withTimeout(
-      html2canvas(el, {
-        scale,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-      }),
+  function renderOnce(i: number): Promise<HTMLCanvasElement> {
+    // 看门狗覆盖整条单页链路（挂载节点 + 就绪等待 + 栅格化），
+    // 任一环节挂起都会在超时后报错，杜绝“无提示、无产物”的静默失败
+    return withTimeout(
+      (async () => {
+        const injected = devForcedExportFailure(i)
+        if (injected) throw injected
+        const el = await getPage(i)
+        await waitForElementReady(el)
+        throwIfCancelled()
+        const canvas = await html2canvas(el, {
+          scale,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+        })
+        if (isCanvasBlank(canvas)) throw new Error('页面渲染为空白')
+        return canvas
+      })(),
       pageTimeoutMs,
       `渲染超时（超过 ${Math.round(pageTimeoutMs / 1000)} 秒未完成）`,
     )
-    if (isCanvasBlank(canvas)) throw new Error('页面渲染为空白')
-    return canvas
   }
+
+  const isCancelError = (err: unknown) =>
+    err instanceof Error && err.message === EXPORT_CANCELLED_MESSAGE
 
   for (let i = 0; i < pageCount; i++) {
     throwIfCancelled()
@@ -265,9 +292,15 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<vo
         canvas = await renderOnce(i)
       } catch (firstErr) {
         // 超时或空白自动重试一次；用户取消不重试
-        const msg = firstErr instanceof Error ? firstErr.message : String(firstErr)
-        if (msg === EXPORT_CANCELLED_MESSAGE) throw firstErr
-        canvas = await renderOnce(i)
+        if (isCancelError(firstErr)) throw firstErr
+        try {
+          canvas = await renderOnce(i)
+        } catch (secondErr) {
+          // 重试仍失败：重建离屏容器后做最后一次重渲（长会话容器劣化的兜底）
+          if (isCancelError(secondErr) || !options.rebuildHost) throw secondErr
+          await options.rebuildHost()
+          canvas = await renderOnce(i)
+        }
       }
       bytes = await canvasToImageBytes(canvas, imageFormat)
       // 释放大画布内存，避免大页数任务累计占用
