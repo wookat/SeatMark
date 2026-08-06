@@ -13,22 +13,28 @@ export interface PdfExportOptions {
   /** 打印校准补偿（全局偏移 mm + 缩放），未设置时不补偿 */
   calibration?: PrintCalibration
   onProgress?: (done: number, total: number) => void
-  /** 取消信号：导出过程中用户点「取消」时中断，抛 ExportCancelledError */
-  signal?: AbortSignal
 }
 
-/** 用户主动取消导出：调用方据此区分取消与失败（两者都不消耗配额） */
-export class ExportCancelledError extends Error {
-  constructor() {
-    super('导出已取消')
-    this.name = 'ExportCancelledError'
-  }
+export interface PagedPdfExportOptions extends PdfExportOptions {
+  pageCount: number
+  /**
+   * 逐页取节点：仅在轮到该页时才要求其挂载，
+   * 大页数任务无需一次性渲染全部页面，内存占用恒定
+   */
+  getPage: (index: number) => Promise<HTMLElement> | HTMLElement
+  /** 取消信号：在页与页之间检查，中止后抛出「已取消导出」 */
+  signal?: AbortSignal
+  /** 单页渲染看门狗超时（毫秒），超时自动重试一次，仍超时则报错中止 */
+  pageTimeoutMs?: number
 }
+
+/** 用户主动取消导出时抛出的错误文案（用于上层区分取消与真实失败） */
+export const EXPORT_CANCELLED_MESSAGE = '已取消导出'
 
 /**
- * 开发调试注入：localStorage 开关强制指定页渲染失败（仅 DEV 构建生效），
- * 用于回归验收「导出失败不扣配额」。值为页码（1 起），非数字视为第 1 页。
- * 例：localStorage.setItem('seatmark.dev.force-export-fail', '2')
+ * 开发注入：强制指定页渲染失败的 localStorage 开关（仅 DEV 生效）。
+ * 值为页码（1 起）时仅该页失败，其他真值视为第 1 页；
+ * 用于回归验收「导出失败不扣配额」路径。
  */
 export const DEV_FORCE_EXPORT_FAIL_KEY = 'seatmark.dev.force-export-fail'
 
@@ -45,13 +51,94 @@ export function devForcedExportFailure(pageIndex: number): Error | null {
   }
 }
 
-export interface PagedPdfExportOptions extends PdfExportOptions {
-  pageCount: number
-  /**
-   * 逐页取节点：仅在轮到该页时才要求其挂载，
-   * 大页数任务无需一次性渲染全部页面，内存占用恒定
-   */
-  getPage: (index: number) => Promise<HTMLElement> | HTMLElement
+/** 单页渲染看门狗默认超时：移动端慢 CPU 下渲染一页 A4@2x 通常 <10s，30s 视为挂起 */
+export const DEFAULT_PAGE_TIMEOUT_MS = 30_000
+
+/** 给 Promise 加看门狗超时：超时以指定文案 reject，防止 html2canvas 无限挂起 */
+export function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms)
+    promise.then(
+      (v) => {
+        clearTimeout(timer)
+        resolve(v)
+      },
+      (e) => {
+        clearTimeout(timer)
+        reject(e)
+      },
+    )
+  })
+}
+
+/**
+ * 像素采样非空检测（纯函数，便于单测）：
+ * RGBA 数组按步长采样，全部像素都接近白色（且不透明或全透明）视为空白。
+ */
+export function isPixelDataBlank(
+  data: Uint8ClampedArray | number[],
+  sampleStep = 1,
+  whiteThreshold = 250,
+): boolean {
+  const step = Math.max(1, Math.floor(sampleStep)) * 4
+  for (let i = 0; i + 3 < data.length; i += step) {
+    const r = data[i]!
+    const g = data[i + 1]!
+    const b = data[i + 2]!
+    const a = data[i + 3]!
+    // 有可见的非白像素即认为非空
+    if (a > 0 && (r < whiteThreshold || g < whiteThreshold || b < whiteThreshold)) return false
+  }
+  return true
+}
+
+/**
+ * canvas 快速非空检测：整幅缩到小画布后采样像素，
+ * 全白视为空白页（DOM 未渲染完成就截图的典型症状）。
+ * 环境不支持 2D 上下文时返回 false（宁可放过也不误杀）。
+ */
+export function isCanvasBlank(canvas: HTMLCanvasElement): boolean {
+  if (!canvas.width || !canvas.height) return true
+  try {
+    const sampleW = Math.min(canvas.width, 96)
+    const sampleH = Math.min(canvas.height, 128)
+    const probe = document.createElement('canvas')
+    probe.width = sampleW
+    probe.height = sampleH
+    const ctx = probe.getContext('2d', { willReadFrequently: true })
+    if (!ctx) return false
+    ctx.drawImage(canvas, 0, 0, sampleW, sampleH)
+    const { data } = ctx.getImageData(0, 0, sampleW, sampleH)
+    return isPixelDataBlank(data)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 等待页面节点真正就绪再截图：字体加载完成（document.fonts.ready）
+ * + 节点内图片全部 decode + 双 requestAnimationFrame 确保完成布局与绘制。
+ */
+export async function waitForElementReady(el: HTMLElement): Promise<void> {
+  try {
+    await document.fonts.ready
+  } catch {
+    /* 旧浏览器无 fonts API：跳过 */
+  }
+  const images = Array.from(el.querySelectorAll('img'))
+  await Promise.all(
+    images.map((img) =>
+      img.complete
+        ? img.decode().catch(() => undefined)
+        : new Promise<void>((resolve) => {
+            img.addEventListener('load', () => resolve(), { once: true })
+            img.addEventListener('error', () => resolve(), { once: true })
+          }),
+    ),
+  )
+  await new Promise<void>((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  )
 }
 
 /**
@@ -142,27 +229,53 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<vo
   const pageHeight = options.pageHeight ?? 297
   const orientation = pageWidth > pageHeight ? 'landscape' : 'portrait'
   const doc = new jsPDF({ orientation, unit: 'mm', format: [pageWidth, pageHeight] })
+  const pageTimeoutMs = options.pageTimeoutMs ?? DEFAULT_PAGE_TIMEOUT_MS
+  const throwIfCancelled = () => {
+    if (options.signal?.aborted) throw new Error(EXPORT_CANCELLED_MESSAGE)
+  }
 
-  for (let i = 0; i < pageCount; i++) {
-    if (options.signal?.aborted) throw new ExportCancelledError()
-    if (i > 0) doc.addPage([pageWidth, pageHeight], orientation)
-    let bytes: Uint8Array
-    try {
-      const injected = devForcedExportFailure(i)
-      if (injected) throw injected
-      const el = await getPage(i)
-      const canvas = await html2canvas(el, {
+  /** 渲染单页一次：等节点完全就绪后再截图，并做空白页检测 */
+  async function renderOnce(i: number): Promise<HTMLCanvasElement> {
+    const injected = devForcedExportFailure(i)
+    if (injected) throw injected
+    const el = await getPage(i)
+    await waitForElementReady(el)
+    throwIfCancelled()
+    const canvas = await withTimeout(
+      html2canvas(el, {
         scale,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
-      })
+      }),
+      pageTimeoutMs,
+      `渲染超时（超过 ${Math.round(pageTimeoutMs / 1000)} 秒未完成）`,
+    )
+    if (isCanvasBlank(canvas)) throw new Error('页面渲染为空白')
+    return canvas
+  }
+
+  for (let i = 0; i < pageCount; i++) {
+    throwIfCancelled()
+    if (i > 0) doc.addPage([pageWidth, pageHeight], orientation)
+    let bytes: Uint8Array
+    try {
+      let canvas: HTMLCanvasElement
+      try {
+        canvas = await renderOnce(i)
+      } catch (firstErr) {
+        // 超时或空白自动重试一次；用户取消不重试
+        const msg = firstErr instanceof Error ? firstErr.message : String(firstErr)
+        if (msg === EXPORT_CANCELLED_MESSAGE) throw firstErr
+        canvas = await renderOnce(i)
+      }
       bytes = await canvasToImageBytes(canvas, imageFormat)
       // 释放大画布内存，避免大页数任务累计占用
       canvas.width = 0
       canvas.height = 0
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
+      if (detail === EXPORT_CANCELLED_MESSAGE) throw new Error(EXPORT_CANCELLED_MESSAGE)
       throw new Error(`第 ${i + 1}/${pageCount} 页渲染失败：${detail}`)
     }
     const cal = options.calibration
@@ -174,7 +287,6 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<vo
     options.onProgress?.(i + 1, pageCount)
   }
 
-  if (options.signal?.aborted) throw new ExportCancelledError()
   doc.save(options.fileName ?? defaultPdfFileName())
 }
 

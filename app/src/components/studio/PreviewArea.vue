@@ -19,7 +19,7 @@ import type { DataRow } from '@/types/template'
 import {
   defaultRasterScale,
   estimatePdfBytes,
-  ExportCancelledError,
+  EXPORT_CANCELLED_MESSAGE,
   exportPagedPdf,
   formatBytes,
   rasterDpi,
@@ -186,6 +186,10 @@ async function mountHost(pageIndex: number | null = null) {
   } catch {
     /* 旧浏览器无 fonts API：跳过 */
   }
+  // 双 requestAnimationFrame：确保浏览器完成布局与绘制后再截图/打印
+  await new Promise<void>((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  )
   await sleep(pageIndex == null ? 250 : 60)
 }
 
@@ -240,17 +244,18 @@ async function consumeQuotaAfterSuccess() {
 }
 
 async function doExportPdf() {
-  const aborter = new AbortController()
-  const cancelExport = () => aborter.abort()
-  workspace.setLoading(true, '正在准备页面...', cancelExport)
+  const abort = new AbortController()
+  const cancel = () => abort.abort()
+  workspace.setLoading(true, '正在准备页面...', cancel)
   try {
     const pageCount = workspace.totalPages
     const scale = defaultRasterScale(pageCount)
     await exportPagedPdf({
       pageCount,
+      signal: abort.signal,
       // 分页分批：每次只挂载并栅格化一页，60+ 页任务内存占用恒定
       getPage: async (i) => {
-        workspace.setLoading(true, `正在渲染第 ${i + 1}/${pageCount} 页...`, cancelExport)
+        workspace.setLoading(true, `正在渲染第 ${i + 1}/${pageCount} 页...`, cancel)
         await mountHost(i)
         const el = hostRef.value?.querySelector<HTMLElement>('.sheet-page')
         if (!el) throw new Error('页面节点未挂载')
@@ -260,9 +265,8 @@ async function doExportPdf() {
       pageWidth: workspace.template.page.paperWidth,
       pageHeight: workspace.template.page.paperHeight,
       calibration: calibrationStore.active ? calibrationStore.calibration : undefined,
-      signal: aborter.signal,
       onProgress: (done, total) =>
-        workspace.setLoading(true, `已完成 ${done}/${total} 页，正在写入 PDF...`, cancelExport),
+        workspace.setLoading(true, `已完成 ${done}/${total} 页，正在写入 PDF...`, cancel),
     })
     await consumeQuotaAfterSuccess()
     toast.success(
@@ -270,13 +274,11 @@ async function doExportPdf() {
       `每页为 ${rasterDpi(scale)}dpi 高清栅格，放大打印仍清晰；文字需可选中请用「打印 / 矢量 PDF」`,
     )
   } catch (err) {
-    if (err instanceof ExportCancelledError) {
-      toast.info('已取消导出', '本次未扣除无水印次数')
+    const message = err instanceof Error ? err.message : String(err)
+    if (message === EXPORT_CANCELLED_MESSAGE) {
+      toast.info('已取消导出', '本次未扣除无水印次数，可随时重新导出')
     } else {
-      toast.danger(
-        'PDF 生成失败',
-        `${err instanceof Error ? err.message : String(err)}；本次未扣除无水印次数，可直接重试`,
-      )
+      toast.danger('PDF 生成失败', `${message}；本次未扣除无水印次数，可直接重试`)
     }
   } finally {
     workspace.setLoading(false)

@@ -11,7 +11,7 @@ import { QUOTA_ANON_DAILY, useQuotaStore } from '@/stores/quota'
 import {
   DEV_FORCE_EXPORT_FAIL_KEY,
   devForcedExportFailure,
-  ExportCancelledError,
+  EXPORT_CANCELLED_MESSAGE,
   exportPagedPdf,
 } from '@/utils/pdfExport'
 
@@ -56,7 +56,7 @@ describe('开发注入强制导出失败（localStorage 开关，仅 DEV 生效�
     expect(saveMock).not.toHaveBeenCalled()
   })
 
-  it('取消信号中断导出：抛 ExportCancelledError 且不写入 PDF', async () => {
+  it('取消信号中断导出：抛「已取消导出」且不写入 PDF', async () => {
     const aborter = new AbortController()
     aborter.abort()
     await expect(
@@ -65,7 +65,7 @@ describe('开发注入强制导出失败（localStorage 开关，仅 DEV 生效�
         getPage: () => document.createElement('div'),
         signal: aborter.signal,
       }),
-    ).rejects.toBeInstanceOf(ExportCancelledError)
+    ).rejects.toThrow(EXPORT_CANCELLED_MESSAGE)
     expect(saveMock).not.toHaveBeenCalled()
   })
 })
@@ -109,7 +109,7 @@ describe('导出失败路径不消费配额（配额只在成功后消费）', (
       })
       await quota.tryConsume()
     } catch (err) {
-      cancelled = err instanceof ExportCancelledError
+      cancelled = err instanceof Error && err.message === EXPORT_CANCELLED_MESSAGE
     }
     expect(cancelled).toBe(true)
     expect(quota.remaining).toBe(QUOTA_ANON_DAILY)
