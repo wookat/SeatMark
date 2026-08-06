@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch, watchEffect } from 'vue'
+import { computed, nextTick, onMounted, ref, watch, watchEffect } from 'vue'
 
 import LabelSheet from '@/components/label/LabelSheet.vue'
 import CalibrationDialog from '@/components/studio/CalibrationDialog.vue'
@@ -19,6 +19,7 @@ import type { DataRow } from '@/types/template'
 import {
   defaultRasterScale,
   estimatePdfBytes,
+  ExportCancelledError,
   exportPagedPdf,
   formatBytes,
   rasterDpi,
@@ -121,7 +122,29 @@ const editRowHasOverride = computed(
   () => editRow.value != null && !!workspace.overridesFor(editRow.value),
 )
 
+/** Edit One 首次使用引导气泡：只展示一次，关闭或用过一次后不再出现 */
+const EDIT_ONE_HINT_KEY = 'seatmark.edit-one-hint-dismissed.v1'
+const editOneHintVisible = ref(false)
+
+onMounted(() => {
+  try {
+    editOneHintVisible.value = !localStorage.getItem(EDIT_ONE_HINT_KEY)
+  } catch {
+    editOneHintVisible.value = false
+  }
+})
+
+function dismissEditOneHint() {
+  editOneHintVisible.value = false
+  try {
+    localStorage.setItem(EDIT_ONE_HINT_KEY, '1')
+  } catch {
+    /* 隐私模式：下次仍会展示，可接受 */
+  }
+}
+
 function openEditOne(row: DataRow) {
+  if (editOneHintVisible.value) dismissEditOneHint()
   const values: Record<string, string> = {}
   for (const field of workspace.mappableFields) {
     values[field.id] = workspace.fieldText(row, field.id)
@@ -217,7 +240,9 @@ async function consumeQuotaAfterSuccess() {
 }
 
 async function doExportPdf() {
-  workspace.setLoading(true, '正在准备页面...')
+  const aborter = new AbortController()
+  const cancelExport = () => aborter.abort()
+  workspace.setLoading(true, '正在准备页面...', cancelExport)
   try {
     const pageCount = workspace.totalPages
     const scale = defaultRasterScale(pageCount)
@@ -225,7 +250,7 @@ async function doExportPdf() {
       pageCount,
       // 分页分批：每次只挂载并栅格化一页，60+ 页任务内存占用恒定
       getPage: async (i) => {
-        workspace.setLoading(true, `正在渲染第 ${i + 1}/${pageCount} 页...`)
+        workspace.setLoading(true, `正在渲染第 ${i + 1}/${pageCount} 页...`, cancelExport)
         await mountHost(i)
         const el = hostRef.value?.querySelector<HTMLElement>('.sheet-page')
         if (!el) throw new Error('页面节点未挂载')
@@ -235,8 +260,9 @@ async function doExportPdf() {
       pageWidth: workspace.template.page.paperWidth,
       pageHeight: workspace.template.page.paperHeight,
       calibration: calibrationStore.active ? calibrationStore.calibration : undefined,
+      signal: aborter.signal,
       onProgress: (done, total) =>
-        workspace.setLoading(true, `已完成 ${done}/${total} 页，正在写入 PDF...`),
+        workspace.setLoading(true, `已完成 ${done}/${total} 页，正在写入 PDF...`, cancelExport),
     })
     await consumeQuotaAfterSuccess()
     toast.success(
@@ -244,10 +270,14 @@ async function doExportPdf() {
       `每页为 ${rasterDpi(scale)}dpi 高清栅格，放大打印仍清晰；文字需可选中请用「打印 / 矢量 PDF」`,
     )
   } catch (err) {
-    toast.danger(
-      'PDF 生成失败',
-      `${err instanceof Error ? err.message : String(err)}；本次未扣除无水印次数，可直接重试`,
-    )
+    if (err instanceof ExportCancelledError) {
+      toast.info('已取消导出', '本次未扣除无水印次数')
+    } else {
+      toast.danger(
+        'PDF 生成失败',
+        `${err instanceof Error ? err.message : String(err)}；本次未扣除无水印次数，可直接重试`,
+      )
+    }
   } finally {
     workspace.setLoading(false)
     unmountHost()
@@ -484,7 +514,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
 
     <div
       ref="previewContainer"
-      class="no-print mt-3 flex-1 overflow-auto rounded-lg border border-slate-200/80 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-slate-100/70 bg-[size:16px_16px] p-3 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)]"
+      class="no-print relative mt-3 flex-1 overflow-auto rounded-lg border border-slate-200/80 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-slate-100/70 bg-[size:16px_16px] p-3 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)]"
     >
       <div v-if="!workspace.excel.rows.length" class="flex h-full items-center justify-center py-12">
         <div class="max-w-xs text-center">
@@ -513,6 +543,30 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
       </div>
 
       <div v-else class="flex justify-center">
+        <div
+          v-if="editOneHintVisible"
+          class="absolute top-2 left-2 z-10 flex max-w-xs items-start gap-2 rounded-lg border border-brand-200 bg-white/95 px-3 py-2.5 shadow-pop backdrop-blur"
+        >
+          <span class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600">
+            <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+          </span>
+          <p class="text-xs leading-5 text-slate-600">
+            <strong class="text-slate-800">小技巧：单张覆写</strong><br />
+            点击预览中任意一张标签，可单独修改这一张的内容，不影响名单数据。
+          </p>
+          <button
+            type="button"
+            class="grid size-5 shrink-0 place-items-center rounded text-slate-400 hover:text-slate-600"
+            aria-label="关闭提示"
+            @click="dismissEditOneHint"
+          >
+            <svg class="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="m4 4 8 8m0-8-8 8" />
+            </svg>
+          </button>
+        </div>
         <div
           class="relative origin-top-left"
           :style="{ width: `${pageWidthPx * scale}px`, height: `${pageHeightPx * scale}px` }"

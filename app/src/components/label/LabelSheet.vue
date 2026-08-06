@@ -83,6 +83,7 @@ function textsFor(row: DataRow): Record<string, string> {
       :key="idx"
       class="label-box"
       :class="interactive && row ? 'cursor-pointer transition-shadow hover:ring-2 hover:ring-brand-400' : ''"
+      :title="interactive && row ? '点击可单张覆写：只改这一张标签，不改名单' : undefined"
       :style="boxStyle(idx)"
       @click="interactive && row && emit('labelClick', row)"
     >

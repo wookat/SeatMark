@@ -190,6 +190,10 @@ function swapRows(a: number, b: number) {
 
 function onSeatClick(seat: Seat | null) {
   if (!seat) return
+  if (suppressClick) {
+    suppressClick = false
+    return
+  }
   selectedRow.value = null
   const idx = seat.seatNo - 1
   if (selectedSeat.value == null) {
@@ -205,6 +209,10 @@ function onSeatClick(seat: Seat | null) {
 }
 
 function onRowHandleClick(r: number) {
+  if (suppressClick) {
+    suppressClick = false
+    return
+  }
   selectedSeat.value = null
   if (selectedRow.value == null) {
     selectedRow.value = r
@@ -218,33 +226,79 @@ function onRowHandleClick(r: number) {
   selectedRow.value = null
 }
 
-function onSeatDragStart(seat: Seat | null, event: DragEvent) {
-  if (!seat) return
+/**
+ * 拖拽交换（仅鼠标）：基于 Pointer 事件实现。预览处于 scale() 变换容器内，
+ * 原生 HTML5 Drag&Drop 在变换容器中不可靠（拖拽无反应）；触屏保留点选互换，
+ * 避免与页面滚动冲突。
+ */
+const dragging = ref(false)
+const dropSeatTarget = ref<number | null>(null)
+const dropRowTarget = ref<number | null>(null)
+let dragStartX = 0
+let dragStartY = 0
+let suppressClick = false
+const DRAG_THRESHOLD_PX = 5
+
+function onSeatPointerDown(seat: Seat | null, event: PointerEvent) {
+  if (!seat?.name || event.pointerType !== 'mouse' || event.button !== 0) return
+  event.preventDefault()
   dragSeat.value = seat.seatNo - 1
   dragRow.value = null
-  event.dataTransfer?.setData('text/plain', String(seat.seatNo))
-  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+  beginDrag(event)
 }
 
-function onSeatDrop(seat: Seat | null) {
-  if (!seat) return
-  if (dragSeat.value != null) swapSeats(dragSeat.value, seat.seatNo - 1)
-  else if (dragRow.value != null) swapRows(dragRow.value, seat.row - 1)
-  dragSeat.value = null
-  dragRow.value = null
-}
-
-function onRowDragStart(r: number, event: DragEvent) {
+function onRowPointerDown(r: number, event: PointerEvent) {
+  if (event.pointerType !== 'mouse' || event.button !== 0) return
+  event.preventDefault()
   dragRow.value = r
   dragSeat.value = null
-  event.dataTransfer?.setData('text/plain', `row-${r}`)
-  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+  beginDrag(event)
 }
 
-function onRowDrop(r: number) {
-  if (dragRow.value != null) swapRows(dragRow.value, r)
-  dragRow.value = null
+function beginDrag(event: PointerEvent) {
+  dragging.value = false
+  dragStartX = event.clientX
+  dragStartY = event.clientY
+  window.addEventListener('pointermove', onDragPointerMove)
+  window.addEventListener('pointerup', onDragPointerUp)
+}
+
+function onDragPointerMove(event: PointerEvent) {
+  if (!dragging.value) {
+    if (
+      Math.abs(event.clientX - dragStartX) < DRAG_THRESHOLD_PX &&
+      Math.abs(event.clientY - dragStartY) < DRAG_THRESHOLD_PX
+    ) {
+      return
+    }
+    dragging.value = true
+  }
+  const el = document.elementFromPoint(event.clientX, event.clientY)
+  const seatEl = el?.closest<HTMLElement>('[data-seat-no]')
+  const rowEl = el?.closest<HTMLElement>('[data-row-index]')
+  dropSeatTarget.value = seatEl ? Number(seatEl.dataset.seatNo) - 1 : null
+  dropRowTarget.value = rowEl ? Number(rowEl.dataset.rowIndex) : null
+}
+
+function onDragPointerUp() {
+  window.removeEventListener('pointermove', onDragPointerMove)
+  window.removeEventListener('pointerup', onDragPointerUp)
+  if (dragging.value) {
+    suppressClick = true
+    if (dragSeat.value != null && dropSeatTarget.value != null) {
+      swapSeats(dragSeat.value, dropSeatTarget.value)
+    } else if (dragRow.value != null) {
+      if (dropRowTarget.value != null) swapRows(dragRow.value, dropRowTarget.value)
+      else if (dropSeatTarget.value != null) {
+        swapRows(dragRow.value, Math.floor(dropSeatTarget.value / cols.value))
+      }
+    }
+  }
+  dragging.value = false
   dragSeat.value = null
+  dragRow.value = null
+  dropSeatTarget.value = null
+  dropRowTarget.value = null
 }
 
 const seatCount = computed(() => rows.value * cols.value)
@@ -445,8 +499,8 @@ function toDeskLabels() {
           </div>
           <p class="mt-2 text-xs leading-5 text-slate-400">
             男女混排需名单包含性别列（每行「姓名 性别」）。预览中可
-            <strong class="text-slate-500">点选两个座位互换</strong>，或直接拖拽座位交换；
-            点击/拖拽行首「排」把手可整排交换。
+            <strong class="text-slate-500">点选两个座位互换</strong>，桌面鼠标还可直接按住座位拖拽交换；
+            触屏设备请用点选方式。点击（桌面也可拖拽）行首「排」把手可整排交换。
           </p>
         </section>
 
@@ -541,13 +595,14 @@ function toDeskLabels() {
                       <button
                         type="button"
                         class="seating-row-handle"
-                        :class="{ 'seating-row-handle--active': selectedRow === r }"
+                        :class="{
+                          'seating-row-handle--active': selectedRow === r,
+                          'seating-seat--drop-target': dragging && dropRowTarget === r,
+                        }"
                         :title="`第 ${r + 1} 排：点击或拖拽与另一排交换`"
-                        draggable="true"
+                        :data-row-index="r"
                         @click="onRowHandleClick(r)"
-                        @dragstart="onRowDragStart(r, $event)"
-                        @dragover.prevent
-                        @drop.prevent="onRowDrop(r)"
+                        @pointerdown="onRowPointerDown(r, $event)"
                       >
                         {{ r + 1 }}
                       </button>
@@ -560,15 +615,15 @@ function toDeskLabels() {
                               cell.seat && selectedSeat === cell.seat.seatNo - 1,
                             'seating-seat--boy': cell.seat?.gender === '男',
                             'seating-seat--girl': cell.seat?.gender === '女',
+                            'seating-seat--drop-target':
+                              dragging && cell.seat && dropSeatTarget === cell.seat.seatNo - 1,
                           }"
-                          :draggable="!!cell.seat?.name"
                           role="button"
                           tabindex="0"
+                          :data-seat-no="cell.seat?.seatNo"
                           @click="onSeatClick(cell.seat)"
                           @keydown.enter.prevent="onSeatClick(cell.seat)"
-                          @dragstart="onSeatDragStart(cell.seat, $event)"
-                          @dragover.prevent
-                          @drop.prevent="onSeatDrop(cell.seat)"
+                          @pointerdown="onSeatPointerDown(cell.seat, $event)"
                         >
                           <span class="seating-seat-no">{{ cell.seat?.seatNo }}</span>
                           <span class="seating-seat-name">{{ cell.seat?.name || '—' }}</span>
@@ -731,6 +786,14 @@ function toDeskLabels() {
   border-color: #4f46e5;
   border-width: 0.6mm;
   box-shadow: 0 0 0 1mm rgba(79, 70, 229, 0.18);
+}
+
+/* 鼠标拖拽时的落点高亮 */
+.seating-seat--drop-target {
+  border-color: #16a34a;
+  border-style: solid;
+  box-shadow: 0 0 0 1mm rgba(22, 163, 74, 0.25);
+  background: #f0fdf4;
 }
 
 .seating-seat-no {

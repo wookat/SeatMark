@@ -401,8 +401,37 @@ function isLocalDev(url, env) {
   return LOCAL_HOSTNAMES.has(url.hostname) || Boolean(env && env.DEV)
 }
 
+/**
+ * 存储操作防御重试：Blob 后备链首次调用可能因实例初始化抖动而失败，
+ * 短暂等待后重试一次；仍失败则抛出交由调用方降级，避免整个函数 545。
+ */
+async function kvOpWithRetry(label, op) {
+  try {
+    return await op()
+  } catch (err) {
+    console.error(`[seatmark-api] ${label} 首次失败，120ms 后重试:`, err)
+    await new Promise((resolve) => setTimeout(resolve, 120))
+    return op()
+  }
+}
+
 // ---------- 路由处理 ----------
+/** 顶层兜底：任何未捕获异常都返回结构化 JSON 500，而不是让边缘实例 545 */
 export async function onRequest(context) {
+  try {
+    return await handleRequest(context)
+  } catch (err) {
+    console.error(
+      '[seatmark-api] 未捕获异常:',
+      context?.request?.method,
+      context?.request?.url,
+      err,
+    )
+    return json({ error: '服务暂时不可用，请稍后重试' }, 500)
+  }
+}
+
+async function handleRequest(context) {
   const { request, env } = context
   const url = new URL(request.url)
   const path = url.pathname.replace(/\/+$/, '') || '/'
@@ -714,14 +743,25 @@ export async function onRequest(context) {
     }
     // 内容寻址短码：同一模板重复分享得到同一短码，天然去重
     const code = (await sha256Hex(payload)).slice(0, 10)
-    await kv.put(`tplshare:${code}`, payload)
+    try {
+      await kvOpWithRetry('tplshare 写入', () => kv.put(`tplshare:${code}`, payload))
+    } catch (err) {
+      console.error('[seatmark-api] tplshare 写入重试后仍失败:', err)
+      return json({ error: '分享服务暂时不可用，请稍后重试' }, 503, storageHeader)
+    }
     return json({ ok: true, code }, 200, storageHeader)
   }
 
   if (path === '/api/share/tpl' && method === 'GET') {
     const code = (url.searchParams.get('code') || '').trim()
     if (!/^[0-9a-f]{10}$/.test(code)) return json({ error: '短码无效' }, 400, storageHeader)
-    const payload = await kv.get(`tplshare:${code}`)
+    let payload
+    try {
+      payload = await kvOpWithRetry('tplshare 读取', () => kv.get(`tplshare:${code}`))
+    } catch (err) {
+      console.error('[seatmark-api] tplshare 读取重试后仍失败:', err)
+      return json({ error: '分享服务暂时不可用，请稍后重试' }, 503, storageHeader)
+    }
     if (!payload) return json({ error: '短码不存在或已过期' }, 404, storageHeader)
     return json({ ok: true, payload }, 200, storageHeader)
   }

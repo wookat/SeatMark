@@ -24,6 +24,14 @@ const workspace = useWorkspaceStore()
           <BrandMark class="size-5 text-brand-600" />
         </div>
         <p class="text-sm font-semibold text-slate-700">{{ workspace.loading.text || '处理中...' }}</p>
+        <button
+          v-if="workspace.loading.cancel"
+          type="button"
+          class="btn btn-secondary btn-sm"
+          @click="workspace.loading.cancel()"
+        >
+          取消
+        </button>
       </div>
     </div>
   </Transition>

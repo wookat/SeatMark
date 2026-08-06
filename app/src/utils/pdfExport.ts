@@ -13,6 +13,36 @@ export interface PdfExportOptions {
   /** 打印校准补偿（全局偏移 mm + 缩放），未设置时不补偿 */
   calibration?: PrintCalibration
   onProgress?: (done: number, total: number) => void
+  /** 取消信号：导出过程中用户点「取消」时中断，抛 ExportCancelledError */
+  signal?: AbortSignal
+}
+
+/** 用户主动取消导出：调用方据此区分取消与失败（两者都不消耗配额） */
+export class ExportCancelledError extends Error {
+  constructor() {
+    super('导出已取消')
+    this.name = 'ExportCancelledError'
+  }
+}
+
+/**
+ * 开发调试注入：localStorage 开关强制指定页渲染失败（仅 DEV 构建生效），
+ * 用于回归验收「导出失败不扣配额」。值为页码（1 起），非数字视为第 1 页。
+ * 例：localStorage.setItem('seatmark.dev.force-export-fail', '2')
+ */
+export const DEV_FORCE_EXPORT_FAIL_KEY = 'seatmark.dev.force-export-fail'
+
+export function devForcedExportFailure(pageIndex: number): Error | null {
+  if (!import.meta.env.DEV) return null
+  try {
+    const raw = localStorage.getItem(DEV_FORCE_EXPORT_FAIL_KEY)
+    if (raw == null) return null
+    const failAt = Number(raw)
+    const targetIndex = Number.isFinite(failAt) && failAt >= 1 ? failAt - 1 : 0
+    return pageIndex === targetIndex ? new Error('开发注入：强制页面渲染失败') : null
+  } catch {
+    return null
+  }
 }
 
 export interface PagedPdfExportOptions extends PdfExportOptions {
@@ -114,9 +144,12 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<vo
   const doc = new jsPDF({ orientation, unit: 'mm', format: [pageWidth, pageHeight] })
 
   for (let i = 0; i < pageCount; i++) {
+    if (options.signal?.aborted) throw new ExportCancelledError()
     if (i > 0) doc.addPage([pageWidth, pageHeight], orientation)
     let bytes: Uint8Array
     try {
+      const injected = devForcedExportFailure(i)
+      if (injected) throw injected
       const el = await getPage(i)
       const canvas = await html2canvas(el, {
         scale,
@@ -141,6 +174,7 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<vo
     options.onProgress?.(i + 1, pageCount)
   }
 
+  if (options.signal?.aborted) throw new ExportCancelledError()
   doc.save(options.fileName ?? defaultPdfFileName())
 }
 
