@@ -38,6 +38,8 @@ export interface Guide {
   faqs: GuideFaq[]
   /** 相关文章 slug */
   related: string[]
+  /** 高意向词一键开始入口：文章头部直达工坊（预选模板 + 演示数据） */
+  quickStart?: { label: string; to: string; note?: string }
   /** 正文 HTML */
   body: string
 }
@@ -52,8 +54,13 @@ export const guides: Guide[] = [
     category: '考务',
     audiences: ['考务老师', '班主任'],
     datePublished: '2026-08-03',
-    dateModified: '2026-08-03',
+    dateModified: '2026-08-06',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示名单',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的 Excel 名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '用 Excel 名单批量打印考场座位贴',
       steps: [

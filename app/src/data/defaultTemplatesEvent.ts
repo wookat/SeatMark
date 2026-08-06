@@ -1,7 +1,7 @@
 import type { LabelTemplate } from '@/types/template'
 
 import { DEFAULT_FONT_STACK, DEFAULT_FONT_STACK_EN } from './fonts'
-import { bar, fixed, gridPage, hairline, INK_FAINT, INK_MUTED, INK_SOFT, text } from './templateFactory'
+import { bar, fixed, gridPage, hairline, INK, INK_FAINT, INK_MUTED, INK_SOFT, text } from './templateFactory'
 
 /**
  * 模板库扩充 · 活动篇（会议活动 / 婚庆喜宴）。
@@ -750,6 +750,41 @@ export const eventTemplates: LabelTemplate[] = [
         fontSize: 7.5,
         color: '#92400e',
         letterSpacing: 0.2,
+      }),
+    ],
+  },
+
+  // ---------- 会议活动 · 电子桌牌 ----------
+  {
+    ...base,
+    id: 'eink800',
+    name: '电子座签 800×480',
+    category: 'event',
+    description: '按 7.5 英寸电子墨水屏 800×480（5:3）比例排版，纯黑白高对比，每页 1 枚，导出后转 PNG 推送电子桌牌。',
+    scenario: '电子墨水屏桌牌',
+    accent: '#0f172a',
+    sampleData: { name: '刘志远', title: '副局长', org: '市教育局' },
+    label: { width: 200, height: 120, radius: 0, borderWidth: 0, borderColor: '#0f172a', background: '#ffffff' },
+    page: gridPage('A4L', 1, 1, 200, 120, 0, 0),
+    fields: [
+      text('org', '单位', { x: 20, y: 10, width: 160, height: 10 }, '市教育局', {
+        fontSize: 12,
+        color: INK,
+        letterSpacing: 0.3,
+      }),
+      hairline('topRule', { x: 75, y: 23, width: 50, height: 0.8 }, INK),
+      text('name', '姓名', { x: 10, y: 32, width: 180, height: 54 }, '刘志远', {
+        fontSize: 58,
+        fontWeight: 'bold',
+        color: INK,
+        letterSpacing: 0.1,
+        emphasis: 'hero',
+      }),
+      text('title', '职务', { x: 20, y: 94, width: 160, height: 14 }, '副局长', {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: INK,
+        letterSpacing: 0.25,
       }),
     ],
   },

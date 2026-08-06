@@ -153,6 +153,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'lectureGuest',
         'vTent',
         'tentBilingual',
+        'eink800',
         'roundtableCard',
         'vipSeat',
         'mediaSeat',

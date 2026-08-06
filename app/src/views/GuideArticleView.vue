@@ -58,6 +58,51 @@ function onArticleClick(event: MouseEvent) {
       </p>
     </header>
 
+    <!-- 高意向词一键开始：3 秒内给出直达工坊入口（预选模板 + 演示数据） -->
+    <div
+      v-if="guide.quickStart"
+      class="mt-6 flex flex-col items-start justify-between gap-3 rounded-lg border border-brand-200 bg-brand-50/70 p-4 sm:flex-row sm:items-center"
+    >
+      <div class="flex items-start gap-3">
+        <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white text-brand-600 ring-1 ring-brand-200">
+          <svg
+            class="size-4.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M13 3 4 14h6l-1 7 9-11h-6l1-7z" />
+          </svg>
+        </span>
+        <div>
+          <p class="text-sm font-bold text-slate-900">不想读长文？直接上手试试</p>
+          <p v-if="guide.quickStart.note" class="mt-0.5 text-xs leading-5 text-slate-500">
+            {{ guide.quickStart.note }}
+          </p>
+        </div>
+      </div>
+      <RouterLink
+        :to="guide.quickStart.to"
+        class="btn btn-primary btn-md w-full shrink-0 sm:w-auto"
+      >
+        {{ guide.quickStart.label }}
+        <svg
+          class="size-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M5 12h14m-6-6 6 6-6 6" />
+        </svg>
+      </RouterLink>
+    </div>
+
     <!-- 正文（站内维护的受控 HTML） -->
     <!-- eslint-disable-next-line vue/no-v-html -->
     <article class="article-body mt-8" @click="onArticleClick" v-html="guide.body"></article>

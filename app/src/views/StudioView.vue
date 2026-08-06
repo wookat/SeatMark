@@ -6,6 +6,7 @@ import { useIsMobile } from '@/composables/useMediaQuery'
 
 import TemplateDesigner from '@/components/designer/TemplateDesigner.vue'
 import DataImportPanel from '@/components/studio/DataImportPanel.vue'
+import FirstVisitGuide from '@/components/studio/FirstVisitGuide.vue'
 import FitSuggestionBanner from '@/components/studio/FitSuggestionBanner.vue'
 import LayoutPanel from '@/components/studio/LayoutPanel.vue'
 import MappingPanel from '@/components/studio/MappingPanel.vue'
@@ -176,6 +177,7 @@ onMounted(() => {
         class="no-print flex min-w-0 flex-col gap-4"
         :class="isMobile && mobileTab !== 'settings' ? 'hidden' : ''"
       >
+        <FirstVisitGuide />
         <FitSuggestionBanner />
         <TemplatePickerPanel @open-designer="openDesigner" />
         <DataImportPanel />
