@@ -432,6 +432,19 @@ function confirmDelete() {
       </button>
     </div>
 
+    <p v-if="library.customTemplates.length" class="mt-2 text-[11px] leading-4 text-slate-400">
+      <template v-if="auth.user">
+        本设备有 {{ library.customTemplates.length }} 个自定义模板，可到
+        <RouterLink to="/account" class="font-semibold text-brand-600 hover:underline">个人中心</RouterLink>
+        同步云端，换设备登录即可找回
+      </template>
+      <template v-else>
+        自定义模板目前只存在本浏览器，
+        <RouterLink to="/account" class="font-semibold text-brand-600 hover:underline">免费登录</RouterLink>
+        后可同步云端、跨设备找回
+      </template>
+    </p>
+
     <ModalDialog :open="shareQrOpen" title="微信扫码打开此模板" @close="closeShareQr">
       <div v-if="shareQrLoading" class="flex flex-col items-center gap-3 py-8">
         <span

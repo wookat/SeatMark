@@ -16,6 +16,7 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import { dismissStudioGuide } from '@/utils/firstVisit'
 import { MM_TO_PX } from '@/utils/layout'
 import { paperLabel, setPrintPageSize } from '@/utils/paper'
+import { copyToClipboard } from '@/utils/share'
 import type { DataRow } from '@/types/template'
 import {
   defaultRasterScale,
@@ -124,6 +125,39 @@ const overriddenRows = computed(() => new Set(workspace.rowOverrides.keys()))
 const editRowHasOverride = computed(
   () => editRow.value != null && !!workspace.overridesFor(editRow.value),
 )
+
+/** 导出成功后的轻量分享提示：每天至多弹一次，关闭即消失，不打断操作 */
+const SHARE_PROMPT_KEY = 'seatmark.post-export-share-prompt.v1'
+const sharePromptVisible = ref(false)
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function maybeShowSharePrompt() {
+  try {
+    if (localStorage.getItem(SHARE_PROMPT_KEY) === todayStr()) return
+    localStorage.setItem(SHARE_PROMPT_KEY, todayStr())
+  } catch {
+    /* 隐私模式：不持久化，仍展示一次 */
+  }
+  sharePromptVisible.value = true
+}
+
+function dismissSharePrompt() {
+  sharePromptVisible.value = false
+}
+
+async function copyReferralLink() {
+  const code = auth.user?.share.code
+  if (!code) return
+  if (await copyToClipboard(`https://www.seatmark.cn/?ref=${code}`)) {
+    toast.success('分享链接已复制', '发给同事或群聊，每被点开 1 次即得 1 次无水印导出')
+  } else {
+    toast.warning('复制失败', '可到个人中心手动复制专属分享链接')
+  }
+  dismissSharePrompt()
+}
 
 /** Edit One 首次使用引导气泡：只展示一次，关闭或用过一次后不再出现 */
 const EDIT_ONE_HINT_KEY = 'seatmark.edit-one-hint-dismissed.v1'
@@ -284,6 +318,7 @@ async function doExportPdf() {
       '图片版 PDF 已生成',
       `每页为 ${rasterDpi(scale)}dpi 高清栅格，放大打印仍清晰；文字需可选中请用「打印 / 矢量 PDF」`,
     )
+    maybeShowSharePrompt()
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     if (message === EXPORT_CANCELLED_MESSAGE) {
@@ -314,6 +349,7 @@ async function doPrint() {
     '已调起浏览器打印',
     `目标打印机选「另存为 PDF」即可导出矢量 PDF；直接打印请用 ${currentPaperLabel.value} 纸张、无边距、缩放 100%`,
   )
+  maybeShowSharePrompt()
 }
 
 // ---------- 开关说明（移动端可点击查看，不依赖 hover title） ----------
@@ -524,6 +560,47 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             :class="quota.remaining > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'"
             :title="`今日无水印导出剩余 ${quota.remaining}/${quota.limit} 次；带水印不限次`"
           >无水印 {{ quota.remaining }}</span>
+        </button>
+      </div>
+    </div>
+
+    <div
+      v-if="sharePromptVisible"
+      class="no-print mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2.5"
+    >
+      <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white">
+        <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="6" r="3" />
+          <circle cx="18" cy="18" r="3" />
+          <path d="m8.7 10.6 6.6-3.2m-6.6 6 6.6 3.2" />
+        </svg>
+      </span>
+      <p class="min-w-0 flex-1 text-xs leading-5 text-slate-600">
+        <strong class="text-slate-800">成品已拿到，觉得好用？</strong>
+        {{ auth.isLoggedIn ? '把工具分享给同事，他们每点开 1 次你就再得 1 次无水印导出' : '登录后无水印导出每天 3 次，自定义模板可同步云端，还可分享送次数' }}
+      </p>
+      <div class="flex shrink-0 items-center gap-1.5">
+        <button
+          v-if="auth.isLoggedIn"
+          type="button"
+          class="btn btn-primary btn-sm"
+          @click="copyReferralLink"
+        >
+          复制分享链接
+        </button>
+        <RouterLink v-else to="/account" class="btn btn-primary btn-sm" @click="dismissSharePrompt">
+          免费登录解锁
+        </RouterLink>
+        <button
+          type="button"
+          class="grid size-6 place-items-center rounded text-slate-400 hover:text-slate-600"
+          aria-label="关闭分享提示"
+          @click="dismissSharePrompt"
+        >
+          <svg class="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="m4 4 8 8m0-8-8 8" />
+          </svg>
         </button>
       </div>
     </div>

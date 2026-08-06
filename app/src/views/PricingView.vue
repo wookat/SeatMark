@@ -49,13 +49,13 @@ const PLANS = computed<Plan[]>(() => [
     badge: 'Beta 限时免费试用',
     tagline: '考务与会务重度用户',
     features: [
-      'Beta 期间免费试用，注册登录即开通',
+      'Beta 期间免费试用，注册登录即开通，不需支付',
       '更高每日无水印导出次数',
       '照片批量核验与覆盖率统计',
       '自定义模板云端同步与跨设备找回',
       '在线开源字体库与 AI 设计辅助',
     ],
-    highlight: false,
+    highlight: true,
     cta: 'pro-trial',
   },
   {
@@ -71,7 +71,7 @@ const PLANS = computed<Plan[]>(() => [
       '机构商用授权',
       '优先反馈响应',
     ],
-    highlight: true,
+    highlight: false,
     cta: 'team-reserve',
   },
 ])
@@ -151,6 +151,12 @@ async function submitReserve() {
         <div class="mt-4 flex items-end gap-2">
           <span class="text-4xl font-bold tracking-tight text-slate-900">{{ plan.price }}</span>
           <span class="pb-1 text-sm font-semibold text-slate-400">{{ plan.priceUnit }}</span>
+          <span
+            v-if="plan.cta === 'pro-trial'"
+            class="mb-1 ml-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700"
+          >
+            Beta 期间 ¥0 试用
+          </span>
         </div>
 
         <ul class="mt-5 flex flex-1 flex-col gap-2.5 text-sm text-slate-600">
@@ -180,17 +186,17 @@ async function submitReserve() {
         <RouterLink
           v-else-if="plan.cta === 'pro-trial'"
           :to="auth.user ? '/studio' : '/account'"
-          class="btn btn-secondary btn-md mt-6 w-full"
+          class="btn btn-primary btn-md mt-6 w-full"
         >
-          {{ auth.user ? '试用已开通，进入工坊' : '开始免费试用' }}
+          {{ auth.user ? '试用已开通，进入工坊' : '免费开通试用（登录即可）' }}
         </RouterLink>
         <button
           v-else
           type="button"
-          class="btn btn-primary btn-md mt-6 w-full"
+          class="btn btn-secondary btn-md mt-6 w-full"
           @click="openReserve"
         >
-          立即预订
+          预订登记（免费）
         </button>
       </div>
     </div>
