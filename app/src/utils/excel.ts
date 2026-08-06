@@ -5,13 +5,19 @@ import type { DataRow, LabelTemplate, ParsedExcel } from '@/types/template'
 /** 解析 Excel 文件首个工作表：第一行为表头，其余为数据行 */
 export async function parseExcelFile(file: File): Promise<ParsedExcel> {
   const XLSX = await import('xlsx')
-  const buffer = await file.arrayBuffer()
+
+  let buffer: ArrayBuffer
+  try {
+    buffer = await file.arrayBuffer()
+  } catch {
+    throw new Error('无法读取文件：文件可能已被移动、重命名或删除，请重新选择文件')
+  }
 
   let workbook: ReturnType<typeof XLSX.read>
   try {
     workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' })
-  } catch (err) {
-    throw new Error(`Excel 文件解析失败：${err instanceof Error ? err.message : String(err)}`)
+  } catch {
+    throw new Error('文件解析失败：文件可能已损坏或格式不受支持，请重新选择 .xlsx / .xls / .csv 文件')
   }
 
   const sheetName = workbook.SheetNames[0]
