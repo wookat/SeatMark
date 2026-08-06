@@ -188,7 +188,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const cutStackSort = ref(false)
   /** 对折双联（镜像）：桌牌类模板可关闭镜像半区，只印单面内容 */
   const showMirror = ref(true)
-  const loading = reactive({ active: false, text: '' })
+  const loading = reactive<{ active: boolean; text: string; onCancel: (() => void) | null }>({
+    active: false,
+    text: '',
+    onCancel: null,
+  })
 
   // ---------- 派生状态 ----------
   const textFields = computed<TemplateField[]>(() =>
@@ -334,9 +338,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   })
 
   // ---------- 行为 ----------
-  function setLoading(active: boolean, text = '') {
+  function setLoading(active: boolean, text = '', onCancel: (() => void) | null = null) {
     loading.active = active
     loading.text = text
+    loading.onCancel = active ? onCancel : null
   }
 
   async function withLoading<T>(text: string, fn: () => Promise<T>): Promise<T> {
