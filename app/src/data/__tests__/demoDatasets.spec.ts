@@ -6,8 +6,14 @@ import {
   DEMO_DATASETS,
   demoExcelFor,
   resolveDemoDataset,
+  sampleExcelFor,
   TEMPLATE_DEMO_DATASET_OVERRIDES,
 } from '@/data/demoDatasets'
+
+/** 数据集声明的刻意留空单元格（rowIndex:header） */
+function blankCellKeys(dataset: (typeof DEMO_DATASETS)[number]): Set<string> {
+  return new Set((dataset.blankCells ?? []).map((c) => `${c.row}:${c.header}`))
+}
 
 describe('demoDatasets', () => {
   it('数据集 id 唯一且每套都有表头与数据行', () => {
@@ -16,10 +22,30 @@ describe('demoDatasets', () => {
     for (const d of DEMO_DATASETS) {
       expect(d.headers.length).toBeGreaterThan(0)
       expect(d.rows.length).toBeGreaterThanOrEqual(12)
-      for (const row of d.rows) {
+      const blanks = blankCellKeys(d)
+      d.rows.forEach((row, i) => {
         for (const h of d.headers) {
-          expect(row[h], `${d.id} 数据行缺少「${h}」`).toBeTruthy()
+          if (blanks.has(`${i}:${h}`)) {
+            expect(row[h], `${d.id} 第 ${i} 行「${h}」应为声明的空单元格`).toBe('')
+          } else {
+            expect(row[h], `${d.id} 数据行缺少「${h}」`).toBeTruthy()
+          }
         }
+      })
+    }
+  })
+
+  it('考场数据集含「考场」列，且至少一套数据集含刻意留空的单元格', () => {
+    const exam = DEMO_DATASETS.find((d) => d.id === 'exam')!
+    expect(exam.headers).toContain('考场')
+    expect(exam.rows.every((r) => '考场' in r)).toBe(true)
+
+    const withBlanks = DEMO_DATASETS.filter((d) => (d.blankCells ?? []).length > 0)
+    expect(withBlanks.length).toBeGreaterThanOrEqual(1)
+    for (const d of withBlanks) {
+      for (const cell of d.blankCells!) {
+        expect(d.headers, `${d.id} 空单元格表头「${cell.header}」不在表头中`).toContain(cell.header)
+        expect(d.rows[cell.row]?.[cell.header], `${d.id} 第 ${cell.row} 行「${cell.header}」应为空`).toBe('')
       }
     }
   })
@@ -44,8 +70,10 @@ describe('demoDatasets', () => {
     }
   })
 
-  it('每款模板的演示数据字段齐全：所有可映射字段都有列且每行有值', () => {
+  it('每款模板的演示数据字段齐全：所有可映射字段都有列且每行有值（声明的空单元格除外）', () => {
     for (const template of defaultTemplates) {
+      const dataset = resolveDemoDataset(template)
+      const blanks = blankCellKeys(dataset)
       const demo = demoExcelFor(template)
       expect(new Set(demo.headers).size, `${template.id} 表头重复`).toBe(demo.headers.length)
       const mappable = template.fields.filter(
@@ -55,13 +83,51 @@ describe('demoDatasets', () => {
         const header = demo.mapping[field.id]
         expect(header, `${template.id}.${field.id} 未映射到演示数据列`).toBeTruthy()
         expect(demo.headers).toContain(header)
-        for (const row of demo.rows) {
+        demo.rows.forEach((row, i) => {
+          if (blanks.has(`${i}:${header}`)) return
           expect(
             row[header!],
-            `${template.id}.${field.id} 在「${header}」列存在空值`,
+            `${template.id}.${field.id} 在「${header}」列第 ${i} 行存在空值`,
           ).toBeTruthy()
-        }
+        })
       }
     }
+  })
+
+  describe('sampleExcelFor', () => {
+    it('每款模板都能生成样例：表头与演示数据一致、行数限制、无空单元格', () => {
+      for (const template of defaultTemplates) {
+        const demo = demoExcelFor(template)
+        const sample = sampleExcelFor(template)
+        expect(sample.headers).toEqual(demo.headers)
+        expect(sample.rows.length).toBeGreaterThanOrEqual(3)
+        expect(sample.rows.length).toBeLessThanOrEqual(5)
+        expect(sample.sheetName).toBe(demo.sheetName)
+        expect(sample.fileName).toBe(`${demo.sheetName}样例.xlsx`)
+        for (const row of sample.rows) {
+          for (const h of sample.headers) {
+            expect(row[h], `${template.id} 样例「${h}」列存在空值`).toBeTruthy()
+          }
+        }
+      }
+    })
+
+    it('样例按模板场景区分：不同场景模板生成不同表头的样例', () => {
+      const examTemplate = defaultTemplates.find((t) => resolveDemoDataset(t).id === 'exam')!
+      const weddingTemplate = defaultTemplates.find((t) => resolveDemoDataset(t).id === 'wedding')!
+      const examSample = sampleExcelFor(examTemplate)
+      const weddingSample = sampleExcelFor(weddingTemplate)
+      expect(examSample.headers).toContain('考场')
+      expect(weddingSample.headers).toContain('桌号')
+      expect(examSample.sheetName).not.toBe(weddingSample.sheetName)
+    })
+
+    it('样例行是副本：修改样例不影响演示数据集', () => {
+      const template = defaultTemplates[0]!
+      const sample = sampleExcelFor(template)
+      const before = demoExcelFor(template).rows[0]![sample.headers[0]!]
+      sample.rows[0]![sample.headers[0]!] = '篡改'
+      expect(demoExcelFor(template).rows[0]![sample.headers[0]!]).toBe(before)
+    })
   })
 })

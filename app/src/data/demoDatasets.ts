@@ -13,6 +13,11 @@ export interface DemoDataset {
   fileName: string
   headers: string[]
   rows: DataRow[]
+  /**
+   * 刻意留空的单元格（行号 -> 表头），模拟真实名单中的个别空字段
+   * （如插班生暂未编排考场），用于体验空字段回退序号命名等兜底逻辑。
+   */
+  blankCells?: ReadonlyArray<{ row: number; header: string }>
 }
 
 const NAMES = [
@@ -30,22 +35,56 @@ function buildRows(count: number, make: (i: number) => DataRow): DataRow[] {
 const SCHOOL = '市第一中学'
 
 /** 考场考务：考场布置 / 考号贴 / 监考巡考等 */
+const examRows: DataRow[] = buildRows(24, (i) => ({
+  姓名: NAMES[i % NAMES.length]!,
+  性别: i % 2 === 0 ? '男' : '女',
+  考场: `第${Math.floor(i / 12) + 1}考场`,
+  座位号: pad2((i % 12) + 1),
+  准考证号: String(2026061001 + i),
+  班级: `高三（${(i % 6) + 1}）班`,
+  学号: String(2023010101 + i),
+  学校: SCHOOL,
+  身份证号: `1101012008${pad2((i % 12) + 1)}${pad2((i % 28) + 1)}${String(17 + i * 2).padStart(4, '0')}`,
+}))
+
+// 末尾两行模拟真实名单的空字段：插班生暂未编排考场/座位、准考证号待补，
+// 用于体验按名单字段命名时空字段回退序号的兜底效果
+examRows.push(
+  {
+    姓名: '唐瑶',
+    性别: '女',
+    考场: '',
+    座位号: '',
+    准考证号: String(2026061001 + 24),
+    班级: '高三（3）班',
+    学号: String(2023010101 + 24),
+    学校: SCHOOL,
+    身份证号: `110101200901${pad2(25)}${String(17 + 24 * 2).padStart(4, '0')}`,
+  },
+  {
+    姓名: '许辉',
+    性别: '男',
+    考场: '第2考场',
+    座位号: '13',
+    准考证号: '',
+    班级: `高三（2）班`,
+    学号: String(2023010101 + 25),
+    学校: SCHOOL,
+    身份证号: `110101200902${pad2(26)}${String(17 + 25 * 2).padStart(4, '0')}`,
+  },
+)
+
 const examDataset: DemoDataset = {
   id: 'exam',
   name: '考场座位',
   fileName: '考场演示数据.xlsx',
   headers: ['姓名', '性别', '考场', '座位号', '准考证号', '班级', '学号', '学校', '身份证号'],
-  rows: buildRows(24, (i) => ({
-    姓名: NAMES[i % NAMES.length]!,
-    性别: i % 2 === 0 ? '男' : '女',
-    考场: `第${Math.floor(i / 12) + 1}考场`,
-    座位号: pad2((i % 12) + 1),
-    准考证号: String(2026061001 + i),
-    班级: `高三（${(i % 6) + 1}）班`,
-    学号: String(2023010101 + i),
-    学校: SCHOOL,
-    身份证号: `1101012008${pad2((i % 12) + 1)}${pad2((i % 28) + 1)}${String(17 + i * 2).padStart(4, '0')}`,
-  })),
+  rows: examRows,
+  blankCells: [
+    { row: 24, header: '考场' },
+    { row: 24, header: '座位号' },
+    { row: 25, header: '准考证号' },
+  ],
 }
 
 /** 班级教学：课桌姓名贴 / 班牌 / 小组桌牌等 */
@@ -310,5 +349,26 @@ export function demoExcelFor(template: LabelTemplate): DemoExcel {
     headers,
     rows,
     mapping,
+  }
+}
+
+export interface SampleExcel {
+  fileName: string
+  sheetName: string
+  headers: string[]
+  rows: DataRow[]
+}
+
+/**
+ * 为模板生成「下载样例 Excel」的内容：取该模板场景演示数据的表头与前几行
+ * （演示数据末尾的刻意空字段行不进样例），新用户照样例表头整理名单即可直接导入。
+ */
+export function sampleExcelFor(template: LabelTemplate, rowCount = 5): SampleExcel {
+  const demo = demoExcelFor(template)
+  return {
+    fileName: `${demo.sheetName}样例.xlsx`,
+    sheetName: demo.sheetName,
+    headers: demo.headers,
+    rows: demo.rows.slice(0, rowCount).map((r) => ({ ...r })),
   }
 }
