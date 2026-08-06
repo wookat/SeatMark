@@ -144,6 +144,17 @@ const SHARE_URL_LIMIT = 8000
 const shareQrSvg = ref<string | null>(null)
 /** 短码模式：模板寄存到同源边缘函数，二维码只编短 URL，密度低易识别 */
 const shareQrIsShort = ref(false)
+/** 扫码弹窗开关与状态：短码服务重试后仍失败时展示重试/长链兜底选项，不默默降级 */
+const shareQrOpen = ref(false)
+const shareQrLoading = ref(false)
+const shareQrShortFailed = ref(false)
+
+function closeShareQr() {
+  shareQrOpen.value = false
+  shareQrSvg.value = null
+  shareQrShortFailed.value = false
+  shareQrLoading.value = false
+}
 
 async function buildShareUrl(): Promise<string | null> {
   const payload = await encodeTemplateForShare(workspace.template)
@@ -153,6 +164,10 @@ async function buildShareUrl(): Promise<string | null> {
 }
 
 async function showShareQr() {
+  shareQrOpen.value = true
+  shareQrSvg.value = null
+  shareQrShortFailed.value = false
+  shareQrLoading.value = true
   try {
     // 优先短码：二维码只编 `/?s=短码` 的短 URL，手机远距离也能识别；
     // 登录用户附带 ref 分享码，扫码访问照常计入分享 +1
@@ -165,18 +180,33 @@ async function showShareQr() {
       shareQrSvg.value = qrToSvg(shortUrl, 'M')
       return
     }
-    // 短码服务不可用（如离线）：回退长链接，用低纠错级降低密度
+    // 短码服务自动重试后仍不可用：弹窗内给出「重试」，长链二维码仅作最终兜底
+    shareQrShortFailed.value = true
+  } catch {
+    closeShareQr()
+    toast.danger('生成二维码失败', '请改用「复制分享链接」')
+  } finally {
+    shareQrLoading.value = false
+  }
+}
+
+/** 长链接二维码兜底：密度高可能难扫，仅在短码服务重试无果后由用户主动选择 */
+async function useLongLinkQr() {
+  try {
     const url = await buildShareUrl()
     if (!url) {
+      closeShareQr()
       toast.warning(
         '模板体积过大，不适合扫码分享',
         '通常是包含了固定图片（Logo）。请改用「导出 JSON」分享文件。',
       )
       return
     }
+    shareQrShortFailed.value = false
     shareQrIsShort.value = false
     shareQrSvg.value = qrToSvg(url, 'L')
   } catch {
+    closeShareQr()
     toast.danger('生成二维码失败', '请改用「复制分享链接」')
   }
 }
@@ -402,15 +432,38 @@ function confirmDelete() {
       </button>
     </div>
 
-    <ModalDialog :open="!!shareQrSvg" title="微信扫码打开此模板" @close="shareQrSvg = null">
-      <div class="flex flex-col items-center gap-3">
+    <ModalDialog :open="shareQrOpen" title="微信扫码打开此模板" @close="closeShareQr">
+      <div v-if="shareQrLoading" class="flex flex-col items-center gap-3 py-8">
+        <span
+          class="size-8 animate-spin rounded-full border-[3px] border-brand-200 border-t-brand-600"
+        ></span>
+        <p class="text-xs text-slate-500">正在生成扫码短链……</p>
+      </div>
+      <div v-else-if="shareQrShortFailed" class="flex flex-col items-center gap-3 py-4">
+        <span class="flex size-10 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+          <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+          </svg>
+        </span>
+        <p class="text-center text-sm font-semibold text-slate-700">短链服务暂时不可用</p>
+        <p class="text-center text-xs leading-5 text-slate-500">
+          已自动重试仍未成功，通常稍等片刻即可恢复。也可改用长链接二维码（密度较高，需近距离扫描）。
+        </p>
+        <div class="flex flex-wrap justify-center gap-2">
+          <button type="button" class="btn btn-primary btn-sm" @click="showShareQr">重试</button>
+          <button type="button" class="btn btn-secondary btn-sm" @click="useLongLinkQr">
+            改用长链接二维码
+          </button>
+        </div>
+      </div>
+      <div v-else-if="shareQrSvg" class="flex flex-col items-center gap-3">
         <!-- eslint-disable-next-line vue/no-v-html -->
         <div class="w-64 max-w-full rounded-lg border border-slate-200 p-2" v-html="shareQrSvg"></div>
         <p class="text-center text-xs leading-5 text-slate-500">
           用微信「扫一扫」即可在手机上打开当前模板；{{
             shareQrIsShort
               ? '二维码只包含一个短链接，模板设计经加密信道寄存，名单数据始终不离开浏览器。'
-              : '模板数据全部编码在链接里，不经过任何服务器。'
+              : '模板数据全部编码在链接里，不经过任何服务器；长链接二维码密度较高，请近距离扫描。'
           }}
           微信内下载 PDF 受限，打印导出请点右上角菜单选「在浏览器打开」。
         </p>

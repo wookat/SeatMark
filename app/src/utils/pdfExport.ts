@@ -31,6 +31,26 @@ export interface PagedPdfExportOptions extends PdfExportOptions {
 /** 用户主动取消导出时抛出的错误文案（用于上层区分取消与真实失败） */
 export const EXPORT_CANCELLED_MESSAGE = '已取消导出'
 
+/**
+ * 开发注入：强制指定页渲染失败的 localStorage 开关（仅 DEV 生效）。
+ * 值为页码（1 起）时仅该页失败，其他真值视为第 1 页；
+ * 用于回归验收「导出失败不扣配额」路径。
+ */
+export const DEV_FORCE_EXPORT_FAIL_KEY = 'seatmark.dev.force-export-fail'
+
+export function devForcedExportFailure(pageIndex: number): Error | null {
+  if (!import.meta.env.DEV) return null
+  try {
+    const raw = localStorage.getItem(DEV_FORCE_EXPORT_FAIL_KEY)
+    if (raw == null) return null
+    const failAt = Number(raw)
+    const targetIndex = Number.isFinite(failAt) && failAt >= 1 ? failAt - 1 : 0
+    return pageIndex === targetIndex ? new Error('开发注入：强制页面渲染失败') : null
+  } catch {
+    return null
+  }
+}
+
 /** 单页渲染看门狗默认超时：移动端慢 CPU 下渲染一页 A4@2x 通常 <10s，30s 视为挂起 */
 export const DEFAULT_PAGE_TIMEOUT_MS = 30_000
 
@@ -216,6 +236,8 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<vo
 
   /** 渲染单页一次：等节点完全就绪后再截图，并做空白页检测 */
   async function renderOnce(i: number): Promise<HTMLCanvasElement> {
+    const injected = devForcedExportFailure(i)
+    if (injected) throw injected
     const el = await getPage(i)
     await waitForElementReady(el)
     throwIfCancelled()

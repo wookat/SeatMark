@@ -79,7 +79,9 @@ async function getBlobStore(env) {
     return env.seatmark_blob
   }
   try {
-    const { getStore } = await import('@edgeone/pages-blob')
+    // SDK 仅存在于 EdgeOne 运行时；用变量说明符绕过 Vite 静态解析，本地无此依赖走 catch 降级
+    const specifier = '@edgeone/pages-blob'
+    const { getStore } = await import(/* @vite-ignore */ specifier)
     return getStore(BLOB_STORE_NAME)
   } catch {
     return null

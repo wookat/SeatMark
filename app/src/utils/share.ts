@@ -1,5 +1,5 @@
 import { isValidTemplate } from '@/stores/templateLibrary'
-import { apiFetch } from '@/utils/api'
+import { apiFetch, ApiError } from '@/utils/api'
 import type { LabelTemplate } from '@/types/template'
 
 /**
@@ -96,10 +96,32 @@ export async function decodeSharedTemplate(payload: string): Promise<LabelTempla
 export const SHARE_SHORT_PARAM = 's'
 export const SHARE_SHORT_CODE_RE = /^[0-9a-f]{10}$/
 
-/** 寄存模板负载换取短码；网络/服务不可用时返回 null（调用方回退长链接） */
+/** 5xx/网络失败自动重试的指数退避间隔（边缘存储偶发 545 多为瞬时抖动） */
+const SHORT_SHARE_RETRY_DELAYS_MS = [400, 900]
+
+function isRetriableShareError(err: unknown): boolean {
+  return !(err instanceof ApiError) || err.status >= 500
+}
+
+async function apiFetchWithRetry<T>(
+  path: string,
+  options: { method?: string; body?: unknown } = {},
+  delays: readonly number[] = SHORT_SHARE_RETRY_DELAYS_MS,
+): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await apiFetch<T>(path, options)
+    } catch (err) {
+      if (!isRetriableShareError(err) || attempt >= delays.length) throw err
+      await new Promise((resolve) => setTimeout(resolve, delays[attempt]))
+    }
+  }
+}
+
+/** 寄存模板负载换取短码（5xx/网络失败自动重试）；仍失败时返回 null（调用方弹窗重试/长链兜底） */
 export async function createShortShareCode(payload: string): Promise<string | null> {
   try {
-    const res = await apiFetch<{ code?: string }>('/api/share/tpl', {
+    const res = await apiFetchWithRetry<{ code?: string }>('/api/share/tpl', {
       method: 'POST',
       body: { payload },
     })
@@ -109,11 +131,11 @@ export async function createShortShareCode(payload: string): Promise<string | nu
   }
 }
 
-/** 按短码取回模板负载；不存在/网络失败返回 null */
+/** 按短码取回模板负载（5xx/网络失败自动重试）；不存在/仍失败返回 null */
 export async function fetchSharedPayload(code: string): Promise<string | null> {
   if (!SHARE_SHORT_CODE_RE.test(code)) return null
   try {
-    const res = await apiFetch<{ payload?: string }>(
+    const res = await apiFetchWithRetry<{ payload?: string }>(
       `/api/share/tpl?code=${encodeURIComponent(code)}`,
     )
     return typeof res.payload === 'string' ? res.payload : null
