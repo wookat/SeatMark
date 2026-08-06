@@ -14,6 +14,7 @@ import WeChatGuideOverlay from '@/components/ui/WeChatGuideOverlay.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { apiFetch } from '@/utils/api'
+import { clearLandingQuery } from '@/utils/landing'
 import { fetchSharedPayload, SHARE_HASH_PREFIX, SHARE_SHORT_PARAM } from '@/utils/share'
 
 const auth = useAuthStore()
@@ -27,28 +28,19 @@ onMounted(() => {
   void auth.refresh()
 
   const params = new URLSearchParams(window.location.search)
-  let dirty = false
 
   // 分享链接访问上报（?ref=分享码）：服务端 IP+日去重后为分享者赠送 1 次无水印导出
   const refCode = params.get('ref')
   if (refCode && /^[0-9a-f]{8}$/.test(refCode)) {
     void apiFetch('/api/share/visit', { method: 'POST', body: { code: refCode } }).catch(() => {})
-    params.delete('ref')
-    dirty = true
     shareWelcomeOpen.value = true
   }
 
   // 模板短码（?s=短码，微信扫码短链）：取回负载后走既有 #tpl= 导入流程
   const short = params.get(SHARE_SHORT_PARAM)
-  if (short) {
-    params.delete(SHARE_SHORT_PARAM)
-    dirty = true
-  }
 
-  if (dirty) {
-    const query = params.toString()
-    const clean = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`
-    window.history.replaceState(null, '', clean)
+  if (refCode != null || short != null) {
+    void clearLandingQuery(router)
   }
 
   if (short) {

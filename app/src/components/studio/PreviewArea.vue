@@ -249,6 +249,8 @@ function openExportChoice(action: 'pdf' | 'print') {
 /** 无水印导出：配额只在导出成功后消耗，失败/取消不扣次数 */
 async function chooseClean() {
   if (quota.remaining <= 0) {
+    // 先关导出选择框再开配额引导弹窗，避免两层 modal 叠加遮挡
+    exportChoiceOpen.value = false
     quota.limitDialogOpen = true
     return
   }
@@ -699,12 +701,21 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
       <div class="mt-3 grid gap-3">
         <button
           type="button"
-          class="flex items-start gap-3 rounded-lg border p-4 text-left transition-colors"
-          :class="quota.remaining > 0 ? 'border-brand-200 bg-brand-50 hover:border-brand-300' : 'cursor-not-allowed border-slate-200 bg-slate-50 opacity-70'"
-          :disabled="quota.remaining <= 0"
+          class="relative flex items-start gap-3 rounded-lg border p-4 text-left transition-colors"
+          :class="quota.remaining > 0 ? 'border-brand-200 bg-brand-50 hover:border-brand-300' : 'border-slate-200 bg-slate-50 hover:border-slate-300'"
+          data-testid="choose-clean"
           @click="chooseClean"
         >
-          <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white">
+          <span
+            v-if="quota.remaining <= 0"
+            class="absolute top-2 right-2 rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-500"
+          >
+            今日 0 次
+          </span>
+          <span
+            class="flex size-8 shrink-0 items-center justify-center rounded-lg text-white"
+            :class="quota.remaining > 0 ? 'bg-brand-600' : 'bg-slate-400'"
+          >
             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="m5 13 4 4 10-11" />
             </svg>
