@@ -33,17 +33,16 @@ const page = await context.newPage()
 await context.route('**/__hang-font__*', () => {
   /* 永不 fulfill / abort：请求一直 pending */
 })
-await page.addInitScript(() => {
-  window.addEventListener('DOMContentLoaded', () => {
-    const face = new FontFace('HangFont', 'url(/__hang-font__.woff2)')
-    document.fonts.add(face)
-    face.load().catch(() => {})
-  })
-})
+// 2) 进入工坊，载入演示数据
+await page.goto(`${BASE}/studio?demo=1`, { waitUntil: 'domcontentloaded' })
+await page.waitForTimeout(2000)
 
-// 2) 进入工坊，载入演示数据，连续切换多个模板（复现路径）
-await page.goto(`${BASE}/studio?demo=1`)
-await page.waitForLoadState('networkidle').catch(() => {})
+// 页面就绪后再注入挂起的 FontFace（等价于长会话中某次模板切换触发的字体补载卡死）
+await page.evaluate(() => {
+  const face = new FontFace('HangFont', 'url(/__hang-font__.woff2)')
+  document.fonts.add(face)
+  face.load().catch(() => {})
+})
 const cards = page.locator('[class*="template"] >> role=button').or(page.getByRole('button'))
 const templateCards = page.locator('aside').getByRole('button').filter({ hasText: /桌牌|考场|座签|席卡/ })
 const count = Math.min(await templateCards.count(), 4)
