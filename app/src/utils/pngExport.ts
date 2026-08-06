@@ -83,6 +83,11 @@ export interface PngExportOptions {
   cropRect?: { x: number; y: number; width: number; height: number }
   /** 纯黑白输出：按亮度阈值二值化（电子墨水屏黑白模板） */
   monochrome?: boolean
+  /**
+   * 纯黑白模式的水印文案：页面内的半透明水印会被二值化抹成纯白，
+   * 改为二值化后在底部盖纯黑小字；非纯黑白模式由页面自身渲染，无需传入
+   */
+  watermarkText?: string
   /** 文件名（不含扩展名）；单页存为 .png，多页打包为 .zip */
   fileName?: string
   signal?: AbortSignal
@@ -97,6 +102,7 @@ export function toOutputCanvas(
   options: {
     exactPixels?: { width: number; height: number }
     monochrome?: boolean
+    watermarkText?: string
     /** 源画布上的裁剪区域（px）；未指定时取整幅 */
     sourceRect?: { x: number; y: number; width: number; height: number }
   },
@@ -123,6 +129,14 @@ export function toOutputCanvas(
     const image = ctx.getImageData(0, 0, canvas.width, canvas.height)
     binarizePixelData(image.data)
     ctx.putImageData(image, 0, 0)
+    if (options.watermarkText) {
+      const fontSize = Math.max(10, Math.round(canvas.height * 0.03))
+      ctx.fillStyle = '#000000'
+      ctx.font = `${fontSize}px sans-serif`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'bottom'
+      ctx.fillText(options.watermarkText, canvas.width / 2, canvas.height - fontSize * 0.5)
+    }
   }
   return canvas
 }

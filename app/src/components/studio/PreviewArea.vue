@@ -419,6 +419,8 @@ async function doExportPng() {
         : undefined,
       cropRect: exact ? (pngCropRect.value ?? undefined) : undefined,
       monochrome: pngMonochrome.value,
+      watermarkText:
+        withWatermark.value && pngMonochrome.value ? 'SeatMark 座签 · seatmark.cn' : undefined,
       fileName: defaultPngExportName(),
       onProgress: (done, total) =>
         workspace.setLoading(true, `已完成 ${done}/${total} 页，正在生成图片...`, cancel),
