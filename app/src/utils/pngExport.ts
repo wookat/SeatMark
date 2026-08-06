@@ -3,6 +3,8 @@ import {
   defaultRasterScale,
   EXPORT_CANCELLED_MESSAGE,
 } from '@/utils/pdfExport'
+import { evaluateFieldTemplate } from '@/utils/fieldTemplate'
+import type { DataRow } from '@/types/template'
 
 /** CSS 像素密度：96 px/in ÷ 25.4 mm/in */
 export const CSS_PX_PER_MM = 96 / 25.4
@@ -53,6 +55,82 @@ export function pngPageFileName(prefix: string, pageIndex: number): string {
   return `${prefix}-${String(pageIndex + 1).padStart(3, '0')}.png`
 }
 
+/** 文件名单段最大长度（含中文按字符计），防超长字段撑爆解压工具 */
+export const MAX_FILE_NAME_PART_LENGTH = 80
+
+/**
+ * 清洗文件名片段：去掉 Windows/macOS/Linux 均非法或危险的字符
+ * （\ / : * ? " < > | 与控制字符），折叠空白，去首尾点号，限制长度。
+ */
+export function sanitizeFileNamePart(name: string): string {
+  return name
+    .replace(/\s+/g, ' ')
+    .replace(/[\\/:*?"<>|]/g, '')
+    .replace(/[\u0000-\u001f\u007f]/g, '')
+    .trim()
+    .replace(/^\.+|\.+$/g, '')
+    .slice(0, MAX_FILE_NAME_PART_LENGTH)
+}
+
+/**
+ * 按名单字段模板串批量生成 zip 内文件名（含 .png 扩展名）：
+ * - {列名} 占位符按该页对应行求值后清洗非法字符；
+ * - 求值/清洗后为空（空行、空字段、纯非法字符）回退为 前缀-001 序号命名；
+ * - 重名追加 -2、-3… 递增直至唯一（追加后再撞名继续递增）。
+ */
+export function buildFieldFileNames(options: {
+  template: string
+  rows: (DataRow | null)[]
+  fallbackPrefix: string
+}): string[] {
+  const taken = new Set<string>()
+  return options.rows.map((row, i) => {
+    const raw = row ? evaluateFieldTemplate(options.template, row) : ''
+    let base = sanitizeFileNamePart(raw)
+    if (!base) base = `${options.fallbackPrefix}-${String(i + 1).padStart(3, '0')}`
+    let name = base
+    for (let n = 2; taken.has(name); n++) name = `${base}-${n}`
+    taken.add(name)
+    return `${name}.png`
+  })
+}
+
+/** 电子墨水屏常见分辨率预设（主流会议电子桌牌与电子价签规格） */
+export interface EinkPreset {
+  id: string
+  label: string
+  width: number
+  height: number
+}
+
+export const EINK_PRESETS: EinkPreset[] = [
+  { id: 'eink-800x480', label: '800×480（7.5 英寸，主流会议桌牌）', width: 800, height: 480 },
+  { id: 'eink-1280x720', label: '1280×720（10.2 英寸大尺寸桌牌）', width: 1280, height: 720 },
+  { id: 'eink-648x480', label: '648×480（5.83 英寸）', width: 648, height: 480 },
+  { id: 'eink-640x384', label: '640×384（7.5 英寸旧款）', width: 640, height: 384 },
+  { id: 'eink-400x300', label: '400×300（4.2 英寸电子价签）', width: 400, height: 300 },
+  { id: 'eink-296x128', label: '296×128（2.9 英寸电子价签）', width: 296, height: 128 },
+]
+
+export function findEinkPreset(id: string): EinkPreset | undefined {
+  return EINK_PRESETS.find((p) => p.id === id)
+}
+
+/**
+ * 预设宽高比与模板设计区域宽高比是否明显不一致（默认容差 2%）：
+ * 不一致时输出会被拉伸，UI 据此提示换模板或改自定义宽度。
+ */
+export function presetAspectMismatch(
+  preset: { width: number; height: number },
+  designWidthMm: number,
+  designHeightMm: number,
+  tolerance = 0.02,
+): boolean {
+  const presetRatio = preset.width / preset.height
+  const designRatio = designWidthMm / designHeightMm
+  return Math.abs(presetRatio - designRatio) / designRatio > tolerance
+}
+
 export function defaultPngExportName(prefix = '考场座位标签'): string {
   const now = new Date()
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -90,6 +168,11 @@ export interface PngExportOptions {
   watermarkText?: string
   /** 文件名（不含扩展名）；单页存为 .png，多页打包为 .zip */
   fileName?: string
+  /**
+   * 多页 zip 内逐页文件名（含 .png 扩展名，调用方保证唯一）；
+   * 未指定时按 前缀-001.png 序号命名
+   */
+  pageFileNames?: string[]
   signal?: AbortSignal
   pageTimeoutMs?: number
   rebuildHost?: () => Promise<void> | void
@@ -235,7 +318,7 @@ export async function exportPagedPng(options: PngExportOptions): Promise<void> {
       output.width = 0
       output.height = 0
     }
-    zip.file(pngPageFileName(baseName, i), blob)
+    zip.file(options.pageFileNames?.[i] ?? pngPageFileName(baseName, i), blob)
     options.onProgress?.(i + 1, pageCount)
   }
   throwIfCancelled()
