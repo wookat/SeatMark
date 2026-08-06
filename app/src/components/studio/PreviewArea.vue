@@ -19,6 +19,7 @@ import { paperLabel, setPrintPageSize } from '@/utils/paper'
 import { copyToClipboard } from '@/utils/share'
 import type { DataRow } from '@/types/template'
 import {
+  defaultPdfFileName,
   defaultRasterScale,
   estimatePdfBytes,
   EXPORT_CANCELLED_MESSAGE,
@@ -39,6 +40,7 @@ import {
   MAX_EXACT_PIXEL_WIDTH,
   MIN_EXACT_PIXEL_WIDTH,
   presetAspectMismatch,
+  sanitizeFileNamePart,
 } from '@/utils/pngExport'
 import { templateColumnsValid } from '@/utils/fieldTemplate'
 
@@ -109,6 +111,10 @@ const hostPages = computed<(typeof workspace.pages)>(() =>
   hostPageIndex.value == null
     ? workspace.pages
     : workspace.pages.slice(hostPageIndex.value, hostPageIndex.value + 1),
+)
+/** 导出文件名前缀跟随当前模板名（如「婚礼席位卡」），下载目录里一眼可辨 */
+const exportNamePrefix = computed(
+  () => sanitizeFileNamePart(workspace.template.name) || '考场座位标签',
 )
 /** 本次导出/打印是否叠加页脚角标水印（带水印不限次，无水印计入每日配额） */
 const withWatermark = ref(false)
@@ -432,6 +438,7 @@ async function doExportPdf() {
       pageWidth: workspace.template.page.paperWidth,
       pageHeight: workspace.template.page.paperHeight,
       calibration: calibrationStore.active ? calibrationStore.calibration : undefined,
+      fileName: defaultPdfFileName(exportNamePrefix.value),
       onProgress: (done, total) =>
         workspace.setLoading(true, `已完成 ${done}/${total} 页，正在写入 PDF...`, cancel),
     })
@@ -465,7 +472,7 @@ async function doExportPng() {
   try {
     const pageCount = workspace.totalPages
     const exact = pngSizeMode.value === 'exact'
-    const baseName = defaultPngExportName()
+    const baseName = defaultPngExportName(exportNamePrefix.value)
     // 按字段命名：多枚模板每页取第一条记录求值；空模板/空字段回退序号命名
     const pageFileNames =
       pngNameMode.value === 'field' && pngNameTemplate.value.trim() && pageCount > 1
@@ -975,6 +982,18 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           </div>
         </template>
       </div>
+      <p
+        v-if="pendingAction === 'pdf'"
+        class="mb-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500"
+      >
+        图片版 PDF：每页渲染为高清图片后合成，所见即所得、任何设备打开都一致；文字不可选中，需要矢量文字请改用「打印 / 矢量 PDF」。
+      </p>
+      <p
+        v-else-if="pendingAction === 'print'"
+        class="mb-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500"
+      >
+        打印 / 矢量 PDF：调起浏览器打印对话框，目标打印机选「另存为 PDF」即得到文字可选中的矢量 PDF，也可直接连打印机输出。
+      </p>
       <p class="leading-6">选择导出方式：</p>
       <p
         v-if="pendingAction === 'pdf' && exportEstimate"

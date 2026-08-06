@@ -90,6 +90,15 @@ describe('文件名清洗', () => {
     expect(sanitizeFileNamePart('   ')).toBe('')
   })
 
+  it('折叠空字段留下的悬挂/连续分隔符', () => {
+    expect(sanitizeFileNamePart('唐瑶-')).toBe('唐瑶')
+    expect(sanitizeFileNamePart('-第1考场')).toBe('第1考场')
+    expect(sanitizeFileNamePart('张三--第1考场')).toBe('张三-第1考场')
+    expect(sanitizeFileNamePart('张三 - _ 第1考场')).toBe('张三-第1考场')
+    expect(sanitizeFileNamePart('张三_-_')).toBe('张三')
+    expect(sanitizeFileNamePart('---')).toBe('')
+  })
+
   it('超长字段截断到上限', () => {
     expect(sanitizeFileNamePart('张'.repeat(200))).toHaveLength(MAX_FILE_NAME_PART_LENGTH)
   })

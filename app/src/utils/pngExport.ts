@@ -60,13 +60,16 @@ export const MAX_FILE_NAME_PART_LENGTH = 80
 
 /**
  * 清洗文件名片段：去掉 Windows/macOS/Linux 均非法或危险的字符
- * （\ / : * ? " < > | 与控制字符），折叠空白，去首尾点号，限制长度。
+ * （\ / : * ? " < > | 与控制字符），折叠空白，折叠空字段留下的悬挂/连续
+ * 分隔符（- _ 空格混排收敛为单个分隔符），去首尾分隔符与点号，限制长度。
  */
 export function sanitizeFileNamePart(name: string): string {
   return name
     .replace(/\s+/g, ' ')
     .replace(/[\\/:*?"<>|]/g, '')
     .replace(/[\u0000-\u001f\u007f]/g, '')
+    .replace(/[-_ ]*?([-_])[-_ ]*/g, '$1')
+    .replace(/^[-_ .]+|[-_ .]+$/g, '')
     .trim()
     .replace(/^\.+|\.+$/g, '')
     .slice(0, MAX_FILE_NAME_PART_LENGTH)
