@@ -13,6 +13,7 @@ import { useCalibrationStore } from '@/stores/calibration'
 import { useQuotaStore } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { dismissStudioGuide } from '@/utils/firstVisit'
 import { MM_TO_PX } from '@/utils/layout'
 import { paperLabel, setPrintPageSize } from '@/utils/paper'
 import type { DataRow } from '@/types/template'
@@ -239,6 +240,8 @@ async function confirmDuplexPrint() {
 
 /** 导出/打印成功后消耗无水印配额（失败不扣，可直接重试） */
 async function consumeQuotaAfterSuccess() {
+  // 拿到过一次成品即视为老用户，首访三步引导不再展示
+  dismissStudioGuide()
   if (withWatermark.value) return
   await quota.tryConsume()
 }

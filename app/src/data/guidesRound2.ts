@@ -15,8 +15,13 @@ export const guidesRound2: Guide[] = [
     category: '考务',
     audiences: ['考务老师', '教务处'],
     datePublished: '2026-08-04',
-    dateModified: '2026-08-04',
+    dateModified: '2026-08-06',
     readingMinutes: 9,
+    quickStart: {
+      label: '一键载入「高考考场桌贴」+ 演示名单',
+      to: '/studio?template=gaokaoDesk&demo=1',
+      note: '先看合规版式效果，再换成自己的考生名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量生成符合规范的中高考考场桌贴',
       steps: [
