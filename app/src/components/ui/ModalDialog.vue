@@ -1,5 +1,10 @@
+<script lang="ts">
+/** 全局打开栈（模块级共享）：多层弹窗叠加时 Esc 只关最顶层 */
+const openStack: symbol[] = []
+</script>
+
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 const props = withDefaults(
   defineProps<{
@@ -19,12 +24,77 @@ const SIZE_CLASSES: Record<string, string> = {
   xl: 'max-w-5xl',
 }
 
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && props.open) emit('close')
+const instanceId = Symbol('modal')
+
+const panelRef = ref<HTMLElement | null>(null)
+/** 打开前的焦点元素：关闭后归还焦点 */
+let previouslyFocused: HTMLElement | null = null
+
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+function focusables(): HTMLElement[] {
+  if (!panelRef.value) return []
+  return Array.from(panelRef.value.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
 }
 
+function onKeydown(event: KeyboardEvent) {
+  if (!props.open) return
+  if (event.key === 'Escape') {
+    // 只有位于打开栈顶层的弹窗响应 Esc，避免叠层弹窗被一次性全部关闭
+    if (openStack[openStack.length - 1] === instanceId) {
+      event.stopPropagation()
+      emit('close')
+    }
+    return
+  }
+  if (event.key === 'Tab' && openStack[openStack.length - 1] === instanceId) {
+    // 焦点困陷：Tab 循环限定在弹窗内部
+    const items = focusables()
+    if (!items.length) {
+      event.preventDefault()
+      panelRef.value?.focus()
+      return
+    }
+    const first = items[0]!
+    const last = items[items.length - 1]!
+    const active = document.activeElement as HTMLElement | null
+    if (event.shiftKey) {
+      if (active === first || !panelRef.value?.contains(active)) {
+        event.preventDefault()
+        last.focus()
+      }
+    } else if (active === last || !panelRef.value?.contains(active)) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+}
+
+watch(
+  () => props.open,
+  async (open) => {
+    if (open) {
+      openStack.push(instanceId)
+      previouslyFocused = document.activeElement as HTMLElement | null
+      await nextTick()
+      panelRef.value?.focus()
+    } else {
+      const idx = openStack.indexOf(instanceId)
+      if (idx >= 0) openStack.splice(idx, 1)
+      previouslyFocused?.focus?.()
+      previouslyFocused = null
+    }
+  },
+  { immediate: true },
+)
+
 onMounted(() => window.addEventListener('keydown', onKeydown))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+  const idx = openStack.indexOf(instanceId)
+  if (idx >= 0) openStack.splice(idx, 1)
+})
 </script>
 
 <template>
@@ -41,8 +111,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
         @click.self="emit('close')"
       >
         <div
-          class="flex max-h-[88vh] w-full flex-col rounded-lg bg-white p-5 shadow-pop ring-1 ring-slate-900/5 sm:p-6"
+          class="flex max-h-[88vh] w-full flex-col rounded-lg bg-white p-5 shadow-pop ring-1 ring-slate-900/5 outline-none sm:p-6"
           :class="SIZE_CLASSES[size]"
+          ref="panelRef"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="title"
+          tabindex="-1"
         >
           <div class="flex items-start justify-between gap-3">
             <h3 class="text-base font-bold text-slate-900">{{ title }}</h3>

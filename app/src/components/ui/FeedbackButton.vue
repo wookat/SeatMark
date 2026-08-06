@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useToastStore } from '@/stores/toast'
 
 const toast = useToastStore()
@@ -38,6 +38,13 @@ function close() {
   open.value = false
   reset()
 }
+
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && open.value) close()
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 async function submit() {
   if (!content.value.trim()) {

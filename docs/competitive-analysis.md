@@ -219,3 +219,40 @@
 - **代印/文印店通道**（对应 Avery "LET US PRINT FOR YOU"）：与既有 P2-3「打印店 B 端版」合并评估。
 - **空白模板多格式下载**（Word/PDF）：为习惯 Word 的老师提供空白拼版下载，可作为教程附件形态低成本试水。
 - Canva.cn 与稻壳待网络环境允许后补测其「模板→编辑器→导出」步数与登录墙位置。
+
+---
+
+## 七、第 6 轮增量（2026-08-06）：图片导出 / 电子墨水屏 / 批量命名能力对照
+
+本轮聚焦三项能力：**图片（PNG）导出、电子墨水屏（e-ink）适配、批量文件命名**，对 Avery Design & Print Online 与 OnlineLabels Maestro 真实上手 + 官方帮助文档核对。
+
+### 7.1 实测记录与证据
+
+| 竞品 | 上手路径 | 结果 |
+|---|---|---|
+| Avery Design & Print Online | `avery.com/templates/5305` → 「START DESIGNING」 | 点击后立即弹出**邮箱登录墙**（"Enjoy the benefits of an Avery Account"），未登录无法进入设计器，导出能力按官方帮助文档核对 |
+| OnlineLabels Maestro Label Designer | `onlinelabels.com/maestro-label-designer` | 落地页明示 "Free Activation — Receive access with every purchase"，设计器需**购买纸张后激活**，未购买无法上手 |
+| Canva.cn | 模板搜索页 | 仍被 Cloudflare 风控拦截（与第 5 轮一致），无法补测 |
+
+### 7.2 能力对照（Avery D&P 按官方帮助文档核对）
+
+| 能力 | Avery Design & Print | SeatMark |
+|---|---|---|
+| 图片（PNG/JPG）导出 | **不支持**。官方帮助明确"cannot download individual designs"，只能导出打印 PDF 或 .avery 工程文件；官方给出的取图方案竟是**用 Windows 截图工具（Snipping Tool）手动截屏**（help/article/saving-an-image-from-a-design-and-print-project-using-the-snipping-tool） | 原生「图片 PNG」导出：单页直接下载、多页自动打包 zip，标准清晰度按页数自适应 |
+| 精确像素输出 | 不支持（PDF 按物理尺寸输出，无像素尺寸概念） | 「精确像素」模式自定义宽度 100–4096px，高度按模板比例推导 |
+| 电子墨水屏适配 | 无任何 e-ink 相关能力 | eink800 模板默认精确 800×480 + 纯黑白（阈值二值化），可直接导入电子桌牌系统 |
+| 批量文件命名 | 不适用（无逐张图片输出） | 多页 zip 内逐页命名；可结合单张覆写定制内容 |
+| 名单批量合并 | 支持 Mail Merge（.xls/.xlsx/.csv），流程约 6 步（Import Data → Browse → Choose Fields → 拖字段 → Next → Finish） | Excel 导入 + 字段映射，demo 数据免登录一步可见成品 |
+| 免登录可用性 | 设计器入口即登录墙 | 全功能免登录（无水印次数受限） |
+
+### 7.3 结论
+
+1. 「图片导出 + 电子墨水屏 + 精确像素」组合在两大海外标签设计器中**均为空白**，Avery 官方甚至推荐手动截屏取图——#45 的 PNG 导出（尤其 eink800 精确 800×480 纯黑白）是实打实的差异化能力，值得在落地页与教程中显性宣传。
+2. 竞品普遍以登录墙/购买激活作为设计器门槛，SeatMark 免登录 demo→成品路径继续保持优势。
+
+### 7.4 P1/P2 候选（只调研不实现）
+
+- **P1-A　逐张 PNG 按名单字段命名**：zip 内文件名支持按「姓名/考场/座位号」等字段模板命名（如 `01-张三-第1考场.png`），电子桌牌系统批量导入通常按文件名匹配座位，价值高、改动集中在 pngExport 命名函数。
+- **P1-B　eink 常见分辨率预设**：除 800×480 外增加 640×384、1024×758、1304×984 等电子价签/桌牌常见规格下拉预设，降低「精确像素」输入门槛。
+- **P2-A　JPG/位深选项**：部分老款电子桌牌系统只认 JPG 或 1-bit BMP，可在 PNG 弹窗内加格式下拉；需求出现前暂缓。
+- **P2-B　「与竞品对比」营销页**：以 7.2 表为素材做 /vs/avery 对比落地页，承接海外/出海搜索流量。

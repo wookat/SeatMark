@@ -30,9 +30,9 @@ const TONE_PATH: Record<ToastType, string> = {
 </script>
 
 <template>
-  <!-- 小屏下移：避开工坊吸顶的「设置 / 预览」分段切换 -->
+  <!-- 底部右侧堆叠：避开工坊预览区吸顶工具栏与页头，同时让开右下角反馈按钮 -->
   <div
-    class="no-print pointer-events-none fixed top-30 right-3 z-[70] flex w-[calc(100vw-1.5rem)] max-w-80 flex-col gap-2 sm:right-4 lg:top-16"
+    class="no-print pointer-events-none fixed right-3 bottom-20 z-[70] flex w-[calc(100vw-1.5rem)] max-w-80 flex-col-reverse gap-2 sm:right-4"
   >
     <TransitionGroup
       enter-active-class="transition duration-200 ease-out"
