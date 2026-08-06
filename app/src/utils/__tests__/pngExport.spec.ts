@@ -2,13 +2,19 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   binarizePixelData,
+  buildFieldFileNames,
   CSS_PX_PER_MM,
   defaultPngExportName,
+  EINK_PRESETS,
   exactPixelHeight,
   exactPixelScale,
   exportPagedPng,
+  findEinkPreset,
   isValidExactPixelWidth,
+  MAX_FILE_NAME_PART_LENGTH,
   pngPageFileName,
+  presetAspectMismatch,
+  sanitizeFileNamePart,
 } from '@/utils/pngExport'
 
 describe('精确像素映射', () => {
@@ -68,6 +74,100 @@ describe('文件命名', () => {
   it('默认导出名含日期戳与前缀', () => {
     expect(defaultPngExportName()).toMatch(/^考场座位标签-\d{8}-\d{4}$/)
     expect(defaultPngExportName('桌牌')).toMatch(/^桌牌-/)
+  })
+})
+
+describe('文件名清洗', () => {
+  it('去掉非法字符与控制字符，折叠空白，去首尾点号', () => {
+    expect(sanitizeFileNamePart('张/三:第*1?考"场<>|')).toBe('张三第1考场')
+    expect(sanitizeFileNamePart('  张三\t\n第1考场  ')).toBe('张三 第1考场')
+    expect(sanitizeFileNamePart('..张三..')).toBe('张三')
+    expect(sanitizeFileNamePart('a\\b\u0000c')).toBe('abc')
+  })
+
+  it('纯非法字符清洗后为空串', () => {
+    expect(sanitizeFileNamePart('/:*?"<>|')).toBe('')
+    expect(sanitizeFileNamePart('   ')).toBe('')
+  })
+
+  it('超长字段截断到上限', () => {
+    expect(sanitizeFileNamePart('张'.repeat(200))).toHaveLength(MAX_FILE_NAME_PART_LENGTH)
+  })
+})
+
+describe('按名单字段命名', () => {
+  it('按模板求值并追加 .png', () => {
+    const names = buildFieldFileNames({
+      template: '{姓名}-{考场}',
+      rows: [
+        { 姓名: '张三', 考场: '第1考场' },
+        { 姓名: '李四', 考场: '第2考场' },
+      ],
+      fallbackPrefix: '座签',
+    })
+    expect(names).toEqual(['张三-第1考场.png', '李四-第2考场.png'])
+  })
+
+  it('重名追加 -2、-3 递增，与已有名称撞名时继续递增', () => {
+    const names = buildFieldFileNames({
+      template: '{姓名}',
+      rows: [{ 姓名: '张三' }, { 姓名: '张三' }, { 姓名: '张三-2' }, { 姓名: '张三' }],
+      fallbackPrefix: '座签',
+    })
+    expect(names).toEqual(['张三.png', '张三-2.png', '张三-2-2.png', '张三-3.png'])
+  })
+
+  it('空字段/空行/纯非法字符回退为前缀加三位序号', () => {
+    const names = buildFieldFileNames({
+      template: '{姓名}',
+      rows: [{ 姓名: '' }, null, { 姓名: '???' }],
+      fallbackPrefix: '座签',
+    })
+    expect(names).toEqual(['座签-001.png', '座签-002.png', '座签-003.png'])
+  })
+
+  it('引用不存在的列按空串处理，整体为空时回退序号', () => {
+    const names = buildFieldFileNames({
+      template: '{不存在的列}',
+      rows: [{ 姓名: '张三' }],
+      fallbackPrefix: '座签',
+    })
+    expect(names).toEqual(['座签-001.png'])
+  })
+
+  it('字段值中的非法字符被过滤', () => {
+    const names = buildFieldFileNames({
+      template: '{姓名}',
+      rows: [{ 姓名: '张/三:丰*' }],
+      fallbackPrefix: '座签',
+    })
+    expect(names).toEqual(['张三丰.png'])
+  })
+})
+
+describe('eink 分辨率预设', () => {
+  it('包含 800×480 等 6 个常见规格，尺寸均在宽度限制内', () => {
+    expect(EINK_PRESETS).toHaveLength(6)
+    const p800 = findEinkPreset('eink-800x480')
+    expect(p800).toMatchObject({ width: 800, height: 480 })
+    for (const p of EINK_PRESETS) {
+      expect(isValidExactPixelWidth(p.width)).toBe(true)
+      expect(p.height).toBeGreaterThan(0)
+    }
+    expect(findEinkPreset('custom')).toBeUndefined()
+  })
+
+  it('预设像素宽度映射的渲染倍率能还原目标宽度', () => {
+    for (const p of EINK_PRESETS) {
+      const scale = exactPixelScale(p.width, 200)
+      expect(scale * 200 * CSS_PX_PER_MM).toBeCloseTo(p.width, 6)
+    }
+  })
+
+  it('宽高比判定：5:3 模板与 800×480 一致，与 400×300 不一致', () => {
+    expect(presetAspectMismatch({ width: 800, height: 480 }, 200, 120)).toBe(false)
+    expect(presetAspectMismatch({ width: 400, height: 300 }, 200, 120)).toBe(true)
+    expect(presetAspectMismatch({ width: 1280, height: 720 }, 200, 112.5)).toBe(false)
   })
 })
 

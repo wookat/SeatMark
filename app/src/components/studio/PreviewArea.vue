@@ -29,13 +29,18 @@ import {
   settleWithin,
 } from '@/utils/pdfExport'
 import {
+  buildFieldFileNames,
   defaultPngExportName,
+  EINK_PRESETS,
   exactPixelHeight,
   exportPagedPng,
+  findEinkPreset,
   isValidExactPixelWidth,
   MAX_EXACT_PIXEL_WIDTH,
   MIN_EXACT_PIXEL_WIDTH,
+  presetAspectMismatch,
 } from '@/utils/pngExport'
+import { templateColumnsValid } from '@/utils/fieldTemplate'
 
 const workspace = useWorkspaceStore()
 const toast = useToastStore()
@@ -122,14 +127,58 @@ const pngMonochrome = ref(false)
 /** 电子座签模板：默认精确 800×480 + 纯黑白 */
 const isEinkTemplate = computed(() => workspace.template.id === 'eink800')
 
+/** 分辨率预设：custom = 自定义宽度（高度按模板比例推导）；其余为电子墨水屏常见规格精确像素 */
+const pngPresetId = ref('custom')
+/** 多页 zip 文件命名：seq = 序号命名（前缀-001）；field = 按名单字段命名 */
+const pngNameMode = ref<'seq' | 'field'>('seq')
+/** 字段命名模板串，如 {姓名}-{考场} */
+const pngNameTemplate = ref('')
+
 watch(
   () => workspace.template.id,
   () => {
     pngSizeMode.value = isEinkTemplate.value ? 'exact' : 'standard'
+    pngPresetId.value = isEinkTemplate.value ? 'eink-800x480' : 'custom'
     pngExactWidth.value = 800
     pngMonochrome.value = isEinkTemplate.value
   },
   { immediate: true },
+)
+
+const PNG_PRESET_OPTIONS = computed<SelectOption[]>(() => [
+  { value: 'custom', label: '自定义宽度（高度按模板比例）' },
+  ...EINK_PRESETS.map((p) => ({ value: p.id, label: p.label })),
+])
+
+const pngPreset = computed(() => findEinkPreset(pngPresetId.value))
+
+/** 选中预设时同步宽度并建议纯黑白（电子墨水屏只认纯黑纯白，可手动取消） */
+watch(pngPreset, (preset) => {
+  if (!preset) return
+  pngExactWidth.value = preset.width
+  pngMonochrome.value = true
+})
+
+const PNG_NAME_OPTIONS: SelectOption[] = [
+  { value: 'seq', label: '序号命名（前缀-001.png）' },
+  { value: 'field', label: '按名单字段命名（如 张三-第1考场.png）' },
+]
+
+/** 命名模板默认取第一列（多为姓名）；切换到字段命名且为空时填入 */
+watch(pngNameMode, (mode) => {
+  if (mode === 'field' && !pngNameTemplate.value.trim() && workspace.excel.headers.length) {
+    pngNameTemplate.value = `{${workspace.excel.headers[0]}}`
+  }
+})
+
+function appendNameField(header: string) {
+  pngNameTemplate.value += `{${header}}`
+}
+
+const pngNameTemplateValid = computed(
+  () =>
+    !pngNameTemplate.value.trim() ||
+    templateColumnsValid(pngNameTemplate.value, workspace.excel.headers),
 )
 
 const PNG_SIZE_OPTIONS = computed<SelectOption[]>(() => [
@@ -150,13 +199,26 @@ const pngCropRect = computed(() => {
   return { x: pos.left, y: pos.top, width: template.label.width, height: template.label.height }
 })
 
+const pngDesignRect = computed(
+  () =>
+    pngCropRect.value ?? {
+      width: workspace.template.page.paperWidth,
+      height: workspace.template.page.paperHeight,
+    },
+)
+
 const pngExactHeight = computed(() => {
+  const preset = pngPreset.value
+  if (preset) return preset.height
   if (!pngExactWidthValid.value) return 0
-  const design = pngCropRect.value ?? {
-    width: workspace.template.page.paperWidth,
-    height: workspace.template.page.paperHeight,
-  }
-  return exactPixelHeight(pngExactWidth.value, design.width, design.height)
+  return exactPixelHeight(pngExactWidth.value, pngDesignRect.value.width, pngDesignRect.value.height)
+})
+
+/** 预设比例与模板设计区域不一致时提示会拉伸，建议换模板或自定义宽度 */
+const pngPresetStretch = computed(() => {
+  const preset = pngPreset.value
+  if (!preset) return false
+  return presetAspectMismatch(preset, pngDesignRect.value.width, pngDesignRect.value.height)
 })
 
 /** 图片版 PDF 导出前的参数与体积预估（弹窗内展示，避免导出后才发现体积过大） */
@@ -393,7 +455,7 @@ async function doExportPdf() {
 }
 
 async function doExportPng() {
-  if (pngSizeMode.value === 'exact' && !pngExactWidthValid.value) {
+  if (pngSizeMode.value === 'exact' && !pngPreset.value && !pngExactWidthValid.value) {
     toast.warning('像素宽度无效', `请输入 ${MIN_EXACT_PIXEL_WIDTH}–${MAX_EXACT_PIXEL_WIDTH} 之间的整数像素宽度`)
     return
   }
@@ -403,6 +465,16 @@ async function doExportPng() {
   try {
     const pageCount = workspace.totalPages
     const exact = pngSizeMode.value === 'exact'
+    const baseName = defaultPngExportName()
+    // 按字段命名：多枚模板每页取第一条记录求值；空模板/空字段回退序号命名
+    const pageFileNames =
+      pngNameMode.value === 'field' && pngNameTemplate.value.trim() && pageCount > 1
+        ? buildFieldFileNames({
+            template: pngNameTemplate.value.trim(),
+            rows: workspace.pages.map((page) => page.find((row) => row != null) ?? null),
+            fallbackPrefix: baseName,
+          })
+        : undefined
     await exportPagedPng({
       pageCount,
       signal: abort.signal,
@@ -417,21 +489,25 @@ async function doExportPng() {
       pageWidth: workspace.template.page.paperWidth,
       pageHeight: workspace.template.page.paperHeight,
       exactPixels: exact
-        ? { width: pngExactWidth.value, height: pngExactHeight.value }
+        ? pngPreset.value
+          ? { width: pngPreset.value.width, height: pngPreset.value.height }
+          : { width: pngExactWidth.value, height: pngExactHeight.value }
         : undefined,
       cropRect: exact ? (pngCropRect.value ?? undefined) : undefined,
       monochrome: pngMonochrome.value,
       watermarkText:
         withWatermark.value && pngMonochrome.value ? 'SeatMark 座签 · seatmark.cn' : undefined,
-      fileName: defaultPngExportName(),
+      fileName: baseName,
+      pageFileNames,
       onProgress: (done, total) =>
         workspace.setLoading(true, `已完成 ${done}/${total} 页，正在生成图片...`, cancel),
     })
     await consumeQuotaAfterSuccess()
+    const exactW = pngPreset.value?.width ?? pngExactWidth.value
     toast.success(
       pageCount === 1 ? 'PNG 图片已生成' : `PNG 图片已生成（${pageCount} 页打包为 zip）`,
       exact
-        ? `每页精确 ${pngExactWidth.value}×${pngExactHeight.value} 像素${pngMonochrome.value ? '、纯黑白' : ''}，可直接导入电子桌牌系统`
+        ? `每页精确 ${exactW}×${pngExactHeight.value} 像素${pngMonochrome.value ? '、纯黑白' : ''}，可直接导入电子桌牌系统`
         : '每页一张高清 PNG，可直接用于屏显或二次编辑',
     )
     maybeShowSharePrompt()
@@ -829,30 +905,75 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
       <div v-if="pendingAction === 'png'" class="mb-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
         <label class="field-label">输出尺寸</label>
         <SelectField v-model="pngSizeMode" size="sm" :options="PNG_SIZE_OPTIONS" />
-        <div v-if="pngSizeMode === 'exact'" class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-          <label class="font-semibold" for="png-exact-width">宽度（px）</label>
-          <input
-            id="png-exact-width"
-            v-model.number="pngExactWidth"
-            type="number"
-            :min="MIN_EXACT_PIXEL_WIDTH"
-            :max="MAX_EXACT_PIXEL_WIDTH"
-            class="input-field w-24 text-center"
-            :class="pngExactWidthValid ? '' : '!border-red-400'"
-          />
-          <span v-if="pngExactWidthValid" class="text-slate-500">
-            输出 <strong class="text-slate-700">{{ pngExactWidth }}×{{ pngExactHeight }}</strong> 像素（高度按模板比例自动推导）
-          </span>
-          <span v-else class="text-red-500">请输入 {{ MIN_EXACT_PIXEL_WIDTH }}–{{ MAX_EXACT_PIXEL_WIDTH }} 之间的整数</span>
-        </div>
+        <template v-if="pngSizeMode === 'exact'">
+          <label class="field-label mt-2" for="png-preset">分辨率预设（电子墨水屏）</label>
+          <SelectField id="png-preset" v-model="pngPresetId" size="sm" :options="PNG_PRESET_OPTIONS" />
+          <div
+            v-if="!pngPreset"
+            class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600"
+          >
+            <label class="font-semibold" for="png-exact-width">宽度（px）</label>
+            <input
+              id="png-exact-width"
+              v-model.number="pngExactWidth"
+              type="number"
+              :min="MIN_EXACT_PIXEL_WIDTH"
+              :max="MAX_EXACT_PIXEL_WIDTH"
+              class="input-field w-24 text-center"
+              :class="pngExactWidthValid ? '' : '!border-red-400'"
+            />
+            <span v-if="pngExactWidthValid" class="text-slate-500">
+              输出 <strong class="text-slate-700">{{ pngExactWidth }}×{{ pngExactHeight }}</strong> 像素（高度按模板比例自动推导）
+            </span>
+            <span v-else class="text-red-500">请输入 {{ MIN_EXACT_PIXEL_WIDTH }}–{{ MAX_EXACT_PIXEL_WIDTH }} 之间的整数</span>
+          </div>
+          <p v-else class="mt-2 text-xs text-slate-500">
+            每页精确输出 <strong class="text-slate-700">{{ pngPreset.width }}×{{ pngPreset.height }}</strong> 像素
+          </p>
+          <p v-if="pngPresetStretch" class="mt-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">
+            该预设宽高比与当前模板不一致，画面会被拉伸；建议改用比例匹配的模板，或选「自定义宽度」按模板比例输出。
+          </p>
+        </template>
         <CheckboxField
           v-model="pngMonochrome"
           class="mt-2 text-xs font-semibold text-slate-600"
           label="纯黑白输出（电子墨水屏推荐）"
         />
         <p class="mt-2 text-xs leading-5 text-slate-400">
-          单页直接下载 PNG，多页自动打包为 zip；{{ isEinkTemplate ? '电子座签模板默认精确 800×480 像素 + 纯黑白，可直接导入电子桌牌系统。' : '需要精确像素（如电子墨水屏）时选「精确像素」并填写目标宽度。' }}
+          单页直接下载 PNG，多页自动打包为 zip；{{ isEinkTemplate ? '电子座签模板默认精确 800×480 像素 + 纯黑白，可直接导入电子桌牌系统。' : '需要精确像素（如电子墨水屏）时选「精确像素」，可用分辨率预设或自定义宽度。' }}
         </p>
+        <template v-if="workspace.totalPages > 1">
+          <label class="field-label mt-3" for="png-name-mode">zip 内文件命名</label>
+          <SelectField id="png-name-mode" v-model="pngNameMode" size="sm" :options="PNG_NAME_OPTIONS" />
+          <div v-if="pngNameMode === 'field'" class="mt-2 text-xs text-slate-600">
+            <input
+              v-model="pngNameTemplate"
+              type="text"
+              class="input-field w-full"
+              :class="pngNameTemplateValid ? '' : '!border-amber-400'"
+              placeholder="如 {姓名}-{考场}"
+              aria-label="文件命名模板"
+            />
+            <div v-if="workspace.excel.headers.length" class="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <span class="text-slate-400">点击插入字段：</span>
+              <button
+                v-for="header in workspace.excel.headers"
+                :key="header"
+                type="button"
+                class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700"
+                @click="appendNameField(header)"
+              >
+                {{ header }}
+              </button>
+            </div>
+            <p v-if="!pngNameTemplateValid" class="mt-1.5 text-amber-600">
+              模板中引用了名单里不存在的列，对应占位符会按空处理；字段为空的页面自动回退为序号命名。
+            </p>
+            <p v-else class="mt-1.5 text-slate-400">
+              {列名} 会替换为该页对应名单行的内容；非法字符自动过滤，重名自动追加 -2，空字段回退序号命名。
+            </p>
+          </div>
+        </template>
       </div>
       <p class="leading-6">选择导出方式：</p>
       <p
