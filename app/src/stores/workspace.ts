@@ -45,6 +45,40 @@ function loadInitialTemplate(): { template: LabelTemplate; id: string } {
   return { template: cloneTemplate(first), id: first.id }
 }
 
+/** 已导入名单的会话级持久化键（sessionStorage）：整页跳转/刷新 /studio 不丢名单 */
+const WORKSPACE_ROSTER_KEY = 'seatmark.workspace-roster.v1'
+
+interface PersistedRoster {
+  fileName: string
+  sheetName: string
+  headers: string[]
+  rows: DataRow[]
+  mapping: FieldMapping
+  isDemoData: boolean
+}
+
+function loadInitialRoster(): PersistedRoster | null {
+  try {
+    const raw = sessionStorage.getItem(WORKSPACE_ROSTER_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<PersistedRoster>
+    if (!Array.isArray(parsed.headers) || !Array.isArray(parsed.rows) || !parsed.rows.length) {
+      return null
+    }
+    return {
+      fileName: typeof parsed.fileName === 'string' ? parsed.fileName : '',
+      sheetName: typeof parsed.sheetName === 'string' ? parsed.sheetName : '',
+      headers: parsed.headers.map(String),
+      rows: parsed.rows as DataRow[],
+      mapping:
+        parsed.mapping && typeof parsed.mapping === 'object' ? (parsed.mapping as FieldMapping) : {},
+      isDemoData: parsed.isDemoData === true,
+    }
+  } catch {
+    return null
+  }
+}
+
 export const useWorkspaceStore = defineStore('workspace', () => {
   const toast = useToastStore()
 
@@ -77,14 +111,47 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   )
 
   // ---------- 数据 ----------
+  const restoredRoster = loadInitialRoster()
   const excel = reactive({
-    fileName: '',
-    sheetName: '',
-    headers: [] as string[],
-    rows: [] as DataRow[],
+    fileName: restoredRoster?.fileName ?? '',
+    sheetName: restoredRoster?.sheetName ?? '',
+    headers: restoredRoster?.headers ?? ([] as string[]),
+    rows: restoredRoster?.rows ?? ([] as DataRow[]),
   })
-  const isDemoData = ref(false)
-  const mapping = reactive<FieldMapping>({})
+  const isDemoData = ref(restoredRoster?.isDemoData ?? false)
+  const mapping = reactive<FieldMapping>(restoredRoster?.mapping ?? {})
+
+  // 名单会话内持久化（防抖）：经 URL / 落地页整页跳转进 /studio 时不丢已导入名单；
+  // 仅存本页签的 sessionStorage，关闭页签即清除，符合「数据不出浏览器」承诺
+  let rosterTimer: number | undefined
+  watch(
+    [() => excel.rows, () => excel.headers, mapping, isDemoData],
+    () => {
+      window.clearTimeout(rosterTimer)
+      rosterTimer = window.setTimeout(() => {
+        try {
+          if (!excel.rows.length) {
+            sessionStorage.removeItem(WORKSPACE_ROSTER_KEY)
+            return
+          }
+          sessionStorage.setItem(
+            WORKSPACE_ROSTER_KEY,
+            JSON.stringify({
+              fileName: excel.fileName,
+              sheetName: excel.sheetName,
+              headers: excel.headers,
+              rows: excel.rows,
+              mapping,
+              isDemoData: isDemoData.value,
+            }),
+          )
+        } catch {
+          /* 名单过大超出配额 / 隐私模式：静默跳过，仅影响整页跳转后的恢复 */
+        }
+      }, 400)
+    },
+    { deep: true },
+  )
 
   // ---------- 单张覆写（Edit One） ----------
   /** 数据行 -> 字段 id -> 覆写文本；以行对象为键，筛选/排序不影响对应关系 */

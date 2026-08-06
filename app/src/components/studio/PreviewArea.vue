@@ -22,8 +22,10 @@ import {
   estimatePdfBytes,
   EXPORT_CANCELLED_MESSAGE,
   exportPagedPdf,
+  FONTS_READY_WAIT_MS,
   formatBytes,
   rasterDpi,
+  settleWithin,
 } from '@/utils/pdfExport'
 
 const workspace = useWorkspaceStore()
@@ -181,11 +183,10 @@ async function mountHost(pageIndex: number | null = null) {
   hostPageIndex.value = pageIndex
   renderHost.value = true
   await nextTick()
-  // 等在线字体就绪，避免栅格化/打印时字形回退
-  try {
-    await document.fonts.ready
-  } catch {
-    /* 旧浏览器无 fonts API：跳过 */
+  // 等在线字体就绪，避免栅格化/打印时字形回退；
+  // 带上限：在线字体加载卡死时 fonts.ready 可能永不落定，不允许拖死导出/打印
+  if ('fonts' in document) {
+    await settleWithin(document.fonts.ready.then(() => undefined), FONTS_READY_WAIT_MS)
   }
   // 双 requestAnimationFrame：确保浏览器完成布局与绘制后再截图/打印
   await new Promise<void>((resolve) =>
@@ -197,6 +198,12 @@ async function mountHost(pageIndex: number | null = null) {
 function unmountHost() {
   renderHost.value = false
   hostPageIndex.value = null
+}
+
+/** 重建离屏容器：卸掉 Teleport 内的宿主节点后等完成 DOM 移除，下次 getPage 会重新挂载 */
+async function rebuildHost() {
+  unmountHost()
+  await nextTick()
 }
 
 function openExportChoice(action: 'pdf' | 'print') {
@@ -264,6 +271,7 @@ async function doExportPdf() {
         if (!el) throw new Error('页面节点未挂载')
         return el
       },
+      rebuildHost,
       scale,
       pageWidth: workspace.template.page.paperWidth,
       pageHeight: workspace.template.page.paperHeight,
