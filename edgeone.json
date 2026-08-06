@@ -1,5 +1,25 @@
 {
   "buildCommand": "cd app && npm run build",
   "installCommand": "npm install && cd app && npm install",
-  "outputDirectory": "app/dist"
+  "outputDirectory": "app/dist",
+  "headers": [
+    {
+      "source": "/*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
 }
