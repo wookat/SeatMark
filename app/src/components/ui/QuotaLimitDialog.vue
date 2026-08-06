@@ -4,11 +4,28 @@ import { computed } from 'vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { QUOTA_USER_DAILY, useQuotaStore } from '@/stores/quota'
+import { useToastStore } from '@/stores/toast'
+import { copyToClipboard } from '@/utils/share'
 
 const auth = useAuthStore()
 const quota = useQuotaStore()
+const toast = useToastStore()
 
 const isLoggedIn = computed(() => auth.isLoggedIn)
+
+const shareLink = computed(() =>
+  auth.user ? `https://www.seatmark.cn/?ref=${auth.user.share.code}` : '',
+)
+
+async function copyShareLink() {
+  if (!shareLink.value) return
+  if (await copyToClipboard(shareLink.value)) {
+    toast.success('分享链接已复制', '发给同事或群聊，每被点开 1 次即得 1 次无水印导出')
+    close()
+  } else {
+    toast.warning('复制失败', '可到个人中心手动复制专属分享链接')
+  }
+}
 
 function close() {
   quota.limitDialogOpen = false
@@ -42,10 +59,11 @@ function close() {
         </span>
       </RouterLink>
 
-      <RouterLink
-        :to="isLoggedIn ? '/account#share' : '/account'"
-        class="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300"
-        @click="close"
+      <component
+        :is="isLoggedIn ? 'button' : 'RouterLink'"
+        v-bind="isLoggedIn ? { type: 'button' } : { to: '/account' }"
+        class="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 text-left transition-colors hover:border-slate-300"
+        @click="isLoggedIn ? copyShareLink() : close()"
       >
         <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white">
           <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -56,12 +74,14 @@ function close() {
           </svg>
         </span>
         <span>
-          <span class="block text-sm font-bold text-slate-900">分享给同事，送无水印次数</span>
+          <span class="block text-sm font-bold text-slate-900">
+            {{ isLoggedIn ? '分享给同事再得 1 次：点击复制专属链接' : '分享给同事，送无水印次数' }}
+          </span>
           <span class="mt-0.5 block text-xs leading-5 text-slate-500">
-            {{ isLoggedIn ? '在个人中心复制你的专属分享链接，每被点开 1 次即得 1 次无水印导出（每日上限 10 次）' : '登录后可生成专属分享链接，每被点开 1 次即得 1 次无水印导出（每日上限 10 次）' }}
+            {{ isLoggedIn ? '每被点开 1 次即得 1 次无水印导出（每日上限 10 次），也可到个人中心查看分享统计' : '登录后可生成专属分享链接，每被点开 1 次即得 1 次无水印导出（每日上限 10 次）' }}
           </span>
         </span>
-      </RouterLink>
+      </component>
     </div>
 
     <p class="mt-4 text-xs leading-5 text-slate-400">

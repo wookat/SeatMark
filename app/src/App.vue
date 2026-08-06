@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import AnnouncementBar from '@/components/ui/AnnouncementBar.vue'
@@ -8,14 +8,20 @@ import AppHeader from '@/components/ui/AppHeader.vue'
 import FeedbackButton from '@/components/ui/FeedbackButton.vue'
 import LoadingOverlay from '@/components/ui/LoadingOverlay.vue'
 import QuotaLimitDialog from '@/components/ui/QuotaLimitDialog.vue'
+import ShareWelcomeBanner from '@/components/ui/ShareWelcomeBanner.vue'
 import ToastHost from '@/components/ui/ToastHost.vue'
 import WeChatGuideOverlay from '@/components/ui/WeChatGuideOverlay.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import { apiFetch } from '@/utils/api'
 import { fetchSharedPayload, SHARE_HASH_PREFIX, SHARE_SHORT_PARAM } from '@/utils/share'
 
 const auth = useAuthStore()
+const toast = useToastStore()
 const router = useRouter()
+
+/** 被分享者落地欢迎横幅（?ref= 进入）：介绍这是什么工具 + 一键开始 */
+const shareWelcomeOpen = ref(false)
 
 onMounted(() => {
   void auth.refresh()
@@ -24,11 +30,12 @@ onMounted(() => {
   let dirty = false
 
   // 分享链接访问上报（?ref=分享码）：服务端 IP+日去重后为分享者赠送 1 次无水印导出
-  const ref = params.get('ref')
-  if (ref && /^[0-9a-f]{8}$/.test(ref)) {
-    void apiFetch('/api/share/visit', { method: 'POST', body: { code: ref } }).catch(() => {})
+  const refCode = params.get('ref')
+  if (refCode && /^[0-9a-f]{8}$/.test(refCode)) {
+    void apiFetch('/api/share/visit', { method: 'POST', body: { code: refCode } }).catch(() => {})
     params.delete('ref')
     dirty = true
+    shareWelcomeOpen.value = true
   }
 
   // 模板短码（?s=短码，微信扫码短链）：取回负载后走既有 #tpl= 导入流程
@@ -48,6 +55,11 @@ onMounted(() => {
     void fetchSharedPayload(short).then((payload) => {
       if (payload) {
         void router.replace({ path: '/studio', hash: `${SHARE_HASH_PREFIX}${payload}` })
+      } else {
+        toast.warning(
+          '分享模板暂时无法打开',
+          '链接可能已过期或网络波动，请让对方重新生成；你仍可直接使用全部内置模板',
+        )
       }
     })
   }
@@ -58,6 +70,7 @@ onMounted(() => {
   <div class="flex min-h-screen flex-col">
     <AnnouncementBar />
     <AppHeader />
+    <ShareWelcomeBanner :open="shareWelcomeOpen" @close="shareWelcomeOpen = false" />
     <main class="flex-1">
       <RouterView />
     </main>

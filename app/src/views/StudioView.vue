@@ -215,6 +215,9 @@ onMounted(() => {
         {{ (sharedTemplate?.page.cols ?? 0) * (sharedTemplate?.page.rows ?? 0) }} 枚/页，
         {{ sharedTemplate?.fields.length }} 个字段）。
       </p>
+      <p class="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500">
+        SeatMark 座签是免费的在线批量制签工具：上传 Excel 名单即可批量生成座位标签 / 桌牌席卡，排版精确到毫米。选「保存并应用」即可一键开始，名单数据全程只在你的浏览器本地处理。
+      </p>
       <p class="mt-2 text-xs text-slate-400">
         模板完全由链接本身携带，没有经过任何服务器。
       </p>
