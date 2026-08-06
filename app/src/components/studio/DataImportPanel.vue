@@ -160,8 +160,8 @@ function onDrop(event: DragEvent) {
 }
 
 async function onDownloadSample() {
-  await downloadSampleExcel()
-  toast.success('示例模板已下载', '按示例表头整理数据后重新上传即可')
+  const sample = await downloadSampleExcel(workspace.template)
+  toast.success(`「${sample.sheetName}」样例已下载`, '按样例表头整理名单后上传即可直接导入')
 }
 </script>
 
@@ -170,7 +170,7 @@ async function onDownloadSample() {
     <div class="panel-head">
       <h2 class="section-title"><span class="step-chip">2</span>导入数据</h2>
       <button type="button" class="btn btn-ghost btn-sm" @click="onDownloadSample">
-        下载示例 Excel
+        下载样例 Excel
       </button>
     </div>
 
@@ -193,7 +193,7 @@ async function onDownloadSample() {
         <p class="text-sm text-slate-600">
           <strong class="text-brand-600">点击选择</strong> 或拖拽 Excel 到此处
         </p>
-        <p class="text-xs text-slate-400">第一行默认作为表头，支持 .xlsx / .xls</p>
+        <p class="text-xs text-slate-400">第一行默认作为表头，支持 .xlsx / .xls；不确定格式可先下载样例 Excel</p>
       </div>
       <button type="button" class="btn btn-ghost btn-sm mt-3 w-full" @click="workspace.useDemoData()">
         没有现成文件？先用演示数据体验

@@ -1,4 +1,6 @@
-import type { DataRow, ParsedExcel } from '@/types/template'
+import type { SampleExcel } from '@/data/demoDatasets'
+import { sampleExcelFor } from '@/data/demoDatasets'
+import type { DataRow, LabelTemplate, ParsedExcel } from '@/types/template'
 
 /** 解析 Excel 文件首个工作表：第一行为表头，其余为数据行 */
 export async function parseExcelFile(file: File): Promise<ParsedExcel> {
@@ -56,21 +58,19 @@ export function compareCellText(a: string, b: string): number {
   return a.localeCompare(b, 'zh-Hans-CN')
 }
 
-const SAMPLE_HEADERS = ['姓名', '性别', '考场', '座位号', '准考证号', '班级', '学号']
-
-/** 生成并下载示例 Excel 模板 */
-export async function downloadSampleExcel(): Promise<void> {
+/** 按当前模板场景生成并下载样例 Excel（本地生成，不经过服务器） */
+export async function downloadSampleExcel(template: LabelTemplate): Promise<SampleExcel> {
+  const sample = sampleExcelFor(template)
   const XLSX = await import('xlsx')
   const sheetData = [
-    SAMPLE_HEADERS,
-    ['张同学', '男', '第一考场', '01', '2026061001', '高三（1）班', '2023010101'],
-    ['李同学', '女', '第一考场', '02', '2026061002', '高三（1）班', '2023010102'],
-    ['王同学', '男', '第二考场', '03', '2026061003', '高三（2）班', '2023020103'],
+    sample.headers,
+    ...sample.rows.map((row) => sample.headers.map((h) => row[h] ?? '')),
   ]
   const worksheet = XLSX.utils.aoa_to_sheet(sheetData)
   const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, '座位标签示例')
-  XLSX.writeFile(workbook, '考场座位标签示例.xlsx')
+  XLSX.utils.book_append_sheet(workbook, worksheet, sample.sheetName)
+  XLSX.writeFile(workbook, sample.fileName)
+  return sample
 }
 
 const DEMO_NAMES = [
