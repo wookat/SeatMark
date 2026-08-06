@@ -203,18 +203,20 @@ async function onDownloadSample() {
     <template v-else>
       <div class="flex items-center justify-between rounded-lg bg-slate-50 p-3">
         <div class="min-w-0">
-          <p class="truncate text-sm font-semibold text-slate-800">
-            {{ workspace.excel.fileName }}
+          <p class="flex min-w-0 items-center text-sm font-semibold text-slate-800">
+            <span class="truncate">{{ workspace.excel.fileName }}</span>
             <span
               v-if="workspace.isDemoData"
-              class="ml-1 rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-bold text-brand-700"
+              class="ml-1 shrink-0 rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-bold text-brand-700"
             >
               演示数据
             </span>
           </p>
           <p class="mt-0.5 text-xs text-slate-500">
-            工作表「{{ workspace.excel.sheetName }}」 · 共
-            <strong class="text-brand-600">{{ workspace.excel.rows.length }}</strong> 条数据
+            工作表「{{ workspace.excel.sheetName }}」 ·
+            <span class="whitespace-nowrap"
+              >共 <strong class="text-brand-600">{{ workspace.excel.rows.length }}</strong> 条数据</span
+            >
           </p>
         </div>
         <div class="flex shrink-0 gap-1.5">

@@ -331,7 +331,10 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         >
           {{ workspace.excel.rows.length }} 个标签
         </span>
-        <span class="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-500">
+        <span
+          v-if="workspace.totalPages > 0"
+          class="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-500"
+        >
           {{ workspace.totalPages }} 页
         </span>
         <span class="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-500">

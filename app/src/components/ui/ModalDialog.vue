@@ -1,5 +1,7 @@
 <script setup lang="ts">
-withDefaults(
+import { onBeforeUnmount, onMounted } from 'vue'
+
+const props = withDefaults(
   defineProps<{
     open: boolean
     title: string
@@ -16,6 +18,13 @@ const SIZE_CLASSES: Record<string, string> = {
   lg: 'max-w-2xl',
   xl: 'max-w-5xl',
 }
+
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && props.open) emit('close')
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
