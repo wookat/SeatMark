@@ -29,7 +29,7 @@
  * - ADMIN_EMAILS     管理员邮箱白名单，逗号分隔（未配置则管理端全部 403）
  * - TENCENT_SES_SECRET_ID    腾讯云 SES SecretId（配置后优先走腾讯云 SES 发送验证码）
  * - TENCENT_SES_SECRET_KEY   腾讯云 SES SecretKey
- * - TENCENT_SES_REGION       腾讯云 SES 地域（默认 ap-guangzhou）
+ * - TENCENT_SES_REGION       腾讯云 SES 地域（默认 ap-hongkong；SES API 服务地域）
  * - TENCENT_SES_TEMPLATE_ID  腾讯云 SES 模板 ID（可选；配置后用模板发送，变量 {code}/{ttl}）
  * - RESEND_API_KEY   Resend 邮件发送密钥（腾讯云未配置时的备用通道；都未配置时仅本地开发环境以 devCode 形式返回验证码）
  * - MAIL_FROM        发件地址（默认 SeatMark <noreply@seatmark.cn>）
@@ -353,15 +353,20 @@ async function sendCodeMailTencent(env, email, code) {
         'X-TC-Action': 'SendEmail',
         'X-TC-Version': SES_VERSION,
         'X-TC-Timestamp': String(timestamp),
-        'X-TC-Region': (env && env.TENCENT_SES_REGION) || 'ap-guangzhou',
+        'X-TC-Region': (env && env.TENCENT_SES_REGION) || 'ap-hongkong',
       },
       body: payload,
     })
-    if (!res.ok) return { configured: true, delivered: false }
     const data = await res.json().catch(() => null)
-    return { configured: true, delivered: !data?.Response?.Error }
-  } catch {
-    return { configured: true, delivered: false }
+    const err = data?.Response?.Error
+    if (!res.ok || err) {
+      console.log(`[mail] SES SendEmail failed: http=${res.status} code=${err?.Code || ''} message=${err?.Message || ''}`)
+      return { configured: true, delivered: false, errorCode: err?.Code || `HTTP_${res.status}` }
+    }
+    return { configured: true, delivered: true }
+  } catch (e) {
+    console.log(`[mail] SES SendEmail exception: ${e && e.message}`)
+    return { configured: true, delivered: false, errorCode: 'FETCH_ERROR' }
   }
 }
 
@@ -521,7 +526,7 @@ async function handleRequest(context) {
     )
     await kv.put(ipKey, String(ipCount + 1))
 
-    const { configured, delivered } = await sendCodeMail(env, email, code)
+    const { configured, delivered, errorCode } = await sendCodeMail(env, email, code)
     if (delivered) return json({ ok: true, delivery: 'email' }, 200, storageHeader)
     if (!configured) {
       // 邮件服务未配置：仅本地开发环境把 devCode 回显给前端供联调，线上一律报错
@@ -530,7 +535,11 @@ async function handleRequest(context) {
       }
       return json({ error: '邮件服务未配置，请联系管理员' }, 503, storageHeader)
     }
-    return json({ error: '验证码发送失败，请稍后再试' }, 502, storageHeader)
+    // 错误码只标识邮件服务商返回的错误类别（不含用户数据），便于管理员在不看函数日志的情况下定位配置问题
+    return json({ error: '验证码发送失败，请稍后再试' }, 502, {
+      ...storageHeader,
+      ...(errorCode ? { 'X-SeatMark-Mail-Error': String(errorCode).slice(0, 64) } : {}),
+    })
   }
 
   if (path === '/api/auth/verify' && method === 'POST') {
