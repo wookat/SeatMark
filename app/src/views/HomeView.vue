@@ -78,7 +78,8 @@ const vLoadTemplates: Directive<HTMLElement> = {
           void loadTemplates()
         }
       },
-      { rootMargin: '400px 0px' },
+      // 不预扩边界：大屏高视口下模板区距首屏很近，预扩会让首屏就拉取模板 chunk
+      { rootMargin: '0px' },
     )
     io.observe(el)
     templateLoaders.set(el, io)
