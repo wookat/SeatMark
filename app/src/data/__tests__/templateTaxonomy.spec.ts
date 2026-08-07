@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import { defaultTemplates } from '../defaultTemplates'
+import { TEMPLATE_COUNT } from '../templateMeta'
 import { TEMPLATE_SUBCATEGORIES, subcategoryOf } from '../templateTaxonomy'
+
+describe('templateMeta', () => {
+  it('TEMPLATE_COUNT 与内置模板实际数量一致', () => {
+    expect(TEMPLATE_COUNT).toBe(defaultTemplates.length)
+  })
+})
 
 describe('templateTaxonomy', () => {
   const builtinIds = new Set(defaultTemplates.map((t) => t.id))

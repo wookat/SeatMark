@@ -1,20 +1,23 @@
-import type { LabelTemplate, TemplateCategory, TemplateField } from '@/types/template'
+import type { LabelTemplate, TemplateCategory } from '@/types/template'
 
-import { DEFAULT_FONT_STACK, DEFAULT_FONT_STACK_EN } from './fonts'
 import { campusTemplates } from './defaultTemplatesCampus'
 import { deluxeTemplates } from './defaultTemplatesDeluxe'
 import { eventTemplates } from './defaultTemplatesEvent'
 import { lifeTemplates } from './defaultTemplatesLife'
 import { round4Templates } from './defaultTemplatesRound4'
 import { styleSeriesTemplates } from './defaultTemplatesStyleSeries'
+import {
+  FONT_FAMILY,
+  FONT_FAMILY_EN,
+  hairline,
+  INK,
+  INK_FAINT,
+  INK_MUTED,
+  INK_SOFT,
+  LINE,
+} from './templatePrimitives'
+import { standardTemplate } from './templateStandard'
 
-/** 内置模板默认中文字体：宋体（正式考务文档气质，本机渲染零联网） */
-const FONT_FAMILY = DEFAULT_FONT_STACK
-
-/** 内置模板默认西文字体：Times New Roman（英文/数字，与宋体经典搭配） */
-const FONT_FAMILY_EN = DEFAULT_FONT_STACK_EN
-
-/** 模板选择面板的场景分类（顺序即展示顺序） */
 export const TEMPLATE_CATEGORIES: { id: TemplateCategory; name: string }[] = [
   { id: 'exam', name: '考试' },
   { id: 'teaching', name: '教学' },
@@ -24,162 +27,8 @@ export const TEMPLATE_CATEGORIES: { id: TemplateCategory; name: string }[] = [
   { id: 'life', name: '生活办公' },
 ]
 
-const INK = '#0f172a'
-const INK_SOFT = '#475569'
-const INK_MUTED = '#64748b'
-const INK_FAINT = '#94a3b8'
-const LINE = '#cbd5e1'
-
-/**
- * 细分隔线：用细长色块字段实现。
- * fixedText 为空串 → 不参与 Excel 映射、自动匹配与缺失高亮。
- */
-function hairline(
-  id: string,
-  rect: { x: number; y: number; width: number; height: number },
-  color = LINE,
-): TemplateField {
-  return {
-    id,
-    label: '分隔线',
-    type: 'text',
-    ...rect,
-    fixedText: '',
-    background: color,
-    padding: 0,
-    maxLines: 1,
-  }
-}
-
 export const defaultTemplates: LabelTemplate[] = [
-  {
-    id: 'standard',
-    name: '标准考场版',
-    category: 'exam',
-    description: '3 列 × 8 行，座位号与信息纵线分栏，宋体正式风格，细线划分层级。',
-    scenario: '桌贴 / 门贴通用',
-    accent: '#4f46e5',
-    builtin: true,
-    sampleData: { seatNo: '12', name: '谢跃平', room: '考场-1', examId: '2025053002' },
-    fontFamily: FONT_FAMILY,
-    fontFamilyEn: FONT_FAMILY_EN,
-    label: {
-      width: 60,
-      height: 32,
-      radius: 0,
-      borderWidth: 0.25,
-      borderColor: '#334155',
-      background: '#ffffff',
-    },
-    page: {
-      paperWidth: 210,
-      paperHeight: 297,
-      rows: 8,
-      cols: 3,
-      marginTop: 10,
-      marginBottom: 10,
-      marginLeft: 11,
-      marginRight: 11,
-      gapX: 4,
-      gapY: 3.857,
-    },
-    fields: [
-      {
-        id: 'seatNo',
-        label: '座位号',
-        type: 'text',
-        x: 1.5,
-        y: 2,
-        width: 21,
-        height: 23,
-        fontSize: 30,
-        fontWeight: 'bold',
-        align: 'center',
-        verticalAlign: 'middle',
-        color: INK,
-        padding: 0,
-        lineHeight: 1,
-        maxLines: 1,
-        emphasis: 'hero',
-        sample: '12',
-      },
-      {
-        id: 'seatCaption',
-        label: '座位号小注',
-        type: 'text',
-        x: 1.5,
-        y: 25.5,
-        width: 21,
-        height: 4,
-        fontSize: 5.5,
-        align: 'center',
-        verticalAlign: 'middle',
-        color: INK_FAINT,
-        letterSpacing: 0.24,
-        padding: 0,
-        lineHeight: 1.1,
-        maxLines: 1,
-        fixedText: '座位号 SEAT',
-      },
-      hairline('divider', { x: 23.5, y: 2.5, width: 0.25, height: 27 }),
-      {
-        id: 'name',
-        label: '姓名',
-        type: 'text',
-        x: 26,
-        y: 2.5,
-        width: 32,
-        height: 10,
-        fontSize: 15,
-        fontWeight: 'bold',
-        align: 'left',
-        verticalAlign: 'middle',
-        color: INK,
-        letterSpacing: 0.05,
-        padding: 0.5,
-        lineHeight: 1.15,
-        maxLines: 1,
-        sample: '谢跃平',
-      },
-      hairline('rule', { x: 26.5, y: 13.7, width: 31, height: 0.22 }),
-      {
-        id: 'room',
-        label: '考场',
-        type: 'text',
-        x: 26,
-        y: 15,
-        width: 32,
-        height: 5.5,
-        fontSize: 8.5,
-        align: 'left',
-        verticalAlign: 'middle',
-        color: INK_SOFT,
-        padding: 0.5,
-        lineHeight: 1.1,
-        maxLines: 1,
-        sample: '考场-1',
-      },
-      {
-        id: 'examId',
-        label: '准考证号',
-        type: 'text',
-        x: 26,
-        y: 21.5,
-        width: 32,
-        height: 6,
-        fontSize: 8.5,
-        align: 'left',
-        verticalAlign: 'middle',
-        color: INK_MUTED,
-        letterSpacing: 0.08,
-        padding: 0.5,
-        lineHeight: 1.1,
-        maxLines: 1,
-        sample: '2025053002',
-      },
-    ],
-    showLabelBorder: true,
-  },
+  standardTemplate,
   {
     id: 'examNo',
     name: '考号贴',
