@@ -109,7 +109,7 @@ onBeforeUnmount(() => {
         {{ currentLabel }}
       </span>
       <svg
-        class="size-3.5 shrink-0 text-slate-400 transition-transform"
+        class="size-3.5 shrink-0 text-slate-600 transition-transform"
         :class="{ 'rotate-180': open }"
         viewBox="0 0 16 16"
         fill="none"
@@ -149,11 +149,11 @@ onBeforeUnmount(() => {
             @click="pickDefault"
           >
             <span class="font-medium">{{ defaultLabel }}</span>
-            <span class="text-[10px] text-slate-400">无需联网</span>
+            <span class="text-[10px] text-slate-600">无需联网</span>
           </button>
 
           <template v-for="group in groups" :key="group.label">
-            <p class="px-2.5 pt-2.5 pb-1 text-[10px] font-bold tracking-wider text-slate-400">
+            <p class="px-2.5 pt-2.5 pb-1 text-[10px] font-bold tracking-wider text-slate-600">
               {{ group.label }}
             </p>
             <button
@@ -171,12 +171,12 @@ onBeforeUnmount(() => {
                 >
                   {{ font.name }}
                 </span>
-                <span class="block truncate text-[10px] text-slate-400">
+                <span class="block truncate text-[10px] text-slate-600">
                   {{ font.lang === 'zh' ? font.family : font.preview }}
                 </span>
               </span>
               <span
-                class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500"
+                class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600"
               >
                 {{ font.category }}
               </span>
@@ -226,13 +226,13 @@ onBeforeUnmount(() => {
             </button>
           </template>
 
-          <p v-if="!groups.length" class="px-2.5 py-6 text-center text-xs text-slate-400">
+          <p v-if="!groups.length" class="px-2.5 py-6 text-center text-xs text-slate-600">
             没有匹配「{{ query }}」的字体
           </p>
         </div>
 
         <p
-          class="border-t border-slate-100 bg-slate-50/60 px-3 py-1.5 text-[10px] leading-4 text-slate-400"
+          class="border-t border-slate-100 bg-slate-50/60 px-3 py-1.5 text-[10px] leading-4 text-slate-600"
         >
           系统字体本机直接渲染；开源字体来自公共 CDN 按需联网加载，可免费商用
         </p>

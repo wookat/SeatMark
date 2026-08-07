@@ -71,12 +71,12 @@ const specRows = computed(() => {
 
 <template>
   <div v-if="paper && geo" class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
-    <nav class="flex flex-wrap items-center gap-1.5 text-xs text-slate-400" aria-label="面包屑">
+    <nav class="flex flex-wrap items-center gap-1.5 text-xs text-slate-600" aria-label="面包屑">
       <RouterLink to="/" class="hover:text-brand-600">首页</RouterLink>
       <span>/</span>
       <RouterLink to="/papers" class="hover:text-brand-600">纸型库</RouterLink>
       <span>/</span>
-      <span class="text-slate-500">{{ paper.name }}</span>
+      <span class="text-slate-600">{{ paper.name }}</span>
     </nav>
 
     <div class="mt-6 grid items-start gap-8 lg:grid-cols-[0.9fr_1.1fr]">
@@ -103,7 +103,7 @@ const specRows = computed(() => {
             stroke-width="0.6"
           />
         </svg>
-        <p class="mt-4 text-center text-[11px] font-semibold text-slate-400">
+        <p class="mt-4 text-center text-[11px] font-semibold text-slate-600">
           按毫米比例绘制的整页版式示意
         </p>
       </div>
@@ -122,7 +122,7 @@ const specRows = computed(() => {
           <span
             v-for="alias in paper.aliases"
             :key="alias"
-            class="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500"
+            class="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600"
           >
             {{ alias }}
           </span>
@@ -154,7 +154,7 @@ const specRows = computed(() => {
                 :key="row.name"
                 class="border-b border-slate-100 last:border-b-0"
               >
-                <th class="w-28 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-500">
+                <th class="w-28 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-600">
                   {{ row.name }}
                 </th>
                 <td class="px-4 py-2.5 text-slate-700">{{ row.value }}</td>
@@ -188,7 +188,7 @@ const specRows = computed(() => {
     <!-- 适用模板推荐 -->
     <section class="mt-14">
       <h2 class="text-xl font-bold tracking-tight text-slate-900">适用模板推荐</h2>
-      <p class="mt-1.5 text-sm text-slate-500">
+      <p class="mt-1.5 text-sm text-slate-600">
         以下内置模板与该纸型的标签尺寸匹配良好，选模板后再在纸张设置里选择此纸型即可对版。
       </p>
       <div class="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -204,7 +204,7 @@ const specRows = computed(() => {
           <h3 class="mt-3 text-sm font-bold text-slate-900 group-hover:text-brand-600">
             {{ item.template!.name }}
           </h3>
-          <p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+          <p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">
             {{ item.template!.description }}
           </p>
         </RouterLink>

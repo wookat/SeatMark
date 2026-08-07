@@ -195,11 +195,11 @@ watch(
       </span>
     </div>
 
-    <div v-if="loading" class="mt-10 text-center text-sm text-slate-500">加载中...</div>
+    <div v-if="loading" class="mt-10 text-center text-sm text-slate-600">加载中...</div>
 
     <div v-else-if="forbidden" class="mt-10 rounded-lg border border-slate-200 bg-white p-8 text-center">
       <p class="text-sm font-semibold text-slate-900">需要管理员权限</p>
-      <p class="mt-2 text-sm text-slate-500">
+      <p class="mt-2 text-sm text-slate-600">
         请使用管理员白名单邮箱登录后访问（白名单由 ADMIN_EMAILS 环境变量配置）。
       </p>
       <RouterLink to="/account" class="btn btn-primary btn-sm mt-4">去登录</RouterLink>
@@ -209,25 +209,25 @@ watch(
       <!-- 指标卡片 -->
       <div class="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-5">
         <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-card">
-          <p class="text-xs text-slate-500">注册用户（Beta 试用）</p>
+          <p class="text-xs text-slate-600">注册用户（Beta 试用）</p>
           <p class="mt-1 text-2xl font-bold text-slate-900">{{ overview.totalUsers }}</p>
         </div>
         <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-card">
-          <p class="text-xs text-slate-500">今日无水印导出（登录用户）</p>
+          <p class="text-xs text-slate-600">今日无水印导出（登录用户）</p>
           <p class="mt-1 text-2xl font-bold text-slate-900">{{ overview.usageToday }}</p>
         </div>
         <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-card">
-          <p class="text-xs text-slate-500">今日活跃试用用户</p>
+          <p class="text-xs text-slate-600">今日活跃试用用户</p>
           <p class="mt-1 text-2xl font-bold text-slate-900">{{ overview.activeTrialToday }}</p>
         </div>
         <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-card">
-          <p class="text-xs text-slate-500">云端模板（用户 / 总数）</p>
+          <p class="text-xs text-slate-600">云端模板（用户 / 总数）</p>
           <p class="mt-1 text-2xl font-bold text-slate-900">
             {{ overview.templateSyncUsers }} / {{ overview.templateTotal }}
           </p>
         </div>
         <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-card">
-          <p class="text-xs text-slate-500">今日分享送无水印次数</p>
+          <p class="text-xs text-slate-600">今日分享送无水印次数</p>
           <p class="mt-1 text-2xl font-bold text-slate-900">{{ overview.shareBonusToday }}</p>
         </div>
       </div>
@@ -235,7 +235,7 @@ watch(
       <!-- 环境健康检查 -->
       <section v-if="health" class="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-card">
         <h2 class="text-sm font-bold text-slate-900">环境健康检查</h2>
-        <p class="mt-1 text-xs text-slate-400">在 EdgeOne Pages 控制台完成配置后刷新本页自检。</p>
+        <p class="mt-1 text-xs text-slate-600">在 EdgeOne Pages 控制台完成配置后刷新本页自检。</p>
         <ul class="mt-3 grid gap-2 sm:grid-cols-2">
           <li
             v-for="item in HEALTH_ITEMS"
@@ -256,7 +256,7 @@ watch(
             </span>
             <span>
               <span class="block text-xs font-bold text-slate-900">{{ item.name }}</span>
-              <span class="mt-0.5 block text-[11px] leading-4 text-slate-500">
+              <span class="mt-0.5 block text-[11px] leading-4 text-slate-600">
                 {{ health[item.key] ? item.okText : item.badText }}
               </span>
             </span>
@@ -281,7 +281,7 @@ watch(
             </span>
           </div>
         </div>
-        <div class="mt-1 flex justify-between text-[10px] text-slate-400">
+        <div class="mt-1 flex justify-between text-[10px] text-slate-600">
           <span>{{ overview.growth[0]?.date }}</span>
           <span>{{ overview.growth[overview.growth.length - 1]?.date }}</span>
         </div>
@@ -321,7 +321,7 @@ watch(
         <div class="mt-3 overflow-x-auto">
           <table class="w-full min-w-[560px] text-left text-sm">
             <thead>
-              <tr class="border-b border-slate-200 text-xs text-slate-500">
+              <tr class="border-b border-slate-200 text-xs text-slate-600">
                 <th class="py-2 pr-3 font-semibold">邮箱</th>
                 <th class="py-2 pr-3 font-semibold">注册时间</th>
                 <th class="py-2 pr-3 font-semibold">最近登录</th>
@@ -332,13 +332,13 @@ watch(
             <tbody>
               <tr v-for="u in users" :key="u.email" class="border-b border-slate-100">
                 <td class="py-2 pr-3 font-medium text-slate-900">{{ u.email }}</td>
-                <td class="py-2 pr-3 text-slate-500">{{ formatDate(u.createdAt) }}</td>
-                <td class="py-2 pr-3 text-slate-500">{{ formatDate(u.lastLoginAt) }}</td>
-                <td class="py-2 pr-3 text-slate-500">{{ u.loginCount }}</td>
-                <td class="py-2 text-slate-500">{{ u.templateCount || 0 }}</td>
+                <td class="py-2 pr-3 text-slate-600">{{ formatDate(u.createdAt) }}</td>
+                <td class="py-2 pr-3 text-slate-600">{{ formatDate(u.lastLoginAt) }}</td>
+                <td class="py-2 pr-3 text-slate-600">{{ u.loginCount }}</td>
+                <td class="py-2 text-slate-600">{{ u.templateCount || 0 }}</td>
               </tr>
               <tr v-if="!users.length">
-                <td colspan="5" class="py-6 text-center text-slate-400">暂无注册用户</td>
+                <td colspan="5" class="py-6 text-center text-slate-600">暂无注册用户</td>
               </tr>
             </tbody>
           </table>
@@ -351,7 +351,7 @@ watch(
         <div class="mt-3 overflow-x-auto">
           <table class="w-full min-w-[480px] text-left text-sm">
             <thead>
-              <tr class="border-b border-slate-200 text-xs text-slate-500">
+              <tr class="border-b border-slate-200 text-xs text-slate-600">
                 <th class="py-2 pr-3 font-semibold">邮箱</th>
                 <th class="py-2 pr-3 font-semibold">团队规模</th>
                 <th class="py-2 pr-3 font-semibold">备注</th>
@@ -361,12 +361,12 @@ watch(
             <tbody>
               <tr v-for="r in reservations" :key="r.email + r.createdAt" class="border-b border-slate-100">
                 <td class="py-2 pr-3 font-medium text-slate-900">{{ r.email }}</td>
-                <td class="py-2 pr-3 text-slate-500">{{ r.teamSize || '—' }}</td>
-                <td class="max-w-[240px] truncate py-2 pr-3 text-slate-500" :title="r.note">{{ r.note || '—' }}</td>
-                <td class="py-2 text-slate-500">{{ formatDate(r.createdAt) }}</td>
+                <td class="py-2 pr-3 text-slate-600">{{ r.teamSize || '—' }}</td>
+                <td class="max-w-[240px] truncate py-2 pr-3 text-slate-600" :title="r.note">{{ r.note || '—' }}</td>
+                <td class="py-2 text-slate-600">{{ formatDate(r.createdAt) }}</td>
               </tr>
               <tr v-if="!reservations.length">
-                <td colspan="4" class="py-6 text-center text-slate-400">暂无预订登记</td>
+                <td colspan="4" class="py-6 text-center text-slate-600">暂无预订登记</td>
               </tr>
             </tbody>
           </table>
@@ -376,12 +376,12 @@ watch(
       <!-- 反馈 -->
       <section class="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-card">
         <h2 class="text-sm font-bold text-slate-900">用户反馈（{{ feedback.length }}）</h2>
-        <p class="mt-1 text-xs text-slate-400">
+        <p class="mt-1 text-xs text-slate-600">
           KV 存档的反馈列表；同时仍会实时推送到企业微信群（见 /api/feedback）。
         </p>
         <ul class="mt-3 grid gap-3">
           <li v-for="(f, i) in feedback" :key="i" class="rounded border border-slate-100 bg-slate-50 p-3">
-            <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <div class="flex flex-wrap items-center gap-2 text-xs text-slate-600">
               <span class="rounded bg-slate-200 px-1.5 py-0.5 font-semibold text-slate-700">
                 {{ FEEDBACK_LABEL[f.type] || f.type }}
               </span>
@@ -391,7 +391,7 @@ watch(
             </div>
             <p class="mt-1.5 text-sm leading-6 text-slate-700">{{ f.content }}</p>
           </li>
-          <li v-if="!feedback.length" class="py-6 text-center text-sm text-slate-400">
+          <li v-if="!feedback.length" class="py-6 text-center text-sm text-slate-600">
             暂无 KV 存档反馈（未绑定 KV 时反馈仅推送企业微信）
           </li>
         </ul>

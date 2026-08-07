@@ -11,7 +11,7 @@ const recommendedGuides = guides.slice(0, 3)
     <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
       页面不存在或已被移动
     </h1>
-    <p class="mx-auto mt-4 max-w-xl text-sm leading-6 text-slate-500">
+    <p class="mx-auto mt-4 max-w-xl text-sm leading-6 text-slate-600">
       你访问的地址没有对应的页面。可能是链接拼写有误，或该内容已经调整位置。
       下面是一些常用入口，或直接进入标签工坊开始制作。
     </p>
@@ -41,7 +41,7 @@ const recommendedGuides = guides.slice(0, 3)
     </div>
 
     <section class="mt-12 text-left">
-      <h2 class="text-center text-sm font-bold text-slate-500">也许你在找这些教程</h2>
+      <h2 class="text-center text-sm font-bold text-slate-600">也许你在找这些教程</h2>
       <div class="mt-4 grid gap-3 sm:grid-cols-3">
         <RouterLink
           v-for="rec in recommendedGuides"

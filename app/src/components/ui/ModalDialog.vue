@@ -123,7 +123,7 @@ onBeforeUnmount(() => {
             <h3 class="text-base font-bold text-slate-900">{{ title }}</h3>
             <button
               type="button"
-              class="-mt-1 -mr-1 flex size-7 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+              class="-mt-1 -mr-1 flex size-7 cursor-pointer items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-600"
               aria-label="关闭"
               @click="emit('close')"
             >

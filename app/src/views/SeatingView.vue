@@ -366,7 +366,7 @@ function toDeskLabels() {
       <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
         教室座位表打印
       </h1>
-      <p class="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+      <p class="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
         粘贴名单、设置行列与过道，支持随机排座（男女混排）、点选或拖拽换位、整排交换与双视角切换，
         生成 A4 教室平面座位表直接打印张贴。数据全程在浏览器本地处理。
       </p>
@@ -390,11 +390,13 @@ function toDeskLabels() {
             </div>
             <div>
               <label class="field-label">排数（前后）</label>
-              <NumberField v-model="rows" :min="1" :max="20" />
+              <NumberField
+                aria-label="排数（前后）" v-model="rows" :min="1" :max="20" />
             </div>
             <div>
               <label class="field-label">列数（左右）</label>
-              <NumberField v-model="cols" :min="1" :max="16" />
+              <NumberField
+                aria-label="列数（左右）" v-model="cols" :min="1" :max="16" />
             </div>
             <div class="col-span-2">
               <label class="field-label">座位填充顺序</label>
@@ -420,7 +422,7 @@ function toDeskLabels() {
                 :class="
                   aisles.has(n)
                     ? 'border-brand-600 bg-brand-600 text-white'
-                    : 'border-slate-200 bg-white text-slate-500 hover:border-brand-300 hover:text-brand-600'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600'
                 "
                 @click="toggleAisle(n)"
               >
@@ -443,7 +445,7 @@ function toDeskLabels() {
             class="input-field mt-2 h-auto min-h-40 resize-y py-2 leading-6"
             placeholder="每行一个姓名，可附性别列（空格/逗号分隔）：&#10;张伟 男&#10;李娜 女&#10;王芳……"
           ></textarea>
-          <p class="mt-2 text-xs leading-5 text-slate-500">
+          <p class="mt-2 text-xs leading-5 text-slate-600">
             已输入 <strong class="text-slate-700">{{ filledCount }}</strong> 人 / 座位
             <strong class="text-slate-700">{{ seatCount }}</strong> 个。
             <span v-if="overflowCount" class="font-bold text-amber-600">
@@ -499,9 +501,9 @@ function toDeskLabels() {
               还原名单顺序
             </button>
           </div>
-          <p class="mt-2 text-xs leading-5 text-slate-400">
+          <p class="mt-2 text-xs leading-5 text-slate-600">
             男女混排需名单包含性别列（每行「姓名 性别」）。预览中可
-            <strong class="text-slate-500">点选两个座位互换</strong>，桌面鼠标还可直接按住座位拖拽交换；
+            <strong class="text-slate-600">点选两个座位互换</strong>，桌面鼠标还可直接按住座位拖拽交换；
             触屏设备请用点选方式。点击（桌面也可拖拽）行首「排」把手可整排交换。
           </p>
         </section>
@@ -537,7 +539,7 @@ function toDeskLabels() {
               </svg>
               一键生成对应桌贴
             </button>
-            <p class="text-xs leading-5 text-slate-400">
+            <p class="text-xs leading-5 text-slate-600">
               「生成桌贴」会把这份名单（含座位号、排、列）带入标签工坊，选模板即可批量输出课桌贴。
             </p>
           </div>
@@ -555,7 +557,7 @@ function toDeskLabels() {
             <button
               type="button"
               class="rounded-md px-3 py-1.5 transition-colors"
-              :class="viewMode === 'teacher' ? 'bg-brand-600 text-white' : 'text-slate-500 hover:text-brand-600'"
+              :class="viewMode === 'teacher' ? 'bg-brand-600 text-white' : 'text-slate-600 hover:text-brand-600'"
               @click="viewMode = 'teacher'"
             >
               教师视角
@@ -563,7 +565,7 @@ function toDeskLabels() {
             <button
               type="button"
               class="rounded-md px-3 py-1.5 transition-colors"
-              :class="viewMode === 'student' ? 'bg-brand-600 text-white' : 'text-slate-500 hover:text-brand-600'"
+              :class="viewMode === 'student' ? 'bg-brand-600 text-white' : 'text-slate-600 hover:text-brand-600'"
               @click="viewMode = 'student'"
             >
               学生视角（镜像）

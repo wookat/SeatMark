@@ -268,7 +268,7 @@ const FAQS = [
               用演示数据先试试
             </RouterLink>
           </div>
-          <div class="mt-5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <div class="mt-5 flex flex-wrap items-center gap-2 text-xs text-slate-600">
             <span class="font-semibold">快捷入口：</span>
             <RouterLink
               v-for="chip in [
@@ -285,7 +285,7 @@ const FAQS = [
               {{ chip.text }}
             </RouterLink>
           </div>
-          <div class="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-xs font-semibold text-slate-500">
+          <div class="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-xs font-semibold text-slate-600">
             <span
               v-for="mark in ['无需安装', 'Excel 批量导入', 'PDF / 直接打印', 'A4 · A5 · A3']"
               :key="mark"
@@ -348,7 +348,7 @@ const FAQS = [
           <p class="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
             {{ stat.value }}
           </p>
-          <p class="mt-0.5 text-xs font-semibold text-slate-500">{{ stat.label }}</p>
+          <p class="mt-0.5 text-xs font-semibold text-slate-600">{{ stat.label }}</p>
         </div>
       </div>
     </section>
@@ -379,7 +379,7 @@ const FAQS = [
               <p class="text-sm font-bold text-slate-900">
                 <span class="mr-1 text-brand-600">{{ step.num }}.</span>{{ step.title }}
               </p>
-              <p class="mt-0.5 text-xs leading-5 text-pretty text-slate-500">{{ step.desc }}</p>
+              <p class="mt-0.5 text-xs leading-5 text-pretty text-slate-600">{{ step.desc }}</p>
             </div>
           </div>
           <svg
@@ -433,7 +433,7 @@ const FAQS = [
               </div>
             </div>
             <span
-              class="absolute top-3 right-3 rounded bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200"
+              class="absolute top-3 right-3 rounded bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-slate-200"
             >
               {{ t.scenario }}
             </span>
@@ -460,15 +460,15 @@ const FAQS = [
                 </svg>
               </span>
             </div>
-            <p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{{ t.description }}</p>
+            <p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">{{ t.description }}</p>
             <div class="mt-auto flex flex-wrap gap-1.5 pt-3">
               <span
-                class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500"
+                class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600"
               >
                 {{ t.label.width }} × {{ t.label.height }} mm
               </span>
               <span
-                class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500"
+                class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600"
               >
                 {{ t.page.cols * t.page.rows }} 枚 / 页
               </span>
@@ -489,7 +489,7 @@ const FAQS = [
           class="group flex min-h-64 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/50 p-6 text-center transition-colors duration-150 hover:border-brand-400 hover:bg-brand-50/40"
         >
           <span
-            class="flex size-12 items-center justify-center rounded-lg bg-white text-slate-400 shadow-card ring-1 ring-slate-200 transition-colors group-hover:text-brand-600"
+            class="flex size-12 items-center justify-center rounded-lg bg-white text-slate-600 shadow-card ring-1 ring-slate-200 transition-colors group-hover:text-brand-600"
           >
             <svg
               class="size-6"
@@ -506,7 +506,7 @@ const FAQS = [
             <h3 class="text-sm font-bold text-slate-700 group-hover:text-brand-700">
               从空白新建模板
             </h3>
-            <p class="mt-1 text-xs leading-5 text-slate-500">
+            <p class="mt-1 text-xs leading-5 text-slate-600">
               打开可视化设计器，拖拽字段自由排版，<br />毫米级精度完全自定义
             </p>
           </div>
@@ -583,7 +583,7 @@ const FAQS = [
               </svg>
             </span>
             <h3 class="mt-3 text-sm font-bold text-slate-900">{{ feature.title }}</h3>
-            <p class="mt-1.5 text-xs leading-5 text-pretty text-slate-500">{{ feature.desc }}</p>
+            <p class="mt-1.5 text-xs leading-5 text-pretty text-slate-600">{{ feature.desc }}</p>
           </div>
         </div>
       </div>
@@ -675,7 +675,7 @@ const FAQS = [
             </ul>
           </div>
         </div>
-        <p v-reveal class="mt-5 text-center text-xs text-slate-500">
+        <p v-reveal class="mt-5 text-center text-xs text-slate-600">
           完整验证步骤见教程
           <RouterLink
             to="/guides/roster-privacy-network-test"
@@ -714,7 +714,7 @@ const FAQS = [
             </span>
             {{ faq.q }}
           </h3>
-          <p class="mt-2 pl-6.5 text-xs leading-5 text-slate-500">{{ faq.a }}</p>
+          <p class="mt-2 pl-6.5 text-xs leading-5 text-slate-600">{{ faq.a }}</p>
         </div>
       </div>
     </section>

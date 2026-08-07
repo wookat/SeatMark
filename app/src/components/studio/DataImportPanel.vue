@@ -193,7 +193,7 @@ async function onDownloadSample() {
         <p class="text-sm text-slate-600">
           <strong class="text-brand-600">点击选择</strong> 或拖拽 Excel 到此处
         </p>
-        <p class="text-xs text-slate-400">第一行默认作为表头，支持 .xlsx / .xls；不确定格式可先下载样例 Excel</p>
+        <p class="text-xs text-slate-600">第一行默认作为表头，支持 .xlsx / .xls；不确定格式可先下载样例 Excel</p>
       </div>
       <button type="button" class="btn btn-ghost btn-sm mt-3 w-full" @click="workspace.useDemoData()">
         没有现成文件？先用演示数据体验
@@ -212,7 +212,7 @@ async function onDownloadSample() {
               演示数据
             </span>
           </p>
-          <p class="mt-0.5 text-xs text-slate-500">
+          <p class="mt-0.5 text-xs text-slate-600">
             工作表「{{ workspace.excel.sheetName }}」 ·
             <span class="whitespace-nowrap"
               >共 <strong class="text-brand-600">{{ workspace.excel.rows.length }}</strong> 条数据</span
@@ -245,11 +245,14 @@ async function onDownloadSample() {
 
       <div
         ref="previewScroller"
-        class="mt-3 cursor-grab overflow-x-auto rounded-lg border border-slate-200"
+        tabindex="0"
+        role="region"
+        aria-label="名单数据预览（可横向滚动）"
+        class="mt-3 cursor-grab overflow-x-auto rounded-lg border border-slate-200 focus-visible:outline-2 focus-visible:outline-brand-500"
       >
         <table class="w-full text-left text-xs">
           <thead>
-            <tr class="bg-slate-50 text-slate-500">
+            <tr class="bg-slate-50 text-slate-600">
               <th
                 v-for="h in workspace.excel.headers"
                 :key="h"
@@ -276,7 +279,7 @@ async function onDownloadSample() {
         <button type="button" class="btn btn-ghost btn-sm -ml-2" @click="openDataViewer">
           查看全部数据（可筛选排序）
         </button>
-        <p v-if="workspace.displayRows.length > 5" class="text-[11px] text-slate-400">
+        <p v-if="workspace.displayRows.length > 5" class="text-[11px] text-slate-600">
           仅展示前 5 条，共 {{ workspace.displayRows.length }} 条
         </p>
       </div>
@@ -295,7 +298,7 @@ async function onDownloadSample() {
           class="input-field max-w-60"
           placeholder="搜索任意列（仅查看，不影响排版）…"
         />
-        <span class="text-xs text-slate-400">
+        <span class="text-xs text-slate-600">
           {{ viewRows.length }} / {{ workspace.excel.rows.length }} 条
         </span>
         <button
@@ -306,7 +309,7 @@ async function onDownloadSample() {
         >
           清除筛选与排序
         </button>
-        <span class="ml-auto hidden text-[11px] text-slate-400 sm:inline">
+        <span class="ml-auto hidden text-[11px] text-slate-600 sm:inline">
           点击列名排序、漏斗筛选，标签将按当前顺序排版
         </span>
       </div>
@@ -317,7 +320,7 @@ async function onDownloadSample() {
       >
         <table class="w-full text-left text-xs">
           <thead class="sticky top-0 z-10">
-            <tr class="bg-slate-50 text-slate-500">
+            <tr class="bg-slate-50 text-slate-600">
               <th class="w-12 px-2.5 py-1.5 font-semibold whitespace-nowrap">#</th>
               <th
                 v-for="h in workspace.excel.headers"
@@ -365,7 +368,7 @@ async function onDownloadSample() {
                   <button
                     type="button"
                     class="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-slate-200/60"
-                    :class="workspace.columnFilters[h] ? 'text-brand-600' : 'text-slate-300 hover:text-slate-500'"
+                    :class="workspace.columnFilters[h] ? 'text-brand-600' : 'text-slate-300 hover:text-slate-600'"
                     :aria-label="`筛选「${h}」`"
                     :title="`筛选「${h}」`"
                     @click="openFilter(h, $event)"
@@ -392,7 +395,7 @@ async function onDownloadSample() {
               :key="i"
               class="border-t border-slate-100 hover:bg-slate-50/70"
             >
-              <td class="px-2.5 py-1.5 whitespace-nowrap text-slate-400">{{ i + 1 }}</td>
+              <td class="px-2.5 py-1.5 whitespace-nowrap text-slate-600">{{ i + 1 }}</td>
               <td
                 v-for="h in workspace.excel.headers"
                 :key="h"
@@ -404,7 +407,7 @@ async function onDownloadSample() {
             <tr v-if="!viewRows.length">
               <td
                 :colspan="workspace.excel.headers.length + 1"
-                class="px-2.5 py-8 text-center text-slate-400"
+                class="px-2.5 py-8 text-center text-slate-600"
               >
                 没有匹配的数据，请调整搜索或列筛选条件
               </td>
@@ -429,7 +432,7 @@ async function onDownloadSample() {
         :style="{ left: `${filterPos.x}px`, top: `${filterPos.y}px` }"
       >
         <div class="border-b border-slate-100 p-2">
-          <p class="px-1 pb-1.5 text-[11px] font-bold text-slate-500">筛选「{{ filterColumn }}」</p>
+          <p class="px-1 pb-1.5 text-[11px] font-bold text-slate-600">筛选「{{ filterColumn }}」</p>
           <input
             v-model="filterQuery"
             type="text"
@@ -444,7 +447,7 @@ async function onDownloadSample() {
           <button type="button" class="btn btn-ghost btn-sm !px-1.5" @click="draftSelectAll(false)">
             清空
           </button>
-          <span class="ml-auto text-[10px] text-slate-400">
+          <span class="ml-auto text-[10px] text-slate-600">
             已选 {{ filterDraft.size }}/{{ distinctValues.length }}
           </span>
         </div>
@@ -456,12 +459,12 @@ async function onDownloadSample() {
             :model-value="filterDraft.has(item.value)"
             @update:model-value="toggleDraftValue(item.value)"
           >
-            <span class="min-w-0 flex-1 truncate" :class="{ 'text-slate-400 italic': !item.value }">
+            <span class="min-w-0 flex-1 truncate" :class="{ 'text-slate-600 italic': !item.value }">
               {{ item.value || '(空白)' }}
             </span>
-            <span class="shrink-0 text-[10px] text-slate-400">{{ item.count }}</span>
+            <span class="shrink-0 text-[10px] text-slate-600">{{ item.count }}</span>
           </CheckboxField>
-          <p v-if="!shownValues.length" class="px-2 py-4 text-center text-xs text-slate-400">
+          <p v-if="!shownValues.length" class="px-2 py-4 text-center text-xs text-slate-600">
             没有匹配「{{ filterQuery }}」的取值
           </p>
         </div>

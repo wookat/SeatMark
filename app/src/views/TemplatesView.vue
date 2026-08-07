@@ -88,7 +88,7 @@ const recommendedItems = computed(() => {
       <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
         标签模板库
       </h1>
-      <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+      <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
         {{ items.length }} 款免费内置模板覆盖考场座签、考号贴、课桌姓名贴、会议桌牌、
         出入证、学生证、工作证等场景，全部以毫米为单位精确排版，
         点击任意模板查看详情，或直接开始生成。
@@ -98,7 +98,7 @@ const recommendedItems = computed(() => {
     <div class="mt-8 flex flex-col items-center gap-3">
       <label class="relative block w-full max-w-md">
         <svg
-          class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400"
+          class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-600"
           viewBox="0 0 16 16"
           fill="none"
           stroke="currentColor"
@@ -113,7 +113,7 @@ const recommendedItems = computed(() => {
           v-model="searchQuery"
           type="search"
           placeholder="搜索模板名称 / 场景，支持拼音首字母，如“桌牌”“jkz”"
-          class="w-full rounded-lg border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm text-slate-700 shadow-sm placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
+          class="w-full rounded-lg border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm text-slate-700 shadow-sm placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
         />
       </label>
       <div class="flex flex-wrap justify-center gap-1.5">
@@ -125,12 +125,12 @@ const recommendedItems = computed(() => {
           :class="
             activeCategory === opt.id
               ? 'border-brand-500 bg-brand-600 text-white shadow-sm'
-              : 'border-slate-200 bg-white text-slate-500 hover:border-brand-300 hover:text-brand-600'
+              : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600'
           "
           @click="selectCategory(opt.id)"
         >
           {{ opt.name }}
-          <span :class="activeCategory === opt.id ? 'text-brand-100' : 'text-slate-400'">
+          <span :class="activeCategory === opt.id ? 'text-brand-100' : 'text-slate-600'">
             {{ opt.count }}
           </span>
         </button>
@@ -144,12 +144,12 @@ const recommendedItems = computed(() => {
           :class="
             activeSubcategory === sub.id
               ? 'border-brand-300 bg-brand-50 text-brand-700'
-              : 'border-transparent bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+              : 'border-transparent bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-700'
           "
           @click="activeSubcategory = sub.id"
         >
           {{ sub.name }}
-          <span :class="activeSubcategory === sub.id ? 'text-brand-400' : 'text-slate-400'">
+          <span :class="activeSubcategory === sub.id ? 'text-brand-400' : 'text-slate-600'">
             {{ sub.count }}
           </span>
         </button>
@@ -160,7 +160,7 @@ const recommendedItems = computed(() => {
       v-if="filteredItems.length === 0"
       class="mt-10 rounded-lg border border-slate-200 bg-slate-50 p-8 text-center"
     >
-      <p class="text-sm text-slate-500">
+      <p class="text-sm text-slate-600">
         没有匹配“{{ searchQuery }}”的模板，换个关键词试试，或在设计器里从空白新建。
       </p>
       <div class="mt-3 flex flex-wrap items-center justify-center gap-4">
@@ -176,7 +176,7 @@ const recommendedItems = computed(() => {
         </RouterLink>
       </div>
       <div class="mt-6 border-t border-slate-200 pt-5 text-left">
-        <p class="text-xs font-bold text-slate-500">也许这些模板能满足需求</p>
+        <p class="text-xs font-bold text-slate-600">也许这些模板能满足需求</p>
         <div class="mt-3 grid gap-4 sm:grid-cols-3">
           <RouterLink
             v-for="rec in recommendedItems"
@@ -191,7 +191,7 @@ const recommendedItems = computed(() => {
               <h3 class="truncate text-sm font-bold text-slate-800 group-hover:text-brand-600">
                 {{ rec.template!.name }}
               </h3>
-              <p class="mt-0.5 truncate text-xs text-slate-400">{{ rec.template!.scenario }}</p>
+              <p class="mt-0.5 truncate text-xs text-slate-600">{{ rec.template!.scenario }}</p>
             </div>
           </RouterLink>
         </div>
@@ -218,7 +218,7 @@ const recommendedItems = computed(() => {
             </div>
           </div>
           <span
-            class="absolute top-3 right-3 rounded bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-500 shadow-sm ring-1 ring-slate-200"
+            class="absolute top-3 right-3 rounded bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200"
           >
             {{ item.template!.scenario }}
           </span>
@@ -227,14 +227,14 @@ const recommendedItems = computed(() => {
           <h2 class="text-sm font-bold text-slate-900 group-hover:text-brand-600">
             {{ item.template!.name }}
           </h2>
-          <p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+          <p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">
             {{ item.template!.description }}
           </p>
           <div class="mt-auto flex flex-wrap gap-1.5 pt-3">
-            <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+            <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
               {{ item.template!.label.width }} × {{ item.template!.label.height }} mm
             </span>
-            <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+            <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
               {{ item.template!.page.cols * item.template!.page.rows }} 枚 / 页
             </span>
           </div>
@@ -248,7 +248,7 @@ const recommendedItems = computed(() => {
     >
       <div>
         <h2 class="text-base font-bold text-slate-900">没有完全合适的？</h2>
-        <p class="mt-1 text-sm text-slate-500">
+        <p class="mt-1 text-sm text-slate-600">
           任何模板都可以在可视化设计器中继续调整，也可以从空白开始完全自定义。
         </p>
       </div>

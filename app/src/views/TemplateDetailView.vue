@@ -28,12 +28,12 @@ const others = computed(() => {
 <template>
   <div v-if="detail && template" class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
     <!-- 面包屑 -->
-    <nav class="flex flex-wrap items-center gap-1.5 text-xs text-slate-400" aria-label="面包屑">
+    <nav class="flex flex-wrap items-center gap-1.5 text-xs text-slate-600" aria-label="面包屑">
       <RouterLink to="/" class="hover:text-brand-600">首页</RouterLink>
       <span>/</span>
       <RouterLink to="/templates" class="hover:text-brand-600">模板库</RouterLink>
       <span>/</span>
-      <span class="text-slate-500">{{ template.name }}</span>
+      <span class="text-slate-600">{{ template.name }}</span>
     </nav>
 
     <div class="mt-6 grid items-start gap-8 lg:grid-cols-[0.9fr_1.1fr]">
@@ -46,7 +46,7 @@ const others = computed(() => {
             <TemplateThumb :template="template" />
           </div>
         </div>
-        <div class="mt-6 flex flex-wrap justify-center gap-2 text-[11px] font-semibold text-slate-500">
+        <div class="mt-6 flex flex-wrap justify-center gap-2 text-[11px] font-semibold text-slate-600">
           <span class="rounded-md bg-slate-100 px-2 py-1">
             标签 {{ template.label.width }} × {{ template.label.height }} mm
           </span>
@@ -87,7 +87,7 @@ const others = computed(() => {
             <path d="M5 12h14m-6-6 6 6-6 6" />
           </svg>
         </RouterLink>
-        <p class="mt-2 text-xs text-slate-400">免费使用 · 无需注册 · 数据不出浏览器</p>
+        <p class="mt-2 text-xs text-slate-600">免费使用 · 无需注册 · 数据不出浏览器</p>
 
         <h2 class="mt-8 text-sm font-bold text-slate-900">适用场景</h2>
         <ul class="mt-2 grid gap-1.5 text-sm text-slate-600 sm:grid-cols-2">
@@ -124,7 +124,7 @@ const others = computed(() => {
             {{ i + 1 }}
           </span>
           <h3 class="mt-2.5 text-sm font-bold text-slate-900">{{ step.name }}</h3>
-          <p class="mt-1 text-xs leading-5 text-slate-500">{{ step.text }}</p>
+          <p class="mt-1 text-xs leading-5 text-slate-600">{{ step.text }}</p>
         </div>
       </div>
     </section>
@@ -144,7 +144,7 @@ const others = computed(() => {
           {{ tip }}
         </li>
       </ul>
-      <p class="mt-4 text-xs text-slate-400">
+      <p class="mt-4 text-xs text-slate-600">
         更多打印技巧见<RouterLink to="/guides" class="font-semibold text-brand-600 hover:underline">教程中心</RouterLink>，
         如<RouterLink to="/guides/label-print-troubleshooting" class="font-semibold text-brand-600 hover:underline">打印常见问题排查</RouterLink>。
       </p>
@@ -187,7 +187,7 @@ const others = computed(() => {
             <h3 class="truncate text-sm font-bold text-slate-800 group-hover:text-brand-600">
               {{ other.template.name }}
             </h3>
-            <p class="mt-0.5 truncate text-xs text-slate-400">{{ other.template.scenario }}</p>
+            <p class="mt-0.5 truncate text-xs text-slate-600">{{ other.template.scenario }}</p>
           </div>
         </RouterLink>
       </div>

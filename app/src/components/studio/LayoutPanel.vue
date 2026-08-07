@@ -195,7 +195,7 @@ function onCenterLayout() {
         <SelectField v-model="labelPaperSlug" :options="labelPaperOptions" />
         <p
           v-if="recommendedPaper && labelPaperSlug !== recommendedPaper.spec.slug"
-          class="mt-1.5 flex items-start gap-1 text-[11px] leading-4 text-slate-500"
+          class="mt-1.5 flex items-start gap-1 text-[11px] leading-4 text-slate-600"
         >
           <svg
             class="mt-0.5 size-3 shrink-0 text-emerald-500"
@@ -236,6 +236,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">标签宽 (mm)</label>
         <NumberField
+          aria-label="标签宽 (mm)"
           :model-value="workspace.template.label.width"
           :step="1"
           :min="10"
@@ -246,6 +247,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">标签高 (mm)</label>
         <NumberField
+          aria-label="标签高 (mm)"
           :model-value="workspace.template.label.height"
           :step="1"
           :min="10"
@@ -256,6 +258,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">列数</label>
         <NumberField
+          aria-label="列数"
           :model-value="workspace.template.page.cols"
           :min="1"
           :max="12"
@@ -265,6 +268,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">行数</label>
         <NumberField
+          aria-label="行数"
           :model-value="workspace.template.page.rows"
           :min="1"
           :max="30"
@@ -274,6 +278,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">横向间距 (mm)</label>
         <NumberField
+          aria-label="横向间距 (mm)"
           :model-value="workspace.template.page.gapX"
           :step="0.5"
           :min="0"
@@ -284,6 +289,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">纵向间距 (mm)</label>
         <NumberField
+          aria-label="纵向间距 (mm)"
           :model-value="workspace.template.page.gapY"
           :step="0.5"
           :min="0"
@@ -294,6 +300,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">左右边距 (mm)</label>
         <NumberField
+          aria-label="左右边距 (mm)"
           :model-value="workspace.template.page.marginLeft"
           :step="0.5"
           :min="0"
@@ -304,6 +311,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">上下边距 (mm)</label>
         <NumberField
+          aria-label="上下边距 (mm)"
           :model-value="workspace.template.page.marginTop"
           :step="0.5"
           :min="0"

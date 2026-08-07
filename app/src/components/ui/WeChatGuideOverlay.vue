@@ -76,7 +76,7 @@ function dismiss() {
               <strong class="text-brand-600">「在浏览器打开」</strong>，
               即可正常导出 PDF 与打印。
             </p>
-            <p class="mt-1.5 text-xs leading-5 text-slate-400">
+            <p class="mt-1.5 text-xs leading-5 text-slate-600">
               仅浏览模板、预览排版不受影响，可关闭此提示继续使用。
             </p>
           </div>

@@ -34,19 +34,19 @@ function onArticleClick(event: MouseEvent) {
 <template>
   <div v-if="guide" class="mx-auto w-full max-w-3xl px-4 py-10 sm:py-14">
     <!-- 面包屑 -->
-    <nav class="flex flex-wrap items-center gap-1.5 text-xs text-slate-400" aria-label="面包屑">
+    <nav class="flex flex-wrap items-center gap-1.5 text-xs text-slate-600" aria-label="面包屑">
       <RouterLink to="/" class="hover:text-brand-600">首页</RouterLink>
       <span>/</span>
       <RouterLink to="/guides" class="hover:text-brand-600">教程中心</RouterLink>
       <span>/</span>
-      <span class="line-clamp-1 text-slate-500" aria-current="page">{{ guide.title }}</span>
+      <span class="line-clamp-1 text-slate-600" aria-current="page">{{ guide.title }}</span>
     </nav>
 
     <header class="mt-4">
       <h1 class="text-2xl leading-snug font-bold tracking-tight text-slate-900 sm:text-3xl">
         {{ guide.title }}
       </h1>
-      <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+      <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
         <span class="rounded-md bg-brand-50 px-2 py-0.5 font-bold text-brand-600">
           {{ guide.category }}
         </span>
@@ -79,7 +79,7 @@ function onArticleClick(event: MouseEvent) {
         </span>
         <div>
           <p class="text-sm font-bold text-slate-900">不想读长文？直接上手试试</p>
-          <p v-if="guide.quickStart.note" class="mt-0.5 text-xs leading-5 text-slate-500">
+          <p v-if="guide.quickStart.note" class="mt-0.5 text-xs leading-5 text-slate-600">
             {{ guide.quickStart.note }}
           </p>
         </div>
@@ -117,7 +117,7 @@ function onArticleClick(event: MouseEvent) {
           class="rounded-lg border border-slate-200 bg-white p-4"
         >
           <h3 class="text-sm font-bold text-slate-900">{{ faq.q }}</h3>
-          <p class="mt-1.5 text-sm leading-6 text-slate-500">{{ faq.a }}</p>
+          <p class="mt-1.5 text-sm leading-6 text-slate-600">{{ faq.a }}</p>
         </div>
       </div>
     </section>

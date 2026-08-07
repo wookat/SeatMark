@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// 透传 aria-label 等无障碍属性到真正的 input，而不是外层容器
+defineOptions({ inheritAttrs: false })
+
 const props = withDefaults(
   defineProps<{
     step?: number
@@ -40,6 +43,7 @@ function onChange(event: Event) {
   <!-- 隐藏原生 spinner 后的替代：hover / 聚焦时浮现的紧凑步进按钮 -->
   <div class="group/nf relative">
     <input
+      v-bind="$attrs"
       type="number"
       class="input-field pr-6"
       :step="step"
@@ -55,7 +59,7 @@ function onChange(event: Event) {
         type="button"
         tabindex="-1"
         aria-label="增大"
-        class="flex flex-1 cursor-pointer items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-brand-600 active:bg-slate-200"
+        class="flex flex-1 cursor-pointer items-center justify-center text-slate-600 hover:bg-slate-100 hover:text-brand-600 active:bg-slate-200"
         @click="nudge(1)"
       >
         <svg
@@ -74,7 +78,7 @@ function onChange(event: Event) {
         type="button"
         tabindex="-1"
         aria-label="减小"
-        class="flex flex-1 cursor-pointer items-center justify-center border-t border-slate-100 text-slate-400 hover:bg-slate-100 hover:text-brand-600 active:bg-slate-200"
+        class="flex flex-1 cursor-pointer items-center justify-center border-t border-slate-100 text-slate-600 hover:bg-slate-100 hover:text-brand-600 active:bg-slate-200"
         @click="nudge(-1)"
       >
         <svg

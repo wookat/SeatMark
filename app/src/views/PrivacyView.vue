@@ -6,7 +6,7 @@ import { LEGAL_UPDATED_AT, OPERATOR_NAME } from '@/data/site'
   <div class="mx-auto w-full max-w-3xl px-4 py-10 sm:py-14">
     <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Privacy Policy</p>
     <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">隐私政策</h1>
-    <p class="mt-2 text-xs text-slate-400">生效日期 / 最后更新：{{ LEGAL_UPDATED_AT }}</p>
+    <p class="mt-2 text-xs text-slate-600">生效日期 / 最后更新：{{ LEGAL_UPDATED_AT }}</p>
 
     <div
       class="mt-6 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50/70 px-4 py-3.5"
@@ -173,7 +173,7 @@ import { LEGAL_UPDATED_AT, OPERATOR_NAME } from '@/data/site'
       </section>
     </div>
 
-    <div class="mt-10 border-t border-slate-200 pt-6 text-xs text-slate-400">
+    <div class="mt-10 border-t border-slate-200 pt-6 text-xs text-slate-600">
       相关文档：
       <RouterLink to="/terms" class="text-brand-600 hover:underline">用户协议</RouterLink>
     </div>

@@ -76,7 +76,7 @@ onBeforeUnmount(() => {
     >
       <span class="truncate">{{ current?.label ?? placeholder }}</span>
       <svg
-        class="size-3.5 shrink-0 text-slate-400 transition-transform"
+        class="size-3.5 shrink-0 text-slate-600 transition-transform"
         :class="{ 'rotate-180': open }"
         viewBox="0 0 16 16"
         fill="none"
@@ -109,7 +109,7 @@ onBeforeUnmount(() => {
             :class="[
               size === 'sm' ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-2 text-sm',
               option.disabled
-                ? 'cursor-not-allowed text-slate-400 opacity-60'
+                ? 'cursor-not-allowed text-slate-600 opacity-60'
                 : 'cursor-pointer hover:bg-slate-50',
               option.value === modelValue && !option.disabled
                 ? 'bg-brand-50/70 font-semibold text-brand-700'
@@ -128,7 +128,7 @@ onBeforeUnmount(() => {
             >
               {{ option.badge }}
             </span>
-            <span v-if="option.hint" class="shrink-0 text-[10px] text-slate-400">
+            <span v-if="option.hint" class="shrink-0 text-[10px] text-slate-600">
               {{ option.hint }}
             </span>
             <svg

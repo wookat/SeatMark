@@ -87,7 +87,7 @@
   }
 
   .btn-ghost {
-    @apply text-slate-500 hover:bg-slate-100 hover:text-slate-700 active:bg-slate-200/70;
+    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-700 active:bg-slate-200/70;
   }
 
   .btn-danger {
@@ -99,7 +99,7 @@
   }
 
   .field-label {
-    @apply mb-1 block text-xs font-semibold tracking-wide text-slate-500;
+    @apply mb-1 block text-xs font-semibold tracking-wide text-slate-600;
   }
 
   .input-field {
@@ -199,11 +199,11 @@
   }
 
   .section-sub {
-    @apply mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500;
+    @apply mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600;
   }
 
   .chip {
-    @apply inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-slate-500;
+    @apply inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-slate-600;
   }
 
   /* 滚动显现（配合 v-reveal 指令）：进入视口前下移隐藏，进入后上浮显现 */
