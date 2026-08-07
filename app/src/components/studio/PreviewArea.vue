@@ -123,6 +123,14 @@ const exportNamePrefix = computed(
 )
 /** 本次导出/打印是否叠加页脚角标水印（带水印不限次，无水印计入每日配额） */
 const withWatermark = ref(false)
+/**
+ * 打印宿主是否渲染 DOM 徽章水印：纯黑白 PNG 导出时不渲染 ——
+ * 半透明水印经二值化后可能以纯黑残留，与导出器补盖的纯黑水印行叠在一起；
+ * 该路径由 pngExport 在二值化后统一补盖纯黑水印（watermarkText）
+ */
+const hostWatermark = computed(
+  () => withWatermark.value && !(pendingAction.value === 'png' && pngMonochrome.value),
+)
 /** 导出方式选择弹窗：pdf = 图片版 PDF，print = 浏览器打印，png = 图片 PNG */
 const exportChoiceOpen = ref(false)
 const pendingAction = ref<'pdf' | 'print' | 'png'>('pdf')
@@ -1237,7 +1245,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           :get-text="workspace.fieldText"
           :get-photo="workspace.photoFor"
           :show-cut-lines="workspace.showCutLines"
-          :watermark="withWatermark"
+          :watermark="hostWatermark"
         />
       </div>
     </Teleport>
