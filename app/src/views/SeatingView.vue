@@ -9,6 +9,7 @@ import { useElementSize } from '@/composables/useElementSize'
 import { useToastStore } from '@/stores/toast'
 import { MM_TO_PX } from '@/utils/layout'
 import { setPrintPageSize } from '@/utils/paper'
+import { printAndWaitUntilDone } from '@/utils/printing'
 import {
   interleaveByGender,
   parseSeatingRoster,
@@ -325,9 +326,10 @@ const renderHost = ref(false)
 async function doPrint() {
   renderHost.value = true
   await nextTick()
-  window.print()
+  // 等 afterprint 再卸载宿主：部分浏览器 window.print 立即返回，提前卸载会打印出空白
+  await printAndWaitUntilDone()
   renderHost.value = false
-  toast.info('已调起浏览器打印', '请选 A4 横向、无边距、缩放 100%；也可「另存为 PDF」')
+  toast.info('已调起浏览器打印', '请选 A4 横向、无边距、缩放 100%，并勾选「背景图形」；也可「另存为 PDF」')
 }
 
 // ---------- 一键生成对应桌贴 ----------

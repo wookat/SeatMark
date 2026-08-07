@@ -3,8 +3,13 @@ import type { PrintCalibration } from '@/utils/calibration'
 export interface PdfExportOptions {
   /** html2canvas 渲染倍率，4 约等于 384dpi；未指定时按页数自动选取 */
   scale?: number
-  /** 栅格格式：PNG 无损（文字边缘更锐利）；JPEG 体积更小；未指定时按页数自动选取 */
-  imageFormat?: 'png' | 'jpeg'
+  /**
+   * 栅格格式：auto 按每页内容自适应（大面积纯色页走无损 PNG 深度压缩，
+   * 渐变/照片页走 JPEG）；也可强制指定 png / jpeg
+   */
+  imageFormat?: 'png' | 'jpeg' | 'auto'
+  /** 产物去向：save 直接触发下载（默认）；blob 返回 Blob（移动端分享/打印通道用） */
+  output?: 'save' | 'blob'
   fileName?: string
   /** 页面宽度（mm），默认 A4 纵向 */
   pageWidth?: number
@@ -176,13 +181,76 @@ export function defaultRasterScale(pageCount: number): number {
 /** JPEG 压缩质量：0.9 档在文字标签页上肉眼无损且体积约为 PNG 的 1/10 */
 export const JPEG_QUALITY = 0.92
 
-/** 栅格格式统一用 JPEG 有损压缩：标签页以文字为主，PNG 无损嵌入会导致体积失控 */
-export function defaultImageFormat(_pageCount: number): 'png' | 'jpeg' {
-  return 'jpeg'
+/** 渐变/照片页的 JPEG 质量随页数自适应：页多时适度降档控制总体积 */
+export function jpegQualityFor(pageCount: number): number {
+  if (pageCount <= 12) return JPEG_QUALITY
+  if (pageCount <= 30) return 0.9
+  return 0.87
 }
 
-/** 经验字节率（字节/像素）：文字为主的标签页在对应格式下的近似压缩比 */
-const BYTES_PER_PIXEL: Record<'png' | 'jpeg', number> = { png: 0.35, jpeg: 0.09 }
+/** 栅格格式默认自适应：纯色为主的页走无损 PNG（Flate 深度压缩），富色彩页走 JPEG */
+export function defaultImageFormat(_pageCount: number): 'png' | 'jpeg' | 'auto' {
+  return 'auto'
+}
+
+/**
+ * 页面内容分类：flat = 大面积纯色（典型文字标签页，适合调色板级 Flate 压缩），
+ * rich = 渐变 / 照片等富色彩内容（适合 JPEG）。
+ */
+export type PageContentKind = 'flat' | 'rich'
+
+/** 分类采样参数：主色 TOP N 覆盖率达到阈值即视为纯色为主 */
+export const CLASSIFY_TOP_COLORS = 24
+export const CLASSIFY_FLAT_COVERAGE = 0.9
+
+/**
+ * RGBA 像素分类（纯函数，便于单测）：颜色量化到 5bit/通道后统计直方图，
+ * 出现最多的 TOP N 个颜色覆盖比例 ≥ 阈值则视为 flat。
+ * 文字反锯齿产生的过渡色像素占比很小，不影响判定；
+ * 渐变 / 照片的颜色分布分散，覆盖率显著偏低。
+ */
+export function classifyPixelColors(data: Uint8ClampedArray | number[]): PageContentKind {
+  const counts = new Map<number, number>()
+  let total = 0
+  for (let i = 0; i + 3 < data.length; i += 4) {
+    const key = ((data[i]! >> 3) << 10) | ((data[i + 1]! >> 3) << 5) | (data[i + 2]! >> 3)
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+    total++
+  }
+  if (!total) return 'flat'
+  const sorted = [...counts.values()].sort((a, b) => b - a)
+  let covered = 0
+  for (let i = 0; i < Math.min(CLASSIFY_TOP_COLORS, sorted.length); i++) covered += sorted[i]!
+  return covered / total >= CLASSIFY_FLAT_COVERAGE ? 'flat' : 'rich'
+}
+
+/**
+ * canvas 内容分类：整幅缩到小画布后取像素做直方图判定。
+ * 环境不支持 2D 上下文时按 rich 处理（JPEG 永远安全，只是体积略大）。
+ */
+export function classifyCanvasContent(canvas: HTMLCanvasElement): PageContentKind {
+  if (!canvas.width || !canvas.height) return 'flat'
+  try {
+    const w = Math.min(canvas.width, 256)
+    const h = Math.max(1, Math.round((canvas.height * w) / canvas.width))
+    const probe = document.createElement('canvas')
+    probe.width = w
+    probe.height = h
+    const ctx = probe.getContext('2d', { willReadFrequently: true })
+    if (!ctx) return 'rich'
+    ctx.drawImage(canvas, 0, 0, w, h)
+    return classifyPixelColors(ctx.getImageData(0, 0, w, h).data)
+  } catch {
+    return 'rich'
+  }
+}
+
+/** 经验字节率（字节/像素）：auto 为纯色页 Flate + 富彩页 JPEG 混合后的典型值 */
+const BYTES_PER_PIXEL: Record<'png' | 'jpeg' | 'auto', number> = {
+  png: 0.35,
+  jpeg: 0.09,
+  auto: 0.05,
+}
 
 /** 导出前的 PDF 体积预估（字节）：像素总量 × 经验字节率，供用户确认后再导出 */
 export function estimatePdfBytes(options: {
@@ -190,7 +258,7 @@ export function estimatePdfBytes(options: {
   scale: number
   pageWidth: number
   pageHeight: number
-  imageFormat?: 'png' | 'jpeg'
+  imageFormat?: 'png' | 'jpeg' | 'auto'
 }): number {
   const { pageCount, scale, pageWidth, pageHeight } = options
   const format = options.imageFormat ?? defaultImageFormat(pageCount)
@@ -218,12 +286,13 @@ export function rasterDpi(scale: number): number {
 async function canvasToImageBytes(
   canvas: HTMLCanvasElement,
   format: 'png' | 'jpeg',
+  jpegQuality = JPEG_QUALITY,
 ): Promise<Uint8Array> {
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error('页面栅格化失败（toBlob 返回空）'))),
       format === 'png' ? 'image/png' : 'image/jpeg',
-      format === 'png' ? undefined : JPEG_QUALITY,
+      format === 'png' ? undefined : jpegQuality,
     )
   })
   return new Uint8Array(await blob.arrayBuffer())
@@ -315,7 +384,7 @@ export function createPageRenderer(
  * 单页失败会抛错并附带页码；页面尺寸跟随模板纸张。
  * 依赖按需加载，避免拖慢首屏。
  */
-export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<void> {
+export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<Blob | undefined> {
   const { pageCount } = options
   if (!pageCount) throw new Error('没有可导出的页面')
 
@@ -345,11 +414,17 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<vo
     html2canvas,
   )
 
+  const jpegQuality = jpegQualityFor(pageCount)
+
   for (let i = 0; i < pageCount; i++) {
     throwIfCancelled()
     if (i > 0) doc.addPage([pageWidth, pageHeight], orientation)
     const canvas = await renderPage(i)
-    const bytes = await canvasToImageBytes(canvas, imageFormat)
+    // 逐页自适应压缩：纯色为主的标签页走无损 PNG（jsPDF 内部 Flate 深度压缩，
+    // 文字边缘零损失），渐变 / 照片页走 JPEG（质量随页数自适应）
+    const pageFormat =
+      imageFormat === 'auto' ? (classifyCanvasContent(canvas) === 'flat' ? 'png' : 'jpeg') : imageFormat
+    const bytes = await canvasToImageBytes(canvas, pageFormat, jpegQuality)
     // 释放大画布内存，避免大页数任务累计占用
     canvas.width = 0
     canvas.height = 0
@@ -358,11 +433,20 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<vo
     const y = cal?.offsetY ?? 0
     const w = pageWidth * (cal?.scaleX ?? 1)
     const h = pageHeight * (cal?.scaleY ?? 1)
-    doc.addImage(bytes, imageFormat === 'png' ? 'PNG' : 'JPEG', x, y, w, h)
+    if (pageFormat === 'png') {
+      // PNG 字节只是传输载体：jsPDF 解码后按 Flate + Paeth 预测器重压缩写入图片流，
+      // 避免把 32bit RGBA PNG 原样嵌入导致体积失控
+      doc.addImage(bytes, 'PNG', x, y, w, h, undefined, 'SLOW')
+    } else {
+      // JPEG 字节 jsPDF 直接透传（DCTDecode），不做二次编码
+      doc.addImage(bytes, 'JPEG', x, y, w, h)
+    }
     options.onProgress?.(i + 1, pageCount)
   }
 
+  if (options.output === 'blob') return doc.output('blob')
   doc.save(options.fileName ?? defaultPdfFileName())
+  return undefined
 }
 
 /**
