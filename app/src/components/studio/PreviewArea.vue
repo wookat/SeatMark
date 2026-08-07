@@ -16,6 +16,11 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import { dismissStudioGuide } from '@/utils/firstVisit'
 import { labelPosition, labelsPerPage, MM_TO_PX } from '@/utils/layout'
 import { paperLabel, setPrintPageSize } from '@/utils/paper'
+import {
+  deliverPdfForMobilePrint,
+  isMobilePrintEnvironment,
+  printAndWaitUntilDone,
+} from '@/utils/printing'
 import { copyToClipboard } from '@/utils/share'
 import type { DataRow } from '@/types/template'
 import {
@@ -531,24 +536,92 @@ async function doExportPng() {
   }
 }
 
+/** 移动端环境：浏览器打印预览对隐藏宿主渲染不可靠，改走 PDF 分享/打印通道 */
+const isMobile = isMobilePrintEnvironment()
+
 /**
  * 浏览器打印：既是实体打印入口，也可选「另存为 PDF」导出矢量 PDF。
+ * 移动端浏览器的打印预览常把隐藏宿主渲染为空白（window.print 立即返回、
+ * 预览异步渲染时宿主已卸载），改为生成图片版 PDF 后调起系统分享 / 打印。
  */
 async function doPrint() {
+  if (isMobile) {
+    await doMobilePrint()
+    return
+  }
   workspace.setLoading(true, `正在准备 ${workspace.totalPages} 页打印内容...`)
   try {
     await mountHost()
   } finally {
     workspace.setLoading(false)
   }
-  window.print()
+  // 等 afterprint 后再卸载打印宿主：部分浏览器 window.print 立即返回，
+  // 提前卸载会让打印预览拿到空白页
+  await printAndWaitUntilDone()
   unmountHost()
   await consumeQuotaAfterSuccess()
   toast.info(
     '已调起浏览器打印',
-    `目标打印机选「另存为 PDF」即可导出矢量 PDF；直接打印请用 ${currentPaperLabel.value} 纸张、无边距、缩放 100%`,
+    `彩色模板请在打印对话框勾选「背景图形」，避免背景色丢失；目标打印机选「另存为 PDF」即可导出矢量 PDF；直接打印请用 ${currentPaperLabel.value} 纸张、无边距、缩放 100%`,
   )
   maybeShowSharePrompt()
+}
+
+/**
+ * 移动端打印通道：逐页渲染生成图片版 PDF（与「图片版 PDF」同链路），
+ * 再调起系统分享面板（可选打印 / 用 PDF 应用打开），不依赖移动浏览器打印预览。
+ */
+async function doMobilePrint() {
+  const abort = new AbortController()
+  const cancel = () => abort.abort()
+  workspace.setLoading(true, '正在准备页面...', cancel)
+  try {
+    const pageCount = workspace.totalPages
+    const fileName = defaultPdfFileName(exportNamePrefix.value)
+    const blob = await exportPagedPdf({
+      pageCount,
+      signal: abort.signal,
+      getPage: async (i) => {
+        workspace.setLoading(true, `正在渲染第 ${i + 1}/${pageCount} 页...`, cancel)
+        await mountHost(i)
+        const el = hostRef.value?.querySelector<HTMLElement>('.sheet-page')
+        if (!el) throw new Error('页面节点未挂载')
+        return el
+      },
+      rebuildHost,
+      pageWidth: workspace.template.page.paperWidth,
+      pageHeight: workspace.template.page.paperHeight,
+      calibration: calibrationStore.active ? calibrationStore.calibration : undefined,
+      fileName,
+      output: 'blob',
+      onProgress: (done, total) =>
+        workspace.setLoading(true, `已完成 ${done}/${total} 页，正在生成 PDF...`, cancel),
+    })
+    if (!blob) throw new Error('PDF 生成失败')
+    const delivery = await deliverPdfForMobilePrint(blob, fileName)
+    if (delivery === 'cancelled') {
+      toast.info('已取消分享', '本次未扣除无水印次数，可随时重新打印')
+      return
+    }
+    await consumeQuotaAfterSuccess()
+    toast.success(
+      '打印 PDF 已生成',
+      delivery === 'shared'
+        ? '在分享面板选「打印」或用 PDF 应用打开后打印即可'
+        : '已打开 / 下载 PDF，用系统 PDF 查看器的打印功能输出即可',
+    )
+    maybeShowSharePrompt()
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (message === EXPORT_CANCELLED_MESSAGE) {
+      toast.info('已取消导出', '本次未扣除无水印次数，可随时重新导出')
+    } else {
+      toast.danger('打印 PDF 生成失败', `${message}；本次未扣除无水印次数，可直接重试`)
+    }
+  } finally {
+    workspace.setLoading(false)
+    unmountHost()
+  }
 }
 
 // ---------- 开关说明（移动端可点击查看，不依赖 hover title） ----------
@@ -992,7 +1065,12 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         v-else-if="pendingAction === 'print'"
         class="mb-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500"
       >
-        打印 / 矢量 PDF：调起浏览器打印对话框，目标打印机选「另存为 PDF」即得到文字可选中的矢量 PDF，也可直接连打印机输出。
+        <template v-if="isMobile">
+          手机浏览器的打印预览容易出现空白：将先生成打印用 PDF，再调起系统分享面板，在面板中选「打印」或用 PDF 应用打开后打印。
+        </template>
+        <template v-else>
+          打印 / 矢量 PDF：调起浏览器打印对话框，目标打印机选「另存为 PDF」即得到文字可选中的矢量 PDF，也可直接连打印机输出。彩色模板直接打印时请在打印对话框勾选「背景图形 / Background graphics」，避免背景色丢失。
+        </template>
       </p>
       <p class="leading-6">选择导出方式：</p>
       <p

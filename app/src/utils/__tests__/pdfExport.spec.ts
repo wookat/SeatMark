@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  classifyPixelColors,
   defaultImageFormat,
   defaultPdfFileName,
   defaultRasterScale,
@@ -10,6 +11,8 @@ import {
   formatBytes,
   isCanvasBlank,
   isPixelDataBlank,
+  JPEG_QUALITY,
+  jpegQualityFor,
   rasterDpi,
   waitForElementReady,
   withTimeout,
@@ -37,9 +40,31 @@ describe('pdfExport 参数选取', () => {
     }
   })
 
-  it('栅格格式统一 JPEG：避免 PNG 无损嵌入导致体积失控', () => {
-    expect(defaultImageFormat(1)).toBe('jpeg')
-    expect(defaultImageFormat(60)).toBe('jpeg')
+  it('栅格格式默认自适应：逐页按内容选 PNG 无损或 JPEG', () => {
+    expect(defaultImageFormat(1)).toBe('auto')
+    expect(defaultImageFormat(60)).toBe('auto')
+  })
+
+  it('JPEG 质量随页数自适应且不低于 0.87', () => {
+    expect(jpegQualityFor(1)).toBe(JPEG_QUALITY)
+    expect(jpegQualityFor(12)).toBe(JPEG_QUALITY)
+    expect(jpegQualityFor(30)).toBeLessThan(JPEG_QUALITY)
+    expect(jpegQualityFor(60)).toBeGreaterThanOrEqual(0.87)
+  })
+
+  it('classifyPixelColors：大面积纯色判 flat，颜色分散（渐变/照片）判 rich', () => {
+    // 纯色页：白底 + 少量黑字像素
+    const flat: number[] = []
+    for (let i = 0; i < 1000; i++) flat.push(255, 255, 255, 255)
+    for (let i = 0; i < 80; i++) flat.push(0, 0, 0, 255)
+    expect(classifyPixelColors(flat)).toBe('flat')
+
+    // 渐变页：每个像素颜色都不同
+    const rich: number[] = []
+    for (let i = 0; i < 1000; i++) rich.push(i % 256, (i * 7) % 256, (i * 13) % 256, 255)
+    expect(classifyPixelColors(rich)).toBe('rich')
+
+    expect(classifyPixelColors([])).toBe('flat')
   })
 
   it('体积预估：60 页 A4 默认参数应低于 50MB', () => {
