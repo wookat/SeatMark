@@ -578,7 +578,7 @@ async function doPrint() {
   await consumeQuotaAfterSuccess()
   toast.info(
     '已调起浏览器打印',
-    `彩色模板请在打印对话框勾选「背景图形」，避免背景色丢失；目标打印机选「另存为 PDF」即可导出矢量 PDF；直接打印请用 ${currentPaperLabel.value} 纸张、无边距、缩放 100%`,
+    `彩色打印三步：勾选「背景图形」、颜色选「彩色」、打印机首选项关闭灰度/省墨；目标打印机选「另存为 PDF」即可导出矢量 PDF；直接打印请用 ${currentPaperLabel.value} 纸张、无边距、缩放 100%`,
   )
   maybeShowSharePrompt()
 }
@@ -1093,9 +1093,34 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           手机浏览器的打印预览容易出现空白：将先生成打印用 PDF，再调起系统分享面板，在面板中选「打印」或用 PDF 应用打开后打印。
         </template>
         <template v-else>
-          打印 / 矢量 PDF：调起浏览器打印对话框，目标打印机选「另存为 PDF」即得到文字可选中的矢量 PDF，也可直接连打印机输出。彩色模板直接打印时请在打印对话框勾选「背景图形 / Background graphics」，避免背景色丢失。
+          打印 / 矢量 PDF：调起浏览器打印对话框，目标打印机选「另存为 PDF」即得到文字可选中的矢量 PDF，也可直接连打印机输出。
         </template>
       </p>
+      <details
+        v-if="pendingAction === 'print' && !isMobile"
+        class="mb-2 rounded-lg border border-amber-200/80 bg-amber-50/60 px-3 py-2"
+      >
+        <summary class="cursor-pointer text-xs font-bold text-amber-800 select-none">
+          打印出来是黑白的？彩色打印检查清单（3 步）
+        </summary>
+        <ol class="mt-2 list-decimal space-y-1.5 pl-5 text-xs leading-5 text-slate-600">
+          <li>
+            在浏览器打印对话框展开「更多设置」，勾选
+            <strong class="text-slate-800">「背景图形 / Background graphics」</strong>，否则背景色与装饰会整体丢失。
+          </li>
+          <li>
+            打印对话框的「颜色」选项选
+            <strong class="text-slate-800">「彩色 / Color」</strong>，不要选黑白（黑白模式会把整页转成灰度）。
+          </li>
+          <li>
+            仍是黑白时，多半是打印机驱动默认开了省墨 / 灰度模式：在打印对话框的「使用系统对话框打印」或系统「打印机首选项」里，关闭
+            <strong class="text-slate-800">「灰度打印 / 黑白打印 / 省墨模式」</strong>后重试。
+          </li>
+        </ol>
+        <p class="mt-1.5 pl-5 text-[11px] leading-4 text-slate-400">
+          小验证：目标打印机先选「另存为 PDF」，导出的 PDF 是彩色就说明页面没问题，剩下的是打印机设置。
+        </p>
+      </details>
       <p class="leading-6">选择导出方式：</p>
       <p
         v-if="pendingAction === 'pdf' && exportEstimate"
@@ -1146,7 +1171,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           <span>
             <span class="block text-sm font-bold text-slate-900">带水印导出（不限次数）</span>
             <span class="mt-0.5 block text-xs leading-5 text-slate-500">
-              每张标签内底部叠加半透明「SeatMark 座签 · seatmark.cn」品牌水印，不遮挡姓名等核心内容
+              每张标签内底部叠加半透明徽章式品牌水印（座位格标记 + seatmark.cn，配色随模板自适应），不遮挡姓名等核心内容
             </span>
           </span>
         </button>

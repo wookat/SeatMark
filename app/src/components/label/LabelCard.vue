@@ -89,6 +89,7 @@ const vAutofit: Directive<HTMLElement, number> = {
 import { computed, type CSSProperties } from 'vue'
 
 import { combineFontStacks, DEFAULT_FONT_STACK } from '@/data/fonts'
+import { watermarkToneFor } from '@/utils/watermark'
 import type { LabelTemplate, TemplateField } from '@/types/template'
 
 const props = withDefaults(
@@ -116,6 +117,11 @@ const props = withDefaults(
 const WATERMARK_FULL = 'SeatMark 座签 · seatmark.cn'
 const WATERMARK_SHORT = 'seatmark.cn'
 
+/** 徽章内座位格 Logo 显示下限：水印字号低于此值时 Logo 会糊成色块，退化为纯文字 */
+const WATERMARK_MARK_MIN_SIZE_MM = 2.5
+/** 座位格 Logo 占用的横向空间（相对字号），含 Logo 本体与间距 */
+const WATERMARK_MARK_ADVANCE_EM = 1.35
+
 /** 估算水印文本宽度（mm）：CJK 记 1em、西文/符号记 0.64em */
 function estimateTextWidth(text: string, fontSizeMm: number): number {
   let em = 0
@@ -134,17 +140,27 @@ function intersects(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
 }
 
+/** 水印色调随模板底色自适应：深色模板浅水印、浅色模板深灰水印 */
+const watermarkTone = computed(() =>
+  watermarkToneFor({
+    background: props.template.label.background,
+    decorSvg: props.template.label.decorSvg,
+  }),
+)
+
 /**
  * 水印位置与内容：字号随标签尺寸自适应，按「底部居中 → 底部右 → 底部左 → 顶部居中 →
  * 顶部右」的优先级寻找不与任何字段相交的空位；全部被占时退回底部居中（半透明叠加，
  * 不影响黑白打印可读性）。
  */
-const watermarkLayout = computed<{ text: string; style: CSSProperties }>(() => {
+const watermarkLayout = computed<{ text: string; showMark: boolean; style: CSSProperties }>(() => {
   const { width, height } = props.template.label
   // 字号约为标签宽度的 4.5%，下限 2.2mm（黑白打印可读），上限 5mm
   const size = Math.min(Math.max(Math.min(width, height * 2.4) * 0.045, 2.2), 5)
   const wmHeight = size * 1.15
   const inset = Math.max(0.8, size * 0.4)
+  const showMark = size >= WATERMARK_MARK_MIN_SIZE_MM
+  const markAdvance = showMark ? size * WATERMARK_MARK_ADVANCE_EM : 0
   const fieldRects: Rect[] = props.template.fields.map((f) => ({
     x: f.x,
     y: f.y,
@@ -152,11 +168,11 @@ const watermarkLayout = computed<{ text: string; style: CSSProperties }>(() => {
     h: f.height,
   }))
   const texts =
-    estimateTextWidth(WATERMARK_FULL, size) <= width * 0.86
+    estimateTextWidth(WATERMARK_FULL, size) + markAdvance <= width * 0.86
       ? [WATERMARK_FULL, WATERMARK_SHORT]
       : [WATERMARK_SHORT]
   for (const text of texts) {
-    const wmWidth = estimateTextWidth(text, size)
+    const wmWidth = estimateTextWidth(text, size) + markAdvance
     const yBottom = height - inset - wmHeight
     const candidates: Rect[] = [
       { x: (width - wmWidth) / 2, y: yBottom, w: wmWidth, h: wmHeight },
@@ -168,14 +184,15 @@ const watermarkLayout = computed<{ text: string; style: CSSProperties }>(() => {
     for (const rect of candidates) {
       if (rect.x < inset - 0.01) continue
       if (fieldRects.some((f) => intersects(rect, f))) continue
-      return { text, style: styleFor(rect, size) }
+      return { text, showMark, style: styleFor(rect, size) }
     }
   }
   // 兜底：底部靠右半透明叠加（密排模板的字段多为左对齐，右端视觉留白更多）
   const text = texts[texts.length - 1]!
-  const wmWidth = estimateTextWidth(text, size)
+  const wmWidth = estimateTextWidth(text, size) + markAdvance
   return {
     text,
+    showMark,
     style: styleFor(
       { x: width - inset - wmWidth, y: height - inset - wmHeight, w: wmWidth, h: wmHeight },
       size,
@@ -334,8 +351,27 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
         <span v-else class="label-field__placeholder">{{ field.imageSrc != null ? '图片' : '照片' }}</span>
       </div>
     </template>
-    <div v-if="watermark" class="label-watermark" :style="watermarkLayout.style" aria-hidden="true">
-      {{ watermarkLayout.text }}
+    <div
+      v-if="watermark"
+      class="label-watermark"
+      :class="{ 'label-watermark--light': watermarkTone === 'light' }"
+      :style="watermarkLayout.style"
+      aria-hidden="true"
+    >
+      <svg
+        v-if="watermarkLayout.showMark"
+        class="label-watermark__mark"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+      >
+        <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" stroke-width="2" />
+        <rect x="6.4" y="6.4" width="4.9" height="4.9" rx="1.4" fill="currentColor" />
+        <rect x="12.7" y="6.4" width="4.9" height="4.9" rx="1.4" fill="currentColor" opacity="0.45" />
+        <rect x="6.4" y="12.7" width="4.9" height="4.9" rx="1.4" fill="currentColor" opacity="0.45" />
+        <rect x="12.7" y="12.7" width="4.9" height="4.9" rx="1.4" fill="currentColor" />
+      </svg>
+      <span class="label-watermark__text">{{ watermarkLayout.text }}</span>
     </div>
   </div>
 </template>
