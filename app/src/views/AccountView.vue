@@ -69,7 +69,7 @@ async function onVerify() {
   verifying.value = true
   try {
     await auth.verify(email.value.trim().toLowerCase(), code.value.trim())
-    toast.success('登录成功', '已开通 Beta 专业版免费试用：每日 3 次无水印导出与云端模板同步已生效')
+    toast.success('登录成功', `已开通专业版 Beta 限时免费试用：每日 ${QUOTA_USER_DAILY} 次无水印导出与云端模板同步已生效`)
     code.value = ''
     codeSent.value = false
   } catch (err) {
@@ -185,7 +185,7 @@ function formatDate(iso: string | null | undefined): string {
         <div class="text-center">
           <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">登录 SeatMark</h1>
           <p class="mt-2 text-sm leading-6 text-slate-500">
-            邮箱验证码登录，无需设置密码。登录即开通专业版 Beta 免费试用：每日
+            邮箱验证码登录，无需设置密码。登录即开通专业版 Beta 限时免费试用：每日
             {{ QUOTA_USER_DAILY }} 次无水印导出（未登录 {{ QUOTA_ANON_DAILY }} 次）、自定义模板云端同步与跨设备找回；带水印导出/打印始终不限次数。
           </p>
         </div>
@@ -255,7 +255,7 @@ function formatDate(iso: string | null | undefined): string {
           <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m12 2 2.6 5.3 5.9.9-4.3 4.1 1 5.9L12 15.4 6.8 18.2l1-5.9L3.5 8.2l5.9-.9L12 2z" />
           </svg>
-          Beta 会员 · 专业版免费试用中
+          Beta 会员 · 专业版限时免费试用中
         </span>
       </div>
 
