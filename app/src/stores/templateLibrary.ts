@@ -4,17 +4,14 @@ import { computed, ref } from 'vue'
 import { defaultTemplates } from '@/data/defaultTemplates'
 import type { LabelTemplate } from '@/types/template'
 import { uid } from '@/utils/id'
+import { isValidTemplate } from '@/utils/templateValidate'
 import { cloneTemplate } from '@/utils/layout'
 
 const STORAGE_KEY = 'seatmark.custom-templates.v1'
 /** 旧版（seat-label-generator）的存储键，首次启动时自动迁移 */
 const LEGACY_STORAGE_KEY = 'seat-label-custom-templates'
 
-export function isValidTemplate(value: unknown): value is LabelTemplate {
-  if (!value || typeof value !== 'object') return false
-  const t = value as Partial<LabelTemplate>
-  return Boolean(t.label && t.page && Array.isArray(t.fields))
-}
+export { isValidTemplate }
 
 function loadFromStorage(): LabelTemplate[] {
   try {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { guides } from '@/data/guides'
+import { footerGuideLinks } from '@/data/guideLinks'
 import BeianInfo from '@/components/ui/BeianInfo.vue'
 import BrandMark from '@/components/ui/BrandMark.vue'
 
@@ -20,7 +20,7 @@ const GROUPS = [
     title: '教程',
     links: [
       { label: '教程中心', to: '/guides' },
-      ...guides.slice(0, 4).map((g) => ({ label: g.title, to: `/guides/${g.slug}` })),
+      ...footerGuideLinks,
     ],
   },
   {

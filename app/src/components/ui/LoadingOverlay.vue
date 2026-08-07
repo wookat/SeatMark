@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useWorkspaceStore } from '@/stores/workspace'
+import { useLoadingStore } from '@/stores/loading'
 import BrandMark from '@/components/ui/BrandMark.vue'
 
-const workspace = useWorkspaceStore()
+const { loading } = useLoadingStore()
 </script>
 
 <template>
@@ -13,7 +13,7 @@ const workspace = useWorkspaceStore()
     leave-to-class="opacity-0"
   >
     <div
-      v-if="workspace.loading.active"
+      v-if="loading.active"
       class="no-print fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/40"
     >
       <div class="flex flex-col items-center gap-3 rounded-lg bg-white px-8 py-6 shadow-pop">
@@ -23,12 +23,12 @@ const workspace = useWorkspaceStore()
           ></span>
           <BrandMark class="size-5 text-brand-600" />
         </div>
-        <p class="text-sm font-semibold text-slate-700">{{ workspace.loading.text || '处理中...' }}</p>
+        <p class="text-sm font-semibold text-slate-700">{{ loading.text || '处理中...' }}</p>
         <button
-          v-if="workspace.loading.onCancel"
+          v-if="loading.onCancel"
           type="button"
           class="btn btn-secondary btn-sm"
-          @click="workspace.loading.onCancel?.()"
+          @click="loading.onCancel?.()"
         >
           取消导出
         </button>
