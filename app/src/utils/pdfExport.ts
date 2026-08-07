@@ -1,4 +1,5 @@
 import type { PrintCalibration } from '@/utils/calibration'
+import { encodeIndexedPng } from '@/utils/indexedPng'
 
 export interface PdfExportOptions {
   /** html2canvas 渲染倍率，4 约等于 384dpi；未指定时按页数自动选取 */
@@ -279,6 +280,18 @@ export function rasterDpi(scale: number): number {
   return Math.round(96 * scale)
 }
 
+/** 整页取像素做调色板量化；不适合量化或环境不支持时返回 null（回退 JPEG） */
+async function rasterizeIndexedPng(canvas: HTMLCanvasElement): Promise<Uint8Array | null> {
+  try {
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (!ctx) return null
+    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    return await encodeIndexedPng(data, canvas.width, canvas.height)
+  } catch {
+    return null
+  }
+}
+
 /**
  * canvas → 压缩图像字节（经 toBlob，避免 toDataURL 生成超长字符串
  * 触发 "Invalid string length"），jsPDF 直接接收 Uint8Array。
@@ -420,27 +433,34 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<Bl
     throwIfCancelled()
     if (i > 0) doc.addPage([pageWidth, pageHeight], orientation)
     const canvas = await renderPage(i)
-    // 逐页自适应压缩：纯色为主的标签页走无损 PNG（jsPDF 内部 Flate 深度压缩，
-    // 文字边缘零损失），渐变 / 照片页走 JPEG（质量随页数自适应）
-    const pageFormat =
-      imageFormat === 'auto' ? (classifyCanvasContent(canvas) === 'flat' ? 'png' : 'jpeg') : imageFormat
-    const bytes = await canvasToImageBytes(canvas, pageFormat, jpegQuality)
-    // 释放大画布内存，避免大页数任务累计占用
-    canvas.width = 0
-    canvas.height = 0
     const cal = options.calibration
     const x = cal?.offsetX ?? 0
     const y = cal?.offsetY ?? 0
     const w = pageWidth * (cal?.scaleX ?? 1)
     const h = pageHeight * (cal?.scaleY ?? 1)
-    if (pageFormat === 'png') {
-      // PNG 字节只是传输载体：jsPDF 解码后按 Flate + Paeth 预测器重压缩写入图片流，
-      // 避免把 32bit RGBA PNG 原样嵌入导致体积失控
-      doc.addImage(bytes, 'PNG', x, y, w, h, undefined, 'SLOW')
-    } else {
-      // JPEG 字节 jsPDF 直接透传（DCTDecode），不做二次编码
-      doc.addImage(bytes, 'JPEG', x, y, w, h)
+    // 逐页自适应压缩：纯色为主的标签页调色板量化为索引色 PNG（jsPDF 以
+    // /Indexed + Flate 嵌入，每像素 1 字节且文字边缘无损），
+    // 渐变 / 照片页走 JPEG（质量随页数自适应，jsPDF 直接透传不二次编码）
+    let embedded = false
+    if (imageFormat === 'auto' && classifyCanvasContent(canvas) === 'flat') {
+      const indexed = await rasterizeIndexedPng(canvas)
+      if (indexed) {
+        doc.addImage(indexed, 'PNG', x, y, w, h, undefined, 'SLOW')
+        embedded = true
+      }
     }
+    if (!embedded) {
+      const format = imageFormat === 'png' ? 'png' : 'jpeg'
+      const bytes = await canvasToImageBytes(canvas, format, jpegQuality)
+      if (format === 'png') {
+        doc.addImage(bytes, 'PNG', x, y, w, h, undefined, 'SLOW')
+      } else {
+        doc.addImage(bytes, 'JPEG', x, y, w, h)
+      }
+    }
+    // 释放大画布内存，避免大页数任务累计占用
+    canvas.width = 0
+    canvas.height = 0
     options.onProgress?.(i + 1, pageCount)
   }
 
