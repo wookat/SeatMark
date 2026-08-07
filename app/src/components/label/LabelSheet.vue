@@ -14,6 +14,8 @@ const props = withDefaults(
     getPhoto?: (row: DataRow) => string | null
     showCutLines?: boolean
     highlightMissing?: boolean
+    /** 未映射字段 id 集合：预览时展示轻量占位提示（导出 / 打印宿主不传） */
+    unmappedFields?: Set<string>
     /** 屏幕预览模式下带圆角阴影；导出/打印时关闭 */
     screen?: boolean
     /** 品牌水印：每张标签内部底部居中 + 页脚角标（免费不限次导出/打印时叠加） */
@@ -27,6 +29,7 @@ const props = withDefaults(
     getPhoto: undefined,
     showCutLines: true,
     highlightMissing: false,
+    unmappedFields: undefined,
     screen: false,
     watermark: false,
     interactive: false,
@@ -93,6 +96,7 @@ function textsFor(row: DataRow): Record<string, string> {
         :texts="textsFor(row)"
         :photo-src="getPhoto ? getPhoto(row) : null"
         :highlight-missing="highlightMissing"
+        :unmapped-fields="unmappedFields"
         :watermark="watermark"
       />
       <span

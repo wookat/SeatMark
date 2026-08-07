@@ -711,6 +711,25 @@ async function doMobilePrint() {
   }
 }
 
+/**
+ * 导出按钮角标：额度 > 0 时正向展示「今日免费 n 次」，用完后不再展示刺眼的 0，
+ * 改为强调「带水印导出永远免费、不限次数」（与价值阶梯弹窗口径一致）
+ */
+const exportBadge = computed(() =>
+  quota.remaining > 0
+    ? { text: `今日免费 ${quota.remaining} 次`, cls: 'bg-emerald-100 text-emerald-700' }
+    : { text: '带水印免费', cls: 'bg-sky-100 text-sky-700' },
+)
+const exportBadgeTitle = computed(
+  () =>
+    `带水印导出永远免费、不限次数；无水印今日剩余 ${quota.remaining}/${quota.limit} 次${
+      auth.isLoggedIn ? '' : `，免费登录后每天 ${QUOTA_USER_DAILY} 次`
+    }`,
+)
+
+/** 未映射字段集合：预览中展示轻量占位提示（导出 / 打印宿主不传，成品不含占位） */
+const unmappedFieldIds = computed(() => new Set(workspace.unmappedFields.map((f) => f.id)))
+
 // ---------- 开关说明（移动端可点击查看，不依赖 hover title） ----------
 const HINTS: Record<string, { title: string; text: string }> = {
   cutSort: {
@@ -891,9 +910,9 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           打印<span class="hidden sm:inline"> / 矢量 PDF</span>
           <span
             class="absolute -top-2 -right-1.5 rounded-full px-1.5 py-px text-[9px] font-bold"
-            :class="quota.remaining > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'"
-            :title="`今日无水印导出剩余 ${quota.remaining}/${quota.limit} 次；带水印不限次`"
-          >无水印 {{ quota.remaining }}</span>
+            :class="exportBadge.cls"
+            :title="exportBadgeTitle"
+          >{{ exportBadge.text }}</span>
         </button>
         <button
           type="button"
@@ -916,9 +935,9 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           图片版 PDF<span class="hidden sm:inline">（推荐）</span>
           <span
             class="absolute -top-2 -right-1.5 rounded-full px-1.5 py-px text-[9px] font-bold"
-            :class="quota.remaining > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'"
-            :title="`今日无水印导出剩余 ${quota.remaining}/${quota.limit} 次；带水印不限次`"
-          >无水印 {{ quota.remaining }}</span>
+            :class="exportBadge.cls"
+            :title="exportBadgeTitle"
+          >{{ exportBadge.text }}</span>
         </button>
         <button
           type="button"
@@ -1061,6 +1080,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
               :get-photo="workspace.photoFor"
               :show-cut-lines="workspace.showCutLines"
               :highlight-missing="workspace.highlightMissing"
+              :unmapped-fields="unmappedFieldIds"
               :overridden-rows="overriddenRows"
               screen
               interactive

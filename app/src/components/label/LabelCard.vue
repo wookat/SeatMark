@@ -101,6 +101,8 @@ const props = withDefaults(
     /** 使用模板示例数据渲染（缩略图 / 设计器） */
     sampleMode?: boolean
     highlightMissing?: boolean
+    /** 未映射字段 id 集合：预览时展示轻量占位提示（导出 / 打印宿主不传，成品不含占位） */
+    unmappedFields?: Set<string>
     /** 品牌水印：渲染在标签内部底部居中（带水印导出/打印时开启） */
     watermark?: boolean
   }>(),
@@ -109,6 +111,7 @@ const props = withDefaults(
     photoSrc: null,
     sampleMode: false,
     highlightMissing: false,
+    unmappedFields: undefined,
     watermark: false,
   },
 )
@@ -307,10 +310,23 @@ function fieldStyle(field: TemplateField): CSSProperties {
   }
 }
 
+/** 未映射字段：预览中浅色虚线框 + 「字段名 未映射」小字，无需勾选高亮也能一眼看出 */
+function isUnmapped(field: TemplateField): boolean {
+  return (
+    !props.sampleMode &&
+    field.type === 'text' &&
+    field.fixedText == null &&
+    field.mirrorOf == null &&
+    !!props.unmappedFields?.has(field.id) &&
+    !textOf(field).trim()
+  )
+}
+
 function fieldClasses(field: TemplateField): Record<string, boolean> {
   const empty = !props.sampleMode && props.highlightMissing
   return {
     'label-field--hero': field.emphasis === 'hero',
+    'label-field--unmapped': isUnmapped(field),
     'label-field--empty':
       empty && field.type === 'text' && field.fixedText == null && !textOf(field).trim(),
     'label-field--photo-missing': empty && field.type === 'image' && !imageSrcOf(field),
@@ -335,6 +351,9 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
         <span class="label-field__body">
           <span v-if="field.caption" class="label-field__caption">{{ field.caption }}</span>
           <span class="label-field__content">{{ textOf(field) }}</span>
+        </span>
+        <span v-if="isUnmapped(field)" class="label-field__unmapped" aria-hidden="true">
+          {{ field.label || field.id }} 未映射
         </span>
       </div>
       <div
