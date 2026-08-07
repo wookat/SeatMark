@@ -68,9 +68,12 @@ export default defineConfig(({ isSsrBuild }) => ({
         // SSR 预渲染构建中依赖被外部化，不能再手动分块
         manualChunks: isSsrBuild
           ? undefined
-          : {
-              'vendor-pdf': ['jspdf', 'html2canvas-pro'],
-              'vendor-xlsx': ['xlsx'],
+          : (id: string) => {
+              // Vite 的 __vitePreload 助手若落入 vendor-pdf，会让入口静态依赖整个 PDF 依赖包
+              if (id.includes('vite/preload-helper')) return 'vendor-preload'
+              if (/node_modules\/(jspdf|html2canvas-pro)\//.test(id)) return 'vendor-pdf'
+              if (/node_modules\/xlsx\//.test(id)) return 'vendor-xlsx'
+              return undefined
             },
       },
     },
