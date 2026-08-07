@@ -375,6 +375,31 @@
   letter-spacing: -0.02em;
 }
 
+/* 未映射字段的预览占位：浅色虚线框 + 居中小字，仅屏幕预览渲染（导出/打印宿主不传该状态） */
+.label-field--unmapped {
+  outline: 0.35mm dashed rgba(100, 116, 139, 0.45);
+  outline-offset: -0.2mm;
+  background: rgba(148, 163, 184, 0.06);
+}
+
+.label-field__unmapped {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.5mm;
+  color: #94a3b8;
+  font-size: 6pt;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 .label-field--empty {
   background: rgba(217, 119, 6, 0.09);
   outline: 0.45mm dashed rgba(217, 119, 6, 0.6);
