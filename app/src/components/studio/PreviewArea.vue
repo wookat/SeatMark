@@ -24,8 +24,8 @@ import {
 import { copyToClipboard } from '@/utils/share'
 import type { DataRow } from '@/types/template'
 import {
+  adaptiveRasterScale,
   defaultPdfFileName,
-  defaultRasterScale,
   estimatePdfBytes,
   EXPORT_CANCELLED_MESSAGE,
   exportPagedPdf,
@@ -46,6 +46,7 @@ import {
   MIN_EXACT_PIXEL_WIDTH,
   presetAspectMismatch,
   sanitizeFileNamePart,
+  type LabelExportItem,
 } from '@/utils/pngExport'
 import { templateColumnsValid } from '@/utils/fieldTemplate'
 
@@ -128,6 +129,8 @@ const exportChoiceOpen = ref(false)
 const pendingAction = ref<'pdf' | 'print' | 'png'>('pdf')
 
 // ---------- PNG 导出参数 ----------
+/** 成图单位：label = 按标签逐张成图（默认）；page = 整页成图 */
+const pngExportUnit = ref<'label' | 'page'>('label')
 /** 尺寸模式：standard = 按页数自适应清晰度；exact = 精确像素（电子墨水屏等场景） */
 const pngSizeMode = ref<'standard' | 'exact'>('standard')
 /** 精确像素目标宽度；高度按模板宽高比自动推导 */
@@ -175,6 +178,16 @@ const PNG_NAME_OPTIONS: SelectOption[] = [
   { value: 'field', label: '按名单字段命名（如 张三-第1考场.png）' },
 ]
 
+const PNG_UNIT_OPTIONS: SelectOption[] = [
+  { value: 'label', label: '按标签逐张导出（每一张标签一张 PNG，推荐）' },
+  { value: 'page', label: '按整页导出（每页纸张一张 PNG）' },
+]
+
+/** 逐标签导出的总枚数（跳过裁切排序等产生的空位） */
+const pngTotalLabels = computed(() =>
+  workspace.pages.reduce((sum, page) => sum + page.filter((row) => row != null).length, 0),
+)
+
 /** 命名模板默认取第一列（多为姓名）；切换到字段命名且为空时填入 */
 watch(pngNameMode, (mode) => {
   if (mode === 'field' && !pngNameTemplate.value.trim() && workspace.excel.headers.length) {
@@ -210,13 +223,18 @@ const pngCropRect = computed(() => {
   return { x: pos.left, y: pos.top, width: template.label.width, height: template.label.height }
 })
 
-const pngDesignRect = computed(
-  () =>
+const pngDesignRect = computed(() => {
+  if (pngExportUnit.value === 'label') {
+    const { label } = workspace.renderTemplate
+    return { width: label.width, height: label.height }
+  }
+  return (
     pngCropRect.value ?? {
       width: workspace.template.page.paperWidth,
       height: workspace.template.page.paperHeight,
-    },
-)
+    }
+  )
+})
 
 const pngExactHeight = computed(() => {
   const preset = pngPreset.value
@@ -236,7 +254,7 @@ const pngPresetStretch = computed(() => {
 const exportEstimate = computed(() => {
   const pageCount = workspace.totalPages
   if (!pageCount) return null
-  const scale = defaultRasterScale(pageCount)
+  const scale = adaptiveRasterScale(pageCount, workspace.renderTemplate.label)
   const bytes = estimatePdfBytes({
     pageCount,
     scale,
@@ -356,6 +374,9 @@ function clearEditOne() {
   editRow.value = null
 }
 
+/** 逐标签导出时临时关掉离屏宿主的裁切线：单枚标签图上的裁切线只会成为杂线 */
+const hostSuppressCutLines = ref(false)
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 async function mountHost(pageIndex: number | null = null) {
@@ -442,7 +463,8 @@ async function doExportPdf() {
   workspace.setLoading(true, '正在准备页面...', cancel)
   try {
     const pageCount = workspace.totalPages
-    const scale = defaultRasterScale(pageCount)
+    // 渲染倍率按标签物理尺寸自适应：大尺寸桌牌降档避免过采样
+    const scale = adaptiveRasterScale(pageCount, workspace.renderTemplate.label)
     await exportPagedPdf({
       pageCount,
       signal: abort.signal,
@@ -493,16 +515,51 @@ async function doExportPng() {
   try {
     const pageCount = workspace.totalPages
     const exact = pngSizeMode.value === 'exact'
+    const perLabel = pngExportUnit.value === 'label'
     const baseName = defaultPngExportName(exportNamePrefix.value)
-    // 按字段命名：多枚模板每页取第一条记录求值；空模板/空字段回退序号命名
+    // 逐标签成图：收集每页各占位标签的裁剪区域与对应名单行（逐行命名，
+    // 多枚/页模板不再按页首行命名）
+    let labelsByPage: LabelExportItem[][] | undefined
+    if (perLabel) {
+      const template = workspace.renderTemplate
+      const labelRows: (DataRow | null)[] = []
+      labelsByPage = workspace.pages.map((page) => {
+        const items: LabelExportItem[] = []
+        page.forEach((row, idx) => {
+          if (row == null) return
+          const pos = labelPosition(template, idx)
+          items.push({
+            rect: {
+              x: pos.left,
+              y: pos.top,
+              width: template.label.width,
+              height: template.label.height,
+            },
+          })
+          labelRows.push(row)
+        })
+        return items
+      })
+      if (pngNameMode.value === 'field' && pngNameTemplate.value.trim()) {
+        const names = buildFieldFileNames({
+          template: pngNameTemplate.value.trim(),
+          rows: labelRows,
+          fallbackPrefix: baseName,
+        })
+        let n = 0
+        for (const items of labelsByPage) for (const item of items) item.fileName = names[n++]
+      }
+    }
+    // 按字段命名（整页成图）：多枚模板每页取第一条记录求值；空模板/空字段回退序号命名
     const pageFileNames =
-      pngNameMode.value === 'field' && pngNameTemplate.value.trim() && pageCount > 1
+      !perLabel && pngNameMode.value === 'field' && pngNameTemplate.value.trim() && pageCount > 1
         ? buildFieldFileNames({
             template: pngNameTemplate.value.trim(),
             rows: workspace.pages.map((page) => page.find((row) => row != null) ?? null),
             fallbackPrefix: baseName,
           })
         : undefined
+    hostSuppressCutLines.value = perLabel
     await exportPagedPng({
       pageCount,
       signal: abort.signal,
@@ -521,7 +578,8 @@ async function doExportPng() {
           ? { width: pngPreset.value.width, height: pngPreset.value.height }
           : { width: pngExactWidth.value, height: pngExactHeight.value }
         : undefined,
-      cropRect: exact ? (pngCropRect.value ?? undefined) : undefined,
+      cropRect: exact && !perLabel ? (pngCropRect.value ?? undefined) : undefined,
+      labelsByPage,
       monochrome: pngMonochrome.value,
       watermarkText:
         withWatermark.value && pngMonochrome.value ? 'SeatMark 座签 · seatmark.cn' : undefined,
@@ -532,11 +590,15 @@ async function doExportPng() {
     })
     await consumeQuotaAfterSuccess()
     const exactW = pngPreset.value?.width ?? pngExactWidth.value
+    const unitCount = perLabel ? pngTotalLabels.value : pageCount
+    const unitWord = perLabel ? '张标签' : '页'
     toast.success(
-      pageCount === 1 ? 'PNG 图片已生成' : `PNG 图片已生成（${pageCount} 页打包为 zip）`,
+      unitCount === 1 ? 'PNG 图片已生成' : `PNG 图片已生成（${unitCount} ${unitWord}打包为 zip）`,
       exact
-        ? `每页精确 ${exactW}×${pngExactHeight.value} 像素${pngMonochrome.value ? '、纯黑白' : ''}，可直接导入电子桌牌系统`
-        : '每页一张高清 PNG，可直接用于屏显或二次编辑',
+        ? `每${unitWord}精确 ${exactW}×${pngExactHeight.value} 像素${pngMonochrome.value ? '、纯黑白' : ''}，可直接导入电子桌牌系统`
+        : perLabel
+          ? '每一张标签单独成图（尺寸=标签实际尺寸×清晰度），可直接逐张打印或屏显'
+          : '每页一张高清 PNG，可直接用于屏显或二次编辑',
     )
     maybeShowSharePrompt()
   } catch (err) {
@@ -549,6 +611,7 @@ async function doExportPng() {
   } finally {
     workspace.setLoading(false)
     unmountHost()
+    hostSuppressCutLines.value = false
   }
 }
 
@@ -852,7 +915,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         <button
           type="button"
           class="btn btn-secondary btn-sm"
-          title="每页导出一张 PNG 图片：单页直接下载，多页自动打包 zip；电子座签模板支持精确 800×480 像素输出"
+          title="按标签逐张导出 PNG 图片：每一张标签单独成图，单张直接下载，多张自动打包 zip；电子座签模板支持精确 800×480 像素输出"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="openExportChoice('png')"
         >
@@ -1007,7 +1070,16 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
       @close="exportChoiceOpen = false"
     >
       <div v-if="pendingAction === 'png'" class="mb-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
-        <label class="field-label">输出尺寸</label>
+        <label class="field-label" for="png-unit">成图单位</label>
+        <SelectField id="png-unit" v-model="pngExportUnit" size="sm" :options="PNG_UNIT_OPTIONS" />
+        <p class="mt-1.5 text-xs leading-5 text-slate-400">
+          {{
+            pngExportUnit === 'label'
+              ? `按标签逐张导出：共 ${pngTotalLabels} 张标签，每一张单独生成一张 PNG（尺寸=标签实际尺寸），支持按每张标签对应的名单行命名`
+              : '按整页导出：每页纸张（含多枚标签）合成一张 PNG'
+          }}
+        </p>
+        <label class="field-label mt-3">输出尺寸</label>
         <SelectField v-model="pngSizeMode" size="sm" :options="PNG_SIZE_OPTIONS" />
         <template v-if="pngSizeMode === 'exact'">
           <label class="field-label mt-2" for="png-preset">分辨率预设（电子墨水屏）</label>
@@ -1044,9 +1116,9 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           label="纯黑白输出（电子墨水屏推荐）"
         />
         <p class="mt-2 text-xs leading-5 text-slate-400">
-          单页直接下载 PNG，多页自动打包为 zip；{{ isEinkTemplate ? '电子座签模板默认精确 800×480 像素 + 纯黑白，可直接导入电子桌牌系统。' : '需要精确像素（如电子墨水屏）时选「精确像素」，可用分辨率预设或自定义宽度。' }}
+          单张直接下载 PNG，多张自动打包为 zip；{{ isEinkTemplate ? '电子座签模板默认精确 800×480 像素 + 纯黑白，可直接导入电子桌牌系统。' : '需要精确像素（如电子墨水屏）时选「精确像素」，可用分辨率预设或自定义宽度。' }}
         </p>
-        <template v-if="workspace.totalPages > 1">
+        <template v-if="pngExportUnit === 'label' ? pngTotalLabels > 1 : workspace.totalPages > 1">
           <label class="field-label mt-3" for="png-name-mode">zip 内文件命名</label>
           <SelectField id="png-name-mode" v-model="pngNameMode" size="sm" :options="PNG_NAME_OPTIONS" />
           <div v-if="pngNameMode === 'field'" class="mt-2 text-xs text-slate-600">
@@ -1074,7 +1146,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
               模板中引用了名单里不存在的列，对应占位符会按空处理；字段为空的页面自动回退为序号命名。
             </p>
             <p v-else class="mt-1.5 text-slate-400">
-              {列名} 会替换为该页对应名单行的内容；非法字符自动过滤，重名自动追加 -2，空字段回退序号命名。
+              {列名} 会替换为{{ pngExportUnit === 'label' ? '每张标签对应名单行' : '该页对应名单行' }}的内容；非法字符自动过滤，重名自动追加 -2，空字段回退序号命名。
             </p>
           </div>
         </template>
@@ -1211,7 +1283,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           :rows="pageRows"
           :get-text="workspace.fieldText"
           :get-photo="workspace.photoFor"
-          :show-cut-lines="workspace.showCutLines"
+          :show-cut-lines="hostSuppressCutLines ? false : workspace.showCutLines"
           :watermark="withWatermark"
         />
       </div>

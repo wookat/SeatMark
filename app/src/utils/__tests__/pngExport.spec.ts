@@ -192,6 +192,40 @@ describe('导出防线', () => {
     ).rejects.toThrow('没有可导出的页面')
   })
 
+  it('逐标签导出：标签全为空位时报「没有可导出的标签」', async () => {
+    await expect(
+      exportPagedPng({
+        pageCount: 2,
+        getPage: () => document.createElement('div'),
+        pageWidth: 210,
+        pageHeight: 297,
+        labelsByPage: [[], []],
+      }),
+    ).rejects.toThrow('没有可导出的标签')
+  })
+
+  it('逐标签导出：取消信号已中止时立即失败，不调用 getPage', async () => {
+    const getPage = vi.fn(() => document.createElement('div'))
+    const abort = new AbortController()
+    abort.abort()
+    await expect(
+      exportPagedPng({
+        pageCount: 1,
+        getPage,
+        pageWidth: 210,
+        pageHeight: 297,
+        labelsByPage: [
+          [
+            { rect: { x: 5, y: 5, width: 90, height: 54 }, fileName: '张三.png' },
+            { rect: { x: 105, y: 5, width: 90, height: 54 }, fileName: '李四.png' },
+          ],
+        ],
+        signal: abort.signal,
+      }),
+    ).rejects.toThrow('已取消导出')
+    expect(getPage).not.toHaveBeenCalled()
+  })
+
   it('取消信号已中止时立即以「已取消导出」失败，不调用 getPage', async () => {
     const getPage = vi.fn(() => document.createElement('div'))
     const abort = new AbortController()

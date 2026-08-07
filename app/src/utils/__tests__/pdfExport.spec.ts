@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  adaptiveRasterScale,
+  bytesAlias,
   classifyPixelColors,
   defaultImageFormat,
   defaultPdfFileName,
@@ -38,6 +40,30 @@ describe('pdfExport 参数选取', () => {
       expect(s).toBeLessThanOrEqual(prev)
       prev = s
     }
+  })
+
+  it('标签尺寸自适应倍率：大尺寸桌牌限档避免过采样，小标签不降档', () => {
+    // 无标签信息：等同按页数选档
+    expect(adaptiveRasterScale(1)).toBe(defaultRasterScale(1))
+    // 小标签（90×54mm）：不降档
+    expect(adaptiveRasterScale(1, { width: 90, height: 54 })).toBe(defaultRasterScale(1))
+    // 大桌牌（200×140mm，短边 ≥120）：限 240dpi
+    expect(rasterDpi(adaptiveRasterScale(1, { width: 200, height: 140 }))).toBe(240)
+    // 中尺寸（短边 ≥80）：限 ≈269dpi
+    expect(adaptiveRasterScale(1, { width: 180, height: 90 })).toBe(2.8)
+    // 页数多时基础档已低于上限：不受影响
+    expect(adaptiveRasterScale(60, { width: 200, height: 140 })).toBe(defaultRasterScale(60))
+  })
+
+  it('bytesAlias：相同字节同 alias，不同字节不同 alias', () => {
+    const a = new Uint8Array([1, 2, 3, 4, 5])
+    const b = new Uint8Array([1, 2, 3, 4, 5])
+    const c = new Uint8Array([1, 2, 3, 4, 6])
+    expect(bytesAlias(a)).toBe(bytesAlias(b))
+    expect(bytesAlias(a)).not.toBe(bytesAlias(c))
+    expect(bytesAlias(a)).toMatch(/^img-/)
+    // 长度不同也不同 alias
+    expect(bytesAlias(new Uint8Array([0, 0]))).not.toBe(bytesAlias(new Uint8Array([0, 0, 0])))
   })
 
   it('栅格格式默认自适应：逐页按内容选 PNG 无损或 JPEG', () => {

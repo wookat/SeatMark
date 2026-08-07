@@ -179,6 +179,22 @@ export function defaultRasterScale(pageCount: number): number {
   return 1.75 // 168dpi
 }
 
+/**
+ * 按标签物理尺寸自适应渲染倍率：在按页数选档的基础上，
+ * 大尺寸标签（桌牌/席卡，观看距离远）限制上限档位避免过采样：
+ * 短边 ≥120mm 限 240dpi，≥80mm 限 ≈269dpi；小标签（小字多）不降档。
+ */
+export function adaptiveRasterScale(
+  pageCount: number,
+  label?: { width: number; height: number },
+): number {
+  const base = defaultRasterScale(pageCount)
+  if (!label) return base
+  const minSide = Math.min(label.width, label.height)
+  const cap = minSide >= 120 ? 2.5 : minSide >= 80 ? 2.8 : Infinity
+  return Math.min(base, cap)
+}
+
 /** JPEG 压缩质量：0.9 档在文字标签页上肉眼无损且体积约为 PNG 的 1/10 */
 export const JPEG_QUALITY = 0.92
 
@@ -278,6 +294,21 @@ export function formatBytes(bytes: number): string {
 /** 近似 DPI（96 CSS px/in × scale） */
 export function rasterDpi(scale: number): number {
   return Math.round(96 * scale)
+}
+
+/**
+ * FNV-1a 字节哈希（hex）：作为 jsPDF addImage 的 alias——
+ * 相同内容的页面图像字节一致，jsPDF 复用同一 XObject，
+ * 模板页大量重复时只嵌一份图像数据。
+ */
+export function bytesAlias(bytes: Uint8Array): string {
+  let h1 = 0x811c9dc5
+  let h2 = 0x1000193
+  for (let i = 0; i < bytes.length; i++) {
+    h1 = Math.imul(h1 ^ bytes[i]!, 0x01000193) >>> 0
+    h2 = Math.imul(h2 ^ bytes[i]!, 0x85ebca6b) >>> 0
+  }
+  return `img-${bytes.length.toString(36)}-${h1.toString(36)}-${h2.toString(36)}`
 }
 
 /** 整页取像素做调色板量化；不适合量化或环境不支持时返回 null（回退 JPEG） */
@@ -445,7 +476,7 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<Bl
     if (imageFormat === 'auto' && classifyCanvasContent(canvas) === 'flat') {
       const indexed = await rasterizeIndexedPng(canvas)
       if (indexed) {
-        doc.addImage(indexed, 'PNG', x, y, w, h, undefined, 'SLOW')
+        doc.addImage(indexed, 'PNG', x, y, w, h, bytesAlias(indexed), 'SLOW')
         embedded = true
       }
     }
@@ -453,9 +484,9 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<Bl
       const format = imageFormat === 'png' ? 'png' : 'jpeg'
       const bytes = await canvasToImageBytes(canvas, format, jpegQuality)
       if (format === 'png') {
-        doc.addImage(bytes, 'PNG', x, y, w, h, undefined, 'SLOW')
+        doc.addImage(bytes, 'PNG', x, y, w, h, bytesAlias(bytes), 'SLOW')
       } else {
-        doc.addImage(bytes, 'JPEG', x, y, w, h)
+        doc.addImage(bytes, 'JPEG', x, y, w, h, bytesAlias(bytes))
       }
     }
     // 释放大画布内存，避免大页数任务累计占用
