@@ -184,7 +184,7 @@ function formatDate(iso: string | null | undefined): string {
       <div class="mx-auto max-w-md">
         <div class="text-center">
           <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">登录 SeatMark</h1>
-          <p class="mt-2 text-sm leading-6 text-slate-500">
+          <p class="mt-2 text-sm leading-6 text-slate-600">
             邮箱验证码登录，无需设置密码。登录即开通专业版 Beta 限时免费试用：每日
             {{ QUOTA_USER_DAILY }} 次无水印导出（未登录 {{ QUOTA_ANON_DAILY }} 次）、自定义模板云端同步与跨设备找回；带水印导出/打印始终不限次数。
           </p>
@@ -236,7 +236,7 @@ function formatDate(iso: string | null | undefined): string {
           </button>
         </form>
 
-        <p class="mt-6 text-center text-xs leading-5 text-slate-400">
+        <p class="mt-6 text-center text-xs leading-5 text-slate-600">
           登录只用于配额与模板同步。名单、照片与排版数据始终只在你的浏览器本地处理，不会上传服务器。
         </p>
       </div>
@@ -247,7 +247,7 @@ function formatDate(iso: string | null | undefined): string {
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">个人中心</h1>
-          <p class="mt-1 text-sm text-slate-500">{{ auth.user.email }}</p>
+          <p class="mt-1 text-sm text-slate-600">{{ auth.user.email }}</p>
         </div>
         <span
           class="inline-flex items-center gap-1.5 rounded bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700 ring-1 ring-brand-200"
@@ -267,12 +267,12 @@ function formatDate(iso: string | null | undefined): string {
             <span class="text-3xl font-bold tracking-tight text-slate-900">
               {{ auth.user.quota.remaining }}
             </span>
-            <span class="pb-1 text-sm text-slate-500">/ {{ auth.user.quota.limit }} 次剩余</span>
+            <span class="pb-1 text-sm text-slate-600">/ {{ auth.user.quota.limit }} 次剩余</span>
           </div>
           <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
             <div class="h-full rounded-full bg-brand-600 transition-all" :style="{ width: `${quotaPercent}%` }" />
           </div>
-          <p class="mt-2 text-xs leading-5 text-slate-500">
+          <p class="mt-2 text-xs leading-5 text-slate-600">
             仅无水印导出/打印计次，带水印不限次数；每日 0 点恢复为 {{ QUOTA_USER_DAILY }} 次，分享被点开额外赠送（今日已 +{{ auth.user.quota.bonus }}）。
           </p>
         </section>
@@ -280,7 +280,7 @@ function formatDate(iso: string | null | undefined): string {
         <!-- 分享送次数 -->
         <section id="share" class="scroll-mt-20 rounded-lg border border-slate-200 bg-white p-5 shadow-card">
           <h2 class="text-sm font-bold text-slate-900">分享送次数</h2>
-          <p class="mt-2 text-xs leading-5 text-slate-500">
+          <p class="mt-2 text-xs leading-5 text-slate-600">
             把专属链接发给同事或群聊，每被点开 1 次即得 {{ auth.user.share.bonusPerVisit }} 次无水印导出（服务端去重防刷，每日上限
             {{ auth.user.share.bonusDailyCap }} 次）。
           </p>
@@ -308,15 +308,15 @@ function formatDate(iso: string | null | undefined): string {
           </button>
           <dl class="mt-3 grid grid-cols-3 gap-2 text-center">
             <div class="rounded bg-slate-50 py-2">
-              <dt class="text-[11px] text-slate-500">累计访问</dt>
+              <dt class="text-[11px] text-slate-600">累计访问</dt>
               <dd class="text-sm font-bold text-slate-900">{{ auth.user.share.totalVisits }}</dd>
             </div>
             <div class="rounded bg-slate-50 py-2">
-              <dt class="text-[11px] text-slate-500">累计获赠</dt>
+              <dt class="text-[11px] text-slate-600">累计获赠</dt>
               <dd class="text-sm font-bold text-slate-900">{{ auth.user.share.totalBonus }} 次</dd>
             </div>
             <div class="rounded bg-slate-50 py-2">
-              <dt class="text-[11px] text-slate-500">今日获赠</dt>
+              <dt class="text-[11px] text-slate-600">今日获赠</dt>
               <dd class="text-sm font-bold text-slate-900">
                 {{ auth.user.share.bonusToday }}/{{ auth.user.share.bonusDailyCap }}
               </dd>
@@ -327,7 +327,7 @@ function formatDate(iso: string | null | undefined): string {
         <!-- 云端模板 -->
         <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-card">
           <h2 class="text-sm font-bold text-slate-900">我的云端模板</h2>
-          <p class="mt-2 text-xs leading-5 text-slate-500">
+          <p class="mt-2 text-xs leading-5 text-slate-600">
             本设备现有 {{ library.customTemplates.length }} 个自定义模板；云端已存
             {{ auth.user.templateCount }} 个（{{ formatDate(auth.user.templateUpdatedAt) }} 更新）。
             仅同步模板版式结构，不含任何名单数据。
@@ -357,19 +357,19 @@ function formatDate(iso: string | null | undefined): string {
           <h2 class="text-sm font-bold text-slate-900">使用统计</h2>
           <dl class="mt-3 grid gap-2 text-sm">
             <div class="flex justify-between">
-              <dt class="text-slate-500">注册时间</dt>
+              <dt class="text-slate-600">注册时间</dt>
               <dd class="font-medium text-slate-900">{{ formatDate(auth.user.createdAt) }}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-slate-500">最近登录</dt>
+              <dt class="text-slate-600">最近登录</dt>
               <dd class="font-medium text-slate-900">{{ formatDate(auth.user.lastLoginAt) }}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-slate-500">累计登录</dt>
+              <dt class="text-slate-600">累计登录</dt>
               <dd class="font-medium text-slate-900">{{ auth.user.loginCount }} 次</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-slate-500">今日无水印导出</dt>
+              <dt class="text-slate-600">今日无水印导出</dt>
               <dd class="font-medium text-slate-900">{{ auth.user.quota.used }} 次</dd>
             </div>
           </dl>
@@ -377,7 +377,7 @@ function formatDate(iso: string | null | undefined): string {
       </div>
 
       <div class="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-        <p class="text-xs leading-5 text-slate-500">
+        <p class="text-xs leading-5 text-slate-600">
           名单与照片数据从不上云。退出登录后本设备的模板与配额计数仍保留在浏览器本地。
         </p>
         <div class="flex items-center gap-2">
@@ -397,7 +397,7 @@ function formatDate(iso: string | null | undefined): string {
     </template>
 
     <!-- 未登录时也提示当前本地剩余次数 -->
-    <p v-if="!auth.user && auth.ready" class="mt-8 text-center text-xs text-slate-400">
+    <p v-if="!auth.user && auth.ready" class="mt-8 text-center text-xs text-slate-600">
       当前未登录：今日本设备剩余 {{ quota.anonRemaining }}/{{ QUOTA_ANON_DAILY }} 次无水印导出（带水印不限次）
     </p>
   </div>

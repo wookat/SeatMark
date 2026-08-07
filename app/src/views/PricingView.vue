@@ -124,7 +124,7 @@ async function submitReserve() {
       <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
         定价方案
       </h1>
-      <p class="mx-auto mt-4 max-w-xl text-sm leading-6 text-slate-500">
+      <p class="mx-auto mt-4 max-w-xl text-sm leading-6 text-slate-600">
         带水印导出与打印完全不限次数；无水印导出每天 {{ QUOTA_ANON_DAILY }} 次（登录后
         {{ QUOTA_USER_DAILY }} 次），分享可再送次数。
         专业版 Beta 期间限时免费试用；团队版现已标价，支付开通前可预订登记。
@@ -146,11 +146,11 @@ async function submitReserve() {
           {{ plan.badge }}
         </span>
         <h2 class="text-base font-bold text-slate-900">{{ plan.name }}</h2>
-        <p class="mt-0.5 text-xs text-slate-500">{{ plan.tagline }}</p>
+        <p class="mt-0.5 text-xs text-slate-600">{{ plan.tagline }}</p>
 
         <div class="mt-4 flex items-end gap-2">
           <span class="text-4xl font-bold tracking-tight text-slate-900">{{ plan.price }}</span>
-          <span class="pb-1 text-sm font-semibold text-slate-400">{{ plan.priceUnit }}</span>
+          <span class="pb-1 text-sm font-semibold text-slate-600">{{ plan.priceUnit }}</span>
           <span
             v-if="plan.cta === 'pro-trial'"
             class="mb-1 ml-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700"
@@ -201,7 +201,7 @@ async function submitReserve() {
       </div>
     </div>
 
-    <p class="mt-6 text-center text-xs text-slate-400">
+    <p class="mt-6 text-center text-xs text-slate-600">
       团队版支付通道即将开通，预订登记不收取任何费用；所有名单数据仅在浏览器本地处理，不会上传服务器。
     </p>
 
@@ -215,7 +215,7 @@ async function submitReserve() {
           class="rounded-lg border border-slate-200 bg-white p-5"
         >
           <h3 class="text-sm font-bold text-slate-900">{{ faq.q }}</h3>
-          <p class="mt-2 text-sm leading-6 text-slate-500">{{ faq.a }}</p>
+          <p class="mt-2 text-sm leading-6 text-slate-600">{{ faq.a }}</p>
         </div>
       </div>
     </section>
@@ -236,7 +236,7 @@ async function submitReserve() {
           <path d="M5 12h14m-6-6 6 6-6 6" />
         </svg>
       </RouterLink>
-      <p class="mt-3 text-xs text-slate-400">
+      <p class="mt-3 text-xs text-slate-600">
         还不确定？先看看<RouterLink to="/guides" class="font-semibold text-brand-600 hover:underline">教程中心</RouterLink>或<RouterLink to="/templates" class="font-semibold text-brand-600 hover:underline">模板库</RouterLink>
       </p>
     </div>
@@ -292,7 +292,7 @@ async function submitReserve() {
             </svg>
           </span>
           <p class="mt-3 text-sm font-bold text-slate-900">预订登记成功</p>
-          <p class="mt-1 text-sm leading-6 text-slate-500">
+          <p class="mt-1 text-sm leading-6 text-slate-600">
             团队版支付开通后我们会邮件通知 {{ reserveEmail }}，感谢支持。
           </p>
           <button type="button" class="btn btn-secondary btn-sm mt-4" @click="reserveOpen = false">

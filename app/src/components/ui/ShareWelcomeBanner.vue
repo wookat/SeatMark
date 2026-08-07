@@ -26,7 +26,7 @@ const emit = defineEmits<{ close: [] }>()
         </RouterLink>
         <button
           type="button"
-          class="grid size-6 place-items-center rounded text-slate-400 hover:text-slate-600"
+          class="grid size-6 place-items-center rounded text-slate-600 hover:text-slate-600"
           aria-label="关闭欢迎提示"
           @click="emit('close')"
         >

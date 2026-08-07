@@ -37,14 +37,14 @@ function cells(spec: (typeof labelPapers)[number]) {
       <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
         A4 不干胶纸型库
       </h1>
-      <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+      <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
         收录国产电商常见的 A4 不干胶分切规格：2×4、3×7、3×10、圆角模切等 {{ labelPapers.length }}
         种。在标签工坊选好纸型，行列数、边距与间距自动锁定，打印即对版，免手动调参。
       </p>
     </div>
 
     <div class="mt-8 flex flex-wrap items-center justify-center gap-2">
-      <span class="shrink-0 text-xs font-bold text-slate-400">切角</span>
+      <span class="shrink-0 text-xs font-bold text-slate-600">切角</span>
       <button
         v-for="c in ['全部', '直角', '圆角'] as const"
         :key="c"
@@ -53,7 +53,7 @@ function cells(spec: (typeof labelPapers)[number]) {
         :class="
           activeCorner === c
             ? 'border-brand-600 bg-brand-600 text-white'
-            : 'border-slate-200 bg-white text-slate-500 hover:border-brand-300 hover:text-brand-600'
+            : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600'
         "
         @click="activeCorner = c"
       >
@@ -92,18 +92,18 @@ function cells(spec: (typeof labelPapers)[number]) {
             <h2 class="text-sm font-bold text-slate-900 group-hover:text-brand-600">
               {{ p.name }}
             </h2>
-            <p class="mt-1 text-xs leading-5 text-slate-500">
+            <p class="mt-1 text-xs leading-5 text-slate-600">
               {{ p.labelWidth }} × {{ p.labelHeight }} mm · {{ p.cols }} 列 × {{ p.rows }} 行 ·
               每页 {{ p.cols * p.rows }} 枚 · {{ p.corner === 'rounded' ? '圆角' : '直角' }}
             </p>
           </div>
         </div>
-        <p class="mt-3 line-clamp-2 text-xs leading-5 text-slate-500">{{ p.description }}</p>
+        <p class="mt-3 line-clamp-2 text-xs leading-5 text-slate-600">{{ p.description }}</p>
         <div class="mt-3 flex flex-wrap gap-1.5">
           <span
             v-for="alias in p.aliases.slice(0, 2)"
             :key="alias"
-            class="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500"
+            class="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600"
           >
             {{ alias }}
           </span>
@@ -113,7 +113,7 @@ function cells(spec: (typeof labelPapers)[number]) {
 
     <div class="mt-12 rounded-lg border border-brand-100 bg-brand-50/60 p-6 text-center">
       <h2 class="text-base font-bold text-slate-900">买回来的标签纸不在列表里？</h2>
-      <p class="mx-auto mt-2 max-w-xl text-xs leading-5 text-slate-500">
+      <p class="mx-auto mt-2 max-w-xl text-xs leading-5 text-slate-600">
         标签工坊支持完全自定义：手动输入标签尺寸、行列数与边距，同样精确到毫米。
         也欢迎通过页面右下角反馈告诉我们缺少的型号，我们会尽快收录。
       </p>

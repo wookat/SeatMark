@@ -1110,7 +1110,7 @@ function save(asNew: boolean) {
             <path d="M2.5 4h11M2.5 8h11M2.5 12h11" />
           </svg>
         </button>
-        <span class="hidden text-sm font-bold text-slate-400 sm:inline">模板设计器</span>
+        <span class="hidden text-sm font-bold text-slate-600 sm:inline">模板设计器</span>
         <input
           v-model="draft.name"
           type="text"
@@ -1158,7 +1158,7 @@ function save(asNew: boolean) {
           v-if="addMenuOpen"
           class="absolute top-full left-0 z-40 mt-1 max-h-80 w-52 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-pop"
         >
-          <p class="px-2 pt-1 pb-0.5 text-[10px] font-bold tracking-wider text-slate-400">
+          <p class="px-2 pt-1 pb-0.5 text-[10px] font-bold tracking-wider text-slate-600">
             常用考务字段
           </p>
           <button
@@ -1170,12 +1170,12 @@ function save(asNew: boolean) {
           >
             {{ preset.name }}
             <span
-              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-500"
+              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
             >
               {{ preset.tag }}
             </span>
           </button>
-          <p class="px-2 pt-2 pb-0.5 text-[10px] font-bold tracking-wider text-slate-400">
+          <p class="px-2 pt-2 pb-0.5 text-[10px] font-bold tracking-wider text-slate-600">
             形状与图标
           </p>
           <button
@@ -1187,7 +1187,7 @@ function save(asNew: boolean) {
           >
             {{ preset.name }}
             <span
-              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-500"
+              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
             >
               {{ preset.tag }}
             </span>
@@ -1199,12 +1199,12 @@ function save(asNew: boolean) {
           >
             矢量图标库…
             <span
-              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-500"
+              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
             >
               图
             </span>
           </button>
-          <p class="px-2 pt-2 pb-0.5 text-[10px] font-bold tracking-wider text-slate-400">
+          <p class="px-2 pt-2 pb-0.5 text-[10px] font-bold tracking-wider text-slate-600">
             空白字段
           </p>
           <button
@@ -1214,7 +1214,7 @@ function save(asNew: boolean) {
           >
             空白文本
             <span
-              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-500"
+              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
             >
               文
             </span>
@@ -1226,7 +1226,7 @@ function save(asNew: boolean) {
           >
             空白照片
             <span
-              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-500"
+              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
             >
               图
             </span>
@@ -1460,7 +1460,7 @@ function save(asNew: boolean) {
       >
         <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2.5">
           <h3 class="text-xs font-bold text-slate-700">字段</h3>
-          <span class="text-[10px] font-semibold text-slate-400">{{ draft.fields.length }} 个</span>
+          <span class="text-[10px] font-semibold text-slate-600">{{ draft.fields.length }} 个</span>
         </div>
         <div class="min-h-0 flex-1 overflow-y-auto p-2">
           <ul v-if="draft.fields.length" class="grid gap-1">
@@ -1477,7 +1477,7 @@ function save(asNew: boolean) {
             >
               <span class="flex min-w-0 items-center gap-1.5">
                 <span
-                  class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-500"
+                  class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
                 >
                   {{ field.type === 'image' ? '图' : '文' }}
                 </span>
@@ -1495,12 +1495,12 @@ function save(asNew: boolean) {
           </ul>
           <p
             v-else
-            class="m-1 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3 text-center text-[11px] leading-4 text-slate-400"
+            class="m-1 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3 text-center text-[11px] leading-4 text-slate-600"
           >
             还没有字段<br />点击工具栏「+ 添加字段」开始
           </p>
         </div>
-        <p class="shrink-0 border-t border-slate-100 px-3 py-2 text-[10px] leading-4 text-slate-400">
+        <p class="shrink-0 border-t border-slate-100 px-3 py-2 text-[10px] leading-4 text-slate-600">
           点击选中 · Ctrl+点击多选 · Ctrl+A 全选 · Ctrl+D 复制 · Delete 删除
         </p>
       </aside>
@@ -1585,7 +1585,7 @@ function save(asNew: boolean) {
         <!-- 选中字段属性 -->
         <p
           v-if="!selectedField"
-          class="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3 text-[11px] leading-4 text-slate-400"
+          class="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3 text-[11px] leading-4 text-slate-600"
         >
           {{
             selectedIds.length > 1
@@ -1660,7 +1660,7 @@ function save(asNew: boolean) {
                   移除
                 </button>
               </div>
-              <p v-else class="mt-1 text-[11px] leading-4 text-slate-400">
+              <p v-else class="mt-1 text-[11px] leading-4 text-slate-600">
                 照片在工坊「字段映射 → 照片匹配」中按列批量上传
               </p>
               <input
@@ -1673,7 +1673,7 @@ function save(asNew: boolean) {
             </div>
 
             <p
-              class="col-span-2 mt-1.5 flex items-center gap-2 text-[10px] font-bold tracking-wider text-slate-400"
+              class="col-span-2 mt-1.5 flex items-center gap-2 text-[10px] font-bold tracking-wider text-slate-600"
             >
               位置与尺寸
               <span class="h-px flex-1 bg-slate-100"></span>
@@ -1681,6 +1681,7 @@ function save(asNew: boolean) {
             <div>
               <label class="field-label">X (mm)</label>
               <NumberField
+                aria-label="X (mm)"
                 :model-value="selectedField.x"
                 :step="0.5"
                 :min="0"
@@ -1690,6 +1691,7 @@ function save(asNew: boolean) {
             <div>
               <label class="field-label">Y (mm)</label>
               <NumberField
+                aria-label="Y (mm)"
                 :model-value="selectedField.y"
                 :step="0.5"
                 :min="0"
@@ -1699,6 +1701,7 @@ function save(asNew: boolean) {
             <div>
               <label class="field-label">宽 (mm)</label>
               <NumberField
+                aria-label="宽 (mm)"
                 :model-value="selectedField.width"
                 :step="0.5"
                 :min="0"
@@ -1708,6 +1711,7 @@ function save(asNew: boolean) {
             <div>
               <label class="field-label">高 (mm)</label>
               <NumberField
+                aria-label="高 (mm)"
                 :model-value="selectedField.height"
                 :step="0.5"
                 :min="0"
@@ -1719,7 +1723,7 @@ function save(asNew: boolean) {
           <template v-if="selectedField.type === 'text'">
             <div class="mt-2 grid grid-cols-2 gap-2">
               <p
-                class="col-span-2 mt-1.5 flex items-center gap-2 text-[10px] font-bold tracking-wider text-slate-400"
+                class="col-span-2 mt-1.5 flex items-center gap-2 text-[10px] font-bold tracking-wider text-slate-600"
               >
                 文字样式
                 <span class="h-px flex-1 bg-slate-100"></span>
@@ -1735,6 +1739,7 @@ function save(asNew: boolean) {
               <div>
                 <label class="field-label">字号 (pt)</label>
                 <NumberField
+                  aria-label="字号 (pt)"
                   :model-value="selectedField.fontSize ?? 12"
                   :step="0.5"
                   :min="4"
@@ -1765,6 +1770,7 @@ function save(asNew: boolean) {
               <div>
                 <label class="field-label">最多行数</label>
                 <NumberField
+                  aria-label="最多行数"
                   :model-value="selectedField.maxLines ?? 1"
                   :min="1"
                   :max="6"
@@ -1774,6 +1780,7 @@ function save(asNew: boolean) {
               <div>
                 <label class="field-label">内边距 (mm)</label>
                 <NumberField
+                  aria-label="内边距 (mm)"
                   :model-value="selectedField.padding ?? 0.8"
                   :step="0.2"
                   :min="0"
@@ -1783,6 +1790,7 @@ function save(asNew: boolean) {
               <div>
                 <label class="field-label">字距 (em)</label>
                 <NumberField
+                  aria-label="字距 (em)"
                   :model-value="selectedField.letterSpacing ?? 0"
                   :step="0.02"
                   :min="-0.2"
@@ -1807,7 +1815,7 @@ function save(asNew: boolean) {
 
           <div class="mt-2 grid grid-cols-2 gap-2">
             <p
-              class="col-span-2 mt-1.5 flex items-center gap-2 text-[10px] font-bold tracking-wider text-slate-400"
+              class="col-span-2 mt-1.5 flex items-center gap-2 text-[10px] font-bold tracking-wider text-slate-600"
             >
               外观
               <span class="h-px flex-1 bg-slate-100"></span>
@@ -1824,6 +1832,7 @@ function save(asNew: boolean) {
               <div>
                 <label class="field-label">边框宽 (mm)</label>
                 <NumberField
+                  aria-label="边框宽 (mm)"
                   :model-value="selectedField.borderWidth ?? 0.2"
                   :step="0.05"
                   :min="0.05"
@@ -1839,6 +1848,7 @@ function save(asNew: boolean) {
             <div>
               <label class="field-label">圆角 (mm)</label>
               <NumberField
+                aria-label="圆角 (mm)"
                 :model-value="selectedField.radius ?? 0"
                 :step="0.5"
                 :min="0"
@@ -1867,6 +1877,7 @@ function save(asNew: boolean) {
             <div>
               <label class="field-label">标签宽 (mm)</label>
               <NumberField
+                aria-label="标签宽 (mm)"
                 :model-value="draft.label.width"
                 :min="10"
                 :max="420"
@@ -1876,6 +1887,7 @@ function save(asNew: boolean) {
             <div>
               <label class="field-label">标签高 (mm)</label>
               <NumberField
+                aria-label="标签高 (mm)"
                 :model-value="draft.label.height"
                 :min="10"
                 :max="420"
@@ -1885,6 +1897,7 @@ function save(asNew: boolean) {
             <div>
               <label class="field-label">标签圆角 (mm)</label>
               <NumberField
+                aria-label="标签圆角 (mm)"
                 :model-value="draft.label.radius ?? 0"
                 :step="0.5"
                 :min="0"
@@ -1915,6 +1928,7 @@ function save(asNew: boolean) {
             <div>
               <label class="field-label">横向间距 (mm)</label>
               <NumberField
+                aria-label="横向间距 (mm)"
                 :model-value="draft.page.gapX"
                 :step="0.5"
                 :min="0"
@@ -1925,6 +1939,7 @@ function save(asNew: boolean) {
             <div>
               <label class="field-label">纵向间距 (mm)</label>
               <NumberField
+                aria-label="纵向间距 (mm)"
                 :model-value="draft.page.gapY"
                 :step="0.5"
                 :min="0"
@@ -1953,7 +1968,7 @@ function save(asNew: boolean) {
 
     <!-- 状态栏 -->
     <footer
-      class="flex h-8 shrink-0 items-center gap-x-4 overflow-x-auto border-t border-slate-200 bg-white px-4 text-[11px] whitespace-nowrap text-slate-500"
+      class="flex h-8 shrink-0 items-center gap-x-4 overflow-x-auto border-t border-slate-200 bg-white px-4 text-[11px] whitespace-nowrap text-slate-600"
     >
       <span>{{ currentPaperLabel }}</span>
       <span>标签 {{ draft.label.width }} × {{ draft.label.height }} mm</span>
@@ -1973,7 +1988,7 @@ function save(asNew: boolean) {
       <span v-else-if="selectedIds.length > 1" class="font-semibold text-brand-600">
         已选 {{ selectedIds.length }} 个字段 · 可整体拖动 / 对齐 / 复制 / 删除
       </span>
-      <span v-else class="hidden text-slate-400 md:inline">
+      <span v-else class="hidden text-slate-600 md:inline">
         拖拽自动吸附参考线 · Ctrl+点击多选 · 方向键微调 0.5mm（Shift = 2mm） · Delete 删除字段
       </span>
     </footer>

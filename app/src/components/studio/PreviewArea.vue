@@ -758,11 +758,11 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         </span>
         <span
           v-if="workspace.totalPages > 0"
-          class="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-500"
+          class="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-600"
         >
           {{ workspace.totalPages }} 页
         </span>
-        <span class="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-500">
+        <span class="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-600">
           {{ currentPaperLabel }}
         </span>
       </div>
@@ -787,7 +787,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             <path d="m10 4-4 4 4 4" />
           </svg>
         </button>
-        <div class="flex items-center gap-1 text-xs text-slate-500">
+        <div class="flex items-center gap-1 text-xs text-slate-600">
           <input
             v-model="pageInput"
             type="number"
@@ -845,7 +845,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           />
           <button
             type="button"
-            class="grid size-4 place-items-center rounded-full text-slate-400 hover:text-slate-600"
+            class="grid size-4 place-items-center rounded-full text-slate-600 hover:text-slate-600"
             aria-label="裁切排序说明"
             @click="hintKey = 'cutSort'"
           >
@@ -864,7 +864,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           />
           <button
             type="button"
-            class="grid size-4 place-items-center rounded-full text-slate-400 hover:text-slate-600"
+            class="grid size-4 place-items-center rounded-full text-slate-600 hover:text-slate-600"
             aria-label="对折双联说明"
             @click="hintKey = 'mirror'"
           >
@@ -1002,7 +1002,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         </RouterLink>
         <button
           type="button"
-          class="grid size-6 place-items-center rounded text-slate-400 hover:text-slate-600"
+          class="grid size-6 place-items-center rounded text-slate-600 hover:text-slate-600"
           aria-label="关闭分享提示"
           @click="dismissSharePrompt"
         >
@@ -1030,7 +1030,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             ></div>
           </div>
           <h3 class="mt-4 text-sm font-bold text-slate-800">还没有名单数据</h3>
-          <p class="mt-1.5 text-xs leading-5 text-slate-500">
+          <p class="mt-1.5 text-xs leading-5 text-slate-600">
             在左侧「导入数据」上传 Excel 后，这里会实时显示按毫米排版的真实打印效果
           </p>
           <button
@@ -1059,7 +1059,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           </p>
           <button
             type="button"
-            class="grid size-5 shrink-0 place-items-center rounded text-slate-400 hover:text-slate-600"
+            class="grid size-5 shrink-0 place-items-center rounded text-slate-600 hover:text-slate-600"
             aria-label="关闭提示"
             @click="dismissEditOneHint"
           >
@@ -1100,7 +1100,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
       <div v-if="pendingAction === 'png'" class="mb-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
         <label class="field-label" for="png-unit">成图单位</label>
         <SelectField id="png-unit" v-model="pngExportUnit" size="sm" :options="PNG_UNIT_OPTIONS" />
-        <p class="mt-1.5 text-xs leading-5 text-slate-400">
+        <p class="mt-1.5 text-xs leading-5 text-slate-600">
           {{
             pngExportUnit === 'label'
               ? `按标签逐张导出：共 ${pngTotalLabels} 张标签，每一张单独生成一张 PNG（尺寸=标签实际尺寸），支持按每张标签对应的名单行命名`
@@ -1126,12 +1126,12 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
               class="input-field w-24 text-center"
               :class="pngExactWidthValid ? '' : '!border-red-400'"
             />
-            <span v-if="pngExactWidthValid" class="text-slate-500">
+            <span v-if="pngExactWidthValid" class="text-slate-600">
               输出 <strong class="text-slate-700">{{ pngExactWidth }}×{{ pngExactHeight }}</strong> 像素（高度按模板比例自动推导）
             </span>
             <span v-else class="text-red-500">请输入 {{ MIN_EXACT_PIXEL_WIDTH }}–{{ MAX_EXACT_PIXEL_WIDTH }} 之间的整数</span>
           </div>
-          <p v-else class="mt-2 text-xs text-slate-500">
+          <p v-else class="mt-2 text-xs text-slate-600">
             每页精确输出 <strong class="text-slate-700">{{ pngPreset.width }}×{{ pngPreset.height }}</strong> 像素
           </p>
           <p v-if="pngPresetStretch" class="mt-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">
@@ -1143,7 +1143,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           class="mt-2 text-xs font-semibold text-slate-600"
           label="纯黑白输出（电子墨水屏推荐）"
         />
-        <p class="mt-2 text-xs leading-5 text-slate-400">
+        <p class="mt-2 text-xs leading-5 text-slate-600">
           单张直接下载 PNG，多张自动打包为 zip；{{ isEinkTemplate ? '电子座签模板默认精确 800×480 像素 + 纯黑白，可直接导入电子桌牌系统。' : '需要精确像素（如电子墨水屏）时选「精确像素」，可用分辨率预设或自定义宽度。' }}
         </p>
         <template v-if="pngExportUnit === 'label' ? pngTotalLabels > 1 : workspace.totalPages > 1">
@@ -1159,7 +1159,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
               aria-label="文件命名模板"
             />
             <div v-if="workspace.excel.headers.length" class="mt-1.5 flex flex-wrap items-center gap-1.5">
-              <span class="text-slate-400">点击插入字段：</span>
+              <span class="text-slate-600">点击插入字段：</span>
               <button
                 v-for="header in workspace.excel.headers"
                 :key="header"
@@ -1173,7 +1173,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             <p v-if="!pngNameTemplateValid" class="mt-1.5 text-amber-600">
               模板中引用了名单里不存在的列，对应占位符会按空处理；字段为空的页面自动回退为序号命名。
             </p>
-            <p v-else class="mt-1.5 text-slate-400">
+            <p v-else class="mt-1.5 text-slate-600">
               {列名} 会替换为{{ pngExportUnit === 'label' ? '每张标签对应名单行' : '该页对应名单行（每页多枚时取该页第一条记录）' }}的内容；非法字符自动过滤，重名自动追加 -2，空字段回退序号命名。
             </p>
           </div>
@@ -1181,13 +1181,13 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
       </div>
       <p
         v-if="pendingAction === 'pdf'"
-        class="mb-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500"
+        class="mb-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600"
       >
         图片版 PDF：每页渲染为高清图片后合成，所见即所得、任何设备打开都一致；文字不可选中，需要矢量文字请改用「打印 / 矢量 PDF」。
       </p>
       <p
         v-else-if="pendingAction === 'print'"
-        class="mb-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500"
+        class="mb-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600"
       >
         <template v-if="isMobile">
           手机浏览器的打印预览容易出现空白：将先生成打印用 PDF，再调起系统分享面板，在面板中选「打印」或用 PDF 应用打开后打印。
@@ -1217,14 +1217,14 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             <strong class="text-slate-800">「灰度打印 / 黑白打印 / 省墨模式」</strong>后重试。
           </li>
         </ol>
-        <p class="mt-1.5 pl-5 text-[11px] leading-4 text-slate-400">
+        <p class="mt-1.5 pl-5 text-[11px] leading-4 text-slate-600">
           小验证：目标打印机先选「另存为 PDF」，导出的 PDF 是彩色就说明页面没问题，剩下的是打印机设置。
         </p>
       </details>
       <p class="leading-6">选择导出方式：</p>
       <p
         v-if="pendingAction === 'pdf' && exportEstimate"
-        class="mt-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500"
+        class="mt-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600"
       >
         共 {{ exportEstimate.pageCount }} 页 · 每页约 {{ exportEstimate.dpi }}dpi ·
         预估体积约 <span class="font-bold text-slate-700">{{ exportEstimate.size }}</span>（按页数自适应清晰度与压缩）
@@ -1239,7 +1239,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         >
           <span
             v-if="quota.remaining <= 0"
-            class="absolute top-2 right-2 rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-500"
+            class="absolute top-2 right-2 rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-600"
           >
             今日 0 次
           </span>
@@ -1253,7 +1253,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           </span>
           <span>
             <span class="block text-sm font-bold text-slate-900">无水印导出（今日剩余 {{ quota.remaining }} 次）</span>
-            <span class="mt-0.5 block text-xs leading-5 text-slate-500">
+            <span class="mt-0.5 block text-xs leading-5 text-slate-600">
               {{ quota.remaining > 0 ? '页面不叠加任何标识' : (auth.isLoggedIn ? '今日已用完，分享链接每被点开 1 次即得 1 次，或明日 0 点恢复' : '今日已用完，登录后每天 3 次，还可分享送次数') }}
             </span>
           </span>
@@ -1270,13 +1270,13 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           </span>
           <span>
             <span class="block text-sm font-bold text-slate-900">带水印导出（不限次数）</span>
-            <span class="mt-0.5 block text-xs leading-5 text-slate-500">
+            <span class="mt-0.5 block text-xs leading-5 text-slate-600">
               每张标签内底部叠加半透明徽章式品牌水印（座位格标记 + seatmark.cn，配色随模板自适应），不遮挡姓名等核心内容
             </span>
           </span>
         </button>
       </div>
-      <p v-if="!auth.isLoggedIn" class="mt-3 text-xs leading-5 text-slate-400">
+      <p v-if="!auth.isLoggedIn" class="mt-3 text-xs leading-5 text-slate-600">
         登录后无水印导出每天 {{ QUOTA_USER_DAILY }} 次，分享链接每被点开 1 次再得 1 次；同时获得专业版 Beta 限时免费试用。
       </p>
     </ModalDialog>
@@ -1287,7 +1287,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
       size="md"
       @close="editRow = null"
     >
-      <p class="text-xs leading-5 text-slate-500">
+      <p class="text-xs leading-5 text-slate-600">
         修改只影响这一张标签，不改动名单数据；重新导入名单时覆写会自动清除并提示。
       </p>
       <div class="mt-3 grid gap-2.5">

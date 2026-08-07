@@ -47,7 +47,7 @@ const GROUPS = [
               SeatMark <span class="text-brand-600">座签</span>
             </span>
           </div>
-          <p class="mt-3 max-w-xs text-xs leading-5 text-slate-500">
+          <p class="mt-3 max-w-xs text-xs leading-5 text-slate-600">
             考场座签、桌牌席卡、门贴证卡在线批量生成工具。上传 Excel
             名单即可输出毫米级精确排版的打印页。
           </p>
@@ -75,7 +75,7 @@ const GROUPS = [
             <li v-for="link in group.links" :key="link.label">
               <RouterLink
                 :to="link.to"
-                class="line-clamp-1 text-xs text-slate-500 transition-colors hover:text-brand-600"
+                class="line-clamp-1 text-xs text-slate-600 transition-colors hover:text-brand-600"
               >
                 {{ link.label }}
               </RouterLink>
@@ -85,7 +85,7 @@ const GROUPS = [
       </div>
 
       <div
-        class="mt-9 flex flex-col items-center justify-between gap-2 border-t border-slate-200 pt-5 text-xs text-slate-400 sm:flex-row"
+        class="mt-9 flex flex-col items-center justify-between gap-2 border-t border-slate-200 pt-5 text-xs text-slate-600 sm:flex-row"
       >
         <span>© 2026 SeatMark 座签 · 版权所有</span>
         <BeianInfo />

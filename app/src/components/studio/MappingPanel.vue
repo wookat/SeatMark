@@ -115,7 +115,7 @@ function onPhotoFiles(event: Event) {
           :class="
             workspace.mapping[field.id]
               ? 'bg-brand-50 text-brand-700'
-              : 'bg-slate-100 text-slate-500'
+              : 'bg-slate-100 text-slate-600'
           "
         >
           {{ field.label || field.id }}
@@ -207,7 +207,7 @@ function onPhotoFiles(event: Event) {
 
     <div v-if="workspace.hasMatchedImageField" class="mt-4 border-t border-slate-100 pt-4">
       <h3 class="text-xs font-bold text-slate-700">照片匹配</h3>
-      <p class="mt-1 text-[11px] leading-4 text-slate-400">
+      <p class="mt-1 text-[11px] leading-4 text-slate-600">
         照片文件名与所选列的值一致或包含该值即可匹配。例如「张伟2023010101.jpg」，
         按姓名列或学号列都能匹配；完全一致的文件优先。
       </p>
@@ -236,12 +236,12 @@ function onPhotoFiles(event: Event) {
           class="hidden"
           @change="onPhotoFiles"
         />
-        <p v-if="workspace.photoStats.totalPhotos > 0" class="text-xs text-slate-500">
+        <p v-if="workspace.photoStats.totalPhotos > 0" class="text-xs text-slate-600">
           已导入 {{ workspace.photoStats.totalPhotos }} 张照片，匹配
           {{ workspace.photoStats.matchedRows }}/{{ workspace.photoStats.totalRows }} 行（覆盖率
           {{ workspace.photoStats.coverage }}%）
         </p>
-        <details v-if="workspace.photoErrors.length" class="text-xs text-slate-500">
+        <details v-if="workspace.photoErrors.length" class="text-xs text-slate-600">
           <summary class="cursor-pointer font-semibold text-amber-600">
             {{ workspace.photoErrors.length }} 个文件未匹配，查看详情
           </summary>

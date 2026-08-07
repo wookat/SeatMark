@@ -74,7 +74,7 @@ function close() {
         </span>
         <span class="min-w-0">
           <span class="block text-sm font-semibold text-slate-900">{{ item.label }}</span>
-          <span class="mt-0.5 block text-xs leading-5 text-slate-500">{{ item.detail }}</span>
+          <span class="mt-0.5 block text-xs leading-5 text-slate-600">{{ item.detail }}</span>
         </span>
       </li>
     </ul>
@@ -99,7 +99,7 @@ function close() {
       </component>
     </div>
 
-    <p class="mt-4 text-xs leading-5 text-slate-400">
+    <p class="mt-4 text-xs leading-5 text-slate-600">
       也可以直接选择带水印导出继续使用，不受次数限制。名单与照片始终只在你的浏览器本地处理，登录只用于配额与模板同步，不会上传任何标签数据。
     </p>
   </ModalDialog>

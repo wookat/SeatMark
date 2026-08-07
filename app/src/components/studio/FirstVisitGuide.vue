@@ -40,7 +40,7 @@ function tryDemo() {
       <p class="text-sm font-bold text-slate-900">三步拿到成品</p>
       <button
         type="button"
-        class="cursor-pointer rounded p-1 text-slate-400 transition-colors hover:bg-white hover:text-slate-600"
+        class="cursor-pointer rounded p-1 text-slate-600 transition-colors hover:bg-white hover:text-slate-600"
         aria-label="关闭引导"
         @click="close"
       >
@@ -79,7 +79,7 @@ function tryDemo() {
         </span>
         <div class="min-w-0">
           <p class="text-xs font-bold text-slate-800">{{ step.title }}</p>
-          <p class="text-[11px] leading-4 text-slate-500">{{ step.desc }}</p>
+          <p class="text-[11px] leading-4 text-slate-600">{{ step.desc }}</p>
         </div>
       </li>
     </ol>

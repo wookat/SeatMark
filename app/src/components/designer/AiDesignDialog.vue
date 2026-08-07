@@ -100,7 +100,7 @@ async function generate() {
 <template>
   <ModalDialog :open="open" title="AI 自动设计标签" size="lg" @close="emit('close')">
     <div class="grid gap-4">
-      <p class="text-xs leading-5 text-slate-500">
+      <p class="text-xs leading-5 text-slate-600">
         填写字段与示例数据，AI 将在指定尺寸内完成一版标签排版，生成后可在画布上继续手动微调。
         默认免费通道开箱即用，无需注册或配置任何密钥。
       </p>
@@ -117,7 +117,7 @@ async function generate() {
 准考证号: 2026061001
 照片:"
         ></textarea>
-        <p class="mt-1 text-[11px] text-slate-400">字段名含「照片 / 头像」会生成图片占位框</p>
+        <p class="mt-1 text-[11px] text-slate-600">字段名含「照片 / 头像」会生成图片占位框</p>
       </div>
 
       <div>
@@ -150,7 +150,7 @@ async function generate() {
             :class="
               config.provider === 'free'
                 ? 'bg-white text-brand-700 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
+                : 'text-slate-600 hover:text-slate-700'
             "
             @click="config.provider = 'free'"
           >
@@ -162,7 +162,7 @@ async function generate() {
             :class="
               config.provider === 'custom'
                 ? 'bg-white text-brand-700 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
+                : 'text-slate-600 hover:text-slate-700'
             "
             @click="config.provider = 'custom'"
           >
@@ -170,7 +170,7 @@ async function generate() {
           </button>
         </div>
 
-        <p v-if="config.provider === 'free'" class="mt-2 text-[11px] leading-4 text-slate-400">
+        <p v-if="config.provider === 'free'" class="mt-2 text-[11px] leading-4 text-slate-600">
           使用公共免费模型服务（站点内置通道 / Pollinations 匿名接口）自动生成，
           仅发送字段名与示例值，不上传完整名单；高峰期偶尔繁忙，失败可重试或切换「自定义 API」。
         </p>
@@ -206,11 +206,11 @@ async function generate() {
               />
             </div>
           </div>
-          <p class="text-[11px] leading-4 text-slate-400">
+          <p class="text-[11px] leading-4 text-slate-600">
             兼容所有 OpenAI 格式接口（智谱 / DeepSeek / 通义 / Kimi / OpenRouter 等）；
             密钥仅存于本机浏览器，不会上传到任何服务器。
           </p>
-          <p class="text-[11px] leading-4 text-slate-400">
+          <p class="text-[11px] leading-4 text-slate-600">
             免费接口推荐：智谱
             <code class="rounded bg-slate-100 px-1 text-slate-600">open.bigmodel.cn/api/paas/v4</code>
             的 glm-4-flash 当前可免费调用（以智谱官方定价为准）；硅基流动

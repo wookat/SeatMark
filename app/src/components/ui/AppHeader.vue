@@ -61,7 +61,7 @@ const SECTIONS = [
           v-for="section in SECTIONS"
           :key="section.href"
           :href="section.href"
-          class="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+          class="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
         >
           {{ section.label }}
         </a>

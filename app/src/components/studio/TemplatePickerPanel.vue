@@ -306,8 +306,6 @@ function confirmDelete() {
       <article
         v-for="t in visibleTemplates"
         :key="t.id"
-        role="button"
-        tabindex="0"
         class="relative cursor-pointer rounded-lg border-2 p-3 transition-all duration-150"
         :class="
           workspace.selectedTemplateId === t.id
@@ -315,7 +313,6 @@ function confirmDelete() {
             : 'border-slate-200 bg-white hover:border-brand-300 hover:shadow-sm'
         "
         @click="workspace.selectTemplate(t)"
-        @keyup.enter="workspace.selectTemplate(t)"
       >
         <span
           v-if="workspace.selectedTemplateId === t.id"
@@ -339,7 +336,16 @@ function confirmDelete() {
           </div>
           <div class="min-w-0 flex-1">
             <div class="flex items-start justify-between gap-2">
-              <h3 class="text-sm font-bold text-slate-900">{{ t.name }}</h3>
+              <h3 class="text-sm font-bold text-slate-900">
+                <button
+                  type="button"
+                  class="cursor-pointer text-left hover:text-brand-600"
+                  :aria-pressed="workspace.selectedTemplateId === t.id"
+                  @click.stop="workspace.selectTemplate(t)"
+                >
+                  {{ t.name }}
+                </button>
+              </h3>
               <span class="flex shrink-0 gap-1">
                 <span
                   v-if="fitOf(t)?.level === 'recommended'"
@@ -355,14 +361,14 @@ function confirmDelete() {
                 </span>
               </span>
             </div>
-            <p class="mt-1 line-clamp-2 text-xs leading-4 text-slate-500">{{ t.description }}</p>
+            <p class="mt-1 line-clamp-2 text-xs leading-4 text-slate-600">{{ t.description }}</p>
             <p
               v-if="fitOf(t)?.level === 'incompatible'"
-              class="mt-1 text-[11px] leading-4 text-slate-400"
+              class="mt-1 text-[11px] leading-4 text-slate-600"
             >
               {{ fitOf(t)?.reason }}
             </p>
-            <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400">
+            <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600">
               <span>{{ t.label.width }} × {{ t.label.height }} mm</span>
               <span>{{ t.page.cols * t.page.rows }} 枚 / 页</span>
               <span v-if="t.scenario">{{ t.scenario }}</span>
@@ -392,7 +398,7 @@ function confirmDelete() {
     <button
       v-if="library.allTemplates.length > visibleTemplates.length"
       type="button"
-      class="mt-2.5 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 py-2 text-xs font-semibold text-slate-500 transition-colors duration-150 hover:border-brand-400 hover:text-brand-600"
+      class="mt-2.5 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 py-2 text-xs font-semibold text-slate-600 transition-colors duration-150 hover:border-brand-400 hover:text-brand-600"
       @click="pickerOpen = true"
     >
       浏览全部 {{ library.allTemplates.length }} 款模板
@@ -432,7 +438,7 @@ function confirmDelete() {
       </button>
     </div>
 
-    <p v-if="library.customTemplates.length" class="mt-2 text-[11px] leading-4 text-slate-400">
+    <p v-if="library.customTemplates.length" class="mt-2 text-[11px] leading-4 text-slate-600">
       <template v-if="auth.user">
         本设备有 {{ library.customTemplates.length }} 个自定义模板，可到
         <RouterLink to="/account" class="font-semibold text-brand-600 hover:underline">个人中心</RouterLink>
@@ -450,7 +456,7 @@ function confirmDelete() {
         <span
           class="size-8 animate-spin rounded-full border-[3px] border-brand-200 border-t-brand-600"
         ></span>
-        <p class="text-xs text-slate-500">正在生成扫码短链……</p>
+        <p class="text-xs text-slate-600">正在生成扫码短链……</p>
       </div>
       <div v-else-if="shareQrShortFailed" class="flex flex-col items-center gap-3 py-4">
         <span class="flex size-10 items-center justify-center rounded-full bg-amber-100 text-amber-600">
@@ -459,7 +465,7 @@ function confirmDelete() {
           </svg>
         </span>
         <p class="text-center text-sm font-semibold text-slate-700">短链服务暂时不可用</p>
-        <p class="text-center text-xs leading-5 text-slate-500">
+        <p class="text-center text-xs leading-5 text-slate-600">
           已自动重试仍未成功，通常稍等片刻即可恢复。也可改用长链接二维码（密度较高，需近距离扫描）。
         </p>
         <div class="flex flex-wrap justify-center gap-2">
@@ -472,7 +478,7 @@ function confirmDelete() {
       <div v-else-if="shareQrSvg" class="flex flex-col items-center gap-3">
         <!-- eslint-disable-next-line vue/no-v-html -->
         <div class="w-64 max-w-full rounded-lg border border-slate-200 p-2" v-html="shareQrSvg"></div>
-        <p class="text-center text-xs leading-5 text-slate-500">
+        <p class="text-center text-xs leading-5 text-slate-600">
           用微信「扫一扫」即可在手机上打开当前模板；{{
             shareQrIsShort
               ? '二维码只包含一个短链接，模板设计经加密信道寄存，名单数据始终不离开浏览器。'
@@ -492,7 +498,7 @@ function confirmDelete() {
       <div class="sticky -top-1 z-10 -mx-1 mb-3 bg-white/95 px-1 py-1.5 backdrop-blur">
         <label class="relative mb-2 block">
           <svg
-            class="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-slate-400"
+            class="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-slate-600"
             viewBox="0 0 16 16"
             fill="none"
             stroke="currentColor"
@@ -507,7 +513,7 @@ function confirmDelete() {
             v-model="searchQuery"
             type="search"
             placeholder="搜索模板名称 / 场景，支持拼音首字母，如“jkz”"
-            class="w-full rounded-lg border border-slate-200 bg-white py-1.5 pr-3 pl-8 text-xs text-slate-700 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
+            class="w-full rounded-lg border border-slate-200 bg-white py-1.5 pr-3 pl-8 text-xs text-slate-700 placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
           />
         </label>
         <div class="flex flex-wrap gap-1.5">
@@ -519,12 +525,12 @@ function confirmDelete() {
           :class="
             activeCategory === opt.id
               ? 'border-brand-500 bg-brand-600 text-white shadow-sm'
-              : 'border-slate-200 bg-white text-slate-500 hover:border-brand-300 hover:text-brand-600'
+              : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600'
           "
           @click="selectCategory(opt.id)"
         >
           {{ opt.name }}
-          <span :class="activeCategory === opt.id ? 'text-brand-100' : 'text-slate-400'">
+          <span :class="activeCategory === opt.id ? 'text-brand-100' : 'text-slate-600'">
             {{ opt.count }}
           </span>
         </button>
@@ -538,26 +544,24 @@ function confirmDelete() {
             :class="
               activeSubcategory === sub.id
                 ? 'border-brand-300 bg-brand-50 text-brand-700'
-                : 'border-transparent bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                : 'border-transparent bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-700'
             "
             @click="activeSubcategory = sub.id"
           >
             {{ sub.name }}
-            <span :class="activeSubcategory === sub.id ? 'text-brand-400' : 'text-slate-400'">
+            <span :class="activeSubcategory === sub.id ? 'text-brand-400' : 'text-slate-600'">
               {{ sub.count }}
             </span>
           </button>
         </div>
       </div>
-      <p v-if="filteredTemplates.length === 0" class="py-8 text-center text-sm text-slate-400">
+      <p v-if="filteredTemplates.length === 0" class="py-8 text-center text-sm text-slate-600">
         没有匹配的模板，换个关键词试试，或从空白新建模板。
       </p>
       <div class="columns-1 gap-3 sm:columns-2 lg:columns-3">
         <article
           v-for="t in filteredTemplates"
           :key="t.id"
-          role="button"
-          tabindex="0"
           class="relative mb-3 inline-block w-full cursor-pointer break-inside-avoid rounded-lg border-2 p-3 transition-all duration-150"
           :class="
             workspace.selectedTemplateId === t.id
@@ -565,7 +569,6 @@ function confirmDelete() {
               : 'border-slate-200 bg-white hover:border-brand-300 hover:shadow-sm'
           "
           @click="pickFromModal(t)"
-          @keyup.enter="pickFromModal(t)"
         >
           <span
             v-if="workspace.selectedTemplateId === t.id"
@@ -585,7 +588,16 @@ function confirmDelete() {
           </span>
           <TemplateThumb :template="t" :class="fitOf(t)?.level === 'incompatible' ? 'opacity-50' : ''" />
           <div class="mt-2 flex items-start justify-between gap-2">
-            <h3 class="truncate text-sm font-bold text-slate-900">{{ t.name }}</h3>
+            <h3 class="min-w-0 truncate text-sm font-bold text-slate-900">
+              <button
+                type="button"
+                class="max-w-full cursor-pointer truncate text-left hover:text-brand-600"
+                :aria-pressed="workspace.selectedTemplateId === t.id"
+                @click.stop="pickFromModal(t)"
+              >
+                {{ t.name }}
+              </button>
+            </h3>
             <span class="flex shrink-0 gap-1">
               <span
                 v-if="fitOf(t)?.level === 'recommended'"
@@ -601,13 +613,13 @@ function confirmDelete() {
               </span>
             </span>
           </div>
-          <p class="mt-1 text-[11px] text-slate-400">
+          <p class="mt-1 text-[11px] text-slate-600">
             {{ t.label.width }} × {{ t.label.height }} mm · {{ t.page.cols * t.page.rows }}
             枚/页<template v-if="t.scenario"> · {{ t.scenario }}</template>
           </p>
           <p
             v-if="fitOf(t)?.level === 'incompatible'"
-            class="mt-1 text-[11px] leading-4 text-slate-400"
+            class="mt-1 text-[11px] leading-4 text-slate-600"
           >
             {{ fitOf(t)?.reason }}
           </p>

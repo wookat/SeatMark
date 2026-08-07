@@ -12,7 +12,7 @@ const emit = defineEmits<{ close: []; confirm: [] }>()
         当前模板为<strong class="text-slate-900">对折双联（镜像）桌牌</strong>：一张纸上下两半内容互为 180° 镜像，
         <strong class="text-slate-900">单面打印后沿中线对折</strong>即可立于桌面，两面都能正读，无需双面打印。
       </p>
-      <p class="text-xs leading-5 text-slate-500">
+      <p class="text-xs leading-5 text-slate-600">
         如果你要打印的是正反两面独立内容（如证卡正反面），在打印对话框勾选「双面打印」时请注意翻转方式的区别：
       </p>
 
@@ -27,7 +27,7 @@ const emit = defineEmits<{ close: []; confirm: [] }>()
             <path d="M96 8v80" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 3" />
           </svg>
           <h4 class="mt-2 text-center text-sm font-bold text-slate-900">长边翻转</h4>
-          <p class="mt-1 text-center text-xs leading-5 text-slate-500">
+          <p class="mt-1 text-center text-xs leading-5 text-slate-600">
             像翻书一样沿长边翻页。<strong>纵向纸张的双面内容</strong>（证卡、讲义）用这个，背面不会倒置。
           </p>
         </div>
@@ -41,7 +41,7 @@ const emit = defineEmits<{ close: []; confirm: [] }>()
             <path d="M102 48h52" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 3" />
           </svg>
           <h4 class="mt-2 text-center text-sm font-bold text-slate-900">短边翻转</h4>
-          <p class="mt-1 text-center text-xs leading-5 text-slate-500">
+          <p class="mt-1 text-center text-xs leading-5 text-slate-600">
             像翻日历一样沿短边翻页，背面相对正面上下颠倒。<strong>横向纸张的双面桌牌</strong>常用这个。
           </p>
         </div>

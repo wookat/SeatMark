@@ -89,7 +89,7 @@ const fmtScale = (v: number) => `${(v * 100).toFixed(2)}%`
           <span class="flex size-5 items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white">1</span>
           打印标尺校准页（{{ paperLabel(workspace.template.page) }}）
         </h4>
-        <p class="mt-1.5 text-xs leading-5 text-slate-500">
+        <p class="mt-1.5 text-xs leading-5 text-slate-600">
           下载并用<strong>目标打印机</strong>打印这一页：缩放选「实际大小 / 100%」，不要选「适应页面」，边距设为无。
         </p>
         <button type="button" class="btn btn-secondary btn-sm mt-2.5" @click="onDownload">
@@ -106,7 +106,7 @@ const fmtScale = (v: number) => `${(v * 100).toFixed(2)}%`
           <span class="flex size-5 items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white">2</span>
           用直尺量取 4 个实测值（mm）
         </h4>
-        <p class="mt-1.5 text-xs leading-5 text-slate-500">
+        <p class="mt-1.5 text-xs leading-5 text-slate-600">
           设计值：基准框距纸张左、上边缘各 {{ nominal.left }} mm，框宽 {{ nominal.frameWidth }} mm、框高 {{ nominal.frameHeight }} mm。请量取打印出来的实际值：
         </p>
         <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -141,7 +141,7 @@ const fmtScale = (v: number) => `${(v * 100).toFixed(2)}%`
           <span>水平缩放 <strong class="text-slate-900">{{ fmtScale(result.scaleX) }}</strong></span>
           <span>垂直缩放 <strong class="text-slate-900">{{ fmtScale(result.scaleY) }}</strong></span>
         </div>
-        <p v-if="!resultActive" class="mt-2 text-xs leading-5 text-slate-400">
+        <p v-if="!resultActive" class="mt-2 text-xs leading-5 text-slate-600">
           实测值与设计值一致，无需补偿——你的打印机很准。
         </p>
         <p v-else-if="!resultReasonable" class="mt-2 text-xs leading-5 text-amber-600">

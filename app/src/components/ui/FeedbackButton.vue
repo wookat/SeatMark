@@ -123,7 +123,7 @@ async function submit() {
             <h3 class="text-base font-bold text-slate-900">意见反馈</h3>
             <button
               type="button"
-              class="cursor-pointer text-slate-400 transition-colors hover:text-slate-600"
+              class="cursor-pointer text-slate-600 transition-colors hover:text-slate-600"
               aria-label="关闭"
               @click="close"
             >
@@ -146,7 +146,7 @@ async function submit() {
                   class="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-all"
                   :class="type === opt.value
                     ? 'border-brand-500 bg-brand-50 text-brand-700 font-medium'
-                    : 'border-slate-200 text-slate-500 hover:border-slate-300'"
+                    : 'border-slate-200 text-slate-600 hover:border-slate-300'"
                   @click="type = opt.value"
                 >
                   <svg
@@ -170,14 +170,14 @@ async function submit() {
             <div>
               <label class="mb-2 block text-sm font-medium text-slate-700">
                 反馈内容
-                <span class="ml-1 text-xs font-normal text-slate-400">（{{ content.length }}/2000）</span>
+                <span class="ml-1 text-xs font-normal text-slate-600">（{{ content.length }}/2000）</span>
               </label>
               <textarea
                 v-model="content"
                 rows="4"
                 maxlength="2000"
                 placeholder="请描述您遇到的问题或建议..."
-                class="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                class="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-600 focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               ></textarea>
             </div>
 
@@ -185,14 +185,14 @@ async function submit() {
             <div>
               <label class="mb-2 block text-sm font-medium text-slate-700">
                 联系方式
-                <span class="ml-1 text-xs font-normal text-slate-400">（选填）</span>
+                <span class="ml-1 text-xs font-normal text-slate-600">（选填）</span>
               </label>
               <input
                 v-model="contact"
                 type="text"
                 maxlength="200"
                 placeholder="邮箱或手机号，方便我们回复您"
-                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-600 focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
             </div>
           </div>

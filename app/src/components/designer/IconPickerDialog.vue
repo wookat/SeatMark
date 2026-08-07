@@ -32,7 +32,7 @@ function pick(icon: VectorIcon) {
 <template>
   <ModalDialog :open="open" title="插入矢量图标" size="lg" @close="emit('close')">
     <div class="flex flex-wrap items-center gap-2">
-      <span class="text-xs font-semibold text-slate-500">图标颜色</span>
+      <span class="text-xs font-semibold text-slate-600">图标颜色</span>
       <div class="flex items-center gap-1.5">
         <button
           v-for="c in PALETTE"
@@ -45,7 +45,7 @@ function pick(icon: VectorIcon) {
           @click="color = c"
         ></button>
         <label
-          class="relative ml-1 flex cursor-pointer items-center gap-1.5 text-[11px] font-semibold text-slate-400 transition-colors hover:text-slate-600"
+          class="relative ml-1 flex cursor-pointer items-center gap-1.5 text-[11px] font-semibold text-slate-600 transition-colors hover:text-slate-600"
         >
           <span
             aria-hidden="true"
@@ -87,11 +87,11 @@ function pick(icon: VectorIcon) {
           stroke-linejoin="round"
           v-html="icon.body"
         ></svg>
-        <span class="text-[10px] font-semibold text-slate-500">{{ icon.name }}</span>
+        <span class="text-[10px] font-semibold text-slate-600">{{ icon.name }}</span>
       </button>
     </div>
 
-    <p class="mt-3 text-[11px] leading-4 text-slate-400">
+    <p class="mt-3 text-[11px] leading-4 text-slate-600">
       图标以矢量（SVG）形式嵌入模板，打印导出不失真；插入后可在画布上拖拽调整大小与位置，建议保持方形比例。
       需要自有图片时，用「添加字段 → 固定图片 / Logo」上传即可。
     </p>

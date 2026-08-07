@@ -65,13 +65,13 @@ const TONE_PATH: Record<ToastType, string> = {
         </span>
         <div class="min-w-0 flex-1">
           <p class="text-sm leading-5 font-bold text-slate-900">{{ toast.title }}</p>
-          <p v-if="toast.text" class="mt-0.5 text-xs leading-4.5 text-slate-500">
+          <p v-if="toast.text" class="mt-0.5 text-xs leading-4.5 text-slate-600">
             {{ toast.text }}
           </p>
         </div>
         <button
           type="button"
-          class="-mt-0.5 -mr-0.5 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+          class="-mt-0.5 -mr-0.5 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-600"
           aria-label="关闭提示"
           @click="toastStore.dismiss(toast.id)"
         >

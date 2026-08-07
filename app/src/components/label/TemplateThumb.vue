@@ -21,7 +21,7 @@ const scale = computed(() => {
 <template>
   <!-- 灰色衬底边框放在外层：内层盒子无边框，aspect-ratio 高度与缩放后的标签
        完全一致，避免标签自身的底部边框被裁掉 -->
-  <div class="w-full border border-slate-200 bg-slate-100">
+  <div aria-hidden="true" class="w-full border border-slate-200 bg-slate-100">
     <div
       ref="container"
       class="relative w-full overflow-hidden"
