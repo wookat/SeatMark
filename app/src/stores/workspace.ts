@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 
 import { defaultTemplates } from '@/data/defaultTemplates'
 import { useFontsStore } from '@/stores/fonts'
+import { useLoadingStore } from '@/stores/loading'
 import { isValidTemplate } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import type { DataRow, FieldMapping, LabelTemplate, TemplateField } from '@/types/template'
@@ -255,11 +256,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const cutStackSort = ref(false)
   /** 对折双联（镜像）：桌牌类模板可关闭镜像半区，只印单面内容 */
   const showMirror = ref(true)
-  const loading = reactive<{ active: boolean; text: string; onCancel: (() => void) | null }>({
-    active: false,
-    text: '',
-    onCancel: null,
-  })
+  const loadingStore = useLoadingStore()
+  const loading = loadingStore.loading
 
   // ---------- 派生状态 ----------
   const textFields = computed<TemplateField[]>(() =>
@@ -406,9 +404,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   // ---------- 行为 ----------
   function setLoading(active: boolean, text = '', onCancel: (() => void) | null = null) {
-    loading.active = active
-    loading.text = text
-    loading.onCancel = active ? onCancel : null
+    loadingStore.setLoading(active, text, onCancel)
   }
 
   async function withLoading<T>(text: string, fn: () => Promise<T>): Promise<T> {

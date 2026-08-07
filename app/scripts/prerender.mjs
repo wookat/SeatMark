@@ -81,11 +81,11 @@ function applyHead(html, seo) {
   return out.replace('</head>', `    ${jsonLdTags}\n  </head>`)
 }
 
-const paths = prerenderPaths()
+const paths = await prerenderPaths()
 // 应用壳路径（账号/管理页）：预渲染 HTML 壳供静态托管直达，noindex 且不进 sitemap
 const shellPaths = appShellPaths()
 for (const path of [...paths, ...shellPaths]) {
-  const seo = resolveSeo(path)
+  const seo = await resolveSeo(path)
   let html = applyHead(template, seo)
 
   // /studio 与应用壳为纯交互应用，保持 SPA 挂载即可；其余路由注入正文
@@ -102,7 +102,7 @@ for (const path of [...paths, ...shellPaths]) {
 
 // 品牌化 404 页：静态托管对未命中路径返回 dist/404.html（noindex，不进 sitemap）
 {
-  const seo = resolveSeo('/404')
+  const seo = await resolveSeo('/404')
   let html = applyHead(template, seo)
   const appHtml = await render('/404')
   html = html.replace('<div id="app"></div>', `<div id="app">${appHtml}</div>`)

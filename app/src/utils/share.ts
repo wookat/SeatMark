@@ -1,4 +1,4 @@
-import { isValidTemplate } from '@/stores/templateLibrary'
+import { isValidTemplate } from '@/utils/templateValidate'
 import { apiFetch, ApiError } from '@/utils/api'
 import type { LabelTemplate } from '@/types/template'
 
