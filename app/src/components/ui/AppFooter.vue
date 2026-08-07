@@ -9,7 +9,7 @@ const GROUPS = [
     links: [
       { label: '标签工坊', to: '/studio' },
       { label: '模板库', to: '/templates' },
-      { label: '定价（Beta 免费试用）', to: '/pricing' },
+      { label: '定价（Beta 限时免费试用）', to: '/pricing' },
       { label: '教室座位表打印', to: '/seating' },
       { label: '不干胶纸型库', to: '/papers' },
       { label: '模板设计器', to: '/studio?design=new' },

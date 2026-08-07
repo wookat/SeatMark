@@ -91,7 +91,7 @@ export const PRICING_FAQS = [
   },
   {
     q: '使用需要注册账号吗？',
-    a: '不登录也能使用全部功能（带水印不限次，无水印每日 1 次）。邮箱验证码登录即开通专业版 Beta 免费试用：每日 3 次无水印导出、自定义模板云端同步与跨设备找回。',
+    a: '不登录也能使用全部功能（带水印不限次，无水印每日 1 次）。邮箱验证码登录即开通专业版 Beta 限时免费试用：每日 3 次无水印导出、自定义模板云端同步与跨设备找回。',
   },
   {
     q: '我的名单数据安全吗？',
@@ -137,7 +137,7 @@ export function resolveSeo(path: string): PageSeo {
 
   if (p === '/pricing') {
     return {
-      title: '定价：带水印免费不限次，专业版 Beta 免费试用 - SeatMark 座签',
+      title: '定价：带水印免费不限次，专业版 Beta 限时免费试用 - SeatMark 座签',
       description:
         'SeatMark 座签定价：带水印导出/打印不限次数；无水印导出每日 1 次（登录后 3 次），分享每被点开 1 次再送 1 次；专业版 ¥29/月 Beta 期间限时免费试用；团队版 ¥99/月支持预订登记。数据不出浏览器。',
       path: '/pricing',
@@ -180,7 +180,7 @@ export function resolveSeo(path: string): PageSeo {
   if (p === '/account') {
     return {
       title: '个人中心 - SeatMark 座签',
-      description: 'SeatMark 个人中心：云端模板同步、使用统计、分享送无水印次数与专业版 Beta 免费试用。',
+      description: 'SeatMark 个人中心：云端模板同步、使用统计、分享送无水印次数与专业版 Beta 限时免费试用。',
       path: '/account',
       jsonLd: [],
       robots: 'noindex, nofollow',

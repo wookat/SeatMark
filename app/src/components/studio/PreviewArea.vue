@@ -10,7 +10,7 @@ import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
 import { useAuthStore } from '@/stores/auth'
 import { useCalibrationStore } from '@/stores/calibration'
-import { useQuotaStore } from '@/stores/quota'
+import { QUOTA_USER_DAILY, useQuotaStore } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { dismissStudioGuide } from '@/utils/firstVisit'
@@ -255,21 +255,37 @@ const editRowHasOverride = computed(
   () => editRow.value != null && !!workspace.overridesFor(editRow.value),
 )
 
-/** 导出成功后的轻量分享提示：每天至多弹一次，关闭即消失，不打断操作 */
-const SHARE_PROMPT_KEY = 'seatmark.post-export-share-prompt.v1'
+/**
+ * 导出成功后的轻量转化提示：带水印导出后温和告知「去除水印」路径（登录/分享），
+ * 无水印导出后引导分享送次数。每会话至多 2 次、每天至多 2 次，关闭即消失，不打断操作
+ */
+const SHARE_PROMPT_KEY = 'seatmark.post-export-share-prompt.v2'
+const SHARE_PROMPT_MAX = 2
+let sharePromptSessionCount = 0
 const sharePromptVisible = ref(false)
+/** 本次提示对应的导出是否带水印（决定文案侧重：去水印 vs 分享送次数） */
+const sharePromptWatermarked = ref(false)
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
 function maybeShowSharePrompt() {
+  if (sharePromptSessionCount >= SHARE_PROMPT_MAX) return
   try {
-    if (localStorage.getItem(SHARE_PROMPT_KEY) === todayStr()) return
-    localStorage.setItem(SHARE_PROMPT_KEY, todayStr())
+    const raw = localStorage.getItem(SHARE_PROMPT_KEY)
+    let count = 0
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<{ date: string; count: number }>
+      if (parsed.date === todayStr() && typeof parsed.count === 'number') count = parsed.count
+    }
+    if (count >= SHARE_PROMPT_MAX) return
+    localStorage.setItem(SHARE_PROMPT_KEY, JSON.stringify({ date: todayStr(), count: count + 1 }))
   } catch {
-    /* 隐私模式：不持久化，仍展示一次 */
+    /* 隐私模式：不持久化，按会话计数展示 */
   }
+  sharePromptSessionCount += 1
+  sharePromptWatermarked.value = withWatermark.value
   sharePromptVisible.value = true
 }
 
@@ -871,8 +887,16 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         </svg>
       </span>
       <p class="min-w-0 flex-1 text-xs leading-5 text-slate-600">
-        <strong class="text-slate-800">成品已拿到，觉得好用？</strong>
-        {{ auth.isLoggedIn ? '把工具分享给同事，他们每点开 1 次你就再得 1 次无水印导出' : '登录后无水印导出每天 3 次，自定义模板可同步云端，还可分享送次数' }}
+        <strong class="text-slate-800">{{ sharePromptWatermarked ? '想去除页脚水印？' : '成品已拿到，觉得好用？' }}</strong>
+        {{
+          sharePromptWatermarked
+            ? (auth.isLoggedIn
+                ? `今日还剩 ${quota.remaining} 次无水印导出，分享链接每被点开 1 次再 +1 次`
+                : `免费登录后每天 ${QUOTA_USER_DAILY} 次无水印导出，分享被点开还能再送次数`)
+            : (auth.isLoggedIn
+                ? '把工具分享给同事，他们每点开 1 次你就再得 1 次无水印导出'
+                : `登录后无水印导出每天 ${QUOTA_USER_DAILY} 次，自定义模板可同步云端，还可分享送次数`)
+        }}
       </p>
       <div class="flex shrink-0 items-center gap-1.5 max-sm:basis-full max-sm:justify-end">
         <button
@@ -884,7 +908,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           复制分享链接
         </button>
         <RouterLink v-else to="/account" class="btn btn-primary btn-sm" @click="dismissSharePrompt">
-          免费登录解锁
+          {{ sharePromptWatermarked ? '免费登录去水印' : '免费登录解锁' }}
         </RouterLink>
         <button
           type="button"
@@ -1128,7 +1152,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         </button>
       </div>
       <p v-if="!auth.isLoggedIn" class="mt-3 text-xs leading-5 text-slate-400">
-        登录后无水印导出每天 3 次，分享链接每被点开 1 次再得 1 次；同时获得 Beta 专业版免费试用。
+        登录后无水印导出每天 {{ QUOTA_USER_DAILY }} 次，分享链接每被点开 1 次再得 1 次；同时获得专业版 Beta 限时免费试用。
       </p>
     </ModalDialog>
 
