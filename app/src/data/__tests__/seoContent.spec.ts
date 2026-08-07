@@ -15,8 +15,9 @@ import { templateDetails } from '@/data/templateDetails'
  * 教程内容的内链、相关阅读、字数满足运营基线。
  */
 
+const seos = await Promise.all((await prerenderPaths()).map((p) => resolveSeo(p)))
+
 describe('SEO 页面元数据质量', () => {
-  const seos = prerenderPaths().map((p) => resolveSeo(p))
 
   it('所有预渲染页面 title 唯一', () => {
     const titles = seos.map((s) => s.title)

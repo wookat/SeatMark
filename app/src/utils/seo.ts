@@ -15,8 +15,8 @@ function setMeta(attr: 'name' | 'property', key: string, content: string) {
  * title / description / canonical / OG / JSON-LD。
  * 预渲染 HTML 首屏已带正确 head，此函数保证 SPA 内部导航后 head 同步更新。
  */
-export function applySeo(path: string): void {
-  const seo = resolveSeo(path)
+export async function applySeo(path: string): Promise<void> {
+  const seo = await resolveSeo(path)
 
   document.title = seo.title
   setMeta('name', 'description', seo.description)

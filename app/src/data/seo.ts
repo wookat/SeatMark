@@ -5,10 +5,6 @@
  * - 构建期预渲染脚本用同一份数据生成每个路由的静态 HTML head。
  */
 
-import { defaultTemplates } from '@/data/defaultTemplates'
-import { findGuide, guides } from '@/data/guides'
-import { findLabelPaper, labelPapers } from '@/data/labelPapers'
-import { findTemplateDetail, TEMPLATE_STEPS, templateDetails } from '@/data/templateDetails'
 
 export const SITE_ORIGIN = 'https://www.seatmark.cn'
 export const SITE_NAME = 'SeatMark 座签'
@@ -110,7 +106,8 @@ export const PRICING_FAQS = [
 const guideListDescription =
   '考场座位标签怎么批量打印？Excel 怎么生成桌牌？SeatMark 教程中心提供座签、桌牌、席位卡、证卡制作与打印的完整中文教程，问答式讲解，免费实用。'
 
-export function resolveSeo(path: string): PageSeo {
+// 模板/教程/纸型大数据按路由分支懒加载，避免非相关页面（如首页）拉取全量数据 chunk
+export async function resolveSeo(path: string): Promise<PageSeo> {
   // 归一化：去掉尾斜杠（根路径除外）与查询参数
   const clean = path.split('?')[0]!.split('#')[0]!
   const p = clean !== '/' && clean.endsWith('/') ? clean.slice(0, -1) : clean
@@ -198,6 +195,7 @@ export function resolveSeo(path: string): PageSeo {
   }
 
   if (p === '/guides') {
+    const { guides } = await import('@/data/guides')
     return {
       title: '教程中心：座签·桌牌·标签打印教程 - SeatMark 座签',
       description: guideListDescription,
@@ -225,6 +223,7 @@ export function resolveSeo(path: string): PageSeo {
   }
 
   if (p.startsWith('/guides/')) {
+    const { findGuide } = await import('@/data/guides')
     const slug = p.slice('/guides/'.length)
     const guide = findGuide(slug)
     if (guide) {
@@ -260,6 +259,7 @@ export function resolveSeo(path: string): PageSeo {
   }
 
   if (p === '/templates') {
+    const { templateDetails } = await import('@/data/templateDetails')
     return {
       title: '标签模板库：座签·桌牌·证卡免费模板 - SeatMark 座签',
       description: `SeatMark 内置 ${templateDetails.length} 款免费标签模板：考场座签、考号贴、课桌姓名贴、会议桌牌、出入证、学生证、工作证等，毫米级排版，选择模板上传 Excel 即可批量生成打印页。`,
@@ -286,6 +286,10 @@ export function resolveSeo(path: string): PageSeo {
   }
 
   if (p.startsWith('/templates/')) {
+    const [{ findTemplateDetail, TEMPLATE_STEPS }, { defaultTemplates }] = await Promise.all([
+      import('@/data/templateDetails'),
+      import('@/data/defaultTemplates'),
+    ])
     const slug = p.slice('/templates/'.length)
     const detail = findTemplateDetail(slug)
     const template = defaultTemplates.find((t) => t.id === slug)
@@ -309,6 +313,7 @@ export function resolveSeo(path: string): PageSeo {
   }
 
   if (p === '/papers') {
+    const { labelPapers } = await import('@/data/labelPapers')
     return {
       title: 'A4 不干胶纸型库：选型号自动对版 - SeatMark 座签',
       description: `收录 ${labelPapers.length} 种国产常见 A4 不干胶分切规格：2×4、3×7、3×10、圆角模切等。选好纸型，行列数、边距与间距自动锁定，标签打印即对版免调参。`,
@@ -335,6 +340,7 @@ export function resolveSeo(path: string): PageSeo {
   }
 
   if (p.startsWith('/papers/')) {
+    const { findLabelPaper } = await import('@/data/labelPapers')
     const slug = p.slice('/papers/'.length)
     const paper = findLabelPaper(slug)
     if (paper) {
@@ -450,8 +456,13 @@ export function appShellPaths(): string[] {
   return ['/account', '/admin']
 }
 
-/** 需要构建期预渲染的全部路径（同时是 sitemap 的路径清单） */
-export function prerenderPaths(): string[] {
+/** 需要构建期预渲染的全部路径（同时是 sitemap 的路径清单）；仅构建脚本使用 */
+export async function prerenderPaths(): Promise<string[]> {
+  const [{ guides }, { templateDetails }, { labelPapers }] = await Promise.all([
+    import('@/data/guides'),
+    import('@/data/templateDetails'),
+    import('@/data/labelPapers'),
+  ])
   return [
     '/',
     '/studio',
