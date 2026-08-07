@@ -213,7 +213,7 @@ async function generate() {
           <p class="text-[11px] leading-4 text-slate-400">
             免费接口推荐：智谱
             <code class="rounded bg-slate-100 px-1 text-slate-600">open.bigmodel.cn/api/paas/v4</code>
-            的 glm-4-flash 永久免费；硅基流动
+            的 glm-4-flash 当前可免费调用（以智谱官方定价为准）；硅基流动
             <code class="rounded bg-slate-100 px-1 text-slate-600">api.siliconflow.cn/v1</code>；
             OpenRouter
             <code class="rounded bg-slate-100 px-1 text-slate-600">openrouter.ai/api/v1</code>
