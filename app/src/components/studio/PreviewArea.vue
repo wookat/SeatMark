@@ -1146,7 +1146,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
               模板中引用了名单里不存在的列，对应占位符会按空处理；字段为空的页面自动回退为序号命名。
             </p>
             <p v-else class="mt-1.5 text-slate-400">
-              {列名} 会替换为{{ pngExportUnit === 'label' ? '每张标签对应名单行' : '该页对应名单行' }}的内容；非法字符自动过滤，重名自动追加 -2，空字段回退序号命名。
+              {列名} 会替换为{{ pngExportUnit === 'label' ? '每张标签对应名单行' : '该页对应名单行（每页多枚时取该页第一条记录）' }}的内容；非法字符自动过滤，重名自动追加 -2，空字段回退序号命名。
             </p>
           </div>
         </template>
