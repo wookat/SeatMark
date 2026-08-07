@@ -144,6 +144,13 @@ export function defaultPngExportName(prefix = '考场座位标签'): string {
 /** 精确像素模式的超采样倍数：先按 2 倍渲染再高质量缩到目标尺寸，文字边缘更平滑 */
 export const EXACT_PIXEL_SUPERSAMPLE = 2
 
+/** 逐标签导出时单页内一枚标签的裁剪区域（mm，相对页面左上角）与文件名 */
+export interface LabelExportItem {
+  rect: { x: number; y: number; width: number; height: number }
+  /** zip 内文件名（含 .png 扩展名）；未指定时按 前缀-001.png 序号命名 */
+  fileName?: string
+}
+
 export interface PngExportOptions {
   pageCount: number
   /** 逐页取节点：仅在轮到该页时才要求其挂载（与 PDF 导出同一约定） */
@@ -162,6 +169,11 @@ export interface PngExportOptions {
    * 未指定时缩放整页
    */
   cropRect?: { x: number; y: number; width: number; height: number }
+  /**
+   * 逐标签导出：每页各标签的裁剪区域与文件名（空位已过滤）；
+   * 提供时以【每一张标签】为单位成图（而非整页），总枚数 >1 时打包 zip
+   */
+  labelsByPage?: LabelExportItem[][]
   /** 纯黑白输出：按亮度阈值二值化（电子墨水屏黑白模板） */
   monochrome?: boolean
   /**
@@ -259,6 +271,10 @@ function downloadBlob(blob: Blob, fileName: string): void {
 export async function exportPagedPng(options: PngExportOptions): Promise<void> {
   const { pageCount } = options
   if (!pageCount) throw new Error('没有可导出的页面')
+  if (options.labelsByPage) {
+    await exportPerLabelPng(options as PngExportOptions & { labelsByPage: LabelExportItem[][] })
+    return
+  }
 
   const { default: html2canvas } = await import('html2canvas-pro')
 
@@ -323,6 +339,105 @@ export async function exportPagedPng(options: PngExportOptions): Promise<void> {
     }
     zip.file(options.pageFileNames?.[i] ?? pngPageFileName(baseName, i), blob)
     options.onProgress?.(i + 1, pageCount)
+  }
+  throwIfCancelled()
+  const zipBlob = await zip.generateAsync({ type: 'blob' })
+  downloadBlob(zipBlob, `${baseName}.zip`)
+}
+
+/**
+ * 逐标签导出：每页只渲染一次，再按各标签的裁剪区域切出单张 PNG
+ * （尺寸 = 标签实际尺寸 × 渲染倍率，或精确像素缩放），
+ * 总枚数 1 张直接下载，多张打包 zip。渲染链路与整页导出完全一致。
+ */
+async function exportPerLabelPng(
+  options: PngExportOptions & { labelsByPage: LabelExportItem[][] },
+): Promise<void> {
+  const { pageCount, labelsByPage } = options
+  const totalLabels = labelsByPage.reduce((sum, page) => sum + page.length, 0)
+  if (!totalLabels) throw new Error('没有可导出的标签')
+
+  const { default: html2canvas } = await import('html2canvas-pro')
+
+  // 精确像素：按标签设计宽度（同模板各枚等宽）映射渲染倍率 + 2 倍超采样
+  const labelWidthMm = labelsByPage.find((p) => p.length)?.[0]?.rect.width ?? options.pageWidth
+  const scale = options.exactPixels
+    ? exactPixelScale(options.exactPixels.width, labelWidthMm) * EXACT_PIXEL_SUPERSAMPLE
+    : (options.scale ?? defaultRasterScale(pageCount))
+  const pxPerMm = CSS_PX_PER_MM * scale
+  const throwIfCancelled = () => {
+    if (options.signal?.aborted) throw new Error(EXPORT_CANCELLED_MESSAGE)
+  }
+  const renderPage = createPageRenderer(
+    {
+      pageCount,
+      getPage: options.getPage,
+      scale,
+      signal: options.signal,
+      pageTimeoutMs: options.pageTimeoutMs,
+      rebuildHost: options.rebuildHost,
+    },
+    html2canvas,
+  )
+
+  const baseName = options.fileName ?? defaultPngExportName()
+
+  /** 从页面画布切出单枚标签：非精确像素时按渲染倍率原尺寸裁剪 */
+  const cutLabel = (canvas: HTMLCanvasElement, rect: LabelExportItem['rect']) => {
+    const sourceRect = {
+      x: rect.x * pxPerMm,
+      y: rect.y * pxPerMm,
+      width: rect.width * pxPerMm,
+      height: rect.height * pxPerMm,
+    }
+    return toOutputCanvas(canvas, {
+      exactPixels: options.exactPixels ?? {
+        width: Math.round(sourceRect.width),
+        height: Math.round(sourceRect.height),
+      },
+      monochrome: options.monochrome,
+      watermarkText: options.watermarkText,
+      sourceRect,
+    })
+  }
+
+  const releaseCanvas = (canvas: HTMLCanvasElement) => {
+    canvas.width = 0
+    canvas.height = 0
+  }
+
+  if (totalLabels === 1) {
+    throwIfCancelled()
+    const pageIndex = labelsByPage.findIndex((p) => p.length)
+    const canvas = await renderPage(pageIndex)
+    const output = cutLabel(canvas, labelsByPage[pageIndex]![0]!.rect)
+    const blob = await canvasToPngBlob(output)
+    releaseCanvas(canvas)
+    releaseCanvas(output)
+    throwIfCancelled()
+    downloadBlob(blob, labelsByPage[pageIndex]![0]!.fileName ?? `${baseName}.png`)
+    options.onProgress?.(1, 1)
+    return
+  }
+
+  const { default: JSZip } = await import('jszip')
+  const zip = new JSZip()
+  let done = 0
+  for (let i = 0; i < pageCount; i++) {
+    const labels = labelsByPage[i] ?? []
+    if (!labels.length) continue
+    throwIfCancelled()
+    const canvas = await renderPage(i)
+    for (const label of labels) {
+      throwIfCancelled()
+      const output = cutLabel(canvas, label.rect)
+      const blob = await canvasToPngBlob(output)
+      releaseCanvas(output)
+      zip.file(label.fileName ?? pngPageFileName(baseName, done), blob)
+      done++
+      options.onProgress?.(done, totalLabels)
+    }
+    releaseCanvas(canvas)
   }
   throwIfCancelled()
   const zipBlob = await zip.generateAsync({ type: 'blob' })

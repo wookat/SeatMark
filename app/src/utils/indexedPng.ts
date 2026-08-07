@@ -149,6 +149,26 @@ async function zlibDeflate(bytes: Uint8Array): Promise<Uint8Array | null> {
   }
 }
 
+/** 按调色板实际色数选位深：≤2 色 1bit、≤4 色 2bit、≤16 色 4bit，否则 8bit */
+export function paletteBitDepth(paletteSize: number): 1 | 2 | 4 | 8 {
+  if (paletteSize <= 2) return 1
+  if (paletteSize <= 4) return 2
+  if (paletteSize <= 16) return 4
+  return 8
+}
+
+/** 把一行索引按位深打包进扫描行字节（MSB 在前，末尾不足一字节补 0） */
+export function packIndexRow(indices: Uint8Array, bitDepth: 1 | 2 | 4 | 8): Uint8Array {
+  if (bitDepth === 8) return indices
+  const perByte = 8 / bitDepth
+  const out = new Uint8Array(Math.ceil(indices.length / perByte))
+  for (let i = 0; i < indices.length; i++) {
+    const shift = 8 - bitDepth - (i % perByte) * bitDepth
+    out[Math.floor(i / perByte)] = out[Math.floor(i / perByte)]! | (indices[i]! << shift)
+  }
+  return out
+}
+
 /**
  * 把 RGBA 像素量化为 ≤256 色索引 PNG（color type 3）。
  * 不适合量化（颜色数爆炸 / 环境不支持 CompressionStream）时返回 null，
@@ -176,17 +196,23 @@ export async function encodeIndexedPng(
     for (const { color } of colorList) indexOf.set(color, nearestPaletteIndex(color, palette))
   }
 
+  // 位深按实际色数自适应：黑白/双色模板 1bit，少色模板 2/4bit，压缩前体积直降 8/4/2 倍
+  const bitDepth = paletteBitDepth(palette.length)
+  const rowBytes = Math.ceil((width * bitDepth) / 8)
   // 每行前缀 filter 0（None）：索引数据没有像素间线性关系，预测滤波反而更差
-  const raw = new Uint8Array(height * (width + 1))
+  const raw = new Uint8Array(height * (rowBytes + 1))
+  const rowIndices = new Uint8Array(width)
   let src = 0
   let dst = 0
   for (let y = 0; y < height; y++) {
     raw[dst++] = 0
     for (let x = 0; x < width; x++) {
       const key = (data[src]! << 16) | (data[src + 1]! << 8) | data[src + 2]!
-      raw[dst++] = indexOf.get(key)!
+      rowIndices[x] = indexOf.get(key)!
       src += 4
     }
+    raw.set(packIndexRow(rowIndices, bitDepth), dst)
+    dst += rowBytes
   }
   const idat = await zlibDeflate(raw)
   if (!idat) return null
@@ -195,7 +221,7 @@ export async function encodeIndexedPng(
   const ihdrView = new DataView(ihdr.buffer)
   ihdrView.setUint32(0, width)
   ihdrView.setUint32(4, height)
-  ihdr[8] = 8 // bit depth
+  ihdr[8] = bitDepth
   ihdr[9] = 3 // color type: indexed
   const plte = new Uint8Array(palette.length * 3)
   palette.forEach((color, i) => {

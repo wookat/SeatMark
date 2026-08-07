@@ -5,6 +5,8 @@ import {
   encodeIndexedPng,
   MAX_PALETTE_COLORS,
   medianCutPalette,
+  packIndexRow,
+  paletteBitDepth,
 } from '@/utils/indexedPng'
 
 function rgba(colors: number[][], repeat = 1): Uint8ClampedArray {
@@ -54,8 +56,39 @@ describe('medianCutPalette', () => {
   })
 })
 
+describe('paletteBitDepth', () => {
+  it('按实际色数选 1/2/4/8 位', () => {
+    expect(paletteBitDepth(1)).toBe(1)
+    expect(paletteBitDepth(2)).toBe(1)
+    expect(paletteBitDepth(3)).toBe(2)
+    expect(paletteBitDepth(4)).toBe(2)
+    expect(paletteBitDepth(5)).toBe(4)
+    expect(paletteBitDepth(16)).toBe(4)
+    expect(paletteBitDepth(17)).toBe(8)
+    expect(paletteBitDepth(256)).toBe(8)
+  })
+})
+
+describe('packIndexRow', () => {
+  it('8bit 原样返回', () => {
+    const row = new Uint8Array([1, 2, 3])
+    expect(packIndexRow(row, 8)).toBe(row)
+  })
+
+  it('1bit：MSB 在前，末尾补 0', () => {
+    expect([...packIndexRow(new Uint8Array([1, 0, 1, 1, 0, 1, 0, 1, 1]), 1)]).toEqual([
+      0b10110101, 0b10000000,
+    ])
+  })
+
+  it('2bit 与 4bit 打包', () => {
+    expect([...packIndexRow(new Uint8Array([3, 1, 0, 2, 1]), 2)]).toEqual([0b11010010, 0b01000000])
+    expect([...packIndexRow(new Uint8Array([0xf, 0x1, 0xa]), 4)]).toEqual([0xf1, 0xa0])
+  })
+})
+
 describe('encodeIndexedPng', () => {
-  it('输出标准 PNG 签名与 color type 3（索引色）', async () => {
+  it('输出标准 PNG 签名与 color type 3（索引色），位深按实际色数自适应', async () => {
     const w = 16
     const h = 16
     const data = rgba([[255, 255, 255]], w * h)
@@ -63,7 +96,18 @@ describe('encodeIndexedPng', () => {
     // jsdom 环境 Blob.stream/CompressionStream 不可用时返回 null（浏览器环境才走该通道）
     if (!png) return
     expect([...png.slice(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10])
-    // IHDR: bit depth @ offset 24, color type @ offset 25
+    // IHDR: bit depth @ offset 24, color type @ offset 25；单色页自适应为 1bit
+    expect(png[24]).toBe(1)
+    expect(png[25]).toBe(3)
+  })
+
+  it('色数 >16 时位深为 8bit', async () => {
+    const w = 20
+    const h = 20
+    const colors = Array.from({ length: 20 }, (_, i) => [i * 12, 255 - i * 12, i * 5])
+    const data = rgba(colors, (w * h) / colors.length)
+    const png = await encodeIndexedPng(data, w, h)
+    if (!png) return
     expect(png[24]).toBe(8)
     expect(png[25]).toBe(3)
   })
