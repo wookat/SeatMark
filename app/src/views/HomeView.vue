@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, type Directive } from 'vue'
+import { computed, ref, shallowRef, type Directive } from 'vue'
 
 import LabelSheet from '@/components/label/LabelSheet.vue'
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import { useElementSize } from '@/composables/useElementSize'
-import { defaultTemplates } from '@/data/defaultTemplates'
-import type { DataRow } from '@/types/template'
+import { TEMPLATE_COUNT } from '@/data/templateMeta'
+import { standardTemplate } from '@/data/templateStandard'
+import type { DataRow, LabelTemplate } from '@/types/template'
 import { makeDemoRows } from '@/utils/excel'
 import { MM_TO_PX } from '@/utils/layout'
 
@@ -37,7 +38,7 @@ const vReveal: Directive<HTMLElement, number | undefined> = {
   },
 }
 
-const heroTemplate = defaultTemplates[0]!
+const heroTemplate = standardTemplate
 const heroRows = makeDemoRows(24).rows
 
 const HERO_MAPPING: Record<string, string> = {
@@ -53,14 +54,56 @@ function heroGetText(row: DataRow, fieldId: string): string {
 }
 
 // ---------- 模板展示：默认露出 5 款 + 「从空白新建」卡片，正好两排 ----------
+// 模板定义体积较大，橱窗接近视口时才动态加载，首屏只需 standardTemplate 与计数
 const SHOWCASE_COUNT = 5
 const templatesExpanded = ref(false)
-const shownTemplates = computed(() =>
-  templatesExpanded.value ? defaultTemplates : defaultTemplates.slice(0, SHOWCASE_COUNT),
+const allTemplates = shallowRef<LabelTemplate[] | null>(null)
+let templatesRequested = false
+
+async function loadTemplates() {
+  if (templatesRequested) return
+  templatesRequested = true
+  allTemplates.value = (await import('@/data/defaultTemplates')).defaultTemplates
+}
+
+const templateLoaders = new WeakMap<HTMLElement, IntersectionObserver>()
+/** 元素接近视口时触发模板橱窗数据加载 */
+const vLoadTemplates: Directive<HTMLElement> = {
+  mounted(el) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          io.disconnect()
+          templateLoaders.delete(el)
+          void loadTemplates()
+        }
+      },
+      // 不预扩边界：大屏高视口下模板区距首屏很近，预扩会让首屏就拉取模板 chunk
+      { rootMargin: '0px' },
+    )
+    io.observe(el)
+    templateLoaders.set(el, io)
+  },
+  unmounted(el) {
+    templateLoaders.get(el)?.disconnect()
+    templateLoaders.delete(el)
+  },
+}
+
+const shownTemplates = computed(() => {
+  const list = allTemplates.value
+  if (!list) return [standardTemplate]
+  return templatesExpanded.value ? list : list.slice(0, SHOWCASE_COUNT)
+})
+const showcaseSkeletonCount = computed(() =>
+  allTemplates.value ? 0 : SHOWCASE_COUNT - shownTemplates.value.length,
 )
-const hiddenTemplateCount = computed(() =>
-  Math.max(defaultTemplates.length - SHOWCASE_COUNT, 0),
-)
+const hiddenTemplateCount = computed(() => Math.max(TEMPLATE_COUNT - SHOWCASE_COUNT, 0))
+
+async function toggleTemplates() {
+  await loadTemplates()
+  templatesExpanded.value = !templatesExpanded.value
+}
 
 const heroPanel = ref<HTMLElement | null>(null)
 const { width: heroPanelWidth } = useElementSize(heroPanel)
@@ -137,7 +180,7 @@ const FEATURES = [
 
 const TRUST_STATS = [
   { value: '100%', label: '数据本地处理' },
-  { value: `${defaultTemplates.length} 款`, label: '内置专业模板' },
+  { value: `${TEMPLATE_COUNT} 款`, label: '内置专业模板' },
   { value: '0.1mm', label: '排版精度' },
   { value: '免费', label: '无需注册即用' },
 ]
@@ -198,7 +241,7 @@ const FAQS = [
           </h1>
           <p class="mt-4 max-w-lg text-base leading-7 text-slate-600">
             制作考场座签、课桌桌贴、考号贴、会议桌牌 / 桌签 / 台签 / 席卡 /
-            坐席卡、座位背签、门贴门牌、学生证 / 工作证、胸卡出入证。{{ defaultTemplates.length }}
+            坐席卡、座位背签、门贴门牌、学生证 / 工作证、胸卡出入证。{{ TEMPLATE_COUNT }}
             款内置模板、数百种成品方案，覆盖考试、会议、婚庆、校园、医疗、政务、
             餐饮与仓储物流等场景：导入名单即可输出排版精确到毫米的打印页，
             支持照片核验、开源字体与自定义模板设计。
@@ -356,12 +399,16 @@ const FAQS = [
     </section>
 
     <!-- 模板展示 -->
-    <section id="templates" class="mx-auto w-full max-w-6xl scroll-mt-16 px-4 py-10 sm:py-14">
+    <section
+      id="templates"
+      v-load-templates
+      class="mx-auto w-full max-w-6xl scroll-mt-16 px-4 py-10 sm:py-14"
+    >
       <div v-reveal class="text-center">
         <p class="section-eyebrow">Templates</p>
         <h2 class="section-heading">选择适合你的模板</h2>
         <p class="section-sub">
-          {{ defaultTemplates.length }} 套内置模板覆盖座位标签、考场桌贴、考号贴、桌牌、学生证 /
+          {{ TEMPLATE_COUNT }} 套内置模板覆盖座位标签、考场桌贴、考号贴、桌牌、学生证 /
           工作证、胸卡出入证、门贴门牌等场景，也可以在设计器中从零开始
         </p>
       </div>
@@ -429,6 +476,13 @@ const FAQS = [
           </div>
         </RouterLink>
 
+        <div
+          v-for="n in showcaseSkeletonCount"
+          :key="`showcase-skeleton-${n}`"
+          class="min-h-64 animate-pulse rounded-lg border border-slate-200 bg-slate-100/70"
+          aria-hidden="true"
+        ></div>
+
         <RouterLink
           v-reveal="160"
           to="/studio?design=new"
@@ -463,7 +517,7 @@ const FAQS = [
         <button
           type="button"
           class="btn btn-secondary btn-md"
-          @click="templatesExpanded = !templatesExpanded"
+          @click="toggleTemplates"
         >
           {{ templatesExpanded ? '收起模板列表' : `查看更多模板（还有 ${hiddenTemplateCount} 款）` }}
           <svg
