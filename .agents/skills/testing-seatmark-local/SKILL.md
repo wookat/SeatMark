@@ -22,3 +22,6 @@ description: How to run and test SeatMark locally (vite dev server with edge-fun
 - NEVER run `git checkout <ref> -- .` in the shared working tree — it silently wipes uncommitted test-report/skill increments. `git stash` first or commit report files before switching refs.
 - To verify PNG indexed color / bit depth, parse the PNG IHDR bytes directly (offset 16–26: bitdepth + colortype, 3 = Palette); `identify %z` reports 8 for 1-bit palette PNGs and is ambiguous.
 - The Studio Excel import page has two hidden file inputs (the 1st accepts .json, the 2nd is the .xlsx one) — pick the right index for CDP `DOM.setFileInputFiles`.
+- The export-choice dialog's 无水印/带水印 options are two stacked rows that export immediately on click — screenshot and verify the target row's text/coordinates before clicking (a misclick silently exports the other watermark path).
+- To objectively determine which watermark path an export took: inspect the output's bottom edge for the watermark badge (pdftoppm / unpack PNG) and read `seatmark.clean-export-usage.v1`.
+- After the anonymous watermark-free quota is exhausted the export badge shows 「带水印免费」, not 「剩余 0 次」 — this is by design, don't flag it.
