@@ -87,7 +87,12 @@ const ZOOM_OPTIONS: SelectOption[] = [
   { value: '2', label: '200%' },
 ]
 
-const zoomMode = ref('fit')
+/** 小屏（<sm）整页适应宽度会把姓名缩到不可读，默认改为「适应单枚」；桌面端仍默认整页 */
+const zoomMode = ref(
+  typeof window !== 'undefined' && window.matchMedia?.('(max-width: 639px)').matches
+    ? 'fitLabel'
+    : 'fit',
+)
 /** 小屏下把低频显示选项（裁切线/高亮缺失/裁切排序/对折双联/打印校准）收进「显示选项」，避免工具栏折成四行 */
 const displayOptionsOpen = ref(false)
 const displayOptionsActiveCount = computed(() =>
