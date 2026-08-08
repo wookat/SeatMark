@@ -107,8 +107,15 @@ onMounted(() => {
     const found = library.findById(templateId)
     if (found) workspace.selectTemplate(found, { silent: true })
   }
-  if (route.query.demo === '1' && !workspace.excel.rows.length) {
-    workspace.useDemoData()
+  if (route.query.demo === '1') {
+    if (workspace.excel.rows.length) {
+      toast.info(
+        '已保留你当前的名单',
+        '如需查看演示数据，请先在「数据导入」中清空当前名单后重试',
+      )
+    } else {
+      workspace.useDemoData()
+    }
   }
   // 从纸型落地页进入：按纸型锁定排版
   if (typeof route.query.paper === 'string') {

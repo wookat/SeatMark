@@ -94,11 +94,48 @@ export function createAppRouter() {
     scrollBehavior(to, _from, savedPosition) {
       // 仅落地页锚点走定位滚动；工坊的分享 hash（#t=...）不是选择器，必须排除
       if (/^#[a-z][\w-]*$/.test(to.hash)) {
+        scheduleAnchorCorrection(to.hash)
         return { el: to.hash, top: 72, behavior: 'smooth' }
       }
-      return savedPosition ?? { top: 0 }
+      if (savedPosition) {
+        // 等目标页渲染出内容后再恢复滚动位，否则页面高度不够会被截断
+        return new Promise((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve(savedPosition)))
+        })
+      }
+      return { top: 0 }
     },
   })
+}
+
+/**
+ * 跨页锚点校正：首页模板橱窗等懒加载内容会在滚动后撑高上方布局，
+ * 导致锚点落点偏移；延时复查并重新对齐，用户一旦主动滚动则取消
+ */
+function scheduleAnchorCorrection(hash: string) {
+  if (typeof window === 'undefined') return
+  let cancelled = false
+  const cancel = () => {
+    cancelled = true
+    window.removeEventListener('wheel', cancel)
+    window.removeEventListener('touchmove', cancel)
+    window.removeEventListener('keydown', cancel)
+  }
+  window.addEventListener('wheel', cancel, { passive: true })
+  window.addEventListener('touchmove', cancel, { passive: true })
+  window.addEventListener('keydown', cancel)
+  for (const delay of [700, 1500]) {
+    setTimeout(() => {
+      if (cancelled) return
+      const el = document.querySelector(hash)
+      if (!el) return
+      const top = el.getBoundingClientRect().top
+      if (Math.abs(top - 72) > 24) {
+        window.scrollTo({ top: window.scrollY + top - 72, behavior: 'auto' })
+      }
+      if (delay === 1500) cancel()
+    }, delay)
+  }
 }
 
 export const router = createAppRouter()
