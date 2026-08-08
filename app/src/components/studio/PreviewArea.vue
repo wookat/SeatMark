@@ -1044,7 +1044,9 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
                 : `免费登录后每天 ${QUOTA_USER_DAILY} 次无水印导出，分享被点开还能再送次数`)
             : (auth.isLoggedIn
                 ? '把工具分享给同事，他们每点开 1 次你就再得 1 次无水印导出'
-                : `登录后无水印导出每天 ${QUOTA_USER_DAILY} 次，自定义模板可同步云端，还可分享送次数`)
+                : quota.remaining <= 0
+                  ? `今日无水印次数已用完，免费登录后每天 ${QUOTA_USER_DAILY} 次，分享被点开还能再送次数`
+                  : `登录后无水印导出每天 ${QUOTA_USER_DAILY} 次，自定义模板可同步云端，还可分享送次数`)
         }}
       </p>
       <div class="flex shrink-0 items-center gap-1.5 max-sm:basis-full max-sm:justify-end">
@@ -1280,7 +1282,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           小验证：目标打印机先选「另存为 PDF」，导出的 PDF 是彩色就说明页面没问题，剩下的是打印机设置。
         </p>
       </details>
-      <p class="leading-6">选择导出方式：</p>
+      <p class="leading-6">选择导出方式<span class="text-xs text-slate-500">（点击即开始导出，可随时取消，取消不扣次数）</span>：</p>
       <p
         v-if="pendingAction === 'pdf' && exportEstimate"
         class="mt-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600"
