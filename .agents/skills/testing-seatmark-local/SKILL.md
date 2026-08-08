@@ -17,3 +17,6 @@ description: How to run and test SeatMark locally (vite dev server with edge-fun
 - To test the share short-code failure dialog, override `fetch` in the page console to return a 545 for `/api/share/tpl` (DevTools request blocking also works); restore afterwards to verify recovery.
 - Responsive checks at 390/768 need Chrome DevTools device mode (Chrome window min width ≈532px on Linux); assert `document.documentElement.scrollWidth <= window.innerWidth` per route. Always type full URLs (`http://localhost:5173/...`) with ctrl+l — bare `localhost:5173/x` can be misparsed as a chrome:// URL in some address-bar states.
 - Refreshing /studio can clear in-memory demo data (0 pages); re-load via 先用演示数据看看效果.
+- Studio export downloads land in `~/Downloads` — page-level `Browser.setDownloadBehavior` does NOT redirect them; just watch that directory for new files.
+- The PNG export dialog's 成图单位/输出尺寸 controls are custom dropdowns: click the current-value button to expand, then click the target option, then re-read the button text to confirm the selection took.
+- NEVER run `git checkout <ref> -- .` in the shared working tree — it silently wipes uncommitted test-report/skill increments. `git stash` first or commit report files before switching refs.
