@@ -7,8 +7,8 @@ import type { FieldMapping, TemplateField } from '@/types/template'
  */
 const MATCH_PATTERNS: Record<string, string[]> = {
   seatNo: ['座位号', '座号', '座位', 'seatno', 'seat', '序号'],
-  name: ['姓名', '名字', '考生姓名', 'name', '考生'],
-  room: ['考场号', '考场', '教室', '场次', 'room', '地点'],
+  name: ['姓名', '名字', '考生姓名', '宾客', 'name', '考生'],
+  room: ['考场号', '考场', '教室', '包间名', '包间', '场次', 'room', '地点'],
   examId: ['准考证号', '准考证', '考号', '考生号', 'examid', '编号'],
   gender: ['性别', 'gender', 'sex'],
   idCard: ['身份证号', '身份证', '证件号', 'idcard'],
