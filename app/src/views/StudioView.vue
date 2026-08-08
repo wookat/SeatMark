@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
-import { useIsMobile } from '@/composables/useMediaQuery'
+import { useIsPhone } from '@/composables/useMediaQuery'
 
 import TemplateDesigner from '@/components/designer/TemplateDesigner.vue'
 import DataImportPanel from '@/components/studio/DataImportPanel.vue'
@@ -30,7 +30,7 @@ const workspace = useWorkspaceStore()
 const library = useTemplateLibrary()
 const toast = useToastStore()
 
-const isMobile = useIsMobile()
+const isMobile = useIsPhone()
 type MobileTab = 'settings' | 'preview'
 const mobileTab = ref<MobileTab>('settings')
 
@@ -173,7 +173,10 @@ onMounted(() => {
     </div>
 
     <!-- 单列时轨道同样限宽 minmax(0,1fr)：预览区固定像素宽的纸张内容（如 100% 缩放）在容器内部滚动，不撑宽页面 -->
-    <div class="grid grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[400px_minmax(0,1fr)]">
+    <!-- 平板（md~lg）走 320px 侧栏的紧凑双栏，桌面（lg+）为 400px 侧栏 -->
+    <div
+      class="grid grid-cols-[minmax(0,1fr)] items-start gap-5 md:grid-cols-[320px_minmax(0,1fr)] md:gap-4 lg:grid-cols-[400px_minmax(0,1fr)] lg:gap-5"
+    >
       <!-- min-w-0 + flex 纵排：防止宽表格把侧栏撑出 400px 网格轨道、压到预览区 -->
       <aside
         class="no-print flex min-w-0 flex-col gap-4"
@@ -190,7 +193,7 @@ onMounted(() => {
       <div
         :class="[
           isMobile && mobileTab !== 'preview' ? 'hidden' : '',
-          'min-w-0 lg:sticky lg:top-[72px] lg:h-[calc(100vh-92px)]',
+          'min-w-0 md:sticky md:top-[72px] md:h-[calc(100vh-92px)]',
           isMobile ? 'h-[calc(100vh-180px)]' : '',
         ]"
       >

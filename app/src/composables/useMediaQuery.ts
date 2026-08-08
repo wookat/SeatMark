@@ -26,3 +26,8 @@ export function useMediaQuery(query: string) {
 export function useIsMobile() {
   return useMediaQuery('(max-width: 1023px)')
 }
+
+/** 是否为手机宽度（< 768px，对应 Tailwind md 断点）；平板（md~lg）走双栏布局 */
+export function useIsPhone() {
+  return useMediaQuery('(max-width: 767px)')
+}
