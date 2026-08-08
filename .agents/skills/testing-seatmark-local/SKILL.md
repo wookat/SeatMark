@@ -20,3 +20,5 @@ description: How to run and test SeatMark locally (vite dev server with edge-fun
 - Studio export downloads land in `~/Downloads` — page-level `Browser.setDownloadBehavior` does NOT redirect them; just watch that directory for new files.
 - The PNG export dialog's 成图单位/输出尺寸 controls are custom dropdowns: click the current-value button to expand, then click the target option, then re-read the button text to confirm the selection took.
 - NEVER run `git checkout <ref> -- .` in the shared working tree — it silently wipes uncommitted test-report/skill increments. `git stash` first or commit report files before switching refs.
+- To verify PNG indexed color / bit depth, parse the PNG IHDR bytes directly (offset 16–26: bitdepth + colortype, 3 = Palette); `identify %z` reports 8 for 1-bit palette PNGs and is ambiguous.
+- The Studio Excel import page has two hidden file inputs (the 1st accepts .json, the 2nd is the .xlsx one) — pick the right index for CDP `DOM.setFileInputFiles`.
