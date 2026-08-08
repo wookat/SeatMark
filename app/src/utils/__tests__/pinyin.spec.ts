@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { matchesChineseQuery, pinyinInitial, pinyinInitials } from '@/utils/pinyin'
+import { matchesChineseQuery, pinyinInitial, pinyinInitials, preloadFullPinyin } from '@/utils/pinyin'
 
 describe('pinyinInitial', () => {
   it('返回常见汉字的拼音首字母', () => {
@@ -47,5 +47,13 @@ describe('matchesChineseQuery', () => {
 
   it('大小写不敏感', () => {
     expect(matchesChineseQuery('监考证', 'JKZ')).toBe(true)
+  })
+
+  it('全拼匹配（词典加载后）', async () => {
+    await preloadFullPinyin()
+    expect(matchesChineseQuery('打印技巧', 'dayin')).toBe(true)
+    expect(matchesChineseQuery('监考证', 'jiankaozheng')).toBe(true)
+    expect(matchesChineseQuery('监考证', 'jiankao')).toBe(true)
+    expect(matchesChineseQuery('打印技巧', 'jiankao')).toBe(false)
   })
 })

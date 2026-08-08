@@ -512,7 +512,7 @@ function confirmDelete() {
           <input
             v-model="searchQuery"
             type="search"
-            placeholder="搜索模板名称 / 场景，支持拼音首字母，如“jkz”"
+            placeholder="搜索模板名称 / 场景，支持拼音、首字母，如“jkz”"
             class="w-full rounded-lg border border-slate-200 bg-white py-1.5 pr-3 pl-8 text-xs text-slate-700 placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
           />
         </label>

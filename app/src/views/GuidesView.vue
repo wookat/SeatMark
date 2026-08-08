@@ -67,7 +67,7 @@ const recommendedGuides = computed(() => {
         <input
           v-model="searchQuery"
           type="search"
-          placeholder="搜索教程，支持拼音首字母，如“打印”“jkz”"
+          placeholder="搜索教程，支持拼音、首字母，如“打印”“dayin”“jkz”"
           class="w-full rounded-lg border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm text-slate-700 shadow-sm placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
         />
       </label>
