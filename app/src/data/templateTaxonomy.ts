@@ -34,6 +34,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'listeningSeat',
         'practicalExam',
         'monoSeatCard',
+        'deluxeExamFocus',
       ],
     },
     {
@@ -86,6 +87,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'studentCard',
         'studentIdCard',
         'classDoor',
+        'deluxeClassChalk',
         'classBrand',
         'courseSchedule',
         'parentTent',
@@ -162,6 +164,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'annualDinner',
         'deluxeConfAurora',
         'deluxeConfLines',
+        'deluxeConfFret',
         'deluxeConfGeo',
         'deluxeConfGold',
         'deluxeForumWave',
