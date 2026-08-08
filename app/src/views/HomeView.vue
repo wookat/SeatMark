@@ -280,9 +280,19 @@ const FAQS = [
               ]"
               :key="chip.to"
               :to="chip.to"
-              class="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-600"
+              class="group inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-600 shadow-xs transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
             >
-              {{ chip.text }}
+              {{ chip.text }}<svg
+                class="size-3 text-slate-400 transition-colors group-hover:text-brand-500"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m6 4 4 4-4 4" />
+              </svg>
             </RouterLink>
           </div>
           <div class="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-xs font-semibold text-slate-600">
