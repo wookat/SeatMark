@@ -79,9 +79,12 @@ const { width: containerWidth } = useElementSize(previewContainer)
 
 const ZOOM_OPTIONS: SelectOption[] = [
   { value: 'fit', label: '适应宽度' },
+  { value: 'fitLabel', label: '适应单枚' },
   { value: '0.5', label: '50%' },
   { value: '0.75', label: '75%' },
   { value: '1', label: '100%' },
+  { value: '1.5', label: '150%' },
+  { value: '2', label: '200%' },
 ]
 
 const zoomMode = ref('fit')
@@ -89,6 +92,11 @@ const scale = computed(() => {
   if (zoomMode.value === 'fit') {
     if (!containerWidth.value) return 0.6
     return Math.min((containerWidth.value - 24) / pageWidthPx.value, 1)
+  }
+  if (zoomMode.value === 'fitLabel') {
+    const labelWidthPx = workspace.template.label.width * MM_TO_PX
+    if (!containerWidth.value || !labelWidthPx) return 1
+    return Math.min((containerWidth.value - 24) / labelWidthPx, 3)
   }
   return Number(zoomMode.value)
 })
@@ -313,6 +321,8 @@ function maybeShowSharePrompt() {
   sharePromptSessionCount += 1
   sharePromptWatermarked.value = withWatermark.value
   sharePromptVisible.value = true
+  // 转化提示与单张覆写小技巧同屏会在小屏堆叠遮挡预览，一次只保留一层
+  dismissEditOneHint()
 }
 
 function dismissSharePrompt() {
