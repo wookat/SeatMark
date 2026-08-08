@@ -94,6 +94,13 @@ describe('demoDatasets', () => {
     }
   })
 
+  it('餐饮模板的主字段映射到数据集列而非模板示例合成列', () => {
+    const reserved = defaultTemplates.find((t) => t.id === 'reservedTable')!
+    expect(demoExcelFor(reserved).mapping['name']).toBe('宾客')
+    const roomDoor = defaultTemplates.find((t) => t.id === 'privateRoomDoor')!
+    expect(demoExcelFor(roomDoor).mapping['room']).toBe('包间名')
+  })
+
   describe('sampleExcelFor', () => {
     it('每款模板都能生成样例：表头与演示数据一致、行数限制、无空单元格', () => {
       for (const template of defaultTemplates) {
