@@ -746,12 +746,12 @@ async function doMobilePrint() {
 }
 
 /**
- * 导出按钮角标：额度 > 0 时正向展示「今日免费 n 次」，用完后不再展示刺眼的 0，
+ * 导出按钮角标：额度 > 0 时正向展示「今日剩余 n 次」（与导出弹窗口径一致），用完后不再展示刺眼的 0，
  * 改为强调「带水印导出永远免费、不限次数」（与价值阶梯弹窗口径一致）
  */
 const exportBadge = computed(() =>
   quota.remaining > 0
-    ? { text: `今日免费 ${quota.remaining} 次`, cls: 'bg-emerald-100 text-emerald-700' }
+    ? { text: `今日剩余 ${quota.remaining} 次`, cls: 'bg-emerald-100 text-emerald-700' }
     : { text: '带水印免费', cls: 'bg-sky-100 text-sky-700' },
 )
 const exportBadgeTitle = computed(
