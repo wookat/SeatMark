@@ -129,7 +129,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'kids-name',
       name: '姓名与物品',
-      templateIds: ['kidsName', 'kidsAnimal', 'kidsCandy', 'kidsCup', 'kidsBagCubby', 'macaronName', 'macaronCubby'],
+      templateIds: ['kidsName', 'kidsAnimal', 'kidsCandy', 'kidsCup', 'kidsBagCubby', 'macaronName', 'macaronCubby', 'deluxeKidsPastel'],
     },
     {
       id: 'kids-daily',
@@ -224,6 +224,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'weddingKidsSeat',
         'anniversarySeat',
         'deluxeWedBotanic',
+        'deluxeWedFoil',
         'deluxeWedArch',
         'deluxeWedRing',
         'deluxeWedBlush',
@@ -257,6 +258,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'visitorTemp',
         'assetTag',
         'windowCounter',
+        'deluxeGovGuilloche',
         'archiveBoxSpine',
         'streamGearTag',
         'sharedDesk',

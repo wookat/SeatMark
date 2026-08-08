@@ -749,4 +749,150 @@ export const deluxeTemplates: LabelTemplate[] = [
       }),
     ],
   },
+  // ================= 提示词库风格系列（docs/design-prompts.md） =================
+  {
+    ...base,
+    id: 'deluxeWedFoil',
+    name: '婚礼席位卡·鎏金水彩',
+    category: 'wedding',
+    description: '90×55 mm 席位卡 A4 一页 10 枚，腮红粉水彩晕染 + 鎏金细枝角饰，柔美高级的宴会厅婚礼质感。',
+    scenario: '宴会厅婚礼 / 订婚宴',
+    accent: '#b45309',
+    sampleData: { name: '沈疏影', table: '第 6 桌' },
+    label: decorLabel(
+      90,
+      55,
+      svg(
+        90,
+        55,
+        '<defs><radialGradient id="dxwf-a" cx="0.12" cy="0.1" r="0.75"><stop offset="0" stop-color="#fda4af" stop-opacity="0.4"/><stop offset="0.55" stop-color="#fecdd3" stop-opacity="0.18"/><stop offset="1" stop-color="#fecdd3" stop-opacity="0"/></radialGradient><radialGradient id="dxwf-b" cx="0.9" cy="0.95" r="0.7"><stop offset="0" stop-color="#fbcfe8" stop-opacity="0.35"/><stop offset="1" stop-color="#fbcfe8" stop-opacity="0"/></radialGradient></defs>' +
+          '<rect x="0" y="0" width="90" height="55" fill="url(#dxwf-a)"/>' +
+          '<rect x="0" y="0" width="90" height="55" fill="url(#dxwf-b)"/>' +
+          '<g stroke="#b45309" stroke-width="0.38" fill="none">' +
+          '<path d="M3 12 Q9 4 20 3"/><path d="M87 43 Q81 51 70 52"/>' +
+          '</g>' +
+          '<g fill="#d97706" opacity="0.85">' +
+          '<circle cx="8" cy="7.4" r="0.7"/><circle cx="13" cy="4.6" r="0.55"/><circle cx="18" cy="3.4" r="0.45"/>' +
+          '<circle cx="82" cy="47.6" r="0.7"/><circle cx="77" cy="50.4" r="0.55"/><circle cx="72" cy="51.6" r="0.45"/>' +
+          '</g>' +
+          '<g stroke="#f59e0b" stroke-width="0.22" fill="none" opacity="0.7"><path d="M30 51 L60 51"/><path d="M36 52.6 L54 52.6"/></g>',
+      ),
+    ),
+    page: gridPage('A4', 2, 5, 90, 55, 6, 2.5),
+    fields: [
+      fixed('cap', '席位小注', { x: 8, y: 9, width: 74, height: 4.8 }, 'FOREVER · TOGETHER', {
+        fontSize: 5.5,
+        color: '#d6a05a',
+        letterSpacing: 0.9,
+      }),
+      text('name', '宾客姓名', { x: 8, y: 17, width: 74, height: 18 }, '沈疏影', {
+        fontSize: 24,
+        fontWeight: 'bold',
+        emphasis: 'hero',
+        letterSpacing: 0.24,
+        fontFamily: SERIF_ZH,
+        color: '#7c2d12',
+      }),
+      text('table', '桌号', { x: 8, y: 38, width: 74, height: 7 }, '第 6 桌', {
+        fontSize: 9.5,
+        color: '#b45309',
+        letterSpacing: 0.3,
+      }),
+    ],
+  },
+  {
+    ...base,
+    id: 'deluxeGovGuilloche',
+    name: '政务窗口牌·纹章藏蓝',
+    category: 'life',
+    description: '180×70 mm 宽幅窗口牌，藏蓝底金色扭索纹样条 + 衬线窗口号大字，庄重可信的政务服务窗口气质。',
+    scenario: '政务大厅 / 服务窗口',
+    accent: '#1e3a8a',
+    sampleData: { winNo: '03', service: '不动产登记', staff: '首席代表：李文清' },
+    label: decorLabel(
+      180,
+      70,
+      svg(
+        180,
+        70,
+        '<rect x="0" y="0" width="180" height="70" fill="#1e3a8a"/>' +
+          '<rect x="0" y="0" width="52" height="70" fill="#172d6e"/>' +
+          '<g stroke="#c8a44d" stroke-width="0.3" fill="none" opacity="0.8">' +
+          '<path d="M0 6 Q11.25 2 22.5 6 T45 6 T67.5 6 T90 6 T112.5 6 T135 6 T157.5 6 T180 6"/>' +
+          '<path d="M0 9 Q11.25 13 22.5 9 T45 9 T67.5 9 T90 9 T112.5 9 T135 9 T157.5 9 T180 9"/>' +
+          '<path d="M0 61 Q11.25 57 22.5 61 T45 61 T67.5 61 T90 61 T112.5 61 T135 61 T157.5 61 T180 61"/>' +
+          '<path d="M0 64 Q11.25 68 22.5 64 T45 64 T67.5 64 T90 64 T112.5 64 T135 64 T157.5 64 T180 64"/>' +
+          '</g>' +
+          '<line x1="52" y1="14" x2="52" y2="56" stroke="#c8a44d" stroke-width="0.5"/>',
+      ),
+    ),
+    page: gridPage('A4', 1, 3, 180, 70, 0, 8),
+    fields: [
+      fixed('winCap', '窗口小注', { x: 6, y: 16, width: 40, height: 6 }, '窗口 WINDOW', {
+        fontSize: 6.5,
+        color: '#c8a44d',
+        letterSpacing: 0.8,
+      }),
+      text('winNo', '窗口号', { x: 6, y: 24, width: 40, height: 26 }, '03', {
+        fontSize: 34,
+        fontWeight: 'bold',
+        emphasis: 'hero',
+        color: '#ffffff',
+        fontFamily: SERIF_ZH,
+      }),
+      text('service', '业务名称', { x: 62, y: 20, width: 110, height: 20 }, '不动产登记', {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#ffffff',
+        align: 'left',
+        letterSpacing: 0.3,
+        fontFamily: SERIF_ZH,
+      }),
+      text('staff', '姓名', { x: 62, y: 46, width: 110, height: 8 }, '首席代表：李文清', {
+        fontSize: 10,
+        color: '#c7d2fe',
+        align: 'left',
+        letterSpacing: 0.25,
+      }),
+    ],
+  },
+  {
+    ...base,
+    id: 'deluxeKidsPastel',
+    name: '幼儿姓名贴·奶油云朵',
+    category: 'kids',
+    description: '64×38 mm 姓名贴 A4 一页 21 枚，奶油马卡龙撞色圆角云朵与小太阳，软萌治愈的幼儿园开学装备。',
+    scenario: '幼儿园姓名贴 / 物品贴',
+    accent: '#f472b6',
+    sampleData: { name: '朵朵', className: '小二班' },
+    label: decorLabel(
+      64,
+      38,
+      svg(
+        64,
+        38,
+        '<rect x="1.2" y="1.2" width="61.6" height="35.6" rx="6" fill="#fff7ed"/>' +
+          '<rect x="1.2" y="1.2" width="61.6" height="35.6" rx="6" fill="none" stroke="#fdba74" stroke-width="0.6"/>' +
+          '<g fill="#bae6fd"><ellipse cx="11" cy="7.6" rx="5" ry="2.5"/><ellipse cx="7.8" cy="8.8" rx="3.2" ry="1.9"/><ellipse cx="14.4" cy="8.8" rx="3" ry="1.8"/></g>' +
+          '<g fill="#fde68a"><circle cx="54" cy="8.2" r="3"/></g>' +
+          '<g stroke="#f59e0b" stroke-width="0.5" fill="none"><path d="M54 3.2 L54 1.7 M54 13.2 L54 14.7 M49 8.2 L47.5 8.2 M59 8.2 L60.5 8.2 M50.5 4.7 L49.4 3.6 M57.5 11.7 L58.6 12.8 M50.5 11.7 L49.4 12.8 M57.5 4.7 L58.6 3.6"/></g>' +
+          '<g fill="#f9a8d4"><circle cx="6.5" cy="31.5" r="1.3"/><circle cx="57.5" cy="31.5" r="1.3"/><circle cx="10.6" cy="33.4" r="0.85"/><circle cx="53.4" cy="33.4" r="0.85"/></g>',
+      ),
+    ),
+    page: gridPage('A4', 3, 7, 64, 38, 2, 2.5),
+    fields: [
+      text('name', '姓名', { x: 7, y: 12, width: 50, height: 14.5 }, '朵朵', {
+        fontSize: 18,
+        fontWeight: 'bold',
+        emphasis: 'hero',
+        color: '#db2777',
+        letterSpacing: 0.3,
+      }),
+      text('className', '班级', { x: 7, y: 28.5, width: 50, height: 5.5 }, '小二班', {
+        fontSize: 7.5,
+        color: '#f97316',
+        letterSpacing: 0.4,
+      }),
+    ],
+  },
 ]

@@ -397,6 +397,7 @@ export const TEMPLATE_DEMO_DATASET_OVERRIDES: Record<string, string> = {
   showroomPrice: 'asset',
   // 政务窗口
   windowCounter: 'service',
+  deluxeGovGuilloche: 'service',
   communityGrid: 'service',
   communityBooth: 'service',
   // 餐饮门店
