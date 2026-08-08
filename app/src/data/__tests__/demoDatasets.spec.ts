@@ -110,6 +110,23 @@ describe('demoDatasets', () => {
     expect(new Set(rows.map((r) => r['品名'])).size).toBe(rows.length)
   })
 
+  it('电竞赛位牌映射到电竞专属列，逐行不同选手 ID', () => {
+    const esportsSeat = defaultTemplates.find((t) => t.id === 'esportsSeat')!
+    const { mapping, rows } = demoExcelFor(esportsSeat)
+    expect(mapping['playerId']).toBe('选手 ID')
+    expect(mapping['team']).toBe('战队')
+    expect(mapping['role']).toBe('位置')
+    expect(new Set(rows.map((r) => r['选手 ID'])).size).toBe(rows.length)
+  })
+
+  it('科技系电竞选手席映射到「战队位次」列', () => {
+    const tech = defaultTemplates.find((t) => t.id === 'techEsportsSeat')!
+    const { mapping, rows } = demoExcelFor(tech)
+    expect(mapping['playerId']).toBe('选手 ID')
+    expect(mapping['team']).toBe('战队位次')
+    expect(new Set(rows.map((r) => r['选手 ID'])).size).toBe(rows.length)
+  })
+
   describe('sampleExcelFor', () => {
     it('每款模板都能生成样例：表头与演示数据一致、行数限制、无空单元格', () => {
       for (const template of defaultTemplates) {
