@@ -1,8 +1,4 @@
-import {
-  createPageRenderer,
-  defaultRasterScale,
-  EXPORT_CANCELLED_MESSAGE,
-} from '@/utils/pdfExport'
+import { createPageRenderer, EXPORT_CANCELLED_MESSAGE } from '@/utils/pdfExport'
 import { evaluateFieldTemplate } from '@/utils/fieldTemplate'
 import type { DataRow } from '@/types/template'
 
@@ -144,6 +140,23 @@ export function defaultPngExportName(prefix = '考场座位标签'): string {
 /** 精确像素模式的超采样倍数：先按 2 倍渲染再高质量缩到目标尺寸，文字边缘更平滑 */
 export const EXACT_PIXEL_SUPERSAMPLE = 2
 
+/** PNG 输出基准倍率：300dpi（96 CSS px/in × 3.125） */
+export const PNG_BASE_SCALE = 3.125
+/** 小尺寸标签的最小输出宽度（px）：保证屏幕查看/二次编辑时文字清晰 */
+export const PNG_MIN_OUTPUT_WIDTH = 1000
+/** 渲染倍率上限：防极小标签把倍率推到内存不可控 */
+export const PNG_MAX_SCALE = 8
+
+/**
+ * PNG 导出渲染倍率：不同于 PDF（单文件体积随页数累加，需随页数降档），
+ * PNG 逐张独立成图且常被放大查看/二次编辑，固定 300dpi 基准；
+ * 小尺寸标签（姓名贴/价签）再提倍保证输出宽度 ≥ PNG_MIN_OUTPUT_WIDTH。
+ */
+export function pngRasterScale(designWidthMm: number): number {
+  const need = designWidthMm > 0 ? PNG_MIN_OUTPUT_WIDTH / (designWidthMm * CSS_PX_PER_MM) : 0
+  return Math.min(Math.max(PNG_BASE_SCALE, need), PNG_MAX_SCALE)
+}
+
 /** 逐标签导出时单页内一枚标签的裁剪区域（mm，相对页面左上角）与文件名 */
 export interface LabelExportItem {
   rect: { x: number; y: number; width: number; height: number }
@@ -159,7 +172,7 @@ export interface PngExportOptions {
   pageWidth: number
   /** 模板页面高度（mm） */
   pageHeight: number
-  /** 标准模式渲染倍率；未指定时按页数自动选取（与 PDF 一致） */
+  /** 标准模式渲染倍率；未指定时按 300dpi 基准与最小输出宽度自动选取 */
   scale?: number
   /** 精确像素输出：每页缩放到该宽高（如电子墨水屏 800×480） */
   exactPixels?: { width: number; height: number }
@@ -283,7 +296,7 @@ export async function exportPagedPng(options: PngExportOptions): Promise<void> {
   const designWidthMm = options.cropRect?.width ?? options.pageWidth
   const scale = options.exactPixels
     ? exactPixelScale(options.exactPixels.width, designWidthMm) * EXACT_PIXEL_SUPERSAMPLE
-    : (options.scale ?? defaultRasterScale(pageCount))
+    : (options.scale ?? pngRasterScale(designWidthMm))
   const pxPerMm = CSS_PX_PER_MM * scale
   const sourceRect =
     options.exactPixels && options.cropRect
@@ -363,7 +376,7 @@ async function exportPerLabelPng(
   const labelWidthMm = labelsByPage.find((p) => p.length)?.[0]?.rect.width ?? options.pageWidth
   const scale = options.exactPixels
     ? exactPixelScale(options.exactPixels.width, labelWidthMm) * EXACT_PIXEL_SUPERSAMPLE
-    : (options.scale ?? defaultRasterScale(pageCount))
+    : (options.scale ?? pngRasterScale(labelWidthMm))
   const pxPerMm = CSS_PX_PER_MM * scale
   const throwIfCancelled = () => {
     if (options.signal?.aborted) throw new Error(EXPORT_CANCELLED_MESSAGE)

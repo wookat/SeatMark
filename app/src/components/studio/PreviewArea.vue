@@ -163,7 +163,7 @@ const pendingAction = ref<'pdf' | 'print' | 'png'>('pdf')
 // ---------- PNG 导出参数 ----------
 /** 成图单位：label = 按标签逐张成图（默认）；page = 整页成图 */
 const pngExportUnit = ref<'label' | 'page'>('label')
-/** 尺寸模式：standard = 按页数自适应清晰度；exact = 精确像素（电子墨水屏等场景） */
+/** 尺寸模式：standard = 300dpi 基准（小标签自动提清）；exact = 精确像素（电子墨水屏等场景） */
 const pngSizeMode = ref<'standard' | 'exact'>('standard')
 /** 精确像素目标宽度；高度按模板宽高比自动推导 */
 const pngExactWidth = ref(800)
@@ -238,7 +238,7 @@ const pngNameTemplateValid = computed(
 )
 
 const PNG_SIZE_OPTIONS = computed<SelectOption[]>(() => [
-  { value: 'standard', label: '标准清晰度（按页数自适应）' },
+  { value: 'standard', label: '标准清晰度（300dpi，小标签自动提清）' },
   { value: 'exact', label: isEinkTemplate.value ? '精确像素（电子墨水屏 800×480）' : '精确像素（自定义宽度）' },
 ])
 
