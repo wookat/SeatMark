@@ -311,8 +311,8 @@ export function bytesAlias(bytes: Uint8Array): string {
   return `img-${bytes.length.toString(36)}-${h1.toString(36)}-${h2.toString(36)}`
 }
 
-/** 整页取像素做调色板量化；不适合量化或环境不支持时返回 null（回退 JPEG） */
-async function rasterizeIndexedPng(canvas: HTMLCanvasElement): Promise<Uint8Array | null> {
+/** 整页取像素做调色板量化；不适合量化或环境不支持时返回 null（回退 JPEG / 原生 PNG） */
+export async function rasterizeIndexedPng(canvas: HTMLCanvasElement): Promise<Uint8Array | null> {
   try {
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
     if (!ctx) return null

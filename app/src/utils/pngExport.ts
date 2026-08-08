@@ -1,4 +1,9 @@
-import { createPageRenderer, EXPORT_CANCELLED_MESSAGE } from '@/utils/pdfExport'
+import {
+  classifyCanvasContent,
+  createPageRenderer,
+  EXPORT_CANCELLED_MESSAGE,
+  rasterizeIndexedPng,
+} from '@/utils/pdfExport'
 import { evaluateFieldTemplate } from '@/utils/fieldTemplate'
 import type { DataRow } from '@/types/template'
 
@@ -256,7 +261,16 @@ export function toOutputCanvas(
   return canvas
 }
 
+/**
+ * canvas → PNG Blob：纯色/少色内容（典型文字标签）走索引色 PNG
+ * （调色板量化，体积远小于原生 RGBA PNG 且文字边缘无损），
+ * 渐变/照片类或环境不支持时回退浏览器原生 PNG 编码。
+ */
 async function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  if (classifyCanvasContent(canvas) === 'flat') {
+    const indexed = await rasterizeIndexedPng(canvas)
+    if (indexed) return new Blob([indexed.slice().buffer], { type: 'image/png' })
+  }
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error('页面栅格化失败（toBlob 返回空）'))),
