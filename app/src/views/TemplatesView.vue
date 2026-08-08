@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import { defaultTemplates, TEMPLATE_CATEGORIES } from '@/data/defaultTemplates'
@@ -16,9 +17,34 @@ const items = templateDetails
   .filter((item) => !!item.template)
 
 type CategoryFilter = TemplateCategory | 'all'
-const activeCategory = ref<CategoryFilter>('all')
-const activeSubcategory = ref<string>('all')
-const searchQuery = ref('')
+
+// 筛选状态同步到 route.query：浏览器返回时分类/搜索与滚动位置一并恢复
+const route = useRoute()
+const router = useRouter()
+
+const VALID_CATEGORIES = new Set<string>(TEMPLATE_CATEGORIES.map((c) => c.id))
+
+function queryStr(v: unknown): string {
+  return typeof v === 'string' ? v : ''
+}
+
+const initialCat = queryStr(route.query.cat)
+const activeCategory = ref<CategoryFilter>(
+  VALID_CATEGORIES.has(initialCat) ? (initialCat as TemplateCategory) : 'all',
+)
+const activeSubcategory = ref<string>(queryStr(route.query.sub) || 'all')
+const searchQuery = ref(queryStr(route.query.q))
+
+watch([activeCategory, activeSubcategory, searchQuery], ([cat, sub, q]) => {
+  void router.replace({
+    query: {
+      ...route.query,
+      cat: cat === 'all' ? undefined : cat,
+      sub: sub === 'all' ? undefined : sub,
+      q: q.trim() ? q : undefined,
+    },
+  })
+})
 
 function selectCategory(id: CategoryFilter) {
   activeCategory.value = id

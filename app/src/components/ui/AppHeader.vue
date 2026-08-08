@@ -33,7 +33,7 @@ async function onLogout() {
 
 /** 落地页锚点导航：仅首页展示 */
 const SECTIONS = [
-  { href: '#templates', label: '模板' },
+  { href: '#templates', label: '精选模板' },
   { href: '#features', label: '功能' },
   { href: '#how', label: '使用流程' },
   { href: '#faq', label: '常见问题' },
