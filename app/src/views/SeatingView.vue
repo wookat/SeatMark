@@ -22,15 +22,42 @@ import {
 const router = useRouter()
 const toast = useToastStore()
 
-// ---------- 输入 ----------
-const title = ref('高三（2）班 期末考试')
-const rows = ref(6)
-const cols = ref(8)
-const podium = ref<'top' | 'none'>('top')
-const fillOrder = ref<'rows' | 'serpentine'>('rows')
+// ---------- 输入（持久化到本地，避免跨页返回丢失排座成果） ----------
+const SEATING_STATE_KEY = 'seatmark.seating-state.v1'
+
+interface SeatingPersistedState {
+  title: string
+  rows: number
+  cols: number
+  podium: 'top' | 'none'
+  fillOrder: 'rows' | 'serpentine'
+  aisles: number[]
+  namesText: string
+  arranged: SeatingEntry[] | null
+}
+
+function loadPersistedState(): SeatingPersistedState | null {
+  try {
+    const raw = localStorage.getItem(SEATING_STATE_KEY)
+    if (!raw) return null
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return null
+    return parsed as SeatingPersistedState
+  } catch {
+    return null
+  }
+}
+
+const persisted = loadPersistedState()
+
+const title = ref(persisted?.title ?? '高三（2）班 期末考试')
+const rows = ref(persisted?.rows ?? 6)
+const cols = ref(persisted?.cols ?? 8)
+const podium = ref<'top' | 'none'>(persisted?.podium ?? 'top')
+const fillOrder = ref<'rows' | 'serpentine'>(persisted?.fillOrder ?? 'rows')
 /** 过道位置：第 n 列之后（1 起） */
-const aisles = ref(new Set<number>())
-const namesText = ref('')
+const aisles = ref(new Set<number>(persisted?.aisles ?? []))
+const namesText = ref(persisted?.namesText ?? '')
 
 const FILL_OPTIONS: SelectOption[] = [
   { value: 'rows', label: '按行填充', hint: '从讲台侧第一排，自左向右' },
@@ -40,10 +67,32 @@ const FILL_OPTIONS: SelectOption[] = [
 const parsedEntries = computed<SeatingEntry[]>(() => parseSeatingRoster(namesText.value))
 
 /** 手工排座结果（随机 / 拖拽后生效）；名单文本变化时失效还原 */
-const arranged = ref<SeatingEntry[] | null>(null)
+const arranged = ref<SeatingEntry[] | null>(persisted?.arranged ?? null)
 watch(namesText, () => {
   arranged.value = null
 })
+
+watch(
+  [title, rows, cols, podium, fillOrder, aisles, namesText, arranged],
+  () => {
+    try {
+      const state: SeatingPersistedState = {
+        title: title.value,
+        rows: rows.value,
+        cols: cols.value,
+        podium: podium.value,
+        fillOrder: fillOrder.value,
+        aisles: [...aisles.value],
+        namesText: namesText.value,
+        arranged: arranged.value,
+      }
+      localStorage.setItem(SEATING_STATE_KEY, JSON.stringify(state))
+    } catch {
+      /* 隐私模式等存储不可用：不持久化 */
+    }
+  },
+  { deep: true },
+)
 watch([rows, cols, fillOrder], () => {
   selectedSeat.value = null
 })
@@ -310,9 +359,12 @@ const SHEET_W = 297
 const SHEET_H = 210
 const previewContainer = ref<HTMLElement | null>(null)
 const { width: containerWidth } = useElementSize(previewContainer)
+/** 最小缩放下限：窄屏（如 390px）整页缩放会让座位点选目标过小，保底后靠容器横向滚动查看 */
+const MIN_SCALE = 0.45
 const scale = computed(() => {
   if (!containerWidth.value) return 0.5
-  return Math.min((containerWidth.value - 16) / (SHEET_W * MM_TO_PX), 1)
+  const fit = (containerWidth.value - 16) / (SHEET_W * MM_TO_PX)
+  return Math.min(Math.max(fit, MIN_SCALE), 1)
 })
 
 watchEffect(() => {
@@ -324,12 +376,13 @@ watchEffect(() => {
 const renderHost = ref(false)
 
 async function doPrint() {
+  // 打印设置提示需在对话框弹出前给出，弹出后 toast 会被系统对话框遮挡
+  toast.info('即将调起浏览器打印', '请选 A4 横向、无边距、缩放 100%，并勾选「背景图形」；也可「另存为 PDF」')
   renderHost.value = true
   await nextTick()
   // 等 afterprint 再卸载宿主：部分浏览器 window.print 立即返回，提前卸载会打印出空白
   await printAndWaitUntilDone()
   renderHost.value = false
-  toast.info('已调起浏览器打印', '请选 A4 横向、无边距、缩放 100%，并勾选「背景图形」；也可「另存为 PDF」')
 }
 
 // ---------- 一键生成对应桌贴 ----------
@@ -579,7 +632,8 @@ function toDeskLabels() {
           ref="previewContainer"
           class="overflow-auto rounded-lg border border-slate-200/80 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-slate-100/70 bg-[size:16px_16px] p-3 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)]"
         >
-          <div class="flex justify-center">
+          <!-- w-fit + min-w-full：内容超宽时可横向滚动到最左（纯 justify-center 会裁掉左侧） -->
+          <div class="flex w-fit min-w-full justify-center">
             <div
               class="relative origin-top-left"
               :style="{

@@ -49,7 +49,15 @@ const categoryOptions = computed<{ id: CategoryFilter; name: string; count: numb
   })).filter((o) => o.count > 0),
 ])
 
+// 搜索时跨全部分类匹配：类内搜不到而全库有命中时不应显示「没有匹配」
 const filteredItems = computed(() => {
+  const query = searchQuery.value.trim()
+  if (query) {
+    return items.filter((item) => {
+      const t = item.template!
+      return matchesChineseQuery(`${t.name} ${t.scenario ?? ''} ${t.description}`, query)
+    })
+  }
   let list = items
   if (activeCategory.value !== 'all') {
     list = list.filter((item) => item.template!.category === activeCategory.value)
@@ -57,13 +65,10 @@ const filteredItems = computed(() => {
       list = list.filter((item) => subcategoryOf(item.template!.id)?.id === activeSubcategory.value)
     }
   }
-  const query = searchQuery.value.trim()
-  if (!query) return list
-  return list.filter((item) => {
-    const t = item.template!
-    return matchesChineseQuery(`${t.name} ${t.scenario ?? ''} ${t.description}`, query)
-  })
+  return list
 })
+
+const searchActive = computed(() => searchQuery.value.trim().length > 0)
 
 function resetSearch() {
   searchQuery.value = ''
@@ -116,6 +121,9 @@ const recommendedItems = computed(() => {
           class="w-full rounded-lg border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm text-slate-700 shadow-sm placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
         />
       </label>
+      <p v-if="searchActive && filteredItems.length > 0" class="text-xs text-slate-500">
+        在全部分类中找到 {{ filteredItems.length }} 款
+      </p>
       <div class="flex flex-wrap justify-center gap-1.5">
         <button
           v-for="opt in categoryOptions"
