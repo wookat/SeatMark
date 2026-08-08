@@ -345,6 +345,14 @@ function dismissSharePrompt() {
   sharePromptVisible.value = false
 }
 
+// 配额引导弹窗是最强转化时机，独占屏幕：打开时收起分享提示条，避免双登录 CTA 同屏竞争
+watch(
+  () => quota.limitDialogOpen,
+  (open) => {
+    if (open) dismissSharePrompt()
+  },
+)
+
 async function copyReferralLink() {
   const code = auth.user?.share.code
   if (!code) return
@@ -963,11 +971,6 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             <path d="M7 8V3h10v5M7 17H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3m-10-3h10v7H7v-7z" />
           </svg>
           打印<span class="hidden sm:inline"> / 矢量 PDF</span>
-          <span
-            class="absolute -top-2 -right-1.5 rounded-full px-1.5 py-px text-[9px] font-bold"
-            :class="exportBadge.cls"
-            :title="exportBadgeTitle"
-          >{{ exportBadge.text }}</span>
         </button>
         <button
           type="button"
@@ -989,6 +992,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           </svg>
           图片版 PDF<span class="hidden sm:inline">（推荐）</span>
           <span
+            v-if="!sharePromptVisible"
             class="absolute -top-2 -right-1.5 rounded-full px-1.5 py-px text-[9px] font-bold"
             :class="exportBadge.cls"
             :title="exportBadgeTitle"
