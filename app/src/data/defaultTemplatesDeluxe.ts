@@ -895,4 +895,148 @@ export const deluxeTemplates: LabelTemplate[] = [
       }),
     ],
   },
+  {
+    ...base,
+    id: 'deluxeExamFocus',
+    name: '考场桌贴·极简高对比',
+    category: 'exam',
+    description: '90×50 mm 桌贴 A4 一页 10 枚，顶部黑色信息条 + 座位号反白大字，机构感网格排版，远看一目了然。',
+    scenario: '统一考试 / 校考桌贴',
+    accent: '#111827',
+    sampleData: { name: '苏沐宸', room: '第3考场', seatNo: '11', examId: '2026061011' },
+    label: decorLabel(
+      90,
+      50,
+      svg(
+        90,
+        50,
+        '<rect x="0" y="0" width="90" height="12" fill="#111827"/>' +
+          '<rect x="0" y="12" width="90" height="0.6" fill="#111827"/>' +
+          '<line x1="26" y1="0" x2="26" y2="12" stroke="#4b5563" stroke-width="0.4"/>' +
+          '<line x1="6" y1="42" x2="84" y2="42" stroke="#111827" stroke-width="0.5"/>' +
+          '<rect x="0" y="48.6" width="90" height="1.4" fill="#111827"/>',
+      ),
+    ),
+    page: gridPage('A4', 2, 5, 90, 50, 6, 2.5),
+    fields: [
+      text('seatNo', '座位号', { x: 2, y: 1.5, width: 22, height: 9 }, '11', {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#ffffff',
+      }),
+      text('room', '考场', { x: 28, y: 2.5, width: 58, height: 7 }, '第3考场', {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: '#ffffff',
+        align: 'left',
+        letterSpacing: 0.4,
+      }),
+      text('name', '姓名', { x: 8, y: 17, width: 74, height: 20 }, '苏沐宸', {
+        fontSize: 26,
+        fontWeight: 'bold',
+        emphasis: 'hero',
+        letterSpacing: 0.3,
+      }),
+      text('examId', '准考证号', { x: 8, y: 43, width: 74, height: 5.5 }, '2026061011', {
+        fontSize: 8,
+        color: INK_MUTED,
+        letterSpacing: 0.6,
+      }),
+    ],
+  },
+  {
+    ...base,
+    id: 'deluxeClassChalk',
+    name: '班级门牌·黑板报风',
+    category: 'teaching',
+    description: '190×88 mm 班级门牌，墨绿黑板底 + 粉笔手绘边框与星星点缀，班级名粉笔白大字，教室门口的温暖仪式感。',
+    scenario: '教室门牌 / 班级标识',
+    accent: '#14532d',
+    sampleData: { className: '五年级（1）班', teacher: '李文静' },
+    label: decorLabel(
+      190,
+      88,
+      svg(
+        190,
+        88,
+        '<rect x="0" y="0" width="190" height="88" fill="#1a4731"/>' +
+          '<rect x="5" y="5" width="180" height="78" rx="3" fill="none" stroke="#f8fafc" stroke-width="0.7" stroke-dasharray="5 2.4" opacity="0.9"/>' +
+          '<g fill="#fde68a" opacity="0.9">' +
+          '<path d="M16 14 l1 2.4 2.4 0.3 -1.8 1.7 0.5 2.4 -2.1-1.2 -2.1 1.2 0.5-2.4 -1.8-1.7 2.4-0.3 Z"/>' +
+          '<path d="M172 68 l0.9 2.1 2.1 0.3 -1.6 1.5 0.4 2.1 -1.8-1 -1.8 1 0.4-2.1 -1.6-1.5 2.1-0.3 Z"/>' +
+          '</g>' +
+          '<g stroke="#f8fafc" stroke-width="0.4" fill="none" opacity="0.75">' +
+          '<path d="M158 18 q4 -4 8 0 q4 4 8 0"/><path d="M18 70 q4 -4 8 0 q4 4 8 0"/>' +
+          '</g>',
+      ),
+    ),
+    page: gridPage('A4', 1, 3, 190, 88, 0, 5),
+    fields: [
+      text('className', '班级', { x: 20, y: 22, width: 150, height: 30 }, '五年级（1）班', {
+        fontSize: 34,
+        fontWeight: 'bold',
+        emphasis: 'hero',
+        color: '#f8fafc',
+        letterSpacing: 0.3,
+      }),
+      text('teacher', '老师', { x: 20, y: 58, width: 150, height: 9 }, '班主任：李文静', {
+        fontSize: 11,
+        color: '#d9f99d',
+        letterSpacing: 0.35,
+      }),
+      fixed('motto', '班训', { x: 20, y: 70, width: 150, height: 6.5 }, '好好学习 · 天天向上', {
+        fontSize: 8.5,
+        color: '#fde68a',
+        letterSpacing: 0.6,
+      }),
+    ],
+  },
+  {
+    ...base,
+    id: 'deluxeConfFret',
+    name: '会议桌牌·朱砂回纹',
+    category: 'event',
+    description: '180×90 mm 桌牌，朱砂红回纹样条上下呼应 + 鎏金细线，取意传统纹样的国风会议桌牌，宋体大字庄重大气。',
+    scenario: '国风论坛 / 文化交流会',
+    accent: '#9f1239',
+    sampleData: { name: '林听澜', org: '国风文化研究院', title: '副院长' },
+    label: decorLabel(
+      180,
+      90,
+      svg(
+        180,
+        90,
+        '<rect x="0" y="0" width="180" height="10" fill="#9f1239"/>' +
+          '<rect x="0" y="80" width="180" height="10" fill="#9f1239"/>' +
+          '<g stroke="#fbbf24" stroke-width="0.55" fill="none">' +
+          '<path d="M4 5 h4 v-2 h-2 v1 h4 m4 1 h4 v-2 h-2 v1 h4 m4 1 h4 v-2 h-2 v1 h4 m4 1 h4 v-2 h-2 v1 h4 m4 1 h4 v-2 h-2 v1 h4 m4 1 h4 v-2 h-2 v1 h4 m4 1 h4 v-2 h-2 v1 h4 m4 1 h4 v-2 h-2 v1 h4 m4 1 h4 v-2 h-2 v1 h4 m4 1 h4 v-2 h-2 v1 h4 m4 1 h4 v-2 h-2 v1 h4 m4 1 h4 v-2 h-2 v1 h4"/>' +
+          '<path d="M4 85 h4 v2 h-2 v-1 h4 m4 -1 h4 v2 h-2 v-1 h4 m4 -1 h4 v2 h-2 v-1 h4 m4 -1 h4 v2 h-2 v-1 h4 m4 -1 h4 v2 h-2 v-1 h4 m4 -1 h4 v2 h-2 v-1 h4 m4 -1 h4 v2 h-2 v-1 h4 m4 -1 h4 v2 h-2 v-1 h4 m4 -1 h4 v2 h-2 v-1 h4 m4 -1 h4 v2 h-2 v-1 h4 m4 -1 h4 v2 h-2 v-1 h4 m4 -1 h4 v2 h-2 v-1 h4"/>' +
+          '</g>' +
+          '<line x1="20" y1="13.5" x2="160" y2="13.5" stroke="#d4a373" stroke-width="0.3"/>' +
+          '<line x1="20" y1="76.5" x2="160" y2="76.5" stroke="#d4a373" stroke-width="0.3"/>',
+      ),
+    ),
+    page: gridPage('A4', 1, 3, 180, 90, 0, 5),
+    fields: [
+      text('org', '单位', { x: 15, y: 18, width: 150, height: 9 }, '国风文化研究院', {
+        fontSize: 10.5,
+        color: '#7f1d1d',
+        letterSpacing: 0.3,
+        fontFamily: SERIF_ZH,
+      }),
+      text('name', '姓名', { x: 15, y: 31, width: 150, height: 33 }, '林听澜', {
+        fontSize: 42,
+        fontWeight: 'bold',
+        emphasis: 'hero',
+        letterSpacing: 0.28,
+        fontFamily: SERIF_ZH,
+      }),
+      text('title', '职务', { x: 15, y: 67, width: 150, height: 9 }, '副院长', {
+        fontSize: 12,
+        color: '#9f1239',
+        letterSpacing: 0.5,
+        fontFamily: SERIF_ZH,
+      }),
+    ],
+  },
 ]
