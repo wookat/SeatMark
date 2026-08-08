@@ -206,6 +206,64 @@ const assetDataset: DemoDataset = {
   })),
 }
 
+/** 政务窗口：窗口牌 / 岗位牌 / 社区公示牌等 */
+const serviceDataset: DemoDataset = {
+  id: 'service',
+  name: '政务窗口',
+  fileName: '政务窗口演示数据.xlsx',
+  headers: ['窗口号', '业务名称', '姓名', '岗位', '工号', '科室'],
+  rows: buildRows(12, (i) => ({
+    窗口号: pad2(i + 1),
+    业务名称: [
+      '社保缴费',
+      '医保报销',
+      '不动产登记',
+      '公积金提取',
+      '工商注册',
+      '税务申报',
+      '户籍办理',
+      '出入境证件',
+      '残联服务',
+      '老龄补贴',
+      '综合受理',
+      '咨询引导',
+    ][i]!,
+    姓名: NAMES[i % NAMES.length]!,
+    岗位: ['窗口受理员', '首席代表', '综合受理员'][i % 3]!,
+    工号: `ZW${1001 + i}`,
+    科室: ['社会事务科', '不动产登记中心', '市场监管科', '税务服务科'][i % 4]!,
+  })),
+}
+
+/** 餐饮门店：预订牌 / 包间门牌 / 菜品标签 / 取餐架等 */
+const restaurantDataset: DemoDataset = {
+  id: 'restaurant',
+  name: '餐饮门店',
+  fileName: '餐饮演示数据.xlsx',
+  headers: ['宾客', '桌号', '时间人数', '包间名', '菜名', '价格'],
+  rows: buildRows(12, (i) => ({
+    宾客: `${NAMES[i % NAMES.length]!.slice(0, 1)}先生`,
+    桌号: `${Math.floor(i / 4) + 1}号桌`,
+    时间人数: `${17 + (i % 3)}:${['00', '30'][i % 2]!} · ${4 + (i % 6)} 位`,
+    包间名: ['松鹤厅', '牡丹厅', '金桂厅', '迎宾厅'][i % 4]!,
+    菜名: [
+      '松鼠桂鱼',
+      '佛跳墙',
+      '白切鸡',
+      '宜宾燃面',
+      '酸菜鱼',
+      '孔雀开屏',
+      '蒸虾饺',
+      '糯米蒸排骨',
+      '麦香鸡',
+      '小炒黄牛肉',
+      '卤味拼盘',
+      '时蔬菜心',
+    ][i]!,
+    价格: `¥${28 + i * 6}`,
+  })),
+}
+
 /** 展会活动：胸卡 / 展位牌 / 工作证等 */
 const expoDataset: DemoDataset = {
   id: 'expo',
@@ -232,6 +290,8 @@ export const DEMO_DATASETS: readonly DemoDataset[] = [
   hospitalDataset,
   assetDataset,
   expoDataset,
+  serviceDataset,
+  restaurantDataset,
 ]
 
 const DATASET_BY_ID = new Map(DEMO_DATASETS.map((d) => [d.id, d]))
@@ -286,6 +346,16 @@ export const TEMPLATE_DEMO_DATASET_OVERRIDES: Record<string, string> = {
   lostFoundShelf: 'asset',
   streamGearTag: 'asset',
   showroomPrice: 'asset',
+  // 政务窗口
+  windowCounter: 'service',
+  communityGrid: 'service',
+  communityBooth: 'service',
+  // 餐饮门店
+  reservedTable: 'restaurant',
+  privateRoomDoor: 'restaurant',
+  dishLabel: 'restaurant',
+  drinkCup: 'restaurant',
+  takeoutShelf: 'restaurant',
 }
 
 /** 解析模板对应的演示数据集：模板显式指定 > 覆写表 > 分类默认 > 会议 */
