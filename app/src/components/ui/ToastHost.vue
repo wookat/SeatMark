@@ -32,6 +32,9 @@ const TONE_PATH: Record<ToastType, string> = {
 <template>
   <!-- 底部右侧堆叠：避开工坊预览区吸顶工具栏与页头，同时让开右下角反馈按钮 -->
   <div
+    role="status"
+    aria-live="polite"
+    aria-label="操作提示"
     class="no-print pointer-events-none fixed right-3 bottom-20 z-[70] flex w-[calc(100vw-1.5rem)] max-w-80 flex-col-reverse gap-2 sm:right-4"
   >
     <TransitionGroup
