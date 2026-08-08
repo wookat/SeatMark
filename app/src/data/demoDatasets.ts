@@ -280,6 +280,38 @@ const restaurantDataset: DemoDataset = {
   })),
 }
 
+/** 电竞赛事：选手席牌 / 赛位牌等 */
+const esportsDataset: DemoDataset = {
+  id: 'esports',
+  name: '电竞赛事',
+  fileName: '电竞赛事演示数据.xlsx',
+  headers: ['选手 ID', '战队', '位置', '战队位次'],
+  rows: buildRows(12, (i) => {
+    const playerId = [
+      'FrostBlade',
+      'Nova·凌',
+      '夜刃 Shadow',
+      'StormRider',
+      '青锋 Cyan',
+      'Phoenix·炎',
+      'Zenith 蔚',
+      '铁壁 Aegis',
+      'Viper·墨',
+      'Aurora 晞',
+      '惊蛰 Thunder',
+      'Mirage·澈',
+    ][i]!
+    const team = ['夜枭电子竞技俱乐部', '赤霄战队', '星轨电竞', '溯光俱乐部'][i % 4]!
+    const role = ['上单位', '打野位', '中单位', '射手位', '辅助位'][i % 5]!
+    return {
+      '选手 ID': playerId,
+      战队: `战队：${team}`,
+      位置: `${role} · ${(i % 5) + 1} 号位`,
+      战队位次: `${team} · ${role.slice(0, 2)}`,
+    }
+  }),
+}
+
 /** 展会活动：胸卡 / 展位牌 / 工作证等 */
 const expoDataset: DemoDataset = {
   id: 'expo',
@@ -306,6 +338,7 @@ export const DEMO_DATASETS: readonly DemoDataset[] = [
   hospitalDataset,
   assetDataset,
   expoDataset,
+  esportsDataset,
   serviceDataset,
   restaurantDataset,
 ]
@@ -372,6 +405,9 @@ export const TEMPLATE_DEMO_DATASET_OVERRIDES: Record<string, string> = {
   dishLabel: 'restaurant',
   drinkCup: 'restaurant',
   takeoutShelf: 'restaurant',
+  // 电竞赛事
+  esportsSeat: 'esports',
+  techEsportsSeat: 'esports',
 }
 
 /** 解析模板对应的演示数据集：模板显式指定 > 覆写表 > 分类默认 > 会议 */

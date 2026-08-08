@@ -25,4 +25,5 @@ description: How to run and test SeatMark locally (vite dev server with edge-fun
 - The export-choice dialog's 无水印/带水印 options are two stacked rows that export immediately on click — screenshot and verify the target row's text/coordinates before clicking (a misclick silently exports the other watermark path).
 - To objectively determine which watermark path an export took: inspect the output's bottom edge for the watermark badge (pdftoppm / unpack PNG) and read `seatmark.clean-export-usage.v1`.
 - After the anonymous watermark-free quota is exhausted the export badge shows 「带水印免费」, not 「剩余 0 次」 — this is by design, don't flag it.
+- Start background Chromium with `setsid nohup chromium ... </dev/null &` — without setsid the browser is killed when the launching exec session ends (it exits silently).
 - `/tmp` is wiped on VM restarts: CDP helper scripts and unpacked export baselines kept there are lost. Keep helper scripts and any baseline artifacts needed for cross-round size/quality comparisons under `~/` (e.g. `~/seatmark-test/`), and expect to regenerate baselines if only `/tmp` copies existed.
