@@ -18,7 +18,7 @@ const steps = computed(() => [
     desc: hasRows.value ? '名单已就绪' : '上传 Excel 或先用演示数据',
     done: hasRows.value,
   },
-  { title: '导出打印', desc: '预览区右上角导出 PDF / 打印', done: false },
+  { title: '导出打印', desc: '预览面板工具栏导出 PDF / 打印', done: false },
 ])
 
 function close() {
