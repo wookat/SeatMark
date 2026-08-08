@@ -303,6 +303,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 7,
+    quickStart: {
+      label: '打开教室座位表工具',
+      to: '/seating',
+      note: '粘贴名单即可自动排座、随机换座并打印 A4 座位表，数据不出浏览器',
+    },
     howTo: {
       name: '随机排座与手工微调换座',
       steps: [
@@ -612,6 +617,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「婚礼席位卡」+ 演示数据',
+      to: '/studio?template=weddingPlace&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '制作并布置酒店婚宴席位卡',
       steps: [
@@ -689,6 +699,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「年会晚宴席位卡」+ 演示数据',
+      to: '/studio?template=annualDinner&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量制作年会席位桌牌与配套物料',
       steps: [
@@ -766,6 +781,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「水杯毛巾贴」+ 演示数据',
+      to: '/studio?template=kidsCup&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量打印幼儿园入园物品贴',
       steps: [
@@ -991,6 +1011,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「展会胸卡·横版」+ 演示数据',
+      to: '/studio?template=expoBadgeH&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量制作展会胸卡',
       steps: [
@@ -1063,6 +1088,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「毕业典礼席卡」+ 演示数据',
+      to: '/studio?template=gradSeat&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '毕业典礼席位标识全套制作',
       steps: [
@@ -1210,6 +1240,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「窗口牌」+ 演示数据',
+      to: '/studio?template=windowCounter&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量制作服务窗口标识物料',
       steps: [
@@ -1286,6 +1321,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「餐桌预订牌」+ 演示数据',
+      to: '/studio?template=reservedTable&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量制作餐厅宴会与门店标识',
       steps: [

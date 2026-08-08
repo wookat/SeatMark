@@ -100,6 +100,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「四六级考号贴」+ 演示数据',
+      to: '/studio?template=cetTicket&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '半天完成四六级考点物料制作',
       steps: [
@@ -178,6 +183,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「艺考面试号码牌」+ 演示数据',
+      to: '/studio?template=artExamNo&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量制作艺考检录号码贴',
       steps: [
@@ -252,6 +262,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「考研考场桌贴」+ 演示数据',
+      to: '/studio?template=kaoyanDesk&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '考研座位贴需要带照片吗？',
@@ -403,6 +418,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「毕业典礼席卡」+ 演示数据',
+      to: '/studio?template=gradSeat&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '几千人的毕业典礼座位怎么标？',
@@ -551,6 +571,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '打开教室座位表工具',
+      to: '/seating',
+      note: '粘贴名单即可自动排座、随机换座并打印 A4 座位表，数据不出浏览器',
+    },
     faqs: [
       {
         q: '座位表用什么工具排最快？',
@@ -617,6 +642,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 8,
+    quickStart: {
+      label: '打开教室座位表工具',
+      to: '/seating',
+      note: '粘贴名单即可自动排座、随机换座并打印 A4 座位表，数据不出浏览器',
+    },
     howTo: {
       name: '用 Excel 完成考场座位编排并生成座位贴',
       steps: [
@@ -936,6 +966,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「学生证」+ 演示数据',
+      to: '/studio?template=studentIdCard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量制作学生证',
       steps: [
@@ -1011,6 +1046,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「会议大桌牌」+ 演示数据',
+      to: '/studio?template=meetingTent&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '中式会议到底是左大还是右大？',
@@ -1147,6 +1187,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「期末多科目版」+ 演示数据',
+      to: '/studio?template=multiSubject&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '期末物料最晚什么时候开始做？',

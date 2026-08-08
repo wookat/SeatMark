@@ -158,6 +158,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-03',
     dateModified: '2026-08-03',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「会议大桌牌」+ 演示数据',
+      to: '/studio?template=meetingTent&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '用 Excel 名单批量生成会议桌牌',
       steps: [
@@ -240,6 +245,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-03',
     dateModified: '2026-08-03',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: 'A4 纸一页能排多少枚座签？',
@@ -318,6 +328,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-03',
     dateModified: '2026-08-03',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「照片核验版」+ 演示数据',
+      to: '/studio?template=withPhoto&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量生成带照片的核验座签',
       steps: [
@@ -397,6 +412,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-03',
     dateModified: '2026-08-03',
     readingMinutes: 6,
+    quickStart: {
+      label: '一键载入「家长会桌贴」+ 演示数据',
+      to: '/studio?template=parentMeeting&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '桌牌上写学生名字还是家长名字？',
@@ -457,6 +477,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-03',
     dateModified: '2026-08-03',
     readingMinutes: 6,
+    quickStart: {
+      label: '一键载入「会议大桌牌」+ 演示数据',
+      to: '/studio?template=meetingTent&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '双面打印选长边翻转还是短边翻转？',
@@ -839,6 +864,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 9,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '期中期末考务物料准备全流程',
       steps: [
@@ -935,6 +965,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「培训班桌贴」+ 演示数据',
+      to: '/studio?template=trainingDesk&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '学员桌贴和胸卡有必要都做吗？',
@@ -1009,6 +1044,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「年会晚宴席位卡」+ 演示数据',
+      to: '/studio?template=annualDinner&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量制作年会席位卡与桌牌',
       steps: [
@@ -1094,6 +1134,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「婚礼席位卡」+ 演示数据',
+      to: '/studio?template=weddingPlace&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '用宾客名单批量制作婚礼席位卡',
       steps: [
@@ -1389,6 +1434,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「考场门贴」+ 演示数据',
+      to: '/studio?template=examDoor&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量制作考场门贴',
       steps: [
@@ -1466,6 +1516,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「考号贴」+ 演示数据',
+      to: '/studio?template=examNo&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '什么情况下需要自制准考证？',
@@ -1607,6 +1662,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「出入证胸卡版」+ 演示数据',
+      to: '/studio?template=badge&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量制作员工/访客胸卡',
       steps: [
@@ -1681,6 +1741,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「幼儿园姓名贴」+ 演示数据',
+      to: '/studio?template=kidsName&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '姓名贴怎么防水？',
@@ -1753,6 +1818,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「宿舍门贴」+ 演示数据',
+      to: '/studio?template=dormDoor&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '宿舍门贴上写学生全名合适吗？',
@@ -1823,6 +1893,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「面试候场号牌」+ 演示数据',
+      to: '/studio?template=interviewNo&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '候选人用姓名牌还是号码牌？',

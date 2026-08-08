@@ -17,6 +17,11 @@ export const guidesRound3: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '打开教室座位表工具',
+      to: '/seating',
+      note: '粘贴名单即可自动排座、随机换座并打印 A4 座位表，数据不出浏览器',
+    },
     howTo: {
       name: '在线制作班级座位表并打印',
       steps: [
