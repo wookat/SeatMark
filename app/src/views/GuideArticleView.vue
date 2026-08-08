@@ -131,10 +131,10 @@ function onArticleClick(event: MouseEvent) {
         <p class="mt-1 text-sm text-brand-100">免费、无需注册，名单不出浏览器。</p>
       </div>
       <RouterLink
-        to="/studio"
+        :to="guide.quickStart?.to ?? '/studio'"
         class="btn btn-md w-full shrink-0 bg-white text-brand-700 hover:bg-brand-50 sm:w-auto"
       >
-        进入标签工坊
+        {{ guide.quickStart ? guide.quickStart.label : '进入标签工坊' }}
       </RouterLink>
     </div>
 
