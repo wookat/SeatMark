@@ -79,16 +79,35 @@ const { width: containerWidth } = useElementSize(previewContainer)
 
 const ZOOM_OPTIONS: SelectOption[] = [
   { value: 'fit', label: '适应宽度' },
+  { value: 'fitLabel', label: '适应单枚' },
   { value: '0.5', label: '50%' },
   { value: '0.75', label: '75%' },
   { value: '1', label: '100%' },
+  { value: '1.5', label: '150%' },
+  { value: '2', label: '200%' },
 ]
 
 const zoomMode = ref('fit')
+/** 小屏下把低频显示选项（裁切线/高亮缺失/裁切排序/对折双联/打印校准）收进「显示选项」，避免工具栏折成四行 */
+const displayOptionsOpen = ref(false)
+const displayOptionsActiveCount = computed(() =>
+  [
+    workspace.showCutLines,
+    workspace.highlightMissing,
+    workspace.cutStackSort,
+    workspace.hasMirrorFields && workspace.showMirror,
+    calibrationStore.active,
+  ].filter(Boolean).length,
+)
 const scale = computed(() => {
   if (zoomMode.value === 'fit') {
     if (!containerWidth.value) return 0.6
     return Math.min((containerWidth.value - 24) / pageWidthPx.value, 1)
+  }
+  if (zoomMode.value === 'fitLabel') {
+    const labelWidthPx = workspace.template.label.width * MM_TO_PX
+    if (!containerWidth.value || !labelWidthPx) return 1
+    return Math.min((containerWidth.value - 24) / labelWidthPx, 3)
   }
   return Number(zoomMode.value)
 })
@@ -313,6 +332,8 @@ function maybeShowSharePrompt() {
   sharePromptSessionCount += 1
   sharePromptWatermarked.value = withWatermark.value
   sharePromptVisible.value = true
+  // 转化提示与单张覆写小技巧同屏会在小屏堆叠遮挡预览，一次只保留一层
+  dismissEditOneHint()
 }
 
 function dismissSharePrompt() {
@@ -823,6 +844,33 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
 
       <div class="flex flex-wrap items-center gap-2">
         <SelectField v-model="zoomMode" class="w-24" size="sm" :options="ZOOM_OPTIONS" />
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm sm:hidden"
+          :aria-expanded="displayOptionsOpen"
+          @click="displayOptionsOpen = !displayOptionsOpen"
+        >
+          显示选项<span
+            v-if="displayOptionsActiveCount"
+            class="ml-0.5 rounded-full bg-brand-100 px-1.5 text-[10px] font-bold text-brand-700"
+          >{{ displayOptionsActiveCount }}</span>
+          <svg
+            class="size-3 transition-transform"
+            :class="{ 'rotate-180': displayOptionsOpen }"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m4 6 4 4 4-4" />
+          </svg>
+        </button>
+        <div
+          class="w-full flex-wrap items-center gap-2 sm:contents"
+          :class="displayOptionsOpen ? 'flex' : 'hidden'"
+        >
         <CheckboxField
           v-model="workspace.showCutLines"
           class="text-xs font-semibold text-slate-600"
@@ -890,6 +938,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             aria-label="校准已生效"
           ></span>
         </button>
+        </div>
         <button
           type="button"
           class="btn btn-primary btn-sm relative"
