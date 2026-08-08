@@ -33,7 +33,7 @@ const PLANS = computed<Plan[]>(() => [
     tagline: '个人日常制签',
     features: [
       '带水印导出 / 打印不限次数（页脚角标，不遮挡内容）',
-      `无水印导出每日 ${QUOTA_ANON_DAILY} 次（登录后 ${QUOTA_USER_DAILY} 次）`,
+      `无水印导出每日 ${QUOTA_ANON_DAILY} 次（免费登录即升为每日 ${QUOTA_USER_DAILY} 次）`,
       '分享链接每被点开 1 次即得 1 次无水印导出',
       `全部 ${TEMPLATE_COUNT} 款内置模板与设计器`,
       'Excel 名单批量导入、A4 / A5 / A3 排版',
