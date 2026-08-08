@@ -43,7 +43,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function refresh(): Promise<void> {
     try {
       const data = await apiFetch<{ user: SessionUser | null }>('/api/auth/me')
-      user.value = data.user
+      // 接口异常返回 200 非 JSON 时 data.user 为 undefined，需归一为 null（isLoggedIn 以 !== null 判定）
+      user.value = data.user ?? null
     } catch {
       user.value = null
     } finally {
