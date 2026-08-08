@@ -793,6 +793,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             type="number"
             min="1"
             :max="workspace.totalPages"
+            aria-label="跳转到页码"
             class="input-field w-14 text-center"
             @change="jumpToPage"
             @keyup.enter="jumpToPage"
