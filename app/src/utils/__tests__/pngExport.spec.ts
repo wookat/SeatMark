@@ -12,7 +12,11 @@ import {
   findEinkPreset,
   isValidExactPixelWidth,
   MAX_FILE_NAME_PART_LENGTH,
+  PNG_BASE_SCALE,
+  PNG_MAX_SCALE,
+  PNG_MIN_OUTPUT_WIDTH,
   pngPageFileName,
+  pngRasterScale,
   presetAspectMismatch,
   sanitizeFileNamePart,
 } from '@/utils/pngExport'
@@ -36,6 +40,26 @@ describe('精确像素映射', () => {
     expect(isValidExactPixelWidth(4097)).toBe(false)
     expect(isValidExactPixelWidth(800.5)).toBe(false)
     expect(isValidExactPixelWidth(NaN)).toBe(false)
+  })
+})
+
+describe('pngRasterScale', () => {
+  it('常规尺寸固定 300dpi 基准，不随页数降档', () => {
+    // A4 整页 210mm / 会议桌牌 200mm：300dpi 下输出宽已远超最小宽度
+    expect(pngRasterScale(210)).toBe(PNG_BASE_SCALE)
+    expect(pngRasterScale(200)).toBe(PNG_BASE_SCALE)
+  })
+
+  it('小尺寸标签提倍保证输出宽度 ≥ 最小输出宽度', () => {
+    // 60mm 姓名贴：300dpi 仅 ≈709px，应提倍到 1000px
+    const scale = pngRasterScale(60)
+    expect(scale).toBeGreaterThan(PNG_BASE_SCALE)
+    expect(scale * 60 * CSS_PX_PER_MM).toBeCloseTo(PNG_MIN_OUTPUT_WIDTH, 6)
+  })
+
+  it('极小标签受倍率上限保护', () => {
+    expect(pngRasterScale(10)).toBe(PNG_MAX_SCALE)
+    expect(pngRasterScale(0)).toBe(PNG_BASE_SCALE)
   })
 })
 
