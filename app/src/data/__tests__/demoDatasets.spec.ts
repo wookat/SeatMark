@@ -101,6 +101,15 @@ describe('demoDatasets', () => {
     expect(demoExcelFor(roomDoor).mapping['room']).toBe('包间名')
   })
 
+  it('饮品杯贴映射到饮品专属列，逐行不同品名', () => {
+    const drinkCup = defaultTemplates.find((t) => t.id === 'drinkCup')!
+    const { mapping, rows } = demoExcelFor(drinkCup)
+    expect(mapping['drink']).toBe('品名')
+    expect(mapping['spec']).toBe('甜度冰量')
+    expect(mapping['orderNo']).toBe('单号')
+    expect(new Set(rows.map((r) => r['品名'])).size).toBe(rows.length)
+  })
+
   describe('sampleExcelFor', () => {
     it('每款模板都能生成样例：表头与演示数据一致、行数限制、无空单元格', () => {
       for (const template of defaultTemplates) {
