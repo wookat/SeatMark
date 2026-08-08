@@ -375,14 +375,21 @@ watchEffect(() => {
 // ---------- 打印 ----------
 const renderHost = ref(false)
 
+const printPending = ref(false)
+
 async function doPrint() {
-  // 打印设置提示需在对话框弹出前给出，弹出后 toast 会被系统对话框遮挡
+  if (printPending.value) return
+  printPending.value = true
+  // 打印设置提示需让用户先看到再弹对话框：window.print 会阻塞渲染，
+  // 同一任务内先 toast 再 print 不会渲染出 toast 帧，需留出展示间隔
   toast.info('即将调起浏览器打印', '请选 A4 横向、无边距、缩放 100%，并勾选「背景图形」；也可「另存为 PDF」')
   renderHost.value = true
   await nextTick()
+  await new Promise((resolve) => setTimeout(resolve, 1200))
   // 等 afterprint 再卸载宿主：部分浏览器 window.print 立即返回，提前卸载会打印出空白
   await printAndWaitUntilDone()
   renderHost.value = false
+  printPending.value = false
 }
 
 // ---------- 一键生成对应桌贴 ----------
