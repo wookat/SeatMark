@@ -547,6 +547,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-03',
     dateModified: '2026-08-03',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「会议大桌牌」+ 演示数据',
+      to: '/studio?template=meetingTent&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '邮件合并和在线工具哪个更快？',
@@ -618,6 +623,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-03',
     dateModified: '2026-08-03',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '打印出来的标签比设计尺寸小了一圈，为什么？',
@@ -704,6 +714,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 9,
+    quickStart: {
+      label: '一键载入「会议大桌牌」+ 演示数据',
+      to: '/studio?template=meetingTent&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '用 WPS 邮件合并批量制作桌牌',
       steps: [
@@ -784,6 +799,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 9,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '只做几张漂亮的桌牌，用哪个？',
@@ -1222,6 +1242,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '已经变成科学计数法的号码还能救回来吗？',
@@ -1289,6 +1314,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '为什么同一个字在 Excel 里正常，标签预览里是方框？',
@@ -1355,6 +1385,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「照片核验版」+ 演示数据',
+      to: '/studio?template=withPhoto&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '标签上的照片位需要多少像素的照片？',
@@ -1587,6 +1622,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '点名册用什么工具做最合适？',
@@ -1974,6 +2014,11 @@ export const guides: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '怎么验证名单真的没有上传？',

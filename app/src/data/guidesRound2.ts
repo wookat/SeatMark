@@ -343,6 +343,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「班级门牌」+ 演示数据',
+      to: '/studio?template=classDoor&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '一周做完开学季班级物料',
       steps: [
@@ -492,6 +497,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「班牌」+ 演示数据',
+      to: '/studio?template=classBrand&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量制作运动会号码牌',
       steps: [
@@ -729,6 +739,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '打开纸型库挑选纸型',
+      to: '/papers',
+      note: '选对纸型再打印校准页，套打不跑偏',
+    },
     howTo: {
       name: '三步校准标签打印',
       steps: [
@@ -812,6 +827,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 6,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '哪种方式打印出来更清晰？',
@@ -889,6 +909,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「照片核验版」+ 演示数据',
+      to: '/studio?template=withPhoto&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量照片命名整理四步法',
       steps: [
@@ -1118,6 +1143,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     faqs: [
       {
         q: '考务系统自带的座位贴打印能用吗？',
@@ -1272,6 +1302,11 @@ export const guidesRound2: Guide[] = [
     datePublished: '2026-08-04',
     dateModified: '2026-08-04',
     readingMinutes: 9,
+    quickStart: {
+      label: '打开纸型库挑选纸型',
+      to: '/papers',
+      note: '选对纸型再打印校准页，套打不跑偏',
+    },
     howTo: {
       name: '用打印校准向导修正打印偏移',
       steps: [

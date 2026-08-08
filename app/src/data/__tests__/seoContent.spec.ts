@@ -94,6 +94,20 @@ describe('教程内容质量', () => {
     }
   })
 
+  it('每篇教程都有 quickStart 且目标模板/路由有效', () => {
+    const templateIds = new Set(defaultTemplates.map((t) => t.id))
+    for (const g of guides) {
+      expect(g.quickStart, `${g.slug} quickStart`).toBeTruthy()
+      const to = g.quickStart!.to
+      const tpl = /^\/studio\?template=([a-zA-Z0-9]+)/.exec(to)?.[1]
+      if (tpl) {
+        expect(templateIds.has(tpl), `${g.slug} quickStart 模板 ${tpl}`).toBe(true)
+      } else {
+        expect(['/seating', '/papers'].some((p) => to.startsWith(p)), `${g.slug} quickStart 目标 ${to}`).toBe(true)
+      }
+    }
+  })
+
   it('每篇教程含 FAQ 与关键词', () => {
     for (const g of guides) {
       expect(g.faqs.length, `${g.slug} FAQ 数量`).toBeGreaterThanOrEqual(2)

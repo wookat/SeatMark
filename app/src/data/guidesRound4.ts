@@ -18,6 +18,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '用裁切排序（摞优先）省掉人工分拣',
       steps: [
@@ -90,6 +95,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '用组合字段把多列拼成一个显示内容',
       steps: [
@@ -157,6 +167,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 6,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '用单张覆写单独修改某一张标签',
       steps: [
@@ -229,6 +244,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 8,
+    quickStart: {
+      label: '打开纸型库挑选纸型',
+      to: '/papers',
+      note: '选对纸型再打印校准页，套打不跑偏',
+    },
     howTo: {
       name: '按不干胶纸型选择排版打印',
       steps: [
@@ -379,6 +399,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 6,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '在微信里收到链接后完成标签制作与打印',
       steps: [
@@ -460,6 +485,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 6,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '获取更多无水印导出次数',
       steps: [
@@ -536,6 +566,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 7,
+    quickStart: {
+      label: '打开纸型库挑选纸型',
+      to: '/papers',
+      note: '选对纸型再打印校准页，套打不跑偏',
+    },
     howTo: {
       name: '正确量取校准页的四个实测值',
       steps: [
@@ -863,6 +898,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「医院床头卡」+ 演示数据',
+      to: '/studio?template=wardBed&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量制作病区床头卡插纸',
       steps: [
@@ -935,6 +975,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「档案盒脊标」+ 演示数据',
+      to: '/studio?template=archiveBoxSpine&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '用档案台账批量打印档案盒标签',
       steps: [
@@ -1165,6 +1210,11 @@ export const guidesRound4: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 7,
+    quickStart: {
+      label: '一键载入「电竞赛位牌」+ 演示数据',
+      to: '/studio?template=esportsSeat&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '批量制作电竞赛事赛位物料',
       steps: [

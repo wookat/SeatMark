@@ -102,6 +102,11 @@ export const guidesRound3: Guide[] = [
     datePublished: '2026-08-05',
     dateModified: '2026-08-05',
     readingMinutes: 8,
+    quickStart: {
+      label: '一键载入「标准考场版」+ 演示数据',
+      to: '/studio?template=standard&demo=1',
+      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+    },
     howTo: {
       name: '3 分钟自查在线工具是否上传你的名单',
       steps: [
