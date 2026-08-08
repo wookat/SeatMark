@@ -464,6 +464,8 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<Bl
     throwIfCancelled()
     if (i > 0) doc.addPage([pageWidth, pageHeight], orientation)
     const canvas = await renderPage(i)
+    // 页面栅格化耗时最长，期间的取消需在写入前再检一次，否则末页取消仍会落盘
+    throwIfCancelled()
     const cal = options.calibration
     const x = cal?.offsetX ?? 0
     const y = cal?.offsetY ?? 0
@@ -495,6 +497,7 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<Bl
     options.onProgress?.(i + 1, pageCount)
   }
 
+  throwIfCancelled()
   if (options.output === 'blob') return doc.output('blob')
   doc.save(options.fileName ?? defaultPdfFileName())
   return undefined
