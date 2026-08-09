@@ -75,15 +75,9 @@ const categoryOptions = computed<{ id: CategoryFilter; name: string; count: numb
   })).filter((o) => o.count > 0),
 ])
 
-// 搜索时跨全部分类匹配：类内搜不到而全库有命中时不应显示「没有匹配」
-const filteredItems = computed(() => {
+// 搜索与分类叠加生效；类内无命中而全库有命中时回退全库结果（避免误报「没有匹配」）
+const searchResult = computed(() => {
   const query = searchQuery.value.trim()
-  if (query) {
-    return items.filter((item) => {
-      const t = item.template!
-      return matchesChineseQuery(`${t.name} ${t.scenario ?? ''} ${t.description}`, query)
-    })
-  }
   let list = items
   if (activeCategory.value !== 'all') {
     list = list.filter((item) => item.template!.category === activeCategory.value)
@@ -91,10 +85,36 @@ const filteredItems = computed(() => {
       list = list.filter((item) => subcategoryOf(item.template!.id)?.id === activeSubcategory.value)
     }
   }
-  return list
+  if (!query) return { list, globalFallback: false }
+  const matches = (item: (typeof items)[number]) => {
+    const t = item.template!
+    return matchesChineseQuery(`${t.name} ${t.scenario ?? ''} ${t.description}`, query)
+  }
+  const inScope = list.filter(matches)
+  if (inScope.length > 0 || activeCategory.value === 'all') {
+    return { list: inScope, globalFallback: false }
+  }
+  return { list: items.filter(matches), globalFallback: true }
 })
 
+const filteredItems = computed(() => searchResult.value.list)
+
 const searchActive = computed(() => searchQuery.value.trim().length > 0)
+
+const activeCategoryName = computed(
+  () => TEMPLATE_CATEGORIES.find((c) => c.id === activeCategory.value)?.name ?? '',
+)
+
+const searchScopeNote = computed(() => {
+  if (!searchActive.value || filteredItems.value.length === 0) return ''
+  if (searchResult.value.globalFallback) {
+    return `「${activeCategoryName.value}」分类下无匹配，已在全部分类中找到 ${filteredItems.value.length} 款`
+  }
+  if (activeCategory.value !== 'all') {
+    return `在「${activeCategoryName.value}」分类中找到 ${filteredItems.value.length} 款`
+  }
+  return `在全部分类中找到 ${filteredItems.value.length} 款`
+})
 
 function resetSearch() {
   searchQuery.value = ''
@@ -147,8 +167,8 @@ const recommendedItems = computed(() => {
           class="w-full rounded-lg border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm text-slate-700 shadow-sm placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
         />
       </label>
-      <p v-if="searchActive && filteredItems.length > 0" class="text-xs text-slate-500">
-        在全部分类中找到 {{ filteredItems.length }} 款
+      <p v-if="searchScopeNote" class="text-xs text-slate-500">
+        {{ searchScopeNote }}
       </p>
       <div class="flex flex-wrap justify-center gap-1.5">
         <button

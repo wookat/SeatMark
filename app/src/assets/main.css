@@ -176,6 +176,16 @@
     @apply border border-slate-200 px-3 py-2 align-top;
   }
 
+  /* 宽表格横向滚动时首列（维度列）固定，行含义不随滚动丢失 */
+  .article-body th:first-child,
+  .article-body td:first-child {
+    @apply sticky left-0 bg-white shadow-[inset_-1px_0_0_theme(colors.slate.200)];
+  }
+
+  .article-body thead th:first-child {
+    @apply bg-slate-50;
+  }
+
   .section-title {
     @apply flex items-center gap-2 text-sm font-bold tracking-tight text-slate-900;
   }
