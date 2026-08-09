@@ -130,6 +130,23 @@ describe('encodeIndexedPng', () => {
     await expect(encodeIndexedPng(data, w, h)).resolves.toBeNull()
   })
 
+  it('白底页上小面积照片区（整页加权 PSNR 掩盖）触发分块质量下限返回 null', async () => {
+    const w = 512
+    const h = 512
+    const data = new Uint8ClampedArray(w * h * 4).fill(255)
+    let seed = 42
+    const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff
+    for (let y = 100; y < 196; y++) {
+      for (let x = 100; x < 196; x++) {
+        const i = (y * w + x) * 4
+        data[i] = Math.floor(rnd() * 256)
+        data[i + 1] = Math.floor(rnd() * 256)
+        data[i + 2] = Math.floor(rnd() * 256)
+      }
+    }
+    await expect(encodeIndexedPng(data, w, h)).resolves.toBeNull()
+  })
+
   it('平滑单向渐变（>256 色但误差小）不触发质量下限', async () => {
     const w = 512
     const h = 4
