@@ -29,3 +29,6 @@ description: How to run and test SeatMark locally (vite dev server with edge-fun
 - `/tmp` is wiped on VM restarts: CDP helper scripts and unpacked export baselines kept there are lost. Keep helper scripts and any baseline artifacts needed for cross-round size/quality comparisons under `~/` (e.g. `~/seatmark-test/`), and expect to regenerate baselines if only `/tmp` copies existed.
 - To check whether the production backend storage is actually bound, read the `x-seatmark-storage` response header on any `/api/*` request: `kv`/`blob` = persistent; `memory` = all KV-backed features (share short codes, share credits, login codes, team reservations) are non-persistent and will fail across requests.
 - QR code verification: crop the QR region from a screenshot and decode with `zbarimg -q <img>`; short-code QRs encode `/?s=<10-hex>`, long-link QRs encode `/studio#tpl=v1.…`.
+- Photo pipeline testing: on a photo template (e.g. withPhoto), pick the match column in 照片匹配 first, then upload images whose filenames equal/contain the matched column values (e.g. 张伟.jpg) — mismatched names silently match 0 rows.
+- On mobile (<768px) the Studio is a 设置/预览 two-tab layout; export buttons live inside the 预览 tab, not the settings tab.
+- The 单张覆写 (per-card override) entry point is a single click on any label card in the preview (.label-field__content), not a double-click.
