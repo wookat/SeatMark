@@ -8,8 +8,8 @@ export const MAX_TITLE_ROWS = 3
 /** 单单元格行被视为大标题（而非单列表头）的最短文本长度 */
 export const MIN_TITLE_TEXT_LENGTH = 6
 
-/** 解析 Excel 文件首个工作表：自动跳过前置大标题/空行定位表头行，其余为数据行 */
-export async function parseExcelFile(file: File): Promise<ParsedExcel> {
+/** 解析 Excel 文件指定（默认首个）工作表：自动跳过前置大标题/空行定位表头行，其余为数据行 */
+export async function parseExcelFile(file: File, targetSheet?: string): Promise<ParsedExcel> {
   const XLSX = await import('xlsx')
 
   let buffer: ArrayBuffer
@@ -26,7 +26,9 @@ export async function parseExcelFile(file: File): Promise<ParsedExcel> {
     throw new Error('文件解析失败：文件可能已损坏或格式不受支持，请重新选择 .xlsx / .xls / .csv 文件')
   }
 
-  const sheetName = workbook.SheetNames[0]
+  const sheetNames = workbook.SheetNames
+  const sheetName =
+    targetSheet && sheetNames.includes(targetSheet) ? targetSheet : sheetNames[0]
   if (!sheetName) throw new Error('Excel 文件中没有可用的工作表')
 
   const sheet = workbook.Sheets[sheetName]!
@@ -79,7 +81,7 @@ export async function parseExcelFile(file: File): Promise<ParsedExcel> {
       return record
     })
 
-  return { fileName: file.name, sheetName, headers, rows }
+  return { fileName: file.name, sheetName, sheetNames, headers, rows }
 }
 
 /**

@@ -108,6 +108,40 @@ describe('parseExcelFile', () => {
     expect(parsed.rows).toHaveLength(2)
   })
 
+  it('多 sheet 文件返回全部工作表名，并可解析指定工作表', async () => {
+    const XLSX = await import('xlsx')
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['姓名'],
+        ['张三'],
+      ]),
+      '甲',
+    )
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['姓名', '部门'],
+        ['李四', '教务处'],
+        ['王五', '招生办'],
+      ]),
+      '乙',
+    )
+    const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer
+    const file = new File([buffer], 'multi.xlsx')
+
+    const first = await parseExcelFile(file)
+    expect(first.sheetName).toBe('甲')
+    expect(first.sheetNames).toEqual(['甲', '乙'])
+    expect(first.rows).toHaveLength(1)
+
+    const second = await parseExcelFile(file, '乙')
+    expect(second.sheetName).toBe('乙')
+    expect(second.headers).toEqual(['姓名', '部门'])
+    expect(second.rows).toHaveLength(2)
+  })
+
   it('只有表头时报错', async () => {
     const file = await buildFile([['姓名', '座位号']])
     await expect(parseExcelFile(file)).rejects.toThrow('至少需要包含表头行和一行数据')

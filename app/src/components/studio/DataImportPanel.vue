@@ -212,8 +212,26 @@ async function onDownloadSample() {
               演示数据
             </span>
           </p>
-          <p class="mt-0.5 text-xs text-slate-600">
-            工作表「{{ workspace.excel.sheetName }}」 ·
+          <p class="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-slate-600">
+            <template v-if="workspace.excel.sheetNames.length > 1">
+              <label class="flex items-center gap-1">
+                工作表
+                <select
+                  class="max-w-36 cursor-pointer truncate rounded border border-slate-300 bg-white px-1 py-0.5 text-xs text-slate-700"
+                  :value="workspace.excel.sheetName"
+                  aria-label="切换工作表"
+                  @change="
+                    workspace.switchSheet(($event.target as HTMLSelectElement).value)
+                  "
+                >
+                  <option v-for="name in workspace.excel.sheetNames" :key="name" :value="name">
+                    {{ name }}
+                  </option>
+                </select>
+              </label>
+            </template>
+            <template v-else>工作表「{{ workspace.excel.sheetName }}」</template>
+            ·
             <span class="whitespace-nowrap"
               >共 <strong class="text-brand-600">{{ workspace.excel.rows.length }}</strong> 条数据</span
             >

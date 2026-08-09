@@ -117,9 +117,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const excel = reactive({
     fileName: restoredRoster?.fileName ?? '',
     sheetName: restoredRoster?.sheetName ?? '',
+    // 刷新后原始文件已不在，不持久化、不提供切换
+    sheetNames: [] as string[],
     headers: restoredRoster?.headers ?? ([] as string[]),
     rows: restoredRoster?.rows ?? ([] as DataRow[]),
   })
+  let importedFile: File | null = null
   const isDemoData = ref(restoredRoster?.isDemoData ?? false)
   const mapping = reactive<FieldMapping>(restoredRoster?.mapping ?? {})
 
@@ -474,11 +477,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function applyExcel(data: {
     fileName: string
     sheetName: string
+    sheetNames?: string[]
     headers: string[]
     rows: DataRow[]
   }) {
     excel.fileName = data.fileName
     excel.sheetName = data.sheetName
+    excel.sheetNames = data.sheetNames ?? []
     excel.headers = data.headers
     excel.rows = data.rows
     previewPage.value = 1
@@ -494,10 +499,30 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       try {
         const parsed = await parseExcelFile(file)
         applyExcel(parsed)
+        importedFile = file
         isDemoData.value = false
-        toast.success('Excel 导入成功', `已读取 ${parsed.rows.length} 条数据`)
+        const multiSheetNote =
+          parsed.sheetNames.length > 1
+            ? `；文件含 ${parsed.sheetNames.length} 个工作表，可在导入面板切换`
+            : ''
+        toast.success('Excel 导入成功', `已读取 ${parsed.rows.length} 条数据${multiSheetNote}`)
       } catch (err) {
         toast.danger('Excel 导入失败', err instanceof Error ? err.message : String(err))
+      }
+    })
+  }
+
+  /** 切换到同一导入文件的另一个工作表 */
+  async function switchSheet(sheetName: string) {
+    if (!importedFile || sheetName === excel.sheetName) return
+    await withLoading('正在切换工作表...', async () => {
+      try {
+        const parsed = await parseExcelFile(importedFile!, sheetName)
+        applyExcel(parsed)
+        isDemoData.value = false
+        toast.success(`已切换到工作表「${parsed.sheetName}」`, `已读取 ${parsed.rows.length} 条数据`)
+      } catch (err) {
+        toast.danger('工作表切换失败', err instanceof Error ? err.message : String(err))
       }
     })
   }
@@ -520,6 +545,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function clearData() {
     excel.fileName = ''
     excel.sheetName = ''
+    excel.sheetNames = []
+    importedFile = null
     excel.headers = []
     excel.rows = []
     isDemoData.value = false
@@ -645,6 +672,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     withLoading,
     selectTemplate,
     importExcel,
+    switchSheet,
     applyDataset,
     useDemoData,
     clearData,
