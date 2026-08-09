@@ -16,6 +16,14 @@ export const MAX_UNIQUE_COLORS = 60_000
 /** 量化质量下限（PSNR，dB）：低于该值说明调色板不够表达页面颜色，放弃量化 */
 export const MIN_QUANTIZE_PSNR = 40
 
+/**
+ * 局部（分块）量化质量下限：白底文字页上小面积照片/多向渐变
+ * 会被整页 count 加权 PSNR 掩盖，按 ≤ BLOCK_SIZE 方块单独计误差，
+ * 任一块低于该值即放弃量化（交回 JPEG / RGB PNG 回退通道）。
+ */
+export const MIN_QUANTIZE_BLOCK_PSNR = 33
+export const QUANTIZE_BLOCK_SIZE = 64
+
 interface ColorCount {
   color: number
   count: number
@@ -191,6 +199,8 @@ export async function encodeIndexedPng(
 
   let palette: number[]
   const indexOf = new Map<number, number>()
+  // 量化分支下每个颜色的平方误差，供分块局部质量检查使用；精确调色板分支零误差无需检查
+  let quantErrOf: Map<number, number> | null = null
   if (colorList.length <= MAX_PALETTE_COLORS) {
     palette = colorList.map((c) => c.color)
     palette.forEach((color, i) => indexOf.set(color, i))
@@ -198,6 +208,7 @@ export async function encodeIndexedPng(
     palette = medianCutPalette(colorList, MAX_PALETTE_COLORS)
     let sqErr = 0
     let pixels = 0
+    quantErrOf = new Map<number, number>()
     for (const { color, count } of colorList) {
       const idx = nearestPaletteIndex(color, palette)
       indexOf.set(color, idx)
@@ -205,12 +216,15 @@ export async function encodeIndexedPng(
       const dr = ((color >> 16) & 255) - ((p >> 16) & 255)
       const dg = ((color >> 8) & 255) - ((p >> 8) & 255)
       const db = (color & 255) - (p & 255)
-      sqErr += (dr * dr + dg * dg + db * db) * count
+      const err = dr * dr + dg * dg + db * db
+      quantErrOf.set(color, err)
+      sqErr += err * count
       pixels += count
     }
     // 量化误差过大（细腻渐变/多向渐变超出 256 色表达力）时放弃，交回 JPEG / RGB PNG 通道
     const mse = pixels ? sqErr / (pixels * 3) : 0
     if (mse > 0 && 10 * Math.log10((255 * 255) / mse) < MIN_QUANTIZE_PSNR) return null
+    if (mse === 0) quantErrOf = null
   }
 
   // 位深按实际色数自适应：黑白/双色模板 1bit，少色模板 2/4bit，压缩前体积直降 8/4/2 倍
@@ -219,17 +233,33 @@ export async function encodeIndexedPng(
   // 每行前缀 filter 0（None）：索引数据没有像素间线性关系，预测滤波反而更差
   const raw = new Uint8Array(height * (rowBytes + 1))
   const rowIndices = new Uint8Array(width)
+  // 分块局部误差：小面积照片/多向渐变会被整页加权 PSNR 掩盖，按方块单独累计
+  const blocksX = Math.ceil(width / QUANTIZE_BLOCK_SIZE)
+  const blockErr = quantErrOf ? new Float64Array(blocksX * Math.ceil(height / QUANTIZE_BLOCK_SIZE)) : null
   let src = 0
   let dst = 0
   for (let y = 0; y < height; y++) {
     raw[dst++] = 0
+    const blockRow = (y / QUANTIZE_BLOCK_SIZE) | 0
     for (let x = 0; x < width; x++) {
       const key = (data[src]! << 16) | (data[src + 1]! << 8) | data[src + 2]!
       rowIndices[x] = indexOf.get(key)!
+      if (blockErr) {
+        const err = quantErrOf!.get(key)
+        if (err) blockErr[blockRow * blocksX + ((x / QUANTIZE_BLOCK_SIZE) | 0)] += err
+      }
       src += 4
     }
     raw.set(packIndexRow(rowIndices, bitDepth), dst)
     dst += rowBytes
+  }
+  if (blockErr) {
+    // 末行/末列不满块按满块像素数计，只会把阈值判得更宽松，不会误报
+    const blockPixels = QUANTIZE_BLOCK_SIZE * QUANTIZE_BLOCK_SIZE
+    const maxBlockMse = 255 * 255 * Math.pow(10, -MIN_QUANTIZE_BLOCK_PSNR / 10)
+    for (let b = 0; b < blockErr.length; b++) {
+      if (blockErr[b]! / (blockPixels * 3) > maxBlockMse) return null
+    }
   }
   const idat = await zlibDeflate(raw)
   if (!idat) return null
