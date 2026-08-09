@@ -13,7 +13,11 @@ vi.mock('@/utils/api', async (importOriginal) => {
   return { ...actual, apiFetch: apiFetchMock }
 })
 
-import { createShortShareCode, fetchSharedPayload } from '@/utils/share'
+import {
+  createShortShareCode,
+  createVerifiedShortShareCode,
+  fetchSharedPayload,
+} from '@/utils/share'
 
 describe('短码分享 5xx 自动重试', () => {
   beforeEach(() => {
@@ -69,6 +73,46 @@ describe('短码分享 5xx 自动重试', () => {
     apiFetchMock.mockRejectedValue(new ApiError(404, '短码不存在或已过期'))
 
     const promise = fetchSharedPayload('0123456789')
+    await vi.runAllTimersAsync()
+    expect(await promise).toBeNull()
+    expect(apiFetchMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('短码寄存后回读校验', () => {
+  beforeEach(() => {
+    apiFetchMock.mockReset()
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('寄存成功且回读一致时返回短码', async () => {
+    apiFetchMock
+      .mockResolvedValueOnce({ code: '0123456789' })
+      .mockResolvedValueOnce({ payload: 'v1.abc' })
+
+    const promise = createVerifiedShortShareCode('v1.abc')
+    await vi.runAllTimersAsync()
+    expect(await promise).toBe('0123456789')
+  })
+
+  it('存储降级 memory（寄存成功但立即取不到）时返回 null', async () => {
+    apiFetchMock
+      .mockResolvedValueOnce({ code: '0123456789' })
+      .mockRejectedValue(new ApiError(404, '短码不存在或已过期'))
+
+    const promise = createVerifiedShortShareCode('v1.abc')
+    await vi.runAllTimersAsync()
+    expect(await promise).toBeNull()
+  })
+
+  it('寄存本身失败时不再回读，直接返回 null', async () => {
+    apiFetchMock.mockRejectedValue(new ApiError(400, '模板负载无效'))
+
+    const promise = createVerifiedShortShareCode('v1.abc')
     await vi.runAllTimersAsync()
     expect(await promise).toBeNull()
     expect(apiFetchMock).toHaveBeenCalledTimes(1)

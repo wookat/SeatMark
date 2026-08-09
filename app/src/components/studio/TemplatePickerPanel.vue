@@ -18,7 +18,7 @@ import { matchesChineseQuery } from '@/utils/pinyin'
 import { qrToSvg } from '@/utils/qrcode'
 import {
   copyToClipboard,
-  createShortShareCode,
+  createVerifiedShortShareCode,
   encodeTemplateForShare,
   SHARE_HASH_PREFIX,
   SHARE_SHORT_PARAM,
@@ -172,7 +172,7 @@ async function showShareQr() {
     // 优先短码：二维码只编 `/?s=短码` 的短 URL，手机远距离也能识别；
     // 登录用户附带 ref 分享码，扫码访问照常计入分享 +1
     const payload = await encodeTemplateForShare(workspace.template)
-    const short = await createShortShareCode(payload)
+    const short = await createVerifiedShortShareCode(payload)
     if (short) {
       const refCode = auth.user?.share.code
       const shortUrl = `${location.origin}/?${SHARE_SHORT_PARAM}=${short}${refCode ? `&ref=${refCode}` : ''}`
