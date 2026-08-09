@@ -65,44 +65,43 @@
       }
     </script>
 
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5MKTF5XDYQ"></script>
+    <!-- 统计脚本（GA4 / 百度统计 / 百度主动推送 / Clarity）：先建缓冲队列，页面空闲后再注入真实脚本 -->
     <script>
       window.dataLayer = window.dataLayer || [];
-      function gtag() { dataLayer.push(arguments); }
+      window.gtag = function () { dataLayer.push(arguments); };
       gtag('js', new Date());
       gtag('config', 'G-5MKTF5XDYQ');
-    </script>
-
-    <!-- 百度统计 -->
-    <script>
       var _hmt = _hmt || [];
+      window.clarity = window.clarity || function () { (clarity.q = clarity.q || []).push(arguments); };
       (function () {
-        var hm = document.createElement("script");
-        hm.src = "https://hm.baidu.com/hm.js?8a3f619f7f6215f26b0efa4d50c42785";
-        var s = document.getElementsByTagName("script")[0];
-        s.parentNode.insertBefore(hm, s);
+        var loaded = false;
+        function addScript(src) {
+          var el = document.createElement("script");
+          el.async = true;
+          el.src = src;
+          document.head.appendChild(el);
+        }
+        function loadAnalytics() {
+          if (loaded) return;
+          loaded = true;
+          addScript("https://www.googletagmanager.com/gtag/js?id=G-5MKTF5XDYQ");
+          addScript("https://hm.baidu.com/hm.js?8a3f619f7f6215f26b0efa4d50c42785");
+          addScript("https://zz.bdstatic.com/linksubmit/push.js");
+          addScript("https://www.clarity.ms/tag/xc58q0o0sa");
+        }
+        function schedule() {
+          if ("requestIdleCallback" in window) {
+            requestIdleCallback(loadAnalytics, { timeout: 4000 });
+          } else {
+            setTimeout(loadAnalytics, 2500);
+          }
+        }
+        if (document.readyState === "complete") {
+          schedule();
+        } else {
+          addEventListener("load", schedule);
+        }
       })();
-    </script>
-
-    <!-- 百度搜索资源平台主动推送 -->
-    <script>
-      (function () {
-        var bp = document.createElement("script");
-        var curProtocol = window.location.protocol.split(":")[0];
-        bp.src = (curProtocol === "https") ? "https://zz.bdstatic.com/linksubmit/push.js" : "http://push.zhanzhang.baidu.com/push.js";
-        var s = document.getElementsByTagName("script")[0];
-        s.parentNode.insertBefore(bp, s);
-      })();
-    </script>
-
-    <!-- Microsoft Clarity -->
-    <script type="text/javascript">
-      (function (c, l, a, r, i, t, y) {
-        c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments) };
-        t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i;
-        y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
-      })(window, document, "clarity", "script", "xc58q0o0sa");
     </script>
   </head>
   <body>
