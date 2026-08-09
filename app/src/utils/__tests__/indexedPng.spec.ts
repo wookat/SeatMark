@@ -115,4 +115,37 @@ describe('encodeIndexedPng', () => {
   it('尺寸与数据不匹配时返回 null', async () => {
     await expect(encodeIndexedPng(new Uint8ClampedArray(4), 16, 16)).resolves.toBeNull()
   })
+
+  it('量化误差过大（颜色散布超出 256 色表达力）时返回 null 交回回退通道', async () => {
+    // 64×64 全图逐像素不同色，均匀散布整个 RGB 立方体：256 色调色板必然高误差
+    const w = 64
+    const h = 64
+    const data = new Uint8ClampedArray(w * h * 4)
+    for (let i = 0; i < w * h; i++) {
+      data[i * 4] = (i * 37) & 255
+      data[i * 4 + 1] = (i * 101) & 255
+      data[i * 4 + 2] = (i * 197) & 255
+      data[i * 4 + 3] = 255
+    }
+    await expect(encodeIndexedPng(data, w, h)).resolves.toBeNull()
+  })
+
+  it('平滑单向渐变（>256 色但误差小）不触发质量下限', async () => {
+    const w = 512
+    const h = 4
+    const data = new Uint8ClampedArray(w * h * 4)
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4
+        data[i] = Math.round((x / (w - 1)) * 255)
+        data[i + 1] = 70
+        data[i + 2] = 230
+        data[i + 3] = 255
+      }
+    }
+    const png = await encodeIndexedPng(data, w, h)
+    // jsdom 无 CompressionStream 时为 null；浏览器环境应正常产出索引 PNG
+    if (!png) return
+    expect(png[25]).toBe(3)
+  })
 })

@@ -13,6 +13,9 @@ export const MAX_PALETTE_COLORS = 256
 /** 页面不同颜色数超过该值视为照片类内容，放弃量化（交回 JPEG 通道） */
 export const MAX_UNIQUE_COLORS = 60_000
 
+/** 量化质量下限（PSNR，dB）：低于该值说明调色板不够表达页面颜色，放弃量化 */
+export const MIN_QUANTIZE_PSNR = 40
+
 interface ColorCount {
   color: number
   count: number
@@ -193,7 +196,21 @@ export async function encodeIndexedPng(
     palette.forEach((color, i) => indexOf.set(color, i))
   } else {
     palette = medianCutPalette(colorList, MAX_PALETTE_COLORS)
-    for (const { color } of colorList) indexOf.set(color, nearestPaletteIndex(color, palette))
+    let sqErr = 0
+    let pixels = 0
+    for (const { color, count } of colorList) {
+      const idx = nearestPaletteIndex(color, palette)
+      indexOf.set(color, idx)
+      const p = palette[idx]!
+      const dr = ((color >> 16) & 255) - ((p >> 16) & 255)
+      const dg = ((color >> 8) & 255) - ((p >> 8) & 255)
+      const db = (color & 255) - (p & 255)
+      sqErr += (dr * dr + dg * dg + db * db) * count
+      pixels += count
+    }
+    // 量化误差过大（细腻渐变/多向渐变超出 256 色表达力）时放弃，交回 JPEG / RGB PNG 通道
+    const mse = pixels ? sqErr / (pixels * 3) : 0
+    if (mse > 0 && 10 * Math.log10((255 * 255) / mse) < MIN_QUANTIZE_PSNR) return null
   }
 
   // 位深按实际色数自适应：黑白/双色模板 1bit，少色模板 2/4bit，压缩前体积直降 8/4/2 倍
