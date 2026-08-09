@@ -70,6 +70,44 @@ describe('parseExcelFile', () => {
     expect(parsed.rows).toHaveLength(2)
   })
 
+  it('合并表头留下的空洞列不再丢失数据（表头补「列N」）', async () => {
+    const file = await buildFile([
+      ['姓名', '部门职务'],
+      ['张三', '教务处', '主任'],
+      ['李四', '招生办', '科员'],
+    ])
+    const parsed = await parseExcelFile(file)
+    expect(parsed.headers).toEqual(['姓名', '部门职务', '列3'])
+    expect(parsed.rows[0]).toEqual({ 姓名: '张三', 部门职务: '教务处', 列3: '主任' })
+  })
+
+  it('自动跳过前置大标题行与空行定位真实表头', async () => {
+    const file = await buildFile([
+      ['2026 年监考安排表'],
+      [],
+      ['姓名', '考场'],
+      ['张三', '第1考场'],
+    ])
+    const parsed = await parseExcelFile(file)
+    expect(parsed.headers).toEqual(['姓名', '考场'])
+    expect(parsed.rows).toEqual([{ 姓名: '张三', 考场: '第1考场' }])
+  })
+
+  it('单列名单不误跳表头（含长表头名）', async () => {
+    const file = await buildFile([['参会人员姓名列表'], ['张三'], ['李四']])
+    const parsed = await parseExcelFile(file)
+    expect(parsed.headers).toEqual(['参会人员姓名列表'])
+    expect(parsed.rows).toHaveLength(2)
+  })
+
+  it('csv 文件可正常解析', async () => {
+    const csv = '姓名,座位号\n张三,1\n李四,2\n'
+    const file = new File(['\ufeff' + csv], 'roster.csv')
+    const parsed = await parseExcelFile(file)
+    expect(parsed.headers).toEqual(['姓名', '座位号'])
+    expect(parsed.rows).toHaveLength(2)
+  })
+
   it('只有表头时报错', async () => {
     const file = await buildFile([['姓名', '座位号']])
     await expect(parseExcelFile(file)).rejects.toThrow('至少需要包含表头行和一行数据')

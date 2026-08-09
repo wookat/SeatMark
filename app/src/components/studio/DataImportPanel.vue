@@ -152,10 +152,10 @@ function onDrop(event: DragEvent) {
   dragging.value = false
   const file = event.dataTransfer?.files[0]
   if (!file) return
-  if (/\.(xlsx|xls)$/i.test(file.name)) {
+  if (/\.(xlsx|xls|csv)$/i.test(file.name)) {
     void workspace.importExcel(file)
   } else {
-    toast.warning('文件类型不支持', '请拖入 .xlsx 或 .xls 文件')
+    toast.warning('文件类型不支持', '请拖入 .xlsx / .xls / .csv 文件')
   }
 }
 
@@ -193,7 +193,7 @@ async function onDownloadSample() {
         <p class="text-sm text-slate-600">
           <strong class="text-brand-600">点击选择</strong> 或拖拽 Excel 到此处
         </p>
-        <p class="text-xs text-slate-600">第一行默认作为表头，支持 .xlsx / .xls；不确定格式可先下载样例 Excel</p>
+        <p class="text-xs text-slate-600">第一行默认作为表头，支持 .xlsx / .xls / .csv；不确定格式可先下载样例 Excel</p>
       </div>
       <button type="button" class="btn btn-ghost btn-sm mt-3 w-full" @click="workspace.useDemoData()">
         没有现成文件？先用演示数据体验
@@ -480,7 +480,7 @@ async function onDownloadSample() {
     <input
       ref="fileInput"
       type="file"
-      accept=".xlsx,.xls"
+      accept=".xlsx,.xls,.csv"
       class="hidden"
       @change="onFileChange"
     />
