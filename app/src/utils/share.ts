@@ -144,6 +144,18 @@ export async function fetchSharedPayload(code: string): Promise<string | null> {
   }
 }
 
+/**
+ * 寄存短码并回读校验：边缘存储降级为进程内存（未绑定 KV/Blob）时，
+ * POST 会返回短码但随后 GET 取不到——此时短码二维码对被分享者必然失效，
+ * 返回 null 让调用方走重试/长链兜底，而不是发出一个扫不开的码。
+ */
+export async function createVerifiedShortShareCode(payload: string): Promise<string | null> {
+  const code = await createShortShareCode(payload)
+  if (!code) return null
+  const stored = await fetchSharedPayload(code)
+  return stored === payload ? code : null
+}
+
 /** 从完整 hash（如 '#tpl=v1.xxx'）中提取负载 */
 export function extractSharePayload(hash: string): string | null {
   if (!hash.startsWith(SHARE_HASH_PREFIX)) return null
