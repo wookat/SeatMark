@@ -123,6 +123,8 @@ export type FieldMapping = Record<string, string>
 export interface ParsedExcel {
   fileName: string
   sheetName: string
+  /** 文件内全部工作表名（多 sheet 时供导入面板切换） */
+  sheetNames: string[]
   headers: string[]
   rows: DataRow[]
 }
