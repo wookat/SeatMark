@@ -1,27 +1,19 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import { defaultTemplates } from '@/data/defaultTemplates'
 import { findLabelPaper, LABEL_PAPER_SHEET, labelPapers } from '@/data/labelPapers'
 import { findTemplateDetail } from '@/data/templateDetails'
 import { labelPaperGeometry } from '@/utils/labelPaper'
+import NotFoundView from '@/views/NotFoundView.vue'
 
 const route = useRoute()
-const router = useRouter()
 
 const slug = computed(() => String(route.params.slug ?? ''))
 const paper = computed(() => findLabelPaper(slug.value))
 const geo = computed(() => (paper.value ? labelPaperGeometry(paper.value) : null))
-
-watch(
-  paper,
-  (p) => {
-    if (!p && typeof window !== 'undefined') void router.replace('/papers')
-  },
-  { immediate: true },
-)
 
 const recommended = computed(() =>
   (paper.value?.recommendedTemplates ?? [])
@@ -70,7 +62,8 @@ const specRows = computed(() => {
 </script>
 
 <template>
-  <div v-if="paper && geo" class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
+  <NotFoundView v-if="!paper || !geo" />
+  <div v-else class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
     <nav class="flex flex-wrap items-center gap-1.5 text-xs text-slate-600" aria-label="面包屑">
       <RouterLink to="/" class="hover:text-brand-600">首页</RouterLink>
       <span>/</span>
