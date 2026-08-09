@@ -1474,7 +1474,7 @@ function save(asNew: boolean) {
 
     </div>
 
-    <div class="flex min-h-0 flex-1">
+    <div class="relative flex min-h-0 flex-1">
       <!-- 字段列表（图层） -->
       <aside
         class="flex shrink-0 flex-col border-r border-slate-200 bg-white"
