@@ -19,6 +19,11 @@ const MATCH_PATTERNS: Record<string, string[]> = {
   department: ['部门', '科室', '院系', 'department', 'dept'],
   position: ['职务', '职位', '岗位', 'position'],
   employeeId: ['工号', '员工号', 'employeeid', 'employee', 'staff'],
+  teacher: ['班主任', '老师', '教师', 'teacher'],
+  doctor: ['医生', '主管医生', '主治医生', '出诊医生', 'doctor'],
+  nurse: ['护士', '责任护士', 'nurse'],
+  guardian: ['接送人', '家长', '监护人', 'guardian'],
+  phone: ['电话', '手机号', '手机', '联系电话', 'phone', 'tel'],
 }
 
 /** 归一化表头/匹配词：小写并去掉空白与常见标点 */
