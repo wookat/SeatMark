@@ -94,4 +94,9 @@ describe('paperFit 排序', () => {
       expect(bestPaperForTemplate(template), template.id).not.toBeNull()
     }
   })
+
+  it('纸型深链门槛依据：staffIdCard 竖版卡 + a4-8up 横格适配度低于「可用」', () => {
+    const fit = evaluatePaperFit(byId('staffIdCard'), findLabelPaper('a4-8up')!)
+    expect(['marginal', 'incompatible']).toContain(fit.level)
+  })
 })

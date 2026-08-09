@@ -35,6 +35,8 @@ const SCALE_LOG_LIMIT = 2.5
 const LEVEL_RECOMMENDED = 75
 const LEVEL_USABLE = 55
 const LEVEL_MARGINAL = 30
+/** 宽高比接近度硬门槛：低于此值（比例相差约 1.67 倍以上）卡面会明显拉伸，最高只评「勉强」 */
+const ASPECT_MARGINAL_GATE = 0.6
 
 function formatSize(w: number, h: number): string {
   const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
@@ -117,6 +119,16 @@ export function evaluatePaperFit(template: LabelTemplate, spec: LabelPaperSpec):
   }
   const score = paperFitScore(template, spec)
   const level = levelOf(score)
+  if (
+    aspectCloseness(template, spec) < ASPECT_MARGINAL_GATE &&
+    (level === 'recommended' || level === 'usable')
+  ) {
+    return {
+      score,
+      level: 'marginal',
+      reason: `单格 ${formatSize(spec.labelWidth, spec.labelHeight)} 与模板设计尺寸 ${formatSize(template.label.width, template.label.height)} 宽高比差异大，卡面会明显拉伸变形`,
+    }
+  }
   return { score, level, reason: reasonOf(template, spec, level) }
 }
 
