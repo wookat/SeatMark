@@ -979,10 +979,11 @@ export const deluxeTemplates: LabelTemplate[] = [
         color: '#f8fafc',
         letterSpacing: 0.3,
       }),
-      text('teacher', '老师', { x: 20, y: 58, width: 150, height: 9 }, '班主任：李文静', {
+      text('teacher', '老师', { x: 20, y: 58, width: 150, height: 9 }, '李文静', {
         fontSize: 11,
         color: '#d9f99d',
         letterSpacing: 0.35,
+        caption: '班主任',
       }),
       fixed('motto', '班训', { x: 20, y: 70, width: 150, height: 6.5 }, '好好学习 · 天天向上', {
         fontSize: 8.5,
