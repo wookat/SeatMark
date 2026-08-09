@@ -81,6 +81,20 @@ describe('autoMapFields', () => {
     expect(mapping.room).toBe('考场')
   })
 
+  it('主管医生/责任护士/接送人等字段命中数据集同义列', () => {
+    const fields = [
+      textField('doctor', '主管医生'),
+      textField('nurse', '责任护士'),
+      textField('guardian', '接送人'),
+      textField('teacher', '班主任'),
+    ]
+    const mapping = autoMapFields(fields, ['医生', '护士', '家长', '老师'])
+    expect(mapping.doctor).toBe('医生')
+    expect(mapping.nurse).toBe('护士')
+    expect(mapping.guardian).toBe('家长')
+    expect(mapping.teacher).toBe('老师')
+  })
+
   it('固定文本字段不参与映射', () => {
     const fixed = { ...textField('caption', '姓名'), fixedText: '请对号入座' }
     const mapping = autoMapFields([fixed, textField('name', '姓名')], ['姓名'])
