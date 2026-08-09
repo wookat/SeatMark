@@ -76,7 +76,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '2 列 × 7 行，姓名与目标院校/座右铭上下分层，墨绿底条克制励志，适合高中教室。',
     scenario: '高中新学期桌贴',
     accent: '#065f46',
-    sampleData: { name: '陈亦舟', goal: '目标：厦门大学', className: '高三（2）班' },
+    sampleData: { name: '陈亦舟', goal: '厦门大学', className: '高三（2）班' },
     label: plainLabel(90, 34, '#064e3b'),
     page: gridPage('A4', 2, 7, 90, 34, 8, 3.5),
     fields: [
@@ -85,7 +85,8 @@ export const campusTemplates: LabelTemplate[] = [
         fontWeight: 'bold',
         letterSpacing: 0.1,
       }),
-      text('goal', '目标 / 座右铭', { x: 4, y: 19.5, width: 82, height: 7 }, '目标：厦门大学', {
+      text('goal', '目标 / 座右铭', { x: 4, y: 19.5, width: 82, height: 7 }, '厦门大学', {
+        caption: '目标',
         fontSize: 9,
         color: '#065f46',
         letterSpacing: 0.1,
@@ -293,7 +294,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '2 列 × 6 行，科目特大字 + 班级与收发组长，贴作业筐/收纳箱正面，讲台秒辨科目。',
     scenario: '作业筐 / 收纳箱',
     accent: '#c2410c',
-    sampleData: { subject: '数学', className: '五（3）班', monitor: '课代表：许芊羽' },
+    sampleData: { subject: '数学', className: '五（3）班', monitor: '许芊羽' },
     label: plainLabel(90, 40, '#9a3412'),
     page: gridPage('A4', 2, 6, 90, 40, 8, 5),
     fields: [
@@ -315,7 +316,8 @@ export const campusTemplates: LabelTemplate[] = [
         align: 'left',
         color: '#c2410c',
       }),
-      text('monitor', '课代表', { x: 60, y: 21, width: 26, height: 11 }, '课代表：许芊羽', {
+      text('monitor', '课代表', { x: 60, y: 21, width: 26, height: 11 }, '许芊羽', {
+        caption: '课代表',
         fontSize: 7,
         align: 'left',
         color: INK_SOFT,
@@ -332,7 +334,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: 'A4 半页对折立于讲台，班级名特大字 + 班主任与班级口号，推门听课一眼识班。',
     scenario: '讲台 / 推门听课',
     accent: '#1d4ed8',
-    sampleData: { className: '四（2）班', teacher: '班主任：宋雅琴', slogan: '静水流深 · 笃行致远' },
+    sampleData: { className: '四（2）班', teacher: '宋雅琴', slogan: '静水流深 · 笃行致远' },
     label: plainLabel(190, 138, '#1e3a8a'),
     page: gridPage('A4', 1, 2, 190, 138, 0, 7),
     fields: [
@@ -343,7 +345,8 @@ export const campusTemplates: LabelTemplate[] = [
         letterSpacing: 0.06,
       }),
       hairline('rule', { x: 45, y: 86, width: 100, height: 0.3 }, '#93c5fd'),
-      text('teacher', '班主任', { x: 10, y: 94, width: 170, height: 13 }, '班主任：宋雅琴', {
+      text('teacher', '班主任', { x: 10, y: 94, width: 170, height: 13 }, '宋雅琴', {
+        caption: '班主任',
         fontSize: 13,
         color: INK_SOFT,
       }),
@@ -553,7 +556,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '3 列 × 7 行，类别名大字配柜位号与管理提示条，酸碱/易燃分区一目了然，黑白打印仍高对比。',
     scenario: '试剂柜 / 危化品分区',
     accent: '#b91c1c',
-    sampleData: { category: '酸类试剂', cabinetNo: 'A 柜 · 2 层', keeper: '管理人：孙老师' },
+    sampleData: { category: '酸类试剂', cabinetNo: 'A 柜 · 2 层', keeper: '孙老师' },
     label: plainLabel(60, 34, '#7f1d1d'),
     page: gridPage('A4', 3, 7, 60, 34, 4, 3.5),
     fields: [
@@ -574,7 +577,8 @@ export const campusTemplates: LabelTemplate[] = [
         align: 'left',
         color: INK_SOFT,
       }),
-      text('keeper', '管理人', { x: 31, y: 24, width: 26, height: 7 }, '管理人：孙老师', {
+      text('keeper', '管理人', { x: 31, y: 24, width: 26, height: 7 }, '孙老师', {
+        caption: '管理人',
         fontSize: 7,
         align: 'right',
         color: INK_MUTED,
@@ -656,7 +660,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: 'A4 半页对折，社团名特大字 + 一句话口号与纳新对象，招新摆摊远距吸睛。',
     scenario: '社团招新 / 校园摆摊',
     accent: '#db2777',
-    sampleData: { club: '天文社', slogan: '一起把课后时间交给星空', target: '纳新对象：全校各年级' },
+    sampleData: { club: '天文社', slogan: '一起把课后时间交给星空', target: '全校各年级' },
     label: plainLabel(190, 138, '#9d174d'),
     page: gridPage('A4', 1, 2, 190, 138, 0, 7),
     fields: [
@@ -673,7 +677,8 @@ export const campusTemplates: LabelTemplate[] = [
         letterSpacing: 0.1,
       }),
       hairline('rule', { x: 55, y: 104, width: 80, height: 0.3 }, '#fbcfe8'),
-      text('target', '纳新对象', { x: 10, y: 110, width: 170, height: 12 }, '纳新对象：全校各年级', {
+      text('target', '纳新对象', { x: 10, y: 110, width: 170, height: 12 }, '全校各年级', {
+        caption: '纳新对象',
         fontSize: 10,
         color: INK_SOFT,
       }),
@@ -687,7 +692,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '1 列 × 3 行宽幅，室名大字 + 开放时间与管理教师，心理室/美术室/科学室等功能教室统一挂牌。',
     scenario: '功能教室门牌',
     accent: '#0d9488',
-    sampleData: { room: '心理辅导室', hours: '开放时间：周一至周五 12:30–14:00', keeper: '负责教师：许老师' },
+    sampleData: { room: '心理辅导室', hours: '周一至周五 12:30–14:00', keeper: '许老师' },
     label: plainLabel(190, 80, '#0f766e'),
     page: gridPage('A4', 1, 3, 190, 80, 0, 6),
     fields: [
@@ -699,12 +704,14 @@ export const campusTemplates: LabelTemplate[] = [
         letterSpacing: 0.12,
       }),
       hairline('rule', { x: 21, y: 44, width: 150, height: 0.25 }),
-      text('hours', '开放时间', { x: 20, y: 49, width: 160, height: 10 }, '开放时间：周一至周五 12:30–14:00', {
+      text('hours', '开放时间', { x: 20, y: 49, width: 160, height: 10 }, '周一至周五 12:30–14:00', {
+        caption: '开放时间',
         fontSize: 10,
         align: 'left',
         color: INK_SOFT,
       }),
-      text('keeper', '负责教师', { x: 20, y: 62, width: 160, height: 9 }, '负责教师：许老师', {
+      text('keeper', '负责教师', { x: 20, y: 62, width: 160, height: 9 }, '许老师', {
+        caption: '负责教师',
         fontSize: 9,
         align: 'left',
         color: INK_MUTED,
@@ -719,7 +726,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '2 列 × 6 行，组名大字 + 成员名单与本周目标，小组合作学习与项目式课堂立于桌面。',
     scenario: '小组合作学习',
     accent: '#2563eb',
-    sampleData: { group: '飞鸟组', members: '组长：夏知许 · 组员：钱思远 罗一诺 唐可', goal: '本周目标：完成课题开题卡' },
+    sampleData: { group: '飞鸟组', members: '组长：夏知许 · 组员：钱思远 罗一诺 唐可', goal: '完成课题开题卡' },
     label: plainLabel(90, 40, '#1d4ed8'),
     page: gridPage('A4', 2, 6, 90, 40, 8, 5),
     fields: [
@@ -736,7 +743,8 @@ export const campusTemplates: LabelTemplate[] = [
         lineHeight: 1.35,
       }),
       hairline('rule', { x: 12, y: 32, width: 66, height: 0.22 }),
-      text('goal', '小组目标', { x: 4, y: 33, width: 82, height: 5.5 }, '本周目标：完成课题开题卡', {
+      text('goal', '小组目标', { x: 4, y: 33, width: 82, height: 5.5 }, '完成课题开题卡', {
+        caption: '本周目标',
         fontSize: 6.5,
         color: INK_MUTED,
       }),
@@ -1024,7 +1032,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '2 列 × 7 行横签，科目场次加粗、封箱人/启封时间带字段名与签名线，考点保密室流转规范。',
     scenario: '保密室 / 试卷流转',
     accent: '#7c2d12',
-    sampleData: { subject: '数学 · 第二场', boxNo: '03 号箱', sealer: '封箱人：曾主任', openTime: '启封：6 月 7 日 14:30' },
+    sampleData: { subject: '数学 · 第二场', boxNo: '03 号箱', sealer: '曾主任', openTime: '6 月 7 日 14:30' },
     label: plainLabel(90, 36, '#7c2d12'),
     page: gridPage('A4', 2, 7, 90, 36, 8, 2.6),
     fields: [
@@ -1046,12 +1054,14 @@ export const campusTemplates: LabelTemplate[] = [
         color: '#7c2d12',
         fontWeight: 'bold',
       }),
-      text('sealer', '封箱人', { x: 4, y: 20.5, width: 42, height: 6.5 }, '封箱人：曾主任', {
+      text('sealer', '封箱人', { x: 4, y: 20.5, width: 42, height: 6.5 }, '曾主任', {
+        caption: '封箱人',
         fontSize: 6.5,
         align: 'left',
         color: INK_SOFT,
       }),
-      text('openTime', '启封时间', { x: 4, y: 27.5, width: 42, height: 6.5 }, '启封：6 月 7 日 14:30', {
+      text('openTime', '启封时间', { x: 4, y: 27.5, width: 42, height: 6.5 }, '6 月 7 日 14:30', {
+        caption: '启封',
         fontSize: 6.5,
         align: 'left',
         color: INK_SOFT,
@@ -1144,7 +1154,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '2 列 × 6 行，姓名与班级大字，配「一摸二看三问四查」固定流程行，晨检台逐人对卡登记。',
     scenario: '晨检台 / 入园检查',
     accent: '#059669',
-    sampleData: { name: '安安', className: '中一班', guardian: '接送人：安爸爸' },
+    sampleData: { name: '安安', className: '中一班', guardian: '安爸爸' },
     label: { width: 90, height: 40, radius: 2, borderWidth: 0.3, borderColor: '#059669', background: '#ffffff' },
     page: gridPage('A4', 2, 6, 90, 40, 8, 5),
     fields: [
@@ -1160,7 +1170,8 @@ export const campusTemplates: LabelTemplate[] = [
         color: '#059669',
         fontWeight: 'bold',
       }),
-      text('guardian', '接送人', { x: 10, y: 20.5, width: 76, height: 7 }, '接送人：安爸爸', {
+      text('guardian', '接送人', { x: 10, y: 20.5, width: 76, height: 7 }, '安爸爸', {
+        caption: '接送人',
         fontSize: 7.5,
         align: 'left',
         color: INK_SOFT,
@@ -1216,7 +1227,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '2 列 × 4 行大圆角牌，区角名特大字 + 进区人数与规则一句话，建构区/阅读区一套配齐。',
     scenario: '活动区角标识',
     accent: '#d97706',
-    sampleData: { corner: '积木建构区', capacity: '同时进区：6 人', rule: '轻拿轻放 · 玩完送回家' },
+    sampleData: { corner: '积木建构区', capacity: '6 人', rule: '轻拿轻放 · 玩完送回家' },
     label: { width: 90, height: 62, radius: 5, borderWidth: 0.5, borderColor: '#f59e0b', background: '#fffbeb' },
     page: gridPage('A4', 2, 4, 90, 62, 8, 6),
     fields: [
@@ -1227,7 +1238,8 @@ export const campusTemplates: LabelTemplate[] = [
         letterSpacing: 0.1,
       }),
       bar('badgeBg', { x: 25, y: 32, width: 40, height: 10 }, '#d97706', { radius: 5 }),
-      text('capacity', '进区人数', { x: 25, y: 32, width: 40, height: 10 }, '同时进区：6 人', {
+      text('capacity', '进区人数', { x: 25, y: 32, width: 40, height: 10 }, '6 人', {
+        caption: '同时进区',
         fontSize: 7,
         color: '#ffffff',
         background: 'transparent',
@@ -1280,7 +1292,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '3 列 × 7 行，车次徽章 + 座位号与姓名、接送站点，校车随车老师逐座点名核对。',
     scenario: '校车接送管理',
     accent: '#ca8a04',
-    sampleData: { busNo: '2 号车', seatNo: '15', name: '朵朵', stop: '站点：香樟园东门' },
+    sampleData: { busNo: '2 号车', seatNo: '15', name: '朵朵', stop: '香樟园东门' },
     label: plainLabel(60, 34, '#a16207'),
     page: gridPage('A4', 3, 7, 60, 34, 4, 3.5),
     fields: [
@@ -1303,7 +1315,8 @@ export const campusTemplates: LabelTemplate[] = [
         fontWeight: 'bold',
         align: 'left',
       }),
-      text('stop', '站点', { x: 4, y: 26, width: 53, height: 6 }, '站点：香樟园东门', {
+      text('stop', '站点', { x: 4, y: 26, width: 53, height: 6 }, '香樟园东门', {
+        caption: '站点',
         fontSize: 6.5,
         align: 'left',
         color: INK_SOFT,
@@ -1318,7 +1331,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '4 列 × 9 行，姓名加粗 + 忌口/过敏提示反白条，保育员配餐逐人核对，过敏儿童醒目防错。',
     scenario: '配餐 / 过敏管理',
     accent: '#dc2626',
-    sampleData: { name: '妞妞', className: '中二班', allergy: '忌口：鸡蛋 · 芒果' },
+    sampleData: { name: '妞妞', className: '中二班', allergy: '鸡蛋 · 芒果' },
     label: { width: 45, height: 28, radius: 2, borderWidth: 0.35, borderColor: '#f87171', background: '#ffffff' },
     page: gridPage('A4', 4, 9, 45, 28, 3, 2.4),
     fields: [
@@ -1333,7 +1346,8 @@ export const campusTemplates: LabelTemplate[] = [
         color: INK_MUTED,
       }),
       bar('allergyBg', { x: 2.5, y: 15, width: 40, height: 9.5 }, '#dc2626', { radius: 1.5 }),
-      text('allergy', '忌口提示', { x: 2.5, y: 15, width: 40, height: 9.5 }, '忌口：鸡蛋 · 芒果', {
+      text('allergy', '忌口提示', { x: 2.5, y: 15, width: 40, height: 9.5 }, '鸡蛋 · 芒果', {
+        caption: '忌口',
         fontSize: 6.5,
         fontWeight: 'bold',
         color: '#ffffff',

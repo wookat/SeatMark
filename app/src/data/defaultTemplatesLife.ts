@@ -41,8 +41,8 @@ export const lifeTemplates: LabelTemplate[] = [
     sampleData: {
       bedNo: '12 床',
       name: '許長安',
-      doctor: '主管医生：程医生',
-      nurse: '责任护士：苏护士',
+      doctor: '程医生',
+      nurse: '苏护士',
       careLevel: '二级护理',
     },
     label: plainLabel(90, 48, '#075985'),
@@ -69,12 +69,14 @@ export const lifeTemplates: LabelTemplate[] = [
         align: 'left',
       }),
       hairline('rule', { x: 28.5, y: 21, width: 57, height: 0.22 }),
-      text('doctor', '主管医生', { x: 28, y: 24, width: 58, height: 8 }, '主管医生：程医生', {
+      text('doctor', '主管医生', { x: 28, y: 24, width: 58, height: 8 }, '程医生', {
+        caption: '主管医生',
         fontSize: 7.5,
         align: 'left',
         color: INK_SOFT,
       }),
-      text('nurse', '责任护士', { x: 28, y: 34, width: 58, height: 8 }, '责任护士：苏护士', {
+      text('nurse', '责任护士', { x: 28, y: 34, width: 58, height: 8 }, '苏护士', {
+        caption: '责任护士',
         fontSize: 7.5,
         align: 'left',
         color: INK_SOFT,
@@ -89,7 +91,7 @@ export const lifeTemplates: LabelTemplate[] = [
     description: '1 列 × 3 行宽幅，诊室号色块 + 科室与出诊医生职称，门诊换诊只换一张纸。',
     scenario: '门诊诊室标识',
     accent: '#0f766e',
-    sampleData: { roomNo: '3', dept: '呼吸内科', doctor: '出诊：秦望舒 主任医师' },
+    sampleData: { roomNo: '3', dept: '呼吸内科', doctor: '秦望舒 主任医师' },
     label: plainLabel(190, 80, '#115e59'),
     page: gridPage('A4', 1, 3, 190, 80, 0, 6),
     fields: [
@@ -114,7 +116,8 @@ export const lifeTemplates: LabelTemplate[] = [
         letterSpacing: 0.14,
       }),
       hairline('rule', { x: 63, y: 44, width: 108, height: 0.25 }),
-      text('doctor', '出诊医生', { x: 62, y: 50, width: 120, height: 12 }, '出诊：秦望舒 主任医师', {
+      text('doctor', '出诊医生', { x: 62, y: 50, width: 120, height: 12 }, '秦望舒 主任医师', {
+        caption: '出诊',
         fontSize: 11,
         align: 'left',
         color: INK_SOFT,
@@ -129,7 +132,7 @@ export const lifeTemplates: LabelTemplate[] = [
     description: '3 列 × 7 行，药品分类大字 + 货位号与「先进先出」提示条，药房与诊所药柜规范分区。',
     scenario: '药房 / 药柜分区',
     accent: '#166534',
-    sampleData: { category: '呼吸系统用药', slot: 'C 柜 · 3 层', keeper: '管理：药剂科' },
+    sampleData: { category: '呼吸系统用药', slot: 'C 柜 · 3 层', keeper: '药剂科' },
     label: plainLabel(60, 34, '#14532d'),
     page: gridPage('A4', 3, 7, 60, 34, 4, 3.5),
     fields: [
@@ -147,7 +150,8 @@ export const lifeTemplates: LabelTemplate[] = [
         color: INK_SOFT,
         caption: '货位',
       }),
-      text('keeper', '管理', { x: 36, y: 17, width: 21, height: 6.5 }, '管理：药剂科', {
+      text('keeper', '管理', { x: 36, y: 17, width: 21, height: 6.5 }, '药剂科', {
+        caption: '管理',
         fontSize: 5.5,
         align: 'right',
         color: INK_MUTED,
@@ -169,7 +173,7 @@ export const lifeTemplates: LabelTemplate[] = [
     description: '4 列 × 10 行小签，样本类型加粗 + 架位号与接收时段，检验科样本流转架逐格标识。',
     scenario: '检验科 / 样本流转',
     accent: '#7c3aed',
-    sampleData: { sampleType: '血常规 · EDTA 管', rackNo: 'R2-06', window: '接收：08:00–10:00' },
+    sampleData: { sampleType: '血常规 · EDTA 管', rackNo: 'R2-06', window: '08:00–10:00' },
     label: { width: 45, height: 25, radius: 0, borderWidth: 0.25, borderColor: '#5b21b6', background: '#ffffff' },
     page: gridPage('A4', 4, 10, 45, 25, 3, 2),
     fields: [
@@ -185,7 +189,8 @@ export const lifeTemplates: LabelTemplate[] = [
         align: 'left',
         color: '#7c3aed',
       }),
-      text('window', '接收时段', { x: 22.5, y: 13.5, width: 20, height: 6 }, '接收：08:00–10:00', {
+      text('window', '接收时段', { x: 22.5, y: 13.5, width: 20, height: 6 }, '08:00–10:00', {
+        caption: '接收',
         fontSize: 4.5,
         align: 'right',
         color: INK_MUTED,
@@ -203,7 +208,7 @@ export const lifeTemplates: LabelTemplate[] = [
     description: '2 列 × 5 行，窗口号色块 + 经办人姓名工号与办理事项，政务大厅亮明身份规范服务。',
     scenario: '政务窗口岗位',
     accent: '#b91c1c',
-    sampleData: { windowNo: '06', name: '经办人：温良玉', staffNo: '工号 0312', service: '社保 · 医保业务' },
+    sampleData: { windowNo: '06', name: '温良玉', staffNo: '工号 0312', service: '社保 · 医保业务' },
     label: plainLabel(90, 48, '#7f1d1d'),
     page: gridPage('A4', 2, 5, 90, 48, 8, 6),
     fields: [
@@ -227,7 +232,8 @@ export const lifeTemplates: LabelTemplate[] = [
         align: 'left',
       }),
       hairline('rule', { x: 30.5, y: 19.5, width: 55, height: 0.22 }),
-      text('name', '经办人', { x: 30, y: 22.5, width: 56, height: 9 }, '经办人：温良玉', {
+      text('name', '经办人', { x: 30, y: 22.5, width: 56, height: 9 }, '温良玉', {
+        caption: '经办人',
         fontSize: 8.5,
         align: 'left',
         color: INK_SOFT,
@@ -284,7 +290,7 @@ export const lifeTemplates: LabelTemplate[] = [
       name: '桑云野',
       post: '大堂服务岗',
       staffNo: 'NO.2088',
-      phone: '监督电话：0571-8800-1234',
+      phone: '0571-8800-1234',
       photo: '',
     },
     label: plainLabel(90, 62, '#155e75'),
@@ -327,7 +333,8 @@ export const lifeTemplates: LabelTemplate[] = [
         caption: '工号',
       }),
       hairline('rule', { x: 5, y: 47, width: 80, height: 0.22 }),
-      text('phone', '监督电话', { x: 5, y: 50, width: 80, height: 8 }, '监督电话：0571-8800-1234', {
+      text('phone', '监督电话', { x: 5, y: 50, width: 80, height: 8 }, '0571-8800-1234', {
+        caption: '监督电话',
         fontSize: 7,
         color: INK_MUTED,
       }),
@@ -376,7 +383,7 @@ export const lifeTemplates: LabelTemplate[] = [
     description: '3 列 × 8 行圆角贴，「访客」色块 + 姓名与到访对象/有效时段，前台登记即打即贴。',
     scenario: '前台访客登记',
     accent: '#d97706',
-    sampleData: { name: '路远舟', host: '到访：市场部 王经理', valid: '5 月 20 日 14:00–18:00' },
+    sampleData: { name: '路远舟', host: '市场部 王经理', valid: '5 月 20 日 14:00–18:00' },
     label: { width: 60, height: 32, radius: 2.5, borderWidth: 0.35, borderColor: '#d97706', background: '#ffffff' },
     page: gridPage('A4', 3, 8, 60, 32, 4, 2.8),
     fields: [
@@ -401,7 +408,8 @@ export const lifeTemplates: LabelTemplate[] = [
         fontWeight: 'bold',
         align: 'left',
       }),
-      text('host', '到访对象', { x: 17, y: 15, width: 40, height: 6.5 }, '到访：市场部 王经理', {
+      text('host', '到访对象', { x: 17, y: 15, width: 40, height: 6.5 }, '市场部 王经理', {
+        caption: '到访',
         fontSize: 5.5,
         align: 'left',
         color: INK_SOFT,
@@ -421,7 +429,7 @@ export const lifeTemplates: LabelTemplate[] = [
     description: '4 列 × 10 行，品名加粗 + 账面数/实盘数/盘点人三栏留写，年终盘点贴货即写不抄错。',
     scenario: '库存盘点',
     accent: '#57534e',
-    sampleData: { itemName: '打印纸 A4 70g', bookQty: '账面：120 包', counter: '盘点人：仓管组' },
+    sampleData: { itemName: '打印纸 A4 70g', bookQty: '120 包', counter: '仓管组' },
     label: { width: 45, height: 25, radius: 0, borderWidth: 0.25, borderColor: '#44403c', background: '#ffffff' },
     page: gridPage('A4', 4, 10, 45, 25, 3, 2),
     fields: [
@@ -431,12 +439,14 @@ export const lifeTemplates: LabelTemplate[] = [
         fontWeight: 'bold',
         align: 'left',
       }),
-      text('bookQty', '账面数', { x: 3.5, y: 10.5, width: 39.5, height: 4.5 }, '账面：120 包', {
+      text('bookQty', '账面数', { x: 3.5, y: 10.5, width: 39.5, height: 4.5 }, '120 包', {
+        caption: '账面',
         fontSize: 5,
         align: 'left',
         color: INK_SOFT,
       }),
-      text('counter', '盘点人', { x: 3.5, y: 15.5, width: 20, height: 4.5 }, '盘点人：仓管组', {
+      text('counter', '盘点人', { x: 3.5, y: 15.5, width: 20, height: 4.5 }, '仓管组', {
+        caption: '盘点人',
         fontSize: 4.5,
         align: 'left',
         color: INK_MUTED,
@@ -459,7 +469,7 @@ export const lifeTemplates: LabelTemplate[] = [
     scenario: '餐厅包间标识',
     accent: '#7f1d1d',
     fontFamily: "'Songti SC', 'SimSun', 'STSong', serif",
-    sampleData: { room: '听松阁', tableType: '12 人圆桌 · 带投屏', ext: '内线：8203' },
+    sampleData: { room: '听松阁', tableType: '12 人圆桌 · 带投屏', ext: '8203' },
     label: { width: 90, height: 62, radius: 0, borderWidth: 0.45, borderColor: '#7f1d1d', background: '#fffbf7' },
     page: gridPage('A4', 2, 4, 90, 62, 8, 6),
     fields: [
@@ -474,7 +484,8 @@ export const lifeTemplates: LabelTemplate[] = [
         fontSize: 7.5,
         color: '#7f1d1d',
       }),
-      text('ext', '分机', { x: 4, y: 52, width: 82, height: 6 }, '内线：8203', {
+      text('ext', '分机', { x: 4, y: 52, width: 82, height: 6 }, '8203', {
+        caption: '内线',
         fontSize: 6,
         color: INK_FAINT,
         letterSpacing: 0.2,
@@ -520,7 +531,7 @@ export const lifeTemplates: LabelTemplate[] = [
     description: '3 列 × 7 行，菜名大字 + 辣度/忌口与价格分列，自助餐台、称重快餐与食堂窗口逐菜标注。',
     scenario: '餐台菜品标注',
     accent: '#dc2626',
-    sampleData: { dish: '剁椒鱼头', spicy: '辣度：中辣', price: '38 元/份' },
+    sampleData: { dish: '剁椒鱼头', spicy: '中辣', price: '38 元/份' },
     label: plainLabel(60, 36, '#b91c1c'),
     page: gridPage('A4', 3, 7, 60, 36, 4, 3.5),
     fields: [
@@ -530,7 +541,8 @@ export const lifeTemplates: LabelTemplate[] = [
         letterSpacing: 0.1,
       }),
       hairline('rule', { x: 8, y: 22.5, width: 44, height: 0.22 }, '#fecaca'),
-      text('spicy', '辣度/忌口', { x: 3, y: 25, width: 30, height: 7.5 }, '辣度：中辣', {
+      text('spicy', '辣度/忌口', { x: 3, y: 25, width: 30, height: 7.5 }, '中辣', {
+        caption: '辣度',
         fontSize: 6.5,
         align: 'left',
         color: '#dc2626',
@@ -616,7 +628,7 @@ export const lifeTemplates: LabelTemplate[] = [
     description: '2 列 × 4 行，课程名大字 + 教练与时段器械提示，团课教室门口周更排期一次打齐。',
     scenario: '团课排期标识',
     accent: '#ea580c',
-    sampleData: { course: '燃脂搏击', coach: '教练：铁妮', time: '周三 19:00–20:00', gear: '自备毛巾与手套' },
+    sampleData: { course: '燃脂搏击', coach: '铁妮', time: '周三 19:00–20:00', gear: '自备毛巾与手套' },
     label: plainLabel(90, 62, '#9a3412'),
     page: gridPage('A4', 2, 4, 90, 62, 8, 6),
     fields: [
@@ -628,7 +640,8 @@ export const lifeTemplates: LabelTemplate[] = [
         letterSpacing: 0.14,
         background: 'transparent',
       }),
-      text('coach', '教练', { x: 5, y: 25, width: 50, height: 9 }, '教练：铁妮', {
+      text('coach', '教练', { x: 5, y: 25, width: 50, height: 9 }, '铁妮', {
+        caption: '教练',
         fontSize: 9,
         align: 'left',
         fontWeight: 'bold',
@@ -806,7 +819,7 @@ export const lifeTemplates: LabelTemplate[] = [
     description: '2 列 × 4 行，房名大字 + 一句话房型说明与 WiFi 信息行，小院民宿的温感房牌。',
     scenario: '民宿房间标识',
     accent: '#166534',
-    sampleData: { room: '山月房', desc: '大床房 · 山景阳台', wifi: 'Wi-Fi：shanyue2026' },
+    sampleData: { room: '山月房', desc: '大床房 · 山景阳台', wifi: 'shanyue2026' },
     label: { width: 90, height: 62, radius: 2, borderWidth: 0.35, borderColor: '#166534', background: '#f7fdf9' },
     page: gridPage('A4', 2, 4, 90, 62, 8, 6),
     fields: [
@@ -821,7 +834,8 @@ export const lifeTemplates: LabelTemplate[] = [
         color: '#166534',
       }),
       bar('wifiBg', { x: 15, y: 48, width: 60, height: 9 }, '#dcfce7', { radius: 2 }),
-      text('wifi', 'WiFi', { x: 15, y: 48, width: 60, height: 9 }, 'Wi-Fi：shanyue2026', {
+      text('wifi', 'WiFi', { x: 15, y: 48, width: 60, height: 9 }, 'shanyue2026', {
+        caption: 'Wi-Fi',
         fontSize: 6.5,
         color: '#15803d',
         fontWeight: 'bold',
@@ -930,7 +944,7 @@ export const lifeTemplates: LabelTemplate[] = [
     description: '3 列 × 6 行，宠物名大字 + 品种/喂食要求与主人电话带字段名，宠物店寄养区逐笼交接清楚。',
     scenario: '宠物寄养管理',
     accent: '#c2410c',
-    sampleData: { petName: '汤圆', breed: '英短蓝白 · 3 岁', feeding: '喂食：早晚各一次 · 泌尿处方粮', contact: '主人电话：138****6688' },
+    sampleData: { petName: '汤圆', breed: '英短蓝白 · 3 岁', feeding: '早晚各一次 · 泌尿处方粮', contact: '138****6688' },
     label: { width: 60, height: 42, radius: 2, borderWidth: 0.35, borderColor: '#c2410c', background: '#ffffff' },
     page: gridPage('A4', 3, 6, 60, 42, 4, 3.6),
     fields: [
@@ -948,7 +962,8 @@ export const lifeTemplates: LabelTemplate[] = [
         color: INK_SOFT,
         caption: '品种',
       }),
-      text('feeding', '喂食要求', { x: 3, y: 20.5, width: 54, height: 11 }, '喂食：早晚各一次 · 泌尿处方粮', {
+      text('feeding', '喂食要求', { x: 3, y: 20.5, width: 54, height: 11 }, '早晚各一次 · 泌尿处方粮', {
+        caption: '喂食',
         fontSize: 6,
         align: 'left',
         color: INK,
@@ -956,7 +971,8 @@ export const lifeTemplates: LabelTemplate[] = [
         lineHeight: 1.35,
       }),
       hairline('rule', { x: 3, y: 33.5, width: 54, height: 0.2 }),
-      text('contact', '主人电话', { x: 3, y: 35, width: 54, height: 5.5 }, '主人电话：138****6688', {
+      text('contact', '主人电话', { x: 3, y: 35, width: 54, height: 5.5 }, '138****6688', {
+        caption: '主人电话',
         fontSize: 5.5,
         align: 'left',
         color: INK_MUTED,
@@ -971,7 +987,7 @@ export const lifeTemplates: LabelTemplate[] = [
     description: '4 列 × 8 行圆角牌，植物名大字 + 养护要点与认养人，校园认养角与办公室绿植管理。',
     scenario: '绿植养护标识',
     accent: '#15803d',
-    sampleData: { plant: '龟背竹', care: '散射光 · 一周一浇', owner: '认养人：行政部 小庄' },
+    sampleData: { plant: '龟背竹', care: '散射光 · 一周一浇', owner: '行政部 小庄' },
     label: { width: 45, height: 32, radius: 3, borderWidth: 0.35, borderColor: '#22c55e', background: '#f6fef8' },
     page: gridPage('A4', 4, 8, 45, 32, 3, 2.5),
     fields: [
@@ -984,7 +1000,8 @@ export const lifeTemplates: LabelTemplate[] = [
         fontSize: 5.5,
         color: '#15803d',
       }),
-      text('owner', '认养人', { x: 2.5, y: 23.5, width: 40, height: 5.5 }, '认养人：行政部 小庄', {
+      text('owner', '认养人', { x: 2.5, y: 23.5, width: 40, height: 5.5 }, '行政部 小庄', {
+        caption: '认养人',
         fontSize: 5,
         color: INK_MUTED,
       }),

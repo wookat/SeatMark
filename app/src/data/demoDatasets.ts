@@ -305,7 +305,7 @@ const esportsDataset: DemoDataset = {
     const role = ['上单位', '打野位', '中单位', '射手位', '辅助位'][i % 5]!
     return {
       '选手 ID': playerId,
-      战队: `战队：${team}`,
+      战队: team,
       位置: `${role} · ${(i % 5) + 1} 号位`,
       战队位次: `${team} · ${role.slice(0, 2)}`,
     }
