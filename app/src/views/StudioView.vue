@@ -145,6 +145,15 @@ onMounted(() => {
         Object.keys(handoff.rows[0]!),
         handoff.rows,
       )
+      // 当前模板与座位名单字段大面积不匹配（如上次会话用的是证卡类模板）时，自动切到课桌贴模板
+      const mappable = workspace.mappableFields.length
+      if (mappable > 0 && workspace.mappedCount < Math.ceil(mappable / 2)) {
+        const desk = library.findById('deskName')
+        if (desk) {
+          workspace.selectTemplate(desk, { silent: true })
+          toast.info('已切换到课桌贴模板', '原模板字段与座位名单不匹配；可在「模板」中更换其他样式')
+        }
+      }
       toast.success('座位表名单已带入', `共 ${handoff.rows.length} 人，选好模板即可批量生成桌贴`)
     }
   }
