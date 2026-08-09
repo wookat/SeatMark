@@ -127,7 +127,9 @@ async function submitReserve() {
       <p class="mx-auto mt-4 max-w-xl text-sm leading-6 text-slate-600">
         带水印导出与打印完全不限次数；无水印导出每天 {{ QUOTA_ANON_DAILY }} 次（登录后
         {{ QUOTA_USER_DAILY }} 次），分享可再送次数。
-        专业版 Beta 期间限时免费试用；团队版现已标价，支付开通前可预订登记。
+      </p>
+      <p class="mx-auto mt-1.5 max-w-xl text-sm leading-6 text-slate-600">
+        专业版 Beta 期间限时免费试用；团队版支付开通前可预订登记。
       </p>
     </div>
 
@@ -247,7 +249,7 @@ async function submitReserve() {
         <p class="leading-6">
           团队版 ¥99/月，支付通道即将开通。留下邮箱与团队规模，开通后我们第一时间通知你，预订用户享首批优惠。
         </p>
-        <form class="mt-4 grid gap-3" @submit.prevent="submitReserve">
+        <form class="mt-4 grid gap-3" novalidate @submit.prevent="submitReserve">
           <label class="grid gap-1.5">
             <span class="text-sm font-semibold text-slate-700">联系邮箱</span>
             <input

@@ -13,7 +13,7 @@ import MappingPanel from '@/components/studio/MappingPanel.vue'
 import PreviewArea from '@/components/studio/PreviewArea.vue'
 import TemplatePickerPanel from '@/components/studio/TemplatePickerPanel.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
-import { createBlankTemplate } from '@/data/defaultTemplates'
+import { createBlankTemplate, defaultTemplates } from '@/data/defaultTemplates'
 import { findLabelPaper } from '@/data/labelPapers'
 import { useTemplateLibrary } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
@@ -128,7 +128,27 @@ onMounted(() => {
       if (fit.level === 'recommended' || fit.level === 'usable') {
         applyLabelPaper(workspace.template, spec)
         toast.info('已按纸型锁定排版', `${spec.name}：每页 ${spec.cols * spec.rows} 枚`)
+      } else if (typeof templateId !== 'string') {
+        // 纸型落地页进来的用户意图就是用这张纸：当前模板不适配时自动换用最适配的内置模板
+        const best = defaultTemplates
+          .map((t) => ({ template: t, fit: evaluatePaperFit(t, spec) }))
+          .filter((x) => x.fit.level === 'recommended' || x.fit.level === 'usable')
+          .sort((a, b) => b.fit.score - a.fit.score)[0]
+        if (best) {
+          workspace.selectTemplate(best.template, { silent: true })
+          applyLabelPaper(workspace.template, spec)
+          toast.info(
+            '已换用适配该纸型的模板',
+            `原模板与「${spec.name}」适配度不足，已切换到「${best.template.name}」并按纸型锁定排版（每页 ${spec.cols * spec.rows} 枚）；可在「模板」中更换其他样式`,
+          )
+        } else {
+          toast.warning(
+            '纸型与当前模板适配度不足',
+            `「${spec.name}」与本模板适配度：${FIT_LEVEL_LABELS[fit.level]}，已保持模板默认排版；可在「纸张排版」选择适配的纸型`,
+          )
+        }
       } else {
+        // quickStart 等显式指定了模板：尊重模板选择，仅提示纸型未应用
         toast.warning(
           '纸型与当前模板适配度不足',
           `「${spec.name}」与本模板适配度：${FIT_LEVEL_LABELS[fit.level]}，已保持模板默认排版；可在「纸张排版」选择适配的纸型`,
