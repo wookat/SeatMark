@@ -22,6 +22,7 @@ import type { LabelTemplate } from '@/types/template'
 import { uid } from '@/utils/id'
 import { cloneTemplate } from '@/utils/layout'
 import { applyLabelPaper } from '@/utils/labelPaper'
+import { evaluatePaperFit, FIT_LEVEL_LABELS } from '@/utils/paperFit'
 import { takeSeatingHandoff } from '@/utils/seating'
 import { decodeSharedTemplate, extractSharePayload } from '@/utils/share'
 
@@ -119,12 +120,20 @@ onMounted(() => {
       workspace.useDemoData()
     }
   }
-  // 从纸型落地页进入：按纸型锁定排版
+  // 从纸型落地页进入：适配度达「可用」以上才按纸型锁定排版，避免卡面拉伸变形
   if (typeof route.query.paper === 'string') {
     const spec = findLabelPaper(route.query.paper)
     if (spec) {
-      applyLabelPaper(workspace.template, spec)
-      toast.info('已按纸型锁定排版', `${spec.name}：每页 ${spec.cols * spec.rows} 枚`)
+      const fit = evaluatePaperFit(workspace.template, spec)
+      if (fit.level === 'recommended' || fit.level === 'usable') {
+        applyLabelPaper(workspace.template, spec)
+        toast.info('已按纸型锁定排版', `${spec.name}：每页 ${spec.cols * spec.rows} 枚`)
+      } else {
+        toast.warning(
+          '纸型与当前模板适配度不足',
+          `「${spec.name}」与本模板适配度：${FIT_LEVEL_LABELS[fit.level]}，已保持模板默认排版；可在「纸张排版」选择适配的纸型`,
+        )
+      }
     }
   }
   // 从教室座位表一键带入同一份名单

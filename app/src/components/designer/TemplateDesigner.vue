@@ -73,6 +73,10 @@ function clearSelection() {
 function onFieldListClick(id: string, event: MouseEvent) {
   if (event.ctrlKey || event.metaKey || event.shiftKey) toggleSelect(id)
   else selectOnly(id)
+  // 移动端从字段列表选中后直接切到属性面板，免去再找入口
+  if (isMobile.value && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+    mobilePanel.value = 'props'
+  }
 }
 
 // 编辑的模板可能引用了在线字体，进入设计器时后台补载
@@ -639,7 +643,8 @@ function onDocPointerDown(event: PointerEvent) {
   if (
     addMenuOpen.value &&
     addMenuRoot.value &&
-    !addMenuRoot.value.contains(event.target as Node)
+    !addMenuRoot.value.contains(event.target as Node) &&
+    !addMenuEl.value?.contains(event.target as Node)
   ) {
     addMenuOpen.value = false
   }
@@ -658,6 +663,21 @@ onBeforeUnmount(() => {
 // ---------- 预设字段库 ----------
 const addMenuOpen = ref(false)
 const addMenuRoot = ref<HTMLElement | null>(null)
+const addMenuEl = ref<HTMLElement | null>(null)
+// 菜单 teleport 到 body 后用 fixed 定位：否则会被工具栏 overflow-x-auto 裁切不可见
+const addMenuPos = ref({ left: 0, top: 0 })
+
+function toggleAddMenu() {
+  if (!addMenuOpen.value && addMenuRoot.value) {
+    const rect = addMenuRoot.value.getBoundingClientRect()
+    const menuWidth = 208
+    addMenuPos.value = {
+      left: Math.max(8, Math.min(rect.left, window.innerWidth - menuWidth - 8)),
+      top: rect.bottom + 4,
+    }
+  }
+  addMenuOpen.value = !addMenuOpen.value
+}
 
 /** 文本类预设的公共默认值 */
 function presetText(id: string, label: string, overrides: Partial<TemplateField>): TemplateField {
@@ -1110,6 +1130,19 @@ function save(asNew: boolean) {
             <path d="M2.5 4h11M2.5 8h11M2.5 12h11" />
           </svg>
         </button>
+        <!-- 移动端侧栏切换：字段属性（放头部始终可见，不随工具栏横向滚动藏到屏外） -->
+        <button
+          v-if="isMobile"
+          type="button"
+          class="btn btn-ghost btn-sm !px-2"
+          :class="{ 'bg-slate-100 text-brand-600': mobilePanel === 'props' }"
+          aria-label="属性面板"
+          @click="mobilePanel = mobilePanel === 'props' ? null : 'props'"
+        >
+          <svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.5 2.5h4v4M13.5 2.5 8.5 7.5M6.5 13.5h-4v-4M2.5 13.5l5-5" />
+          </svg>
+        </button>
         <span class="hidden text-sm font-bold text-slate-600 sm:inline">模板设计器</span>
         <input
           v-model="draft.name"
@@ -1139,7 +1172,7 @@ function save(asNew: boolean) {
       class="flex h-11 shrink-0 items-center gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3"
     >
       <div ref="addMenuRoot" class="relative shrink-0">
-        <button type="button" class="btn btn-secondary btn-sm" @click="addMenuOpen = !addMenuOpen">
+        <button type="button" class="btn btn-secondary btn-sm" @click="toggleAddMenu">
           + 添加字段
           <svg
             class="size-3 transition-transform"
@@ -1154,9 +1187,12 @@ function save(asNew: boolean) {
             <path d="m4 6 4 4 4-4" />
           </svg>
         </button>
+        <Teleport to="body">
         <div
           v-if="addMenuOpen"
-          class="absolute top-full left-0 z-40 mt-1 max-h-80 w-52 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-pop"
+          ref="addMenuEl"
+          class="fixed z-[70] max-h-80 w-52 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-pop"
+          :style="{ left: `${addMenuPos.left}px`, top: `${addMenuPos.top}px` }"
         >
           <p class="px-2 pt-1 pb-0.5 text-[10px] font-bold tracking-wider text-slate-600">
             常用考务字段
@@ -1232,6 +1268,7 @@ function save(asNew: boolean) {
             </span>
           </button>
         </div>
+        </Teleport>
       </div>
 
       <span class="mx-1.5 h-5 w-px shrink-0 bg-slate-200"></span>
@@ -1435,20 +1472,6 @@ function save(asNew: boolean) {
         </button>
       </div>
 
-      <!-- 移动端属性面板切换 -->
-      <span v-if="isMobile" class="mx-1.5 h-5 w-px shrink-0 bg-slate-200"></span>
-      <button
-        v-if="isMobile"
-        type="button"
-        class="btn btn-ghost btn-sm shrink-0 !px-1.5"
-        :class="{ 'bg-slate-100 text-brand-600': mobilePanel === 'props' }"
-        aria-label="属性面板"
-        @click="mobilePanel = mobilePanel === 'props' ? null : 'props'"
-      >
-        <svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3.5 5.5h9M3.5 8h6M3.5 10.5h9" />
-        </svg>
-      </button>
     </div>
 
     <div class="flex min-h-0 flex-1">
