@@ -45,8 +45,11 @@ export default defineConfig(({ isSsrBuild }) => ({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,svg,png,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // 新版本立即接管，服务端响应头/资源更新不必等用户关闭全部标签页
+        skipWaiting: true,
+        clientsClaim: true,
         // 导航请求不吃预缓存的 index.html：否则服务端响应头（安全头等）更新后，
         // 老访客仍被 SW 用旧响应应答，新头长期不生效
         navigateFallback: undefined,
@@ -58,6 +61,8 @@ export default defineConfig(({ isSsrBuild }) => ({
               cacheName: 'pages',
               networkTimeoutSeconds: 4,
               expiration: { maxEntries: 32, maxAgeSeconds: 60 * 60 * 24 },
+              // 离线且该路由未缓存时回落预缓存壳页，保持任意路由可离线打开
+              precacheFallback: { fallbackURL: '/index.html' },
             },
           },
         ],
