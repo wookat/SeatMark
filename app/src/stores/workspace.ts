@@ -438,11 +438,22 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         )
       }
     }
+    // 名单是演示数据时跟随新模板换用对应场景的数据集（婚宴名单不带进考场模板）；
+    // 用户自己导入的名单不动
+    let demoNote = ''
+    if (isDemoData.value && excel.rows.length) {
+      const demo = demoExcelFor(template.value)
+      if (demo.sheetName !== excel.sheetName) {
+        applyExcel(demo)
+        Object.assign(mapping, demo.mapping)
+        demoNote = `，演示数据已换为「${demo.sheetName}」`
+      }
+    }
     remapForTemplate()
     // 模板若使用了在线字体（自定义 / 分享 / 导入），后台补载
     useFontsStore().ensureTemplateFonts(template.value)
     if (!options.silent) {
-      toast.info('模板已切换', `当前模板：${next.name}${paperNote}`)
+      toast.info('模板已切换', `当前模板：${next.name}${paperNote}${demoNote}`)
     }
   }
 
