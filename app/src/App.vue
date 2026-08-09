@@ -63,7 +63,8 @@ onMounted(() => {
     <AnnouncementBar />
     <AppHeader />
     <ShareWelcomeBanner :open="shareWelcomeOpen" @close="shareWelcomeOpen = false" />
-    <main class="flex-1">
+    <!-- min-h 让 footer 首帧位于视口之外，异步路由内容撑开时不产生可见位移（CLS） -->
+    <main class="min-h-svh flex-1 print:min-h-0">
       <RouterView />
     </main>
     <AppFooter />

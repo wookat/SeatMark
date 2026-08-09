@@ -268,7 +268,7 @@ const recommendedItems = computed(() => {
         >
           <div class="mx-auto max-w-56 ">
             <div class="bg-white shadow-card">
-              <TemplateThumb :template="item.template!" />
+              <TemplateThumb :template="item.template!" defer />
             </div>
           </div>
           <span
