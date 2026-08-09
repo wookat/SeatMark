@@ -2,7 +2,13 @@ import type { SampleExcel } from '@/data/demoDatasets'
 import { sampleExcelFor } from '@/data/demoDatasets'
 import type { DataRow, LabelTemplate, ParsedExcel } from '@/types/template'
 
-/** 解析 Excel 文件首个工作表：第一行为表头，其余为数据行 */
+/** 表头行探测时最多跳过的前置标题/空行数 */
+export const MAX_TITLE_ROWS = 3
+
+/** 单单元格行被视为大标题（而非单列表头）的最短文本长度 */
+export const MIN_TITLE_TEXT_LENGTH = 6
+
+/** 解析 Excel 文件首个工作表：自动跳过前置大标题/空行定位表头行，其余为数据行 */
 export async function parseExcelFile(file: File): Promise<ParsedExcel> {
   const XLSX = await import('xlsx')
 
@@ -25,16 +31,43 @@ export async function parseExcelFile(file: File): Promise<ParsedExcel> {
 
   const sheet = workbook.Sheets[sheetName]!
   const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 })
-  if (matrix.length < 2) {
+
+  const cellTexts = (row: unknown[] | undefined) =>
+    (row ?? [])
+      .map((cell) => String(cell ?? '').trim())
+      .filter((text) => text !== '')
+
+  const isTitleRow = (row: unknown[] | undefined) => {
+    const texts = cellTexts(row)
+    if (texts.length === 0) return true
+    return texts.length === 1 && texts[0]!.length >= MIN_TITLE_TEXT_LENGTH
+  }
+
+  const multiColumn = matrix
+    .slice(0, MAX_TITLE_ROWS + 2)
+    .some((row) => cellTexts(row).length >= 2)
+
+  let headerRowIdx = 0
+  while (
+    multiColumn &&
+    headerRowIdx < Math.min(matrix.length - 1, MAX_TITLE_ROWS + 1) &&
+    isTitleRow(matrix[headerRowIdx])
+  ) {
+    headerRowIdx++
+  }
+  if (matrix.length - headerRowIdx < 2) {
     throw new Error('Excel 至少需要包含表头行和一行数据')
   }
 
-  const headers = (matrix[0] ?? []).map((h, i) => {
-    const text = String(h ?? '').trim()
+  const body = matrix.slice(headerRowIdx)
+  const columnCount = body.reduce((max, row) => Math.max(max, row.length), 0)
+  const headerRow = body[0] ?? []
+  const headers = Array.from({ length: columnCount }, (_, i) => {
+    const text = String(headerRow[i] ?? '').trim()
     return text || `列${i + 1}`
   })
 
-  const rows: DataRow[] = matrix
+  const rows: DataRow[] = body
     .slice(1)
     .filter((row) => row.some((cell) => cell !== undefined && cell !== null && cell !== ''))
     .map((row) => {
