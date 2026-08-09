@@ -40,7 +40,7 @@ export const round4Templates: LabelTemplate[] = [
     description: '2 列 × 4 行，房号反白大字 + 房型与入住宾客信息，团队入住批量布房一步到位。',
     scenario: '酒店 / 民宿房门牌',
     accent: '#0e7490',
-    sampleData: { roomNo: '1208', roomType: '高级大床房', guest: '接待：研学一团', date: '8 月 12 日—8 月 15 日' },
+    sampleData: { roomNo: '1208', roomType: '高级大床房', guest: '研学一团', date: '8 月 12 日—8 月 15 日' },
     label: plainLabel(90, 60, '#155e75'),
     page: gridPage('A4', 2, 4, 90, 60, 8, 6),
     fields: [
@@ -59,7 +59,8 @@ export const round4Templates: LabelTemplate[] = [
         background: 'transparent',
         align: 'right',
       }),
-      text('guest', '接待信息', { x: 6, y: 26, width: 78, height: 12 }, '接待：研学一团', {
+      text('guest', '接待信息', { x: 6, y: 26, width: 78, height: 12 }, '研学一团', {
+        caption: '接待',
         fontSize: 12,
         fontWeight: 'bold',
       }),
@@ -164,7 +165,7 @@ export const round4Templates: LabelTemplate[] = [
     sampleData: {
       petName: '豆豆',
       breed: '柯基 · 3 岁 · 公',
-      owner: '主人：李女士 138****6688',
+      owner: '李女士 138****6688',
       feeding: '早晚各一次 · 对鸡肉过敏',
     },
     label: plainLabel(90, 55, '#c2410c'),
@@ -183,7 +184,8 @@ export const round4Templates: LabelTemplate[] = [
         align: 'right',
       }),
       hairline('ln1', { x: 6, y: 25, width: 78, height: 0.3 }),
-      text('owner', '主人联系', { x: 6, y: 28, width: 78, height: 9 }, '主人：李女士 138****6688', {
+      text('owner', '主人联系', { x: 6, y: 28, width: 78, height: 9 }, '李女士 138****6688', {
+        caption: '主人',
         fontSize: 8.5,
         color: INK_SOFT,
         align: 'left',
@@ -209,8 +211,8 @@ export const round4Templates: LabelTemplate[] = [
     sampleData: {
       roomNo: 'B12',
       name: '陈静怡',
-      baby: '宝宝：女 · 8 月 2 日出生',
-      nurse: '护理师：王老师',
+      baby: '女 · 8 月 2 日出生',
+      nurse: '王老师',
     },
     label: plainLabel(90, 50, '#be185d'),
     page: gridPage('A4', 2, 5, 90, 50, 8, 5),
@@ -228,12 +230,14 @@ export const round4Templates: LabelTemplate[] = [
         fontWeight: 'bold',
         align: 'left',
       }),
-      text('baby', '宝宝信息', { x: 26, y: 21, width: 60, height: 9 }, '宝宝：女 · 8 月 2 日出生', {
+      text('baby', '宝宝信息', { x: 26, y: 21, width: 60, height: 9 }, '女 · 8 月 2 日出生', {
+        caption: '宝宝',
         fontSize: 8,
         color: INK_SOFT,
         align: 'left',
       }),
-      text('nurse', '责任护理师', { x: 26, y: 33, width: 60, height: 9 }, '护理师：王老师', {
+      text('nurse', '责任护理师', { x: 26, y: 33, width: 60, height: 9 }, '王老师', {
+        caption: '护理师',
         fontSize: 8,
         color: INK_MUTED,
         align: 'left',
@@ -249,7 +253,7 @@ export const round4Templates: LabelTemplate[] = [
     description: '2 列 × 3 行大字车贴，教练车编号超大字 + 教练与学员批次，训练场一眼认车。',
     scenario: '驾校教练车 / 训练场',
     accent: '#16a34a',
-    sampleData: { carNo: '12 号车', coach: '教练：张国强', batch: '八月 C1 周末班' },
+    sampleData: { carNo: '12 号车', coach: '张国强', batch: '八月 C1 周末班' },
     label: plainLabel(95, 70, '#15803d'),
     page: gridPage('A4', 2, 3, 95, 70, 6, 6),
     fields: [
@@ -260,7 +264,8 @@ export const round4Templates: LabelTemplate[] = [
         emphasis: 'hero',
       }),
       hairline('ln', { x: 12, y: 46, width: 71, height: 0.3 }),
-      text('coach', '教练', { x: 6, y: 49, width: 83, height: 9 }, '教练：张国强', {
+      text('coach', '教练', { x: 6, y: 49, width: 83, height: 9 }, '张国强', {
+        caption: '教练',
         fontSize: 10,
         color: INK_SOFT,
       }),
@@ -329,7 +334,7 @@ export const round4Templates: LabelTemplate[] = [
     description: '3 列 × 8 行密排小标签，设备名 + 编号/负责人，直播间与摄影棚器材管理。',
     scenario: '直播间 / 摄影棚器材',
     accent: '#4f46e5',
-    sampleData: { gear: '主机位相机', gearNo: 'CAM-01', owner: '负责人：阿凯' },
+    sampleData: { gear: '主机位相机', gearNo: 'CAM-01', owner: '阿凯' },
     label: plainLabel(60, 30, '#4338ca'),
     page: gridPage('A4', 3, 8, 60, 30, 4, 4),
     fields: [
@@ -345,7 +350,8 @@ export const round4Templates: LabelTemplate[] = [
         fontWeight: 'bold',
         align: 'left',
       }),
-      text('owner', '负责人', { x: 32, y: 15, width: 24, height: 8 }, '负责人：阿凯', {
+      text('owner', '负责人', { x: 32, y: 15, width: 24, height: 8 }, '阿凯', {
+        caption: '负责人',
         fontSize: 6,
         color: INK_MUTED,
         align: 'right',
@@ -398,7 +404,7 @@ export const round4Templates: LabelTemplate[] = [
     description: '2 列 × 5 行，植物名 + 认养人与养护提示，校园班级与办公室绿植认养行动。',
     scenario: '校园 / 办公室绿植认养',
     accent: '#15803d',
-    sampleData: { plant: '龟背竹', adopter: '认养人：高一（3）班 林小满', care: '每周浇水 1 次 · 散射光' },
+    sampleData: { plant: '龟背竹', adopter: '高一（3）班 林小满', care: '每周浇水 1 次 · 散射光' },
     label: plainLabel(70, 45, '#166534'),
     page: gridPage('A4', 2, 5, 70, 45, 6, 4),
     fields: [
@@ -408,7 +414,8 @@ export const round4Templates: LabelTemplate[] = [
         fontWeight: 'bold',
         emphasis: 'hero',
       }),
-      text('adopter', '认养人', { x: 4, y: 23, width: 62, height: 9 }, '认养人：高一（3）班 林小满', {
+      text('adopter', '认养人', { x: 4, y: 23, width: 62, height: 9 }, '高一（3）班 林小满', {
+        caption: '认养人',
         fontSize: 7.5,
         color: INK_SOFT,
       }),
@@ -430,7 +437,7 @@ export const round4Templates: LabelTemplate[] = [
     sampleData: {
       name: '唐乐然',
       className: '托管 B 班',
-      guardian: '接送人：唐先生（爸爸）',
+      guardian: '唐先生（爸爸）',
       phone: '139****2266',
     },
     label: plainLabel(90, 55, '#0e7490'),
@@ -449,7 +456,8 @@ export const round4Templates: LabelTemplate[] = [
         align: 'right',
       }),
       hairline('ln', { x: 8, y: 26, width: 78, height: 0.3 }),
-      text('guardian', '接送人', { x: 8, y: 30, width: 78, height: 9 }, '接送人：唐先生（爸爸）', {
+      text('guardian', '接送人', { x: 8, y: 30, width: 78, height: 9 }, '唐先生（爸爸）', {
+        caption: '接送人',
         fontSize: 9,
         color: INK_SOFT,
         align: 'left',
@@ -470,7 +478,7 @@ export const round4Templates: LabelTemplate[] = [
     description: 'A4 一页 3 枚横牌，营队名大字 + 带队老师与集合口令，研学出行分队集合醒目。',
     scenario: '研学营 / 夏令营分队',
     accent: '#d97706',
-    sampleData: { team: '飞鹰二队', leader: '带队老师：赵原', slogan: '口令：向阳而行' },
+    sampleData: { team: '飞鹰二队', leader: '赵原', slogan: '向阳而行' },
     label: plainLabel(140, 90, '#b45309'),
     page: gridPage('A4', 1, 3, 140, 90, 0, 8),
     fields: [
@@ -481,11 +489,13 @@ export const round4Templates: LabelTemplate[] = [
         emphasis: 'hero',
       }),
       hairline('ln', { x: 30, y: 58, width: 80, height: 0.3 }),
-      text('leader', '带队老师', { x: 10, y: 63, width: 120, height: 10 }, '带队老师：赵原', {
+      text('leader', '带队老师', { x: 10, y: 63, width: 120, height: 10 }, '赵原', {
+        caption: '带队老师',
         fontSize: 11,
         color: INK_SOFT,
       }),
-      text('slogan', '集合口令', { x: 10, y: 75, width: 120, height: 9 }, '口令：向阳而行', {
+      text('slogan', '集合口令', { x: 10, y: 75, width: 120, height: 9 }, '向阳而行', {
+        caption: '口令',
         fontSize: 9.5,
         color: INK_MUTED,
       }),
@@ -503,7 +513,7 @@ export const round4Templates: LabelTemplate[] = [
     sampleData: {
       gridNo: '第 6 网格',
       area: '海棠苑 7—9 栋',
-      officer: '网格员：马晓芸',
+      officer: '马晓芸',
       phone: '135****5577',
     },
     label: plainLabel(90, 60, '#b91c1c'),
@@ -522,7 +532,8 @@ export const round4Templates: LabelTemplate[] = [
         fontWeight: 'bold',
       }),
       hairline('ln', { x: 6, y: 35, width: 78, height: 0.3 }),
-      text('officer', '网格员', { x: 6, y: 39, width: 78, height: 8 }, '网格员：马晓芸', {
+      text('officer', '网格员', { x: 6, y: 39, width: 78, height: 8 }, '马晓芸', {
+        caption: '网格员',
         fontSize: 8.5,
         color: INK_SOFT,
       }),
@@ -541,7 +552,7 @@ export const round4Templates: LabelTemplate[] = [
     description: 'A4 一页 3 枚横向台牌，科室名大字 + 坐诊医生与服务内容，义诊现场分台引导。',
     scenario: '义诊 / 健康服务活动',
     accent: '#0284c7',
-    sampleData: { dept: '心内科咨询', doctor: '坐诊：吴主任医师', service: '量血压 · 心电初筛 · 用药咨询' },
+    sampleData: { dept: '心内科咨询', doctor: '吴主任医师', service: '量血压 · 心电初筛 · 用药咨询' },
     label: plainLabel(180, 90, '#0369a1'),
     page: gridPage('A4', 1, 3, 180, 90, 0, 5),
     fields: [
@@ -557,7 +568,8 @@ export const round4Templates: LabelTemplate[] = [
         fontWeight: 'bold',
         emphasis: 'hero',
       }),
-      text('doctor', '坐诊医生', { x: 10, y: 54, width: 160, height: 11 }, '坐诊：吴主任医师', {
+      text('doctor', '坐诊医生', { x: 10, y: 54, width: 160, height: 11 }, '吴主任医师', {
+        caption: '坐诊',
         fontSize: 12,
         color: INK_SOFT,
       }),
@@ -612,7 +624,7 @@ export const round4Templates: LabelTemplate[] = [
     description: '2 列 × 4 行台号牌，台号超大字 + 红黑双方姓名分列，象棋围棋赛场对局分台。',
     scenario: '象棋 / 围棋 / 国际象棋赛',
     accent: '#1f2937',
-    sampleData: { tableNo: '台 08', playerA: '执红：程亦白', playerB: '执黑：孟千帆' },
+    sampleData: { tableNo: '台 08', playerA: '程亦白', playerB: '孟千帆' },
     label: plainLabel(90, 60, '#111827'),
     page: gridPage('A4', 2, 4, 90, 60, 8, 6),
     fields: [
@@ -622,13 +634,15 @@ export const round4Templates: LabelTemplate[] = [
         emphasis: 'hero',
       }),
       hairline('ln', { x: 10, y: 34, width: 70, height: 0.3 }),
-      text('playerA', '甲方', { x: 6, y: 38, width: 38, height: 16 }, '执红：程亦白', {
+      text('playerA', '甲方', { x: 6, y: 38, width: 38, height: 16 }, '程亦白', {
+        caption: '执红',
         fontSize: 8.5,
         color: INK_SOFT,
         maxLines: 2,
       }),
       hairline('lnV', { x: 45, y: 38, width: 0.3, height: 16 }),
-      text('playerB', '乙方', { x: 46, y: 38, width: 38, height: 16 }, '执黑：孟千帆', {
+      text('playerB', '乙方', { x: 46, y: 38, width: 38, height: 16 }, '孟千帆', {
+        caption: '执黑',
         fontSize: 8.5,
         color: INK_SOFT,
         maxLines: 2,
@@ -643,7 +657,7 @@ export const round4Templates: LabelTemplate[] = [
     description: 'A4 一页 3 枚横牌，选手 ID 大字 + 战队与位置，深色块碰撞排版电竞氛围拉满。',
     scenario: '电竞比赛 / 网吧赛事',
     accent: '#0f172a',
-    sampleData: { playerId: 'FrostBlade', team: '战队：夜枭电子竞技俱乐部', role: '打野位 · 3 号位' },
+    sampleData: { playerId: 'FrostBlade', team: '夜枭电子竞技俱乐部', role: '打野位 · 3 号位' },
     label: plainLabel(180, 70, '#0f172a'),
     page: gridPage('A4', 1, 3, 180, 70, 0, 8),
     fields: [
@@ -655,7 +669,8 @@ export const round4Templates: LabelTemplate[] = [
         align: 'left',
         emphasis: 'hero',
       }),
-      text('team', '战队', { x: 16, y: 44, width: 158, height: 10 }, '战队：夜枭电子竞技俱乐部', {
+      text('team', '战队', { x: 16, y: 44, width: 158, height: 10 }, '夜枭电子竞技俱乐部', {
+        caption: '战队',
         fontSize: 10.5,
         color: INK_SOFT,
         align: 'left',
@@ -678,7 +693,7 @@ export const round4Templates: LabelTemplate[] = [
     accent: '#b91c1c',
     sampleData: {
       project: '山区图书角共建',
-      org: '发起：春晖公益服务中心',
+      org: '春晖公益服务中心',
       note: '募集图书与文具 · 现场登记开具凭证',
     },
     label: plainLabel(180, 90, '#991b1b'),
@@ -691,7 +706,8 @@ export const round4Templates: LabelTemplate[] = [
         fontWeight: 'bold',
         emphasis: 'hero',
       }),
-      text('org', '发起单位', { x: 10, y: 52, width: 160, height: 11 }, '发起：春晖公益服务中心', {
+      text('org', '发起单位', { x: 10, y: 52, width: 160, height: 11 }, '春晖公益服务中心', {
+        caption: '发起',
         fontSize: 12,
         color: INK_SOFT,
       }),
@@ -750,7 +766,7 @@ export const round4Templates: LabelTemplate[] = [
     sampleData: {
       product: '云朵三人位布艺沙发',
       price: '¥ 4,980',
-      spec: '规格：2.2 m · 科技布 · 含抱枕 4 只',
+      spec: '2.2 m · 科技布 · 含抱枕 4 只',
     },
     label: plainLabel(140, 90, '#115e59'),
     page: gridPage('A4', 1, 3, 140, 90, 0, 8),
@@ -767,7 +783,8 @@ export const round4Templates: LabelTemplate[] = [
         emphasis: 'hero',
       }),
       hairline('ln', { x: 24, y: 68, width: 92, height: 0.3 }),
-      text('spec', '规格', { x: 8, y: 72, width: 124, height: 10 }, '规格：2.2 m · 科技布 · 含抱枕 4 只', {
+      text('spec', '规格', { x: 8, y: 72, width: 124, height: 10 }, '2.2 m · 科技布 · 含抱枕 4 只', {
+        caption: '规格',
         fontSize: 8.5,
         color: INK_MUTED,
       }),
@@ -782,7 +799,7 @@ export const round4Templates: LabelTemplate[] = [
     description: '2 列 × 4 行，工位号大字 + 当前使用人与预约时段，灵活办公工位轮转清晰。',
     scenario: '共享办公 / 灵活工位',
     accent: '#2563eb',
-    sampleData: { deskNo: 'D-16', user: '当前使用：韩梅', slot: '时段：9:00—13:00' },
+    sampleData: { deskNo: 'D-16', user: '韩梅', slot: '9:00—13:00' },
     label: plainLabel(90, 55, '#1d4ed8'),
     page: gridPage('A4', 2, 4, 90, 55, 8, 6),
     fields: [
@@ -794,12 +811,14 @@ export const round4Templates: LabelTemplate[] = [
         background: 'transparent',
         emphasis: 'hero',
       }),
-      text('user', '使用人', { x: 6, y: 24, width: 78, height: 11 }, '当前使用：韩梅', {
+      text('user', '使用人', { x: 6, y: 24, width: 78, height: 11 }, '韩梅', {
+        caption: '当前使用',
         fontSize: 11,
         fontWeight: 'bold',
         align: 'left',
       }),
-      text('slot', '时段', { x: 6, y: 38, width: 78, height: 9 }, '时段：9:00—13:00', {
+      text('slot', '时段', { x: 6, y: 38, width: 78, height: 9 }, '9:00—13:00', {
+        caption: '时段',
         fontSize: 8.5,
         color: INK_MUTED,
         align: 'left',

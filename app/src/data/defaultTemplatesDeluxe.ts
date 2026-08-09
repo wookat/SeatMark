@@ -808,7 +808,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '180×70 mm 宽幅窗口牌，藏蓝底金色扭索纹样条 + 衬线窗口号大字，庄重可信的政务服务窗口气质。',
     scenario: '政务大厅 / 服务窗口',
     accent: '#1e3a8a',
-    sampleData: { winNo: '03', service: '不动产登记', staff: '首席代表：李文清' },
+    sampleData: { winNo: '03', service: '不动产登记', staff: '李文清' },
     label: decorLabel(
       180,
       70,
@@ -848,7 +848,8 @@ export const deluxeTemplates: LabelTemplate[] = [
         letterSpacing: 0.3,
         fontFamily: SERIF_ZH,
       }),
-      text('staff', '姓名', { x: 62, y: 46, width: 110, height: 8 }, '首席代表：李文清', {
+      text('staff', '姓名', { x: 62, y: 46, width: 110, height: 8 }, '李文清', {
+        caption: '首席代表',
         fontSize: 10,
         color: '#c7d2fe',
         align: 'left',

@@ -247,7 +247,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '140×90 mm 台签，深蓝底金色双线框，讲者姓名与议程角色反白居中，讲台庄重压场。',
     scenario: '商务深蓝讲台台签',
     accent: '#1e3a5f',
-    sampleData: { name: '主讲人：温子昂', topic: '宏观经济与资产配置展望' },
+    sampleData: { name: '温子昂', topic: '宏观经济与资产配置展望' },
     label: decorLabel(
       140,
       90,
@@ -261,7 +261,8 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     ),
     page: gridPage('A4', 1, 3, 140, 90, 0, 8),
     fields: [
-      text('name', '讲者', { x: 12, y: 22, width: 116, height: 26 }, '主讲人：温子昂', {
+      text('name', '讲者', { x: 12, y: 22, width: 116, height: 26 }, '温子昂', {
+        caption: '主讲人',
         fontSize: 25,
         fontWeight: 'bold',
         color: '#ffffff',

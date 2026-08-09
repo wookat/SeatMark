@@ -222,7 +222,7 @@ export const eventTemplates: LabelTemplate[] = [
     description: '2 列 × 6 行，「媒体」识别色块 + 媒体名称大字与记者姓名，发布会媒体区快速对位。',
     scenario: '发布会媒体区',
     accent: '#be123c',
-    sampleData: { media: '南方财经报', reporter: '记者：卫子夫', seatNo: 'M-12' },
+    sampleData: { media: '南方财经报', reporter: '卫子夫', seatNo: 'M-12' },
     label: plainLabel(90, 40, '#9f1239'),
     page: gridPage('A4', 2, 6, 90, 40, 8, 5),
     fields: [
@@ -245,7 +245,8 @@ export const eventTemplates: LabelTemplate[] = [
         fontWeight: 'bold',
         align: 'left',
       }),
-      text('reporter', '记者', { x: 20, y: 20, width: 44, height: 8 }, '记者：卫子夫', {
+      text('reporter', '记者', { x: 20, y: 20, width: 44, height: 8 }, '卫子夫', {
+        caption: '记者',
         fontSize: 8,
         align: 'left',
         color: INK_SOFT,
@@ -454,7 +455,7 @@ export const eventTemplates: LabelTemplate[] = [
     description: '1 列 × 2 行半页，车牌号超大字 + 活动名与有效期色条，置于前挡风玻璃远距核验。',
     scenario: '活动车辆通行',
     accent: '#15803d',
-    sampleData: { plate: '粤B·D8866', event: '2026 校友返校日', valid: '有效期：5 月 18 日当日' },
+    sampleData: { plate: '粤B·D8866', event: '2026 校友返校日', valid: '5 月 18 日当日' },
     label: plainLabel(190, 138, '#14532d'),
     page: gridPage('A4', 1, 2, 190, 138, 0, 7),
     fields: [
@@ -477,7 +478,8 @@ export const eventTemplates: LabelTemplate[] = [
         color: INK_SOFT,
       }),
       bar('validBg', { x: 45, y: 108, width: 100, height: 13 }, '#dcfce7', { radius: 2 }),
-      text('valid', '有效期', { x: 45, y: 108, width: 100, height: 13 }, '有效期：5 月 18 日当日', {
+      text('valid', '有效期', { x: 45, y: 108, width: 100, height: 13 }, '5 月 18 日当日', {
+        caption: '有效期',
         fontSize: 8.5,
         fontWeight: 'bold',
         color: '#15803d',
@@ -529,7 +531,7 @@ export const eventTemplates: LabelTemplate[] = [
     description: '1 列 × 3 行宽幅，服务点名称大字 + 服务内容与值守时段，大型活动志愿岗位统一标识。',
     scenario: '志愿服务站点',
     accent: '#e11d48',
-    sampleData: { point: '3 号问询服务点', service: '路线指引 · 失物登记 · 医疗协助', time: '值守：08:00–18:00' },
+    sampleData: { point: '3 号问询服务点', service: '路线指引 · 失物登记 · 医疗协助', time: '08:00–18:00' },
     label: plainLabel(190, 80, '#be123c'),
     page: gridPage('A4', 1, 3, 190, 80, 0, 6),
     fields: [
@@ -545,7 +547,8 @@ export const eventTemplates: LabelTemplate[] = [
         align: 'left',
         color: INK_SOFT,
       }),
-      text('time', '值守时段', { x: 18, y: 58, width: 164, height: 9 }, '值守：08:00–18:00', {
+      text('time', '值守时段', { x: 18, y: 58, width: 164, height: 9 }, '08:00–18:00', {
+        caption: '值守',
         fontSize: 8.5,
         align: 'left',
         color: '#e11d48',
