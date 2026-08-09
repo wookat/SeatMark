@@ -125,7 +125,7 @@ const kindergartenDataset: DemoDataset = {
 /** 会议 / 办公：会议桌牌 / 工作证 / 工位牌等 */
 const meetingDataset: DemoDataset = {
   id: 'meeting',
-  name: '会议桌牌',
+  name: '会议办公',
   fileName: '会议演示数据.xlsx',
   headers: ['姓名', '单位', '职务', '部门', '工号', '桌号', '座位号'],
   rows: buildRows(18, (i) => ({
