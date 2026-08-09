@@ -192,7 +192,7 @@ const specRows = computed(() => {
           class="group rounded-lg border border-slate-200 bg-white p-4 shadow-card transition-shadow hover:shadow-lg"
         >
           <div class="rounded-md bg-slate-50 p-3">
-            <TemplateThumb :template="item.template!" />
+            <TemplateThumb :template="item.template!" defer />
           </div>
           <h3 class="mt-3 text-sm font-bold text-slate-900 group-hover:text-brand-600">
             {{ item.template!.name }}

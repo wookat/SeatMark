@@ -332,7 +332,7 @@ function confirmDelete() {
         </span>
         <div class="flex gap-3">
           <div class="w-28 shrink-0 self-start">
-            <TemplateThumb :template="t" />
+            <TemplateThumb :template="t" defer />
           </div>
           <div class="min-w-0 flex-1">
             <div class="flex items-start justify-between gap-2">
@@ -586,7 +586,7 @@ function confirmDelete() {
               <path d="m3.5 8.5 3 3 6-7" />
             </svg>
           </span>
-          <TemplateThumb :template="t" :class="fitOf(t)?.level === 'incompatible' ? 'opacity-50' : ''" />
+          <TemplateThumb :template="t" defer :class="fitOf(t)?.level === 'incompatible' ? 'opacity-50' : ''" />
           <div class="mt-2 flex items-start justify-between gap-2">
             <h3 class="min-w-0 truncate text-sm font-bold text-slate-900">
               <button
