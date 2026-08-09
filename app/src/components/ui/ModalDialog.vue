@@ -111,7 +111,7 @@ onBeforeUnmount(() => {
         @click.self="emit('close')"
       >
         <div
-          class="flex max-h-[88vh] w-full flex-col rounded-lg bg-white p-5 shadow-pop ring-1 ring-slate-900/5 outline-none sm:p-6"
+          class="flex max-h-[88vh] w-full flex-col rounded-lg bg-white p-5 shadow-pop ring-1 ring-slate-900/5 outline-none supports-[height:100dvh]:max-h-[calc(100dvh-2rem)] sm:p-6 sm:supports-[height:100dvh]:max-h-[88vh]"
           :class="SIZE_CLASSES[size]"
           ref="panelRef"
           role="dialog"

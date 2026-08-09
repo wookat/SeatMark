@@ -164,11 +164,13 @@ const watermarkLayout = computed<{ text: string; showMark: boolean; style: CSSPr
   const inset = Math.max(0.8, size * 0.4)
   const showMark = size >= WATERMARK_MARK_MIN_SIZE_MM
   const markAdvance = showMark ? size * WATERMARK_MARK_ADVANCE_EM : 0
+  // 字段外扩一小圈避让间隙：水印紧贴字段徽章也会显得视觉重叠
+  const clearance = Math.max(0.6, size * 0.25)
   const fieldRects: Rect[] = props.template.fields.map((f) => ({
-    x: f.x,
-    y: f.y,
-    w: f.width,
-    h: f.height,
+    x: f.x - clearance,
+    y: f.y - clearance,
+    w: f.width + clearance * 2,
+    h: f.height + clearance * 2,
   }))
   const texts =
     estimateTextWidth(WATERMARK_FULL, size) + markAdvance <= width * 0.86
@@ -190,17 +192,33 @@ const watermarkLayout = computed<{ text: string; showMark: boolean; style: CSSPr
       return { text, showMark, style: styleFor(rect, size) }
     }
   }
-  // 兜底：底部靠右半透明叠加（密排模板的字段多为左对齐，右端视觉留白更多）
+  // 兜底：全部候选位都被占时，选与字段重叠面积最小的位置半透明叠加
   const text = texts[texts.length - 1]!
   const wmWidth = estimateTextWidth(text, size) + markAdvance
-  return {
-    text,
-    showMark,
-    style: styleFor(
-      { x: width - inset - wmWidth, y: height - inset - wmHeight, w: wmWidth, h: wmHeight },
-      size,
-    ),
+  const yBottom = height - inset - wmHeight
+  const fallbacks: Rect[] = [
+    { x: width - inset - wmWidth, y: yBottom, w: wmWidth, h: wmHeight },
+    { x: (width - wmWidth) / 2, y: yBottom, w: wmWidth, h: wmHeight },
+    { x: inset, y: yBottom, w: wmWidth, h: wmHeight },
+    { x: width - inset - wmWidth, y: inset, w: wmWidth, h: wmHeight },
+    { x: (width - wmWidth) / 2, y: inset, w: wmWidth, h: wmHeight },
+  ]
+  const overlapArea = (rect: Rect) =>
+    fieldRects.reduce((sum, f) => {
+      const ox = Math.min(rect.x + rect.w, f.x + f.w) - Math.max(rect.x, f.x)
+      const oy = Math.min(rect.y + rect.h, f.y + f.h) - Math.max(rect.y, f.y)
+      return sum + (ox > 0 && oy > 0 ? ox * oy : 0)
+    }, 0)
+  let best = fallbacks[0]!
+  let bestArea = overlapArea(best)
+  for (const rect of fallbacks.slice(1)) {
+    const area = overlapArea(rect)
+    if (area < bestArea - 0.01) {
+      best = rect
+      bestArea = area
+    }
   }
+  return { text, showMark, style: styleFor(best, size) }
 })
 
 function styleFor(rect: Rect, size: number): CSSProperties {
