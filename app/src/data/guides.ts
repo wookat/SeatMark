@@ -1704,15 +1704,15 @@ export const guides: Guide[] = [
     dateModified: '2026-08-04',
     readingMinutes: 7,
     quickStart: {
-      label: '一键载入「出入证胸卡版」+ 演示数据',
-      to: '/studio?template=badge&demo=1',
+      label: '一键载入「工作证」模板 + 演示数据',
+      to: '/studio?template=staffIdCard&demo=1',
       note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
     },
     howTo: {
       name: '批量制作员工/访客胸卡',
       steps: [
         { name: '整理人员名单', text: 'Excel 包含姓名、部门、工号列；带照片的以工号命名照片文件。' },
-        { name: '选择证卡模板', text: '选 54×86 mm 出入证胸卡模板，与市售标准卡套匹配。' },
+        { name: '选择证卡模板', text: '选 54×86 mm 工作证模板（带照片位），与市售标准卡套匹配。' },
         { name: '上传名单与照片', text: '名单自动匹配字段，照片按文件名批量匹配。' },
         { name: '打印裁切装套', text: '导出 PDF 打印后裁切，装入卡套配挂绳即可发放。' },
       ],

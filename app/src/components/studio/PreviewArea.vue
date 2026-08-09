@@ -1104,7 +1104,8 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         </div>
       </div>
 
-      <div v-else class="flex justify-center">
+      <!-- w-fit + min-w-full：内容宽于容器时包裹层随内容撑宽，避免 flex 居中把溢出部分裁到滚动区外 -->
+      <div v-else class="flex w-fit min-w-full justify-center">
         <div
           v-if="editOneHintVisible"
           class="absolute top-2 left-2 z-10 flex max-w-xs items-start gap-2 rounded-lg border border-brand-200 bg-white/95 px-3 py-2.5 shadow-pop backdrop-blur"
