@@ -2,6 +2,7 @@ import {
   classifyCanvasContent,
   createPageRenderer,
   EXPORT_CANCELLED_MESSAGE,
+  isCanvasBlank,
   rasterizeIndexedPng,
 } from '@/utils/pdfExport'
 import { evaluateFieldTemplate } from '@/utils/fieldTemplate'
@@ -391,7 +392,6 @@ async function exportPerLabelPng(
   const scale = options.exactPixels
     ? exactPixelScale(options.exactPixels.width, labelWidthMm) * EXACT_PIXEL_SUPERSAMPLE
     : (options.scale ?? pngRasterScale(labelWidthMm))
-  const pxPerMm = CSS_PX_PER_MM * scale
   const throwIfCancelled = () => {
     if (options.signal?.aborted) throw new Error(EXPORT_CANCELLED_MESSAGE)
   }
@@ -409,13 +409,19 @@ async function exportPerLabelPng(
 
   const baseName = options.fileName ?? defaultPngExportName()
 
-  /** 从页面画布切出单枚标签：非精确像素时按渲染倍率原尺寸裁剪 */
+  /**
+   * 从页面画布切出单枚标签：裁剪坐标按【实际渲染出的画布尺寸 ÷ 页面毫米尺寸】
+   * 换算，而非假定的理论倍率——移动端等环境下 html2canvas 实际输出尺寸
+   * 可能与请求倍率有偏差，按理论倍率裁剪会整体偏移甚至切到空白区域
+   */
   const cutLabel = (canvas: HTMLCanvasElement, rect: LabelExportItem['rect']) => {
+    const pxPerMmX = canvas.width / options.pageWidth
+    const pxPerMmY = canvas.height / options.pageHeight
     const sourceRect = {
-      x: rect.x * pxPerMm,
-      y: rect.y * pxPerMm,
-      width: rect.width * pxPerMm,
-      height: rect.height * pxPerMm,
+      x: rect.x * pxPerMmX,
+      y: rect.y * pxPerMmY,
+      width: rect.width * pxPerMmX,
+      height: rect.height * pxPerMmY,
     }
     return toOutputCanvas(canvas, {
       exactPixels: options.exactPixels ?? {
@@ -433,14 +439,34 @@ async function exportPerLabelPng(
     canvas.height = 0
   }
 
+  /**
+   * 渲染一页并切出全部标签：任一标签切出为空白（整页非空但局部
+   * 未绘制的渲染竞态）则整页重渲一次，仍空白按渲染失败报错，
+   * 与整页导出「绝不静默输出空白页」同一标准
+   */
+  const renderAndCutPage = async (
+    pageIndex: number,
+    labels: LabelExportItem[],
+  ): Promise<HTMLCanvasElement[]> => {
+    for (let attempt = 0; ; attempt++) {
+      const canvas = await renderPage(pageIndex)
+      const outputs = labels.map((label) => cutLabel(canvas, label.rect))
+      releaseCanvas(canvas)
+      const blankIndex = outputs.findIndex((o) => isCanvasBlank(o))
+      if (blankIndex < 0) return outputs
+      for (const o of outputs) releaseCanvas(o)
+      if (attempt >= 1) {
+        throw new Error(`第 ${pageIndex + 1}/${pageCount} 页第 ${blankIndex + 1} 枚标签渲染为空白`)
+      }
+    }
+  }
+
   if (totalLabels === 1) {
     throwIfCancelled()
     const pageIndex = labelsByPage.findIndex((p) => p.length)
-    const canvas = await renderPage(pageIndex)
-    const output = cutLabel(canvas, labelsByPage[pageIndex]![0]!.rect)
-    const blob = await canvasToPngBlob(output)
-    releaseCanvas(canvas)
-    releaseCanvas(output)
+    const [output] = await renderAndCutPage(pageIndex, [labelsByPage[pageIndex]![0]!])
+    const blob = await canvasToPngBlob(output!)
+    releaseCanvas(output!)
     throwIfCancelled()
     downloadBlob(blob, labelsByPage[pageIndex]![0]!.fileName ?? `${baseName}.png`)
     options.onProgress?.(1, 1)
@@ -454,17 +480,16 @@ async function exportPerLabelPng(
     const labels = labelsByPage[i] ?? []
     if (!labels.length) continue
     throwIfCancelled()
-    const canvas = await renderPage(i)
-    for (const label of labels) {
+    const outputs = await renderAndCutPage(i, labels)
+    for (let n = 0; n < labels.length; n++) {
       throwIfCancelled()
-      const output = cutLabel(canvas, label.rect)
+      const output = outputs[n]!
       const blob = await canvasToPngBlob(output)
       releaseCanvas(output)
-      zip.file(label.fileName ?? pngPageFileName(baseName, done), blob)
+      zip.file(labels[n]!.fileName ?? pngPageFileName(baseName, done), blob)
       done++
       options.onProgress?.(done, totalLabels)
     }
-    releaseCanvas(canvas)
   }
   throwIfCancelled()
   const zipBlob = await zip.generateAsync({ type: 'blob' })

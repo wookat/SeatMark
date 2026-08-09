@@ -108,7 +108,9 @@ onMounted(() => {
     if (found) workspace.selectTemplate(found, { silent: true })
   }
   if (route.query.demo === '1') {
-    if (workspace.excel.rows.length) {
+    // 已有名单是演示数据时直接换成当前模板的演示数据（quickStart 承诺「载入演示数据」）；
+    // 用户自己导入的名单不覆盖
+    if (workspace.excel.rows.length && !workspace.isDemoData) {
       toast.info(
         '已保留你当前的名单',
         '如需查看演示数据，请先在「数据导入」中清空当前名单后重试',
