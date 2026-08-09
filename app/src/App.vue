@@ -21,6 +21,11 @@ const auth = useAuthStore()
 const toast = useToastStore()
 const router = useRouter()
 
+/** 跳过头部直达主内容（键盘用户 skip-link） */
+function focusMain() {
+  document.getElementById('main-content')?.focus()
+}
+
 /** 被分享者落地欢迎横幅（?ref= 进入）：介绍这是什么工具 + 一键开始 */
 const shareWelcomeOpen = ref(false)
 
@@ -60,11 +65,18 @@ onMounted(() => {
 
 <template>
   <div class="flex min-h-screen flex-col">
+    <a
+      href="#main-content"
+      class="sr-only rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50"
+      @click.prevent="focusMain"
+    >
+      跳到主内容
+    </a>
     <AnnouncementBar />
     <AppHeader />
     <ShareWelcomeBanner :open="shareWelcomeOpen" @close="shareWelcomeOpen = false" />
     <!-- min-h 让 footer 首帧位于视口之外，异步路由内容撑开时不产生可见位移（CLS） -->
-    <main class="min-h-svh flex-1 print:min-h-0">
+    <main id="main-content" tabindex="-1" class="min-h-svh flex-1 outline-none print:min-h-0">
       <RouterView />
     </main>
     <AppFooter />

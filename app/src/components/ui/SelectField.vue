@@ -37,6 +37,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const open = ref(false)
 const root = ref<HTMLElement | null>(null)
+const trigger = ref<HTMLButtonElement | null>(null)
 
 const current = computed(() => props.options.find((o) => o.value === props.modelValue))
 
@@ -44,6 +45,7 @@ function pick(option: SelectOption) {
   if (option.disabled) return
   emit('update:modelValue', option.value)
   open.value = false
+  trigger.value?.focus()
 }
 
 function onDocClick(event: MouseEvent) {
@@ -51,7 +53,32 @@ function onDocClick(event: MouseEvent) {
 }
 
 function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') open.value = false
+  if (event.key !== 'Escape' || !open.value) return
+  open.value = false
+  if (root.value?.contains(document.activeElement)) trigger.value?.focus()
+}
+
+/** 打开状态下 ↑/↓ 在可选项间移动焦点；关闭状态下触发按钮按 ↓ 直接展开 */
+function onRootKeydown(event: KeyboardEvent) {
+  if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+  if (!open.value) {
+    if (event.key === 'ArrowDown' && event.target === trigger.value) {
+      event.preventDefault()
+      open.value = true
+    }
+    return
+  }
+  event.preventDefault()
+  const items = Array.from(
+    root.value?.querySelectorAll<HTMLButtonElement>('[role="option"]:not(:disabled)') ?? [],
+  )
+  if (items.length === 0) return
+  const idx = items.indexOf(document.activeElement as HTMLButtonElement)
+  const next =
+    event.key === 'ArrowDown'
+      ? items[Math.min(idx + 1, items.length - 1)]
+      : items[Math.max(idx - 1, 0)]
+  next?.focus()
 }
 
 onMounted(() => {
@@ -65,8 +92,9 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="root" class="relative">
+  <div ref="root" class="relative" @keydown="onRootKeydown">
     <button
+      ref="trigger"
       type="button"
       class="input-field flex cursor-pointer items-center justify-between gap-1.5 text-left"
       :class="size === 'sm' ? '!py-1 text-xs' : ''"
