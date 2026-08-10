@@ -9,6 +9,7 @@ import {
   isPaperCompatible,
   labelPaperGeometry,
   matchLabelPaper,
+  releaseLabelPaper,
 } from '@/utils/labelPaper'
 import { cloneTemplate, labelsPerPage, layoutOverflow } from '@/utils/layout'
 
@@ -100,6 +101,29 @@ describe('纸型库几何计算', () => {
     expect(isFullPageTemplate(standard)).toBe(false)
     for (const spec of labelPapers) {
       expect(isPaperCompatible(standard, spec), spec.slug).toBe(true)
+    }
+  })
+
+  it('releaseLabelPaper 恢复设计稿页面/标签几何，字段等比缩回标签内', () => {
+    const design = defaultTemplates[0]!
+    for (const spec of labelPapers) {
+      if (!isPaperCompatible(design, spec)) continue
+      const template = cloneTemplate(design)
+      applyLabelPaper(template, spec)
+      releaseLabelPaper(template, design)
+      expect(matchLabelPaper(template.page, template.label)).toBeNull()
+      expect(template.page).toEqual(design.page)
+      expect(template.label.width).toBe(design.label.width)
+      expect(template.label.height).toBe(design.label.height)
+      expect(template.label.radius).toBe(design.label.radius)
+      for (const field of template.fields) {
+        expect(field.x + field.width, `${spec.slug} ${field.id} 横向`).toBeLessThanOrEqual(
+          design.label.width + 0.5,
+        )
+        expect(field.y + field.height, `${spec.slug} ${field.id} 纵向`).toBeLessThanOrEqual(
+          design.label.height + 0.5,
+        )
+      }
     }
   })
 
