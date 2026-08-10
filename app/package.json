@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@sentry/vue": "^10.60.0",
-    "html2canvas-pro": "^2.0.4",
+    "html2canvas-pro": "2.3.2",
     "jspdf": "^4.2.1",
     "jszip": "^3.10.1",
     "pinia": "^3.0.4",
