@@ -19,6 +19,21 @@ function isRareCodePoint(cp: number): boolean {
   )
 }
 
+/** 国内常见少数民族文种码位区间：维吾尔文（阿拉伯字母）、藏文、传统蒙古文、彝文 */
+function isMinorityScriptCodePoint(cp: number): boolean {
+  return (
+    (cp >= 0x0600 && cp <= 0x06ff) || // 阿拉伯字母（维吾尔文）
+    (cp >= 0x0750 && cp <= 0x077f) || // 阿拉伯字母补充
+    (cp >= 0x08a0 && cp <= 0x08ff) || // 阿拉伯字母扩展 A
+    (cp >= 0xfb50 && cp <= 0xfdff) || // 阿拉伯表现形式 A
+    (cp >= 0xfe70 && cp <= 0xfeff) || // 阿拉伯表现形式 B
+    (cp >= 0x0f00 && cp <= 0x0fff) || // 藏文
+    (cp >= 0x1800 && cp <= 0x18af) || // 传统蒙古文
+    (cp >= 0x11660 && cp <= 0x1167f) || // 蒙古文补充
+    (cp >= 0xa000 && cp <= 0xa4cf) // 彝文音节与部首
+  )
+}
+
 const FONT = '32px system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
 const SIZE = 40
 
@@ -79,13 +94,30 @@ export function isGlyphSupported(char: string, font: string = FONT): boolean {
  * 只检测扩展区/兼容区码位，常用文本零开销。
  */
 export function findUnsupportedChars(values: Iterable<unknown>, limit = 5): string[] {
+  return scanUnsupported(values, isRareCodePoint, limit)
+}
+
+/**
+ * 扫描一批文本，返回当前环境缺字形的少数民族文种字符（维/藏/蒙/彝，
+ * 去重，最多 limit 个）。这些文种不在遍黑体扩展字库覆盖范围内，缺字
+ * 只能提醒用户换有对应字体的设备。
+ */
+export function findUnsupportedMinorityChars(values: Iterable<unknown>, limit = 5): string[] {
+  return scanUnsupported(values, isMinorityScriptCodePoint, limit)
+}
+
+function scanUnsupported(
+  values: Iterable<unknown>,
+  matches: (cp: number) => boolean,
+  limit: number,
+): string[] {
   const seen = new Set<string>()
   const missing: string[] = []
   for (const value of values) {
     if (typeof value !== 'string') continue
     for (const char of value) {
       const cp = char.codePointAt(0)
-      if (cp == null || !isRareCodePoint(cp) || seen.has(char)) continue
+      if (cp == null || !matches(cp) || seen.has(char)) continue
       seen.add(char)
       if (!isGlyphSupported(char)) {
         missing.push(char)

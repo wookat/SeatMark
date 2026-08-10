@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   findUnsupportedChars,
+  findUnsupportedMinorityChars,
   isGlyphSupported,
   loadRareGlyphFonts,
   resolveWithExtendedFont,
@@ -26,6 +27,13 @@ describe('glyphSupport', () => {
   it('重复出现的生僻字只检测一次（去重）', () => {
     const chars = findUnsupportedChars(['㐀㐀㐀', '㐀'])
     expect(chars.length).toBeLessThanOrEqual(1)
+  })
+
+  it('少数民族文种扫描：汉字/拉丁/韩文不进入检测，canvas 不可用时维/藏/蒙/彝不误报', () => {
+    expect(findUnsupportedMinorityChars(['张伟', 'Alice', '김철수', 42, null])).toEqual([])
+    expect(
+      findUnsupportedMinorityChars(['ئابدۇللا', 'བསོད་ནམས', 'ꆈꌠ', 'ᠪᠠᠲᠤ']),
+    ).toEqual([])
   })
 
   it('document.fonts 不可用时扩展字库兜底降级为原有警告（返回全部）', async () => {
