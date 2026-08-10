@@ -631,7 +631,7 @@ async function doExportPng() {
         workspace.setLoading(
           true,
           perLabel
-            ? `已完成 ${done}/${total} 页，正在生成 ${pngTotalLabels.value} 张标签图片...`
+            ? `已完成 ${done}/${total} 张标签，正在生成图片...`
             : `已完成 ${done}/${total} 页，正在生成图片...`,
           cancel,
         ),
