@@ -26,7 +26,13 @@ if (SENTRY_DSN) {
   Sentry.attachErrorHandler(app)
 }
 
-app.use(createPinia()).use(router).mount('#app')
+app.use(createPinia()).use(router)
+
+// 等首个路由的异步组件就绪后再挂载：弱网下预渲染的静态 HTML 会一直可见，
+// 不会出现「挂载清空 DOM → 路由 chunk 到达前正文空白」的窗口
+router.isReady().then(() => {
+  app.mount('#app')
+})
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
