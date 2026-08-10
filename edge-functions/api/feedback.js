@@ -13,6 +13,7 @@
  */
 
 import { getStorage } from './_storage.js'
+import { withSecurityHeaders } from './_security.js'
 
 const FEEDBACK_IP_DAILY_LIMIT = 10
 
@@ -24,6 +25,10 @@ function json(data, status = 200) {
 }
 
 export async function onRequest(context) {
+  return withSecurityHeaders(await handleRequest(context))
+}
+
+async function handleRequest(context) {
   const { request, env } = context
 
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 })

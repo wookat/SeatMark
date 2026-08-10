@@ -42,6 +42,7 @@
  */
 
 import { getStorage, probeBlob } from './_storage.js'
+import { withSecurityHeaders } from './_security.js'
 
 // ---------- 配额与裂变参数（前端 quota.ts 与此保持一致；计数对象为无水印导出，带水印不限次） ----------
 const QUOTA_ANON_DAILY = 1
@@ -424,7 +425,7 @@ async function kvOpWithRetry(label, op) {
 /** 顶层兜底：任何未捕获异常都返回结构化 JSON 500，而不是让边缘实例 545 */
 export async function onRequest(context) {
   try {
-    return await handleRequest(context)
+    return withSecurityHeaders(await handleRequest(context))
   } catch (err) {
     console.error(
       '[seatmark-api] 未捕获异常:',
@@ -432,7 +433,7 @@ export async function onRequest(context) {
       context?.request?.url,
       err,
     )
-    return json({ error: '服务暂时不可用，请稍后重试' }, 500)
+    return withSecurityHeaders(json({ error: '服务暂时不可用，请稍后重试' }, 500))
   }
 }
 
