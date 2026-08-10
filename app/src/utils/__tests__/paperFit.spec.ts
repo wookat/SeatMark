@@ -95,6 +95,21 @@ describe('paperFit 排序', () => {
     }
   })
 
+  it('档案盒脊标 × 竖条纸型（a4-8up-spine）为推荐档', () => {
+    const fit = evaluatePaperFit(byId('archiveBoxSpine'), findLabelPaper('a4-8up-spine')!)
+    expect(fit.level).toBe('recommended')
+  })
+
+  it('每款内置模板至少有一款「推荐/可用」档纸型', () => {
+    for (const template of defaultTemplates) {
+      const best = bestPaperForTemplate(template)
+      expect(best, template.id).not.toBeNull()
+      expect(['recommended', 'usable'], `${template.id} 最佳纸型仅 ${best!.fit.level}`).toContain(
+        best!.fit.level,
+      )
+    }
+  })
+
   it('纸型深链门槛依据：staffIdCard 竖版卡 + a4-8up 横格适配度低于「可用」', () => {
     const fit = evaluatePaperFit(byId('staffIdCard'), findLabelPaper('a4-8up')!)
     expect(['marginal', 'incompatible']).toContain(fit.level)
