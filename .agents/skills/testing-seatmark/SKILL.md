@@ -87,6 +87,9 @@ Craft workbooks with openpyxl using real cell types + number formats (openpyxl c
 ## Rare-CJK font testing
 Assert with `CSS.getPlatformFontsForNode` (expected `Plangothic P1` for ext-B chars, template font for common chars) plus pixel screenshots — `document.fonts.check` / computed font-family alone can pass while the element still renders `.notdef`. When counting font-pack network requests, use a cold Playwright browser with a `page.on('request')` listener — a reused 9222 tab's performance entries can contain cache re-fetches from earlier sessions and overcount.
 
+## Print-channel physical accuracy testing
+The print host (`.offscreen-host`) unmounts 1.5s after window.print (printing.ts fallback) — to capture output, stub `window.print=()=>{}` and wrap `setTimeout` to stretch the 1500ms delay before clicking, then call CDP `Page.printToPDF` with `preferCSSPageSize:true` and dispatch `afterprint` to release the flow. Firefox can print silently to PDF via prefs `print.always_print_silent` + `print_printer='Mozilla Save to PDF'` + `print.printer_Mozilla_Save_to_PDF.print_to_filename`. Measure grids by rendering with pypdfium2 at 600dpi and taking row/column darkness profiles; expect ~0.1mm pt-quantization on page size (Chromium 594.96pt, Firefox integer pt) — don't flag it as a product bug. The paper-type picker is a custom `[role=combobox]` (text 「不使用纸型」), not a native select.
+
 ## A11y audits
 axe-core 4.10.2 lives in `/home/ubuntu/a11y/node_modules/axe-core/axe.min.js` — inject via CDP Runtime.evaluate then `axe.run(document,{resultTypes:['violations']})` with awaitPromise. Dedupe by rule id + root component. Historical a11y baselines (rounds 35–37) are not in the repo; classify new-vs-preexisting via `git log -S`. Keyboard checks: use Input.dispatchKeyEvent rawKeyDown/keyUp (modifiers=8 for Shift+Tab); the designer only opens after clicking 打开可视化设计器 which may need scrollIntoView + retry.
 
