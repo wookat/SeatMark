@@ -1,3 +1,25 @@
+# 第 159 轮（2026-08-10）：#168 manifest lang=zh-CN 部署翻转验收 ✅（manifest 全绿；#126 SW 一刷接管仍 untested——本次部署未产生新 SW，如实报告）
+
+**背景**：#168 / 28aaa28 在 VitePWA manifest 增 `lang:'zh-CN'`。轻量轮：验收线上 manifest + 顺带补测 #126「新部署 SW 一次刷新接管」。
+
+**方法**：部署翻转前在 headless Chromium 开 tab A（旧态：bundle index-DTLWjJ7n.js、SW activated、sw.js md5 653c7c99…），轮询线上 manifest lang 直至翻转（14:29 翻转为 zh-CN），tab A 一次刷新后核验；curl 全字段 diff manifest；页面上下文 fetch 复核；CacheStorage 冒烟。计划：test-plan-round159.md。
+
+## 结果
+
+| 验收点 | 结果 |
+|---|---|
+| 线上 manifest.webmanifest `lang == "zh-CN"`（curl 与页面 fetch 双确认） | ✅ |
+| 其余字段与第 156 轮记录逐字段一致：name/short_name/description/start_url=//display=standalone/background_color=#ffffff/theme_color=#4f46e5/scope=//icons 3 项（192+512+maskable） | ✅ |
+| 部署翻转后 tab A 一次刷新：页面正常渲染（Hero）、controller 存在且 activated、waiting=null、无 pageerror | ✅ |
+| PWA 冒烟：workbox-precache-v2 57 条、plangothic 0 条、含现行 bundle 条目 | ✅ |
+| #126「新部署 SW 一次刷新接管」 | ⚠️ untested（见下） |
+
+**覆盖注记（#126 仍 untested，非缺陷）**：本次部署只改了 manifest.webmanifest——该文件不在 precache globPatterns（js/css/html/svg/png/woff2）内，且 JS/HTML 均未变化，故 sw.js 内容翻转前后 md5 完全相同（653c7c99…）、**未产生新 SW 版本**，「新 SW 一刷接管」路径本轮无从触发。manifest 是浏览器直接按 HTTP 获取的（导航 NetworkFirst），新 lang 一刷即达，不依赖 SW 更新。#126 需等下次含 JS/CSS/HTML 变更的部署再补。
+
+**截图**：/home/ubuntu/screenshots/r159_before.png、r159_after_reload.png、r159_smoke.png。数据：/home/ubuntu/r159_tab.json。
+
+---
+
 # 第 157 轮（2026-08-10）：#165 CSV 编码修复线上复测 ✅（第 156 轮 P3-1「无 BOM UTF-8 CSV 乱码」闭环）
 
 **背景**：#165 / commit 274cf00（app/src/utils/excel.ts 新增 decodeCsvText：.csv 先 TextDecoder('utf-8',{fatal:true}) 严格解码剥 BOM，非法字节回退 gb18030，type:'string' 交 SheetJS；.xlsx/.xls 与 #159 PK 校验不变）。
