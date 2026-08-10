@@ -82,11 +82,13 @@ describe('truncateClampedText 导出前物理截断', () => {
     expect(body.style.getPropertyValue('-webkit-line-clamp')).toBe('unset')
   })
 
-  it('不溢出的字段不解除裁切样式', () => {
-    const { root } = makeBody('张同学')
+  it('不溢出的字段也解除裁切样式（Firefox Range 度量下单行 ascent 也会被平切）', () => {
+    const { root, content } = makeBody('张同学')
     truncateClampedText(root)
     const body = root.querySelector<HTMLElement>('.label-field__body')!
-    expect(body.style.overflow).toBe('')
+    expect(content.textContent).toBe('张同学')
+    expect(body.style.overflow).toBe('visible')
+    expect(body.style.getPropertyValue('-webkit-line-clamp')).toBe('unset')
   })
 })
 
