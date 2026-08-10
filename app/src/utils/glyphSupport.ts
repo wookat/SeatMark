@@ -97,6 +97,26 @@ export function findUnsupportedChars(values: Iterable<unknown>, limit = 5): stri
 }
 
 /**
+ * 触发文本中生僻字对应扩展字库分包的下载并等待完成：截图/栅格化前调用，
+ * 避免分包在渲染中途才就绪导致字形缺失或整枚标签渲染为空白。
+ */
+export async function loadRareGlyphFonts(text: string): Promise<void> {
+  if (typeof document === 'undefined' || !document.fonts?.load) return
+  const rare = new Set<string>()
+  for (const char of text) {
+    const cp = char.codePointAt(0)
+    if (cp != null && isRareCodePoint(cp)) rare.add(char)
+  }
+  if (!rare.size) return
+  try {
+    const font = `32px '${RARE_CJK_FAMILY}'`
+    await Promise.all([...rare].map((char) => document.fonts.load(font, char)))
+  } catch {
+    // 加载失败不阻塞调用方：字形缺失由检测/警告链路兜底
+  }
+}
+
+/**
  * 尝试用生僻字扩展字库（遍黑体分包，unicode-range 按需下载）兜底一批
  * 缺字形字符：触发对应分包下载后重新检测，返回扩展字库也覆盖不了的字符
  * （如离线/下载失败时返回全部，调用方据此降级为原有警告）。

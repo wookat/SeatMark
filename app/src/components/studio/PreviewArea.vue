@@ -1144,6 +1144,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         >
           <div class="absolute top-0 left-0 origin-top-left" :style="{ transform: `scale(${scale})` }">
             <LabelSheet
+              :key="workspace.rareFontTick"
               :template="workspace.renderTemplate"
               :rows="workspace.currentPageRows"
               :get-text="workspace.fieldText"

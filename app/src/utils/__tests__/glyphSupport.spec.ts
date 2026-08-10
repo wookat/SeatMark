@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   findUnsupportedChars,
   isGlyphSupported,
+  loadRareGlyphFonts,
   resolveWithExtendedFont,
 } from '@/utils/glyphSupport'
 import { withRareCJKFallback, RARE_CJK_FAMILY } from '@/data/fonts'
@@ -30,6 +31,11 @@ describe('glyphSupport', () => {
   it('document.fonts 不可用时扩展字库兜底降级为原有警告（返回全部）', async () => {
     expect(await resolveWithExtendedFont(['\u{20000}'])).toEqual(['\u{20000}'])
     expect(await resolveWithExtendedFont([])).toEqual([])
+  })
+
+  it('loadRareGlyphFonts：无生僻字/无 document.fonts 时静默完成', async () => {
+    await expect(loadRareGlyphFonts('张伟 Alice')).resolves.toBeUndefined()
+    await expect(loadRareGlyphFonts('王\u{20000}')).resolves.toBeUndefined()
   })
 })
 

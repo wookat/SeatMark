@@ -255,6 +255,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   // ---------- 预览 / 全局 ----------
   const previewPage = ref(1)
+  /** 生僻字扩展字库加载完成后自增：预览以其为 key 重建，拾取晚到的字形 */
+  const rareFontTick = ref(0)
   const showCutLines = ref(true)
   const highlightMissing = ref(false)
   /** 裁切分拣排序（摞优先）：裁切后每摞标签天然连续有序；默认关 */
@@ -503,6 +505,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const missing = findUnsupportedChars(rows.flatMap((row) => Object.values(row)))
     if (!missing.length) return
     const unresolved = await resolveWithExtendedFont(missing)
+    // 扩展字库是在预览文本已排版之后才加载完成的，Chromium 不会为晚到的
+    // unicode-range 分包重排既有文本；自增刷新号让预览重建以拾取新字形
+    rareFontTick.value++
     if (!unresolved.length) {
       toast.info(
         `名单含 ${missing.length} 个生僻字`,
@@ -673,6 +678,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     setColumnFilter,
     resetDataView,
     previewPage,
+    rareFontTick,
     showCutLines,
     highlightMissing,
     cutStackSort,
