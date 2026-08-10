@@ -9,8 +9,9 @@
 
 import { RARE_CJK_FAMILY } from '@/data/fonts'
 
-/** 命中才值得上 canvas 检测的码位区间（常用汉字/字母数字不检测） */
-function isRareCodePoint(cp: number): boolean {
+/** 命中才值得上 canvas 检测的码位区间（常用汉字/字母数字不检测）；
+ * 也是遍黑体扩展字库 unicode-range 覆盖的区间 */
+export function isRareCodePoint(cp: number): boolean {
   return (
     (cp >= 0x3400 && cp <= 0x4dbf) || // CJK 扩展 A
     (cp >= 0x20000 && cp <= 0x3ffff) || // CJK 扩展 B–H

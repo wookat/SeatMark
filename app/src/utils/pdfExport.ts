@@ -1,5 +1,5 @@
 import type { PrintCalibration } from '@/utils/calibration'
-import { loadRareGlyphFonts } from '@/utils/glyphSupport'
+import { isRareCodePoint, loadRareGlyphFonts } from '@/utils/glyphSupport'
 import { encodeIndexedPng } from '@/utils/indexedPng'
 
 export interface PdfExportOptions {
@@ -281,6 +281,56 @@ export async function rasterizeRtlText(root: HTMLElement): Promise<void> {
 }
 
 /**
+ * 栅格化引擎用 canvas fillText 自绘文本，对无粗体面的字体（遍黑体
+ * 扩展字库）仍自行合成加粗，把高密度字形涂抹成碎裂重影（CSS
+ * font-synthesis 不作用于 canvas 绘制）。截图前把粗体字段内的扩展
+ * 字库字符包一层常规字重 span，与预览（font-synthesis: none 下
+ * 该字以常规字重渲染）保持所见即所得；宿主每次导出重新挂载，
+ * 改动不泄漏到预览。
+ */
+export function neutralizeSyntheticBoldRareGlyphs(root: HTMLElement): void {
+  for (const content of Array.from(root.querySelectorAll<HTMLElement>('.label-field__content'))) {
+    const weight = Number.parseInt(getComputedStyle(content).fontWeight, 10)
+    if (!Number.isFinite(weight) || weight < 600) continue
+    const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT)
+    const textNodes: Text[] = []
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const text = node.textContent ?? ''
+      if ([...text].some((char) => isRareCodePoint(char.codePointAt(0) ?? 0))) {
+        textNodes.push(node as Text)
+      }
+    }
+    for (const node of textNodes) {
+      const fragment = document.createDocumentFragment()
+      let run = ''
+      let runRare = false
+      const flush = () => {
+        if (!run) return
+        if (runRare) {
+          const span = document.createElement('span')
+          span.style.fontWeight = '400'
+          span.textContent = run
+          fragment.appendChild(span)
+        } else {
+          fragment.appendChild(document.createTextNode(run))
+        }
+        run = ''
+      }
+      for (const char of node.textContent ?? '') {
+        const rare = isRareCodePoint(char.codePointAt(0) ?? 0)
+        if (rare !== runRare) {
+          flush()
+          runRare = rare
+        }
+        run += char
+      }
+      flush()
+      node.replaceWith(fragment)
+    }
+  }
+}
+
+/**
  * 按页数选取渲染倍率（96 CSS px/in × scale ≈ DPI）：
  * 页少时 300dpi 足够打印清晰，页多时降到 150–200dpi 控制体积、内存与耗时
  */
@@ -495,6 +545,7 @@ export function createPageRenderer(
         const el = await getPage(i)
         await waitForElementReady(el)
         truncateClampedText(el)
+        neutralizeSyntheticBoldRareGlyphs(el)
         await rasterizeRtlText(el)
         throwIfCancelled()
         const canvas = await html2canvas(el, {

@@ -16,6 +16,7 @@ import {
   isPixelDataBlank,
   JPEG_QUALITY,
   jpegQualityFor,
+  neutralizeSyntheticBoldRareGlyphs,
   rasterDpi,
   rasterizeRtlText,
   truncateClampedText,
@@ -91,6 +92,51 @@ describe('truncateClampedText 导出前物理截断', () => {
     expect(content.textContent).toBe('张同学')
     expect(body.style.overflow).toBe('visible')
     expect(body.style.getPropertyValue('-webkit-line-clamp')).toBe('unset')
+  })
+})
+
+describe('neutralizeSyntheticBoldRareGlyphs 导出前中和合成加粗', () => {
+  function makeBoldContent(text: string) {
+    const root = document.createElement('div')
+    const content = document.createElement('span')
+    content.className = 'label-field__content'
+    content.style.fontWeight = '700'
+    content.textContent = text
+    root.appendChild(content)
+    document.body.appendChild(root)
+    return { root, content }
+  }
+
+  it('粗体字段内扩展字库字符被包常规字重 span，其余文本不变', () => {
+    const { root, content } = makeBoldContent('王\u{3106C}明')
+    neutralizeSyntheticBoldRareGlyphs(root)
+    const span = content.querySelector('span')
+    expect(span?.textContent).toBe('\u{3106C}')
+    expect(span?.style.fontWeight).toBe('400')
+    expect(content.textContent).toBe('王\u{3106C}明')
+    root.remove()
+  })
+
+  it('连续扩展字库字符合并为一个 span', () => {
+    const { root, content } = makeBoldContent('张\u{20000}\u{2A6A5}伟')
+    neutralizeSyntheticBoldRareGlyphs(root)
+    const spans = content.querySelectorAll('span')
+    expect(spans.length).toBe(1)
+    expect(spans[0]?.textContent).toBe('\u{20000}\u{2A6A5}')
+    root.remove()
+  })
+
+  it('非粗体字段/无扩展字库字符时不改动 DOM', () => {
+    const { root, content } = makeBoldContent('张伟 Alice')
+    neutralizeSyntheticBoldRareGlyphs(root)
+    expect(content.querySelector('span')).toBeNull()
+    root.remove()
+
+    const normal = makeBoldContent('王\u{3106C}明')
+    normal.content.style.fontWeight = '400'
+    neutralizeSyntheticBoldRareGlyphs(normal.root)
+    expect(normal.content.querySelector('span')).toBeNull()
+    normal.root.remove()
   })
 })
 
