@@ -66,7 +66,7 @@ Local attacker page at `/tmp/r103web/frame.html` + `frame2.html`, served by `pyt
 - Toasts are short-lived — poll the toast container every ≤0.3s from the moment of the triggering action (draining events first, then reading, misses them). When asserting glyph/font behavior, first probe the test browser's own font coverage with the same canvas method as the product; beware that one astral char in a text run can make the entire line render as tofu on font-poor Linux/headless environments.
 - Export-dialog dropdowns (e.g. `#png-unit`) are custom SelectField components (button + option list), not native `<select>` — setting `.value` via JS is a silent no-op; click the trigger then the option text. Transient loading-overlay phases can last <0.5s; sample/screenshot at ≤50ms intervals to capture the final phase pixels.
 
-- Lighthouse audits: the first `npx lighthouse` run in a session can be a cold-start outlier (Perf 15+ points low) — always take ≥3 mobile runs of key pages and use the median. Historical baseline JSONs live in `/home/ubuntu/r99_lighthouse/`, `/home/ubuntu/r100_lighthouse/`, and `/home/ubuntu/r117_lighthouse/`.
+- Lighthouse audits: the first `npx lighthouse` run in a session can be a cold-start outlier (Perf 15+ points low) — always take ≥3 runs of key pages and use medians. `/studio` mobile LCP jitters ±40% between runs. Current baselines (r118): home mobile Perf≈91/LCP≈1.9s, studio mobile Perf 71/LCP 4.79s/TBT 356ms, CLS 0 everywhere, SEO 100; raw JSONs in `/home/ubuntu/r117_lighthouse/` and `/home/ubuntu/r118_lighthouse/`.
 
 ## Analytics & console checks
 Analytics are injected after `load` via `requestIdleCallback`. Collect `Network.requestWillBeSent` for ≥12 s and assert hits for `gtag/js`, `hm.baidu.com/hm.js`, `zz.bdstatic.com`, `clarity.ms`. Ignore Chrome's `Blocked third-party cookie` warnings — they are pre-existing noise.
@@ -80,3 +80,12 @@ Baselines (`/` mobile): Perf 92–95, CLS 0, Best Practices **58** — BP is cap
 
 ## Devin Secrets Needed
 None for production read-only/UI testing.
+
+## Excel import fidelity testing
+Craft workbooks with openpyxl using real cell types + number formats (openpyxl can't cache formula values — inject `<v>` into `xl/worksheets/sheet1.xml` and add `t="str"` on the `<c>`, removing any empty `<v/>`), then pre-read with the product's own `app/node_modules/xlsx` (`sheet_to_json({header:1, raw:false})` gives the Excel-visible text) to establish exact expectations before UI testing. Studio field-mapping dropdowns are custom SelectFields: click the trigger button next to the field label, then click the option text. When reusing prior-round scripts, change output paths to the current round number first to avoid overwriting old screenshot evidence.
+
+## A11y audits
+axe-core 4.10.2 lives in `/home/ubuntu/a11y/node_modules/axe-core/axe.min.js` — inject via CDP Runtime.evaluate then `axe.run(document,{resultTypes:['violations']})` with awaitPromise. Dedupe by rule id + root component. Historical a11y baselines (rounds 35–37) are not in the repo; classify new-vs-preexisting via `git log -S`. Keyboard checks: use Input.dispatchKeyEvent rawKeyDown/keyUp (modifiers=8 for Shift+Tab); the designer only opens after clicking 打开可视化设计器 which may need scrollIntoView + retry.
+
+## Designer (390 viewport) specifics
+Layer-list rows are small buttons that JS text-matching can mis-target after renames — screenshot the open 字段列表 panel and click by pixel coordinates instead. The 示例内容 input only renders for text fields whose 内容来源 is an Excel column (v-else-if branch), so select e.g. 姓名 rather than the fixed-text 提示语 before asserting it. Always exit the designer via 取消 to discard draft edits made during testing.
