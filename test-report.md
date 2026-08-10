@@ -1,3 +1,27 @@
+# 第 199 轮（2026-08-11）：组合字段 UI 全流程 + 微信 UA 引导浮层（补第 196 轮两项 untested；无代码变更前置）✅ 两大项全部 PASS；另记 1 次未复现的整页导出空白异常（观察项）
+
+**前置**：entry 仍为 `index-DbXPcBBk.js`（#205 无产品代码变更）。生产 /studio 真实 UI（CDP headless），pytesseract（chi_sim，本轮新装 tesseract-ocr + tesseract-ocr-chi-sim）做导出产物 OCR 取证。
+
+**结果**：
+- T1 组合字段全流程（/studio?template=deskName&demo=1，班级字段）：
+  - ① 编辑交互：下拉「自定义组合…」→ 编辑器出现（placeholder「如：第{考场}考场-{座位号}号」+ 8 个「+ 列名」chips）；用「第」+chips+「·」拼装出 `第{班级}·{姓名}` → 「应用组合」可点；应用后字段行下方 `code` 显示模板串 + 「编辑」按钮 — PASS
+  - ② 预览渲染：首卡班级字段=「第五年级（1）班·张伟」（=第{班级值}·{姓名值} 逐字符一致），4 卡抽查均正确拼接 — PASS
+  - ③ 导出一致：同 tab 先控制导出（默认映射）再组合导出，整页 PNG numpy diff **仅限 8 条窄带**（每标签班级行，319–3085px 均匀分布），姓名/学号零变化；OCR 导出裁片=「班级 第五年级 (1) 班·张伟」与预览一致 — PASS
+  - ④ 刷新恢复：F5 后 mapping 仍为 `第{班级}·{姓名}`、下拉显示「自定义组合…」、code/预览不变（sessionStorage roster 持久化实证）— PASS
+  - ⑤ 容错：`{不存在的列}` → amber 提示「模板需至少引用一个 {列名}，且引用的列必须存在于当前表头」+「应用组合」disabled；空模板同样 disabled；编辑后「取消」不改原映射；无白屏 — PASS
+  - ⑥ 空列处理（导入含空单元格 xlsx，组合 `{班级}·{备注}`）：空值行渲染「三年二班·」——空串处理、无 `undefined`/`{列名}` 字面 — PASS
+- T2 微信 UA 引导浮层（Emulation.setUserAgentOverride 含 MicroMessenger/8.0）：
+  - 首页浮层出现：`role=dialog aria-label=微信内浏览提示`，OCR 截图证实「你正在微信中打开 SeatMark」「无法下载 PDF 文件」「在浏览器打开」+右上角箭头 — PASS
+  - 点「我知道了，继续浏览」→ 浮层消失、`seatmark.wechat-guide-seen.v1`='1'；同会话路由到 /studio 不再出现；页面可正常操作 — PASS
+  - 新 tab（新会话、同 UA）/studio 浮层再次出现（会话级）；非微信 UA 对照全程无浮层 — PASS
+- 全程 pageerror 0（8 个 tab）；storage 清理 + 全部测试 tab 关闭 — PASS
+
+**观察项（未复现，暂不定级）**：第 1 次组合导出（复用已开过组合编辑器的 tab、export 前做过 clip 截图）得到的整页 zip 两页仅有水印、标签全空（非白像素 163k/357k vs 正常 654k/661k）；随后以完全相同步骤（含 clip 截图步骤）+ 同 tab 连续 3 次 + 静置 120s 后共 7 次导出全部正常。1/8 发生率、无 pageerror、无法复现——记录产物（`/home/ubuntu/r199_dl/1af7ec03-*`）备查，若用户侧出现「导出整页空白」反馈可回溯此线索。
+
+**产物**：截图 `/home/ubuntu/screenshots/r199_*`（composite_editor_open/invalid/applied、preview_composite、export_control_label1 vs export_composite_label1、empty_col、wechat_overlay/dismissed/studio_newsession）；导出 `/home/ubuntu/r199_dl/`；脚本 `/home/ubuntu/r199_t1b.py`、`r199_t1c.py`、`r199_t1d.py`、`r199_repro.py`、`r199_flake.py`、`r199_t2.py`；夹具 `/home/ubuntu/r199_empty.xlsx`；计划 `test-plan-round199.md`。
+
+---
+
 # 第 198 轮（2026-08-11）：#204 教程数字修正线上复测 ✅（4 落点新文案全部上线、旧数字全部消失；demo 整页导出 md5 仍 = r170 基线逐位一致；pageerror 0）
 
 **部署**：entry `index-BmwKWsHK.js`→`index-DbXPcBBk.js`（15s 二次采样一致）。
