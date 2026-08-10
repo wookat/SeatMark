@@ -84,6 +84,9 @@ None for production read-only/UI testing.
 ## Excel import fidelity testing
 Craft workbooks with openpyxl using real cell types + number formats (openpyxl can't cache formula values — inject `<v>` into `xl/worksheets/sheet1.xml` and add `t="str"` on the `<c>`, removing any empty `<v/>`), then pre-read with the product's own `app/node_modules/xlsx` (`sheet_to_json({header:1, raw:false})` gives the Excel-visible text) to establish exact expectations before UI testing. Studio field-mapping dropdowns are custom SelectFields: click the trigger button next to the field label, then click the option text. When reusing prior-round scripts, change output paths to the current round number first to avoid overwriting old screenshot evidence.
 
+## Rare-CJK font testing
+Assert with `CSS.getPlatformFontsForNode` (expected `Plangothic P1` for ext-B chars, template font for common chars) plus pixel screenshots — `document.fonts.check` / computed font-family alone can pass while the element still renders `.notdef`. When counting font-pack network requests, use a cold Playwright browser with a `page.on('request')` listener — a reused 9222 tab's performance entries can contain cache re-fetches from earlier sessions and overcount.
+
 ## A11y audits
 axe-core 4.10.2 lives in `/home/ubuntu/a11y/node_modules/axe-core/axe.min.js` — inject via CDP Runtime.evaluate then `axe.run(document,{resultTypes:['violations']})` with awaitPromise. Dedupe by rule id + root component. Historical a11y baselines (rounds 35–37) are not in the repo; classify new-vs-preexisting via `git log -S`. Keyboard checks: use Input.dispatchKeyEvent rawKeyDown/keyUp (modifiers=8 for Shift+Tab); the designer only opens after clicking 打开可视化设计器 which may need scrollIntoView + retry.
 
