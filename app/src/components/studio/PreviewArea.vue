@@ -1082,6 +1082,8 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
 
     <div
       ref="previewContainer"
+      tabindex="0"
+      aria-label="标签预览区"
       class="no-print relative mt-3 flex-1 overflow-auto rounded-lg border border-slate-200/80 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-slate-100/70 bg-[size:16px_16px] p-3 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)]"
     >
       <div v-if="!workspace.excel.rows.length" class="flex h-full items-center justify-center py-12">

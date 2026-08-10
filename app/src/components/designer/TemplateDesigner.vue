@@ -1624,7 +1624,7 @@ function save(asNew: boolean) {
           <div class="mt-2 grid grid-cols-2 gap-2">
             <div class="col-span-2">
               <label class="field-label">显示名称</label>
-              <input v-model="selectedField.label" type="text" class="input-field" />
+              <input v-model="selectedField.label" type="text" class="input-field" aria-label="显示名称" />
             </div>
 
             <div v-if="selectedField.type === 'text'" class="col-span-2">
@@ -1640,6 +1640,7 @@ function save(asNew: boolean) {
                 v-model="selectedField.fixedText"
                 type="text"
                 class="input-field"
+                aria-label="固定文本内容"
                 placeholder="如：请对号入座 / 学校名称"
               />
             </div>
@@ -1648,7 +1649,7 @@ function save(asNew: boolean) {
               class="col-span-2"
             >
               <label class="field-label">示例内容（仅预览用）</label>
-              <input v-model="selectedField.sample" type="text" class="input-field" />
+              <input v-model="selectedField.sample" type="text" class="input-field" aria-label="示例内容（仅预览用）" />
             </div>
 
             <div v-if="selectedField.type === 'text'" class="col-span-2">
@@ -1657,6 +1658,7 @@ function save(asNew: boolean) {
                 v-model="captionModel"
                 type="text"
                 class="input-field"
+                aria-label="标签名前缀（可选）"
                 placeholder="如填“姓名”则渲染为：姓名 张三"
               />
             </div>
@@ -1933,6 +1935,7 @@ function save(asNew: boolean) {
               <div class="flex items-center gap-1">
                 <NumberField
                   class="flex-1"
+                  aria-label="列数"
                   :model-value="draft.page.cols"
                   :min="1"
                   :max="12"
@@ -1941,6 +1944,7 @@ function save(asNew: boolean) {
                 <span class="text-slate-300">×</span>
                 <NumberField
                   class="flex-1"
+                  aria-label="行数"
                   :model-value="draft.page.rows"
                   :min="1"
                   :max="30"
@@ -1983,7 +1987,7 @@ function save(asNew: boolean) {
           </div>
           <div class="mt-2">
             <label class="field-label">模板说明</label>
-            <input v-model="draft.description" type="text" class="input-field" />
+            <input v-model="draft.description" type="text" class="input-field" aria-label="模板说明" />
           </div>
         </div>
       </aside>
@@ -1992,6 +1996,8 @@ function save(asNew: boolean) {
     <!-- 状态栏 -->
     <footer
       class="flex h-8 shrink-0 items-center gap-x-4 overflow-x-auto border-t border-slate-200 bg-white px-4 text-[11px] whitespace-nowrap text-slate-600"
+      tabindex="0"
+      aria-label="设计器状态栏"
     >
       <span>{{ currentPaperLabel }}</span>
       <span>标签 {{ draft.label.width }} × {{ draft.label.height }} mm</span>
