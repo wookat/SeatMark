@@ -1179,7 +1179,7 @@ export const guidesRound2: Guide[] = [
 <p>把流程拆开看就清晰了：</p>
 <ol>
 <li><strong>编排</strong>（谁坐哪）：排考系统或 Excel 完成，产出编排名单——这是数据工作；</li>
-<li><strong>排版</strong>（贴纸长什么样）：把编排名单变成毫米级准确的打印页——这是版式工作，正是 <a href="/studio">SeatMark</a> 的主业：61 款模板、尺寸字段字号全可调、支持照片核验与 A4/A5/A3 多纸张；</li>
+<li><strong>排版</strong>（贴纸长什么样）：把编排名单变成毫米级准确的打印页——这是版式工作，正是 <a href="/studio">SeatMark</a> 的主业：200 多款模板、尺寸字段字号全可调、支持照片核验与 A4/A5/A3 多纸张；</li>
 <li><strong>打印</strong>：PDF 导出或浏览器直接打印。</li>
 </ol>
 <p>数据从系统到工具只有一步「导出 Excel」，而 SeatMark 纯前端本地处理的特性意味着名单不会再次上传到任何服务器——数据链路反而比「都在云端系统里流转」更短。</p>
