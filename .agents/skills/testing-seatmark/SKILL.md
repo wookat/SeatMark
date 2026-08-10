@@ -5,6 +5,9 @@ description: How to end-to-end test SeatMark in production (www.seatmark.cn) via
 
 # Testing SeatMark online (www.seatmark.cn)
 
+## html2canvas-pro 2.3.2 baseline (r192/#200)
+All export md5 baselines flipped — new references: demo whole-page watermarked `ef6b69ad…`, per-label 009 (王𱁬明) `cec2aac0…`. The engine draws large text ~12px higher (small text ~3px) than the DOM preview (P3, WYSIWYG drift; 2.0.4 matched preview). To judge preview-vs-export alignment objectively: capture the first label with Page.captureScreenshot clip {x:rect.x+scrollX, y:rect.y+scrollY, scale:4} (rect from getBoundingClientRect; forgetting scrollY clips the toolbar instead), then compare the ratio (学号-row center − name center)/name ink height across preview and both exports. PNG dialog mode selector is the input-field button containing 按标签逐张/按整页 — NOT the first input-field button (that's the 姓名 field).
+
 ## Export-mode memory gotcha (r191)
 The 图片 PNG dialog remembers the last export mode (整页 vs 逐张) across exports in the same tab — always read the mode field before clicking 带水印导出, or a per-label export silently yields a whole-page zip. Also: uncommitted test-report.md sections can be lost if the working tree is updated to a newer main between rounds — commit report sections before pulling.
 
