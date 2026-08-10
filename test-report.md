@@ -1,3 +1,17 @@
+# 第 171 轮（2026-08-10，小轮补测）：小尺寸标签自动提清（>300dpi）分支的 pHYs 取样 ✅（drinkCup 36mm 逐张 PNG 输出宽精确 1000px、pHYs=27778 px/m 与公式 output.width/rect.width×1000 完全一致 ≈705.6dpi；同模板整页仍 2481×3509 @ 11811 px/m；第 170 轮覆盖缺口闭环）
+
+**背景**：补第 170 轮唯一覆盖缺口——`pngRasterScale`（pngExport.ts L159-176：base 3.125、MIN_OUTPUT_WIDTH 1000、MAX 8）对小标签提倍后的逐张 pHYs（L493/L515 公式 `output.width/rect.width×1000`）。#180 已上线（bundle `index-BTp5Le9S.js` 实测未变），无需等部署。模板选 drinkCup 饮品杯贴 36×24mm：need=1000/(36×3.77953)=7.349 → 预期输出宽 ≈1000px、pHYs≈27778 px/m。
+
+## T1 逐张 PNG（提清分支）
+- `/studio?template=drinkCup&demo=1` → 图片 PNG（默认逐张）→ 12 张 zip 抽 001/007/012：尺寸均 **1000×667**（36×24mm 等比精确）、pHYs x=y=**27778 px/m、unit=1**，与公式值 round(1000/36×1000)=27778 **完全一致**，换算 **705.6dpi >300dpi**（提清生效且元数据同步提倍）；内容多色非空白 ✅
+
+## T2 整页 PNG（同模板对照）
+- 同 tab 切「按整页导出」：产物 **2481×3509**、pHYs=**11811 px/m**、Pillow dpi=(299.9994, 299.9994)——整页保持 300dpi 基准不随小标签提倍 ✅
+
+全程 pageerror 0。产物：/home/ubuntu/r171_dl/；截图 r171_*。清理：测试 tab 全部关闭。headless 不录屏。
+
+---
+
 # 第 170 轮（2026-08-10）：#180 标准模式导出 PNG 写入 pHYs 物理分辨率块 线上验收 ✅（整页与逐张 PNG 均含 pHYs=11811 px/m ≈300dpi，eink 精确像素 800×480 无 pHYs 且纯二值，PDF/打印冒烟无回归；第 169 轮 P3「无 pHYs」闭环）
 
 **背景**：PR #180 合入 main（`withPngPhys`：indexedPng.ts L155-172 IHDR 后插入 pHYs、幂等；pngExport.ts L362 `pixelsPerMeter = exactPixels ? undefined : pxPerMm*1000`，索引色与原生 toBlob 两通道均生效）。部署翻转：16:13:57 观测 entry `index-BPYEjASD.js` → `index-BTp5Le9S.js`、sw.js md5 `35927928…` → `e7e91bb4…`，二次采样一致，稳定 2 分钟后开测。生产 www.seatmark.cn，headless Chromium 29229，产物经 Browser.setDownloadBehavior 捕获后 struct 逐 chunk 解析 + Pillow 复核。

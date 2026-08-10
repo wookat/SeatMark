@@ -176,3 +176,6 @@ Exported PNGs historically carried NO pHYs chunk — since the round-170 fix, st
 
 ## PNG pHYs baseline & CDP download gotcha (round 170, #180)
 Standard-mode PNGs (whole-page & per-label) now carry pHYs=11811 px/m (unit=meter, ~300dpi); exact-pixel/eink exports intentionally have NO pHYs and stay pure 2-color. CDP gotcha: `Browser.setDownloadBehavior` dies when its browser-level WS closes — re-connect the browser WS and re-set downloadPath inside EVERY export script, or exports toast success but nothing lands on disk. Deep-links `/studio?template=eink800&demo=1` / `?template=deskName&demo=1` are the fastest way to switch templates; the export dialog's actual trigger is the 「带水印导出」/「无水印导出」 quota buttons, not a generic 导出 button.
+
+## Small-label pHYs baseline (round 171)
+Templates narrower than ~84.7mm trigger pngRasterScale upscaling (min output width 1000px, max 8x) — per-label pHYs then equals round(output.width/labelWidthMm×1000), e.g. drinkCup 36mm → 1000px @ 27778 px/m (~706dpi); whole-page export of the SAME template stays at 2481×3509 @ 11811 px/m. Handy small templates: drinkCup/libraryCall/mailboxLabel/spaHook/weddingCandy (36mm), kidsCup (40mm) — deep-link via /studio?template=<id>&demo=1.
