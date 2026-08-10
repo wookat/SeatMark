@@ -1,3 +1,21 @@
+# 第 193 轮（2026-08-10）：#200 html2canvas-pro 2.0.4→2.3.2 升级全量导出回归 ⚠️（功能全通过、无 P1/P2；**发现一处 P3 偏差：大字号姓名字段在 PNG 导出中相对 DOM 预览整体上移 ~12px@300dpi（≈1mm）**，2.0.4 时导出与预览对齐更准；小字段仅上移 ~3px。其余：𱁬 完整不碎裂、RTL 维文正常、裁切线真带线、pHYs 三分支正确、水印/页脚正常、图片版 PDF 正常、pageerror 0）
+
+**部署**：entry `index-BmwKWsHK.js`→`index-DzDe9l0M.js`（15s 二次采样一致）；css 不变 `index-n4PFQFvb.css`。
+
+**逐项判定**（md5 翻转均已做像素级人工判定）：
+- T1 demo 整页 PNG（带水印）md5=`ef6b69ad…` ≠ r170 基线 `3e8fdf3e…`（预期翻转）。与 r191 同口径产物 numpy diff：408,346 px 差异，全部位于文字区/裁切线亚像素/页脚亚像素——**姓名大字段上移 12px、班级/学号小字段上移 3px**，字形本身无变化。
+- **P3 判定依据**：4x 高清预览裁片量测「学号中心−姓名中心」/姓名字高 比值：DOM 预览 0.639，2.0.4 导出 0.635（吻合），2.3.2 导出 0.716（偏离）——即 2.3.2 把姓名画得比预览高 ~1mm，「所见即所得」轻微破裂；上游 #222「webfont 基线下移修复」对 SeatMark 的 DOM 口径而言是反向偏移。不影响可读性/不裁切，定 P3。
+- T2 demo 逐张 zip 24 张（=共 24 条数据）；抽样 001/012/024 字形完整 — PASS
+- T3 RTL 维文 003.png 连写正常无堆叠（#189 链路无回归）— PASS
+- T4 扩B 𱁬 逐张 009.png：md5 `cec2aac0…` ≠ r188 基线 `eb4eb7bd…`（预期翻转），裁片对照 r188——𱁬 完整不碎裂、王/明 仍粗体（#194 链路无回归）— PASS
+- T5 裁切线：整页导出真带虚线（#162 SVG 链路）— PASS
+- T6 pHYs 三分支：整页 2481×3509 pHYs=11811；逐张 1063×354 pHYs=11811（=90mm 物理宽一致）；精确像素导出 800×267 **无 pHYs** — PASS
+- T7 水印徽章：逐张/整页产物徽章正常，无位移异常 — PASS
+- T8 图片版 PDF（jsPDF 4.2.1、1 页）栅格化无空白错排、维文/多文种正常 — PASS
+- 全程 pageerror 0（多 tab）；清 storage + 关闭全部测试 tab — PASS
+
+**产物**：/home/ubuntu/r192_dl/（demo 整页/逐张、r180 名单逐张/整页/PDF、精确像素 zip）；关键截图 /home/ubuntu/screenshots/：r192_label1_sbs.png（2.0.4|2.3.2 整页标签对照）、r192_perlabel_name_sbs.png（姓名上移对照）、r192_preview_label1_hi.png（4x 预览基准）、r192_009_r188_vs_r192.png（𱁬 对照）、r192_label_003.png（RTL）、r192_names_label1_cutlines.png（裁切线）、r192_footer_sbs.png；脚本 /home/ubuntu/r192_t1.py、r192_t1b.py、r192_t3.py、r192_t6b.py、r192_prev_hi2.py。
+
 # 第 191 轮（2026-08-10）：#198 例行依赖收敛（仅 package-lock.json）线上冒烟回归 ✅（部署翻转后：demo 整页 PNG md5 与 r170 基线逐位一致——依赖升级渲染零变化；demo 逐张 zip 24 张与「共 24 条数据」一致；首页 /templates 加载正常；GA/百度统计通道正常注入且命中、clarity 0；pageerror 0）
 
 **部署**：entry `index-DDHydYPE.js`→`index-BmwKWsHK.js`（15s 二次采样一致）；css `index-n4PFQFvb.css`（随构建翻转）；sw md5 `a8116cd3…`。
