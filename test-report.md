@@ -1,3 +1,15 @@
+# 第 191 轮（2026-08-10）：#198 例行依赖收敛（仅 package-lock.json）线上冒烟回归 ✅（部署翻转后：demo 整页 PNG md5 与 r170 基线逐位一致——依赖升级渲染零变化；demo 逐张 zip 24 张与「共 24 条数据」一致；首页 /templates 加载正常；GA/百度统计通道正常注入且命中、clarity 0；pageerror 0）
+
+**部署**：entry `index-DDHydYPE.js`→`index-BmwKWsHK.js`（15s 二次采样一致）；css `index-n4PFQFvb.css`（随构建翻转）；sw md5 `a8116cd3…`。
+
+**结果**：
+- T1 核心：demo 整页 PNG（带水印口径）md5=`3e8fdf3e0c8530297998d8ad25623f21` = r170 基线逐位一致（html2canvas-pro 2.0.4 未动，vue/vite/@sentry in-range 升级渲染零变化实证）。
+- T2 冒烟：demo 逐张 zip 24 张 =「共 24 条数据」；首页与 /templates 正常渲染（截图）、pageerror 0。取证注记：图片 PNG 弹窗的导出模式跨导出记忆——上一次选「按整页」后下一次默认仍整页（本轮首跑逐张误得 2 张整页 zip，切回「按标签逐张」复跑即 24 张；产品行为，非缺陷）。
+- T3 统计通道：gtag/js×1、hm.js×1、zz.bdstatic×1 注入且实际命中（GA collect×1、hm.gif×2）；clarity 0；Sentry 无异常请求/无 console error。
+- 全程 pageerror 0（4 tab）；清 storage + 关闭全部测试 tab。
+
+**产物**：/home/ubuntu/r191_dl/（demo 整页 zip、整页双页 zip、逐张 24 张 zip）；截图 /home/ubuntu/screenshots/r191_home.png、r191_templates.png；脚本 /home/ubuntu/r191_t1.py、r191_t1b.py、r191_t23.py。
+
 # 第 189 轮（2026-08-10）：多文种/生僻字名单浏览器打印通道验证 ✅（走查轮，无代码变更：打印 PDF 中维文原生 shaping 连写正常、𱁬 完整不碎裂且王/明 仍粗体——#193 font-synthesis:none 在打印 DOM 生效实证；藏/传统蒙/彝/朝/西里尔与预览一致无豆腐；demo 打印冒烟正常；pageerror 0）
 
 **测法**：真实点击「打印 / 矢量 PDF」入口（经导出选择弹窗「带水印导出」），预先覆写 `window.print` 抛异常使打印宿主保持挂载（doPrint 无 finally，unmountHost 不执行——headless 无打印对话框的取证手法），`Page.printToPDF`（A4、printBackground）抓取 @media print 排版，pdftoppm 300dpi 栅格化逐字段裁片。entry `index-DDHydYPE.js`（r188 后无部署变化）。

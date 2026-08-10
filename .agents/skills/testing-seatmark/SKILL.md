@@ -5,6 +5,9 @@ description: How to end-to-end test SeatMark in production (www.seatmark.cn) via
 
 # Testing SeatMark online (www.seatmark.cn)
 
+## Export-mode memory gotcha (r191)
+The 图片 PNG dialog remembers the last export mode (整页 vs 逐张) across exports in the same tab — always read the mode field before clicking 带水印导出, or a per-label export silently yields a whole-page zip. Also: uncommitted test-report.md sections can be lost if the working tree is updated to a newer main between rounds — commit report sections before pulling.
+
 ## Environment
 - Chromium: `/opt/.devin/playwright_browsers/chromium-1097/chrome-linux/chrome`, CDP on `9222`.
 - Helpers on box: `/home/ubuntu/cdp51.py` (`get_ws/send/js/nav/click`), `/home/ubuntu/r99.py` (`shot/viewport/CLEAN`).
