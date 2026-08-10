@@ -628,7 +628,13 @@ async function doExportPng() {
       fileName: baseName,
       pageFileNames,
       onProgress: (done, total) =>
-        workspace.setLoading(true, `已完成 ${done}/${total} 页，正在生成图片...`, cancel),
+        workspace.setLoading(
+          true,
+          perLabel
+            ? `已完成 ${done}/${total} 页，正在生成 ${pngTotalLabels.value} 张标签图片...`
+            : `已完成 ${done}/${total} 页，正在生成图片...`,
+          cancel,
+        ),
     })
     await consumeQuotaAfterSuccess()
     const exactW = pngPreset.value?.width ?? pngExactWidth.value
