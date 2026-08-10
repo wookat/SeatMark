@@ -142,6 +142,33 @@ describe('parseExcelFile', () => {
     expect(second.rows).toHaveLength(2)
   })
 
+  it('数字格式单元格按 Excel 所见格式化文本读取（日期/时间/前导零/百分比/小数位）', async () => {
+    const XLSX = await import('xlsx')
+    const sheet = XLSX.utils.aoa_to_sheet([
+      ['姓名', '考试日期', '入场时间', '工号', '出勤率', '分数'],
+      ['张伟', 0, 0, 0, 0, 0],
+    ])
+    sheet['B2'] = { t: 'n', v: 46249, z: 'yyyy/m/d' }
+    sheet['C2'] = { t: 'n', v: 0.5625, z: 'h:mm' }
+    sheet['D2'] = { t: 'n', v: 7, z: '000' }
+    sheet['E2'] = { t: 'n', v: 0.985, z: '0.0%' }
+    sheet['F2'] = { t: 'n', v: 12345.678, z: '0.00' }
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Sheet1')
+    const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer
+    const file = new File([buffer], 'fmt.xlsx')
+
+    const parsed = await parseExcelFile(file)
+    expect(parsed.rows[0]).toEqual({
+      姓名: '张伟',
+      考试日期: '2026/8/15',
+      入场时间: '13:30',
+      工号: '007',
+      出勤率: '98.5%',
+      分数: '12345.68',
+    })
+  })
+
   it('只有表头时报错', async () => {
     const file = await buildFile([['姓名', '座位号']])
     await expect(parseExcelFile(file)).rejects.toThrow('至少需要包含表头行和一行数据')
