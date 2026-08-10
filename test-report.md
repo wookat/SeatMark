@@ -1,3 +1,25 @@
+# 第 172 轮（2026-08-10）：视觉稳健性专项——页面缩放/高 DPR/forced-colors/prefers-contrast/减动效下的渲染与导出一致性 ✅（缩放 150%/80% 与 DPR 1/2/3 下整页 PNG 产物像素级一致；减动效降级正常；**1 条 P3 观察项**：forced-colors 模拟激活期间导出的 PNG 会丢失设计色——品牌青/深蓝灰被强制映射为纯黑/灰阶）
+
+**背景**：无代码变更走查轮（bundle `index-BTp5Le9S.js`）。CDP Emulation.setPageScaleFactor / setDeviceMetricsOverride / setEmulatedMedia 模拟；产物按 pHYs 基线（r170/171）逐 chunk + Pillow + numpy 像素 diff 核验。代码依据：pngExport.ts 渲染倍率与 devicePixelRatio/页面缩放完全无关（L159-176/330-336/410-418）；减动效路径 main.css L233 + HomeView.vue L18。
+
+## T1 页面缩放 150% / 80%
+- 两档预览布局无破损（截图非空白、暗像素分布正常）；各导出整页 PNG：均 **2481×3509 @ pHYs 11811**，**md5 与 100% 基线完全相同**（3e8fdf3e…）——导出不受页面缩放影响 ✅
+
+## T2 高 DPR（deviceScaleFactor=2 / 3）
+- 两档产物均 2481×3509 @ 11811；DPR3 产物 md5 不同但 **numpy 像素 diff=0**（仅 PNG 编码差异，像素完全一致）；DPR2 复跑 md5 与基线相同 ✅
+- 取证注记：DPR2/3 下首跑导出各有一次下载未落盘（同 r170 的 setDownloadBehavior 失效假象叠加渲染耗时），重设 downloadPath 复跑即通过，非产品缺陷。
+
+## T3 forced-colors: active + prefers-contrast: more
+- /、/templates、/studio 三页：导航/CTA/正文全部可见（可交互元素 48/259/80、截图文本带正常）、pageerror 0 ✅
+- **P3 观察项**：forced-colors 激活期间导出整页 PNG——尺寸/pHYs 正常（2481×3509 @ 11811）但**像素与基线差异 70.6 万点**：基线含品牌青 rgb(13,148,136)、深蓝灰 rgb(15,23,42)/(51,65,85) 等设计色，forced 版被强制映射为纯黑 (0,0,0)+灰阶（127/148/191）。原因：html2canvas 读取的是被 UA 强制配色改写后的 computed style。真实用户须开启 Windows 高对比度等强制配色才会命中；产物仍可读可打印，仅失去品牌色。裁量建议：可在导出渲染宿主上加 `forced-color-adjust: none`，或文档说明。仅报告，未改代码。
+
+## T4 prefers-reduced-motion: reduce
+- 首页 30 个 `.reveal-init` 全部立即带 `reveal-in`、首屏与滚动后在视区元素 opacity 全为 1（跳过 IntersectionObserver 路径生效）；/studio 导出对话框功能正常 ✅
+
+全程 pageerror 0。产物：/home/ubuntu/r172_dl/（缩放/DPR/forced 各档 zip）；截图 r172_*（含 r172_export_base_crop.png / r172_export_forced_crop.png 对照裁片）。清理：模拟状态已重置、测试 tab 全部关闭。headless 不录屏。
+
+---
+
 # 第 171 轮（2026-08-10，小轮补测）：小尺寸标签自动提清（>300dpi）分支的 pHYs 取样 ✅（drinkCup 36mm 逐张 PNG 输出宽精确 1000px、pHYs=27778 px/m 与公式 output.width/rect.width×1000 完全一致 ≈705.6dpi；同模板整页仍 2481×3509 @ 11811 px/m；第 170 轮覆盖缺口闭环）
 
 **背景**：补第 170 轮唯一覆盖缺口——`pngRasterScale`（pngExport.ts L159-176：base 3.125、MIN_OUTPUT_WIDTH 1000、MAX 8）对小标签提倍后的逐张 pHYs（L493/L515 公式 `output.width/rect.width×1000`）。#180 已上线（bundle `index-BTp5Le9S.js` 实测未变），无需等部署。模板选 drinkCup 饮品杯贴 36×24mm：need=1000/(36×3.77953)=7.349 → 预期输出宽 ≈1000px、pHYs≈27778 px/m。

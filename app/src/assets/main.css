@@ -444,6 +444,8 @@
   width: max-content;
   overflow: hidden;
   pointer-events: none;
+  /* 强制配色（Windows 高对比度等）不改写导出/打印产物的设计色（可继承属性，覆盖全部后代） */
+  forced-color-adjust: none;
 }
 
 /* 设计器画布网格（1mm 网格随缩放变化，由组件注入 --designer-mm 变量） */

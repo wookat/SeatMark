@@ -179,3 +179,6 @@ Standard-mode PNGs (whole-page & per-label) now carry pHYs=11811 px/m (unit=mete
 
 ## Small-label pHYs baseline (round 171)
 Templates narrower than ~84.7mm trigger pngRasterScale upscaling (min output width 1000px, max 8x) — per-label pHYs then equals round(output.width/labelWidthMm×1000), e.g. drinkCup 36mm → 1000px @ 27778 px/m (~706dpi); whole-page export of the SAME template stays at 2481×3509 @ 11811 px/m. Handy small templates: drinkCup/libraryCall/mailboxLabel/spaHook/weddingCandy (36mm), kidsCup (40mm) — deep-link via /studio?template=<id>&demo=1.
+
+## Display-settings robustness (round 172/173)
+PNG/PDF export scale is fully decoupled from page zoom and devicePixelRatio (pngExport.ts uses pngRasterScale only) — exports under Emulation.setPageScaleFactor 0.8-1.5 and DPR 1-3 are pixel-identical to baseline (md5 may differ at high DPR from PNG encoding; always compare with a numpy pixel diff, not md5). Since round 173 the offscreen export/print host sets `forced-color-adjust: none`, so exports keep design colors even while forced-colors is active — brand teal rgb(13,148,136) surviving in the artifact is the pass criterion. High-DPR exports render slower — extend download-wait and re-set downloadPath per script.
