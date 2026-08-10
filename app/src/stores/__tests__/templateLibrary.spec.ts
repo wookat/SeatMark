@@ -105,8 +105,11 @@ describe('useTemplateLibrary', () => {
       expect(toast.toasts.some((t) => t.type === 'danger' && t.title.includes('未能保存'))).toBe(
         true,
       )
+      expect(library.lastPersistOk).toBe(false)
     } finally {
       spy.mockRestore()
     }
+    library.saveAsCustom(defaultTemplates[0]!, '恢复后')
+    expect(library.lastPersistOk).toBe(true)
   })
 })
