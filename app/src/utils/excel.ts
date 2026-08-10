@@ -8,6 +8,15 @@ export const MAX_TITLE_ROWS = 3
 /** 单单元格行被视为大标题（而非单列表头）的最短文本长度 */
 export const MIN_TITLE_TEXT_LENGTH = 6
 
+/** CSV 文本解码：UTF-8（含 BOM）优先，非法字节序列时回退 GB18030 */
+export function decodeCsvText(bytes: Uint8Array): string {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes).replace(/^\ufeff/, '')
+  } catch {
+    return new TextDecoder('gb18030').decode(bytes)
+  }
+}
+
 /** 解析 Excel 文件指定（默认首个）工作表：自动跳过前置大标题/空行定位表头行，其余为数据行 */
 export async function parseExcelFile(file: File, targetSheet?: string): Promise<ParsedExcel> {
   const XLSX = await import('xlsx')
@@ -30,7 +39,13 @@ export async function parseExcelFile(file: File, targetSheet?: string): Promise<
 
   let workbook: ReturnType<typeof XLSX.read>
   try {
-    workbook = XLSX.read(bytes, { type: 'array' })
+    // CSV：SheetJS 对无 BOM 内容默认按单字节码页解码，中文会乱码；
+    // 先按 UTF-8 严格解码，失败则按 GB18030（Excel 中文版另存 CSV 的常见编码）
+    if (/\.csv$/i.test(file.name) && !isZip) {
+      workbook = XLSX.read(decodeCsvText(bytes), { type: 'string' })
+    } else {
+      workbook = XLSX.read(bytes, { type: 'array' })
+    }
   } catch {
     throw new Error('文件解析失败：文件可能已损坏或格式不受支持，请重新选择 .xlsx / .xls / .csv 文件')
   }
