@@ -404,18 +404,14 @@ export function combineFontStacks(
 export const RARE_CJK_FAMILY = 'Plangothic'
 
 /**
- * 在字体栈的首个通用字族关键字（serif/sans-serif…）之前插入生僻字扩展
- * 字库：通用字族会拦截所有字符，插在它后面永远不生效；插在它前面时，
- * 由于扩展字库的 unicode-range 只覆盖扩展区码位，常规字符不受影响。
+ * 把生僻字扩展字库置于字体栈栈首：由于扩展字库的 unicode-range 只覆盖
+ * CJK 扩展区码位，常规字符的字体选择完全不受影响；而放在其他字体之后时，
+ * Chromium 会按 FontDescription 缓存字体回退结果，晚到的分包对已解析
+ * 过的文本（即使重建 DOM 节点）永远不生效，只有栈首位置能保证命中。
  */
 export function withRareCJKFallback(stack: string | undefined): string {
   const rare = `'${RARE_CJK_FAMILY}'`
   if (!stack?.trim()) return rare
   if (stack.toLowerCase().includes(RARE_CJK_FAMILY.toLowerCase())) return stack
-  const parts = stack.split(',').map((part) => part.trim())
-  const genericIdx = parts.findIndex((part) =>
-    GENERIC_FAMILIES.has(part.replace(/['"]/g, '').toLowerCase()),
-  )
-  if (genericIdx === -1) return `${stack}, ${rare}`
-  return [...parts.slice(0, genericIdx), rare, ...parts.slice(genericIdx)].join(', ')
+  return `${rare}, ${stack}`
 }

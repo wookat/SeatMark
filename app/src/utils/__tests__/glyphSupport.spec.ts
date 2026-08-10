@@ -40,22 +40,22 @@ describe('glyphSupport', () => {
 })
 
 describe('withRareCJKFallback', () => {
-  it('扩展字库插在首个通用字族关键字之前（否则永远不生效）', () => {
+  it('扩展字库置于栈首（Chromium 按 FontDescription 缓存回退，其他位置对晚到分包不生效）', () => {
     expect(withRareCJKFallback("'SimSun', 'Songti SC', serif")).toBe(
-      `'SimSun', 'Songti SC', '${RARE_CJK_FAMILY}', serif`,
+      `'${RARE_CJK_FAMILY}', 'SimSun', 'Songti SC', serif`,
     )
     expect(withRareCJKFallback("'Microsoft YaHei', sans-serif")).toBe(
-      `'Microsoft YaHei', '${RARE_CJK_FAMILY}', sans-serif`,
+      `'${RARE_CJK_FAMILY}', 'Microsoft YaHei', sans-serif`,
     )
+    expect(withRareCJKFallback("'SimSun'")).toBe(`'${RARE_CJK_FAMILY}', 'SimSun'`)
   })
 
-  it('栈中无通用字族时追加到末尾；空栈返回扩展字库本身', () => {
-    expect(withRareCJKFallback("'SimSun'")).toBe(`'SimSun', '${RARE_CJK_FAMILY}'`)
+  it('空栈返回扩展字库本身', () => {
     expect(withRareCJKFallback(undefined)).toBe(`'${RARE_CJK_FAMILY}'`)
   })
 
   it('已包含扩展字库的栈不重复插入', () => {
-    const stack = `'SimSun', '${RARE_CJK_FAMILY}', serif`
+    const stack = `'${RARE_CJK_FAMILY}', 'SimSun', serif`
     expect(withRareCJKFallback(stack)).toBe(stack)
   })
 })
