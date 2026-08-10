@@ -73,6 +73,18 @@ export function applyLabelPaper(template: LabelTemplate, spec: LabelPaperSpec): 
   template.label.radius = spec.corner === 'rounded' ? (spec.cornerRadius ?? 2) : 0
 }
 
+/**
+ * 解除纸型锁定：恢复为模板设计稿的页面与标签几何，
+ * 字段按新旧标签尺寸等比缩回，保留用户对字段的相对调整。
+ */
+export function releaseLabelPaper(template: LabelTemplate, design: LabelTemplate): void {
+  scaleTemplateFields(template, design.label.width, design.label.height)
+  Object.assign(template.page, design.page)
+  template.label.width = design.label.width
+  template.label.height = design.label.height
+  template.label.radius = design.label.radius
+}
+
 /** 字段几何按标签尺寸变化等比缩放（x/宽随宽比，y/高随高比，字号取较小比） */
 function scaleTemplateFields(template: LabelTemplate, newWidth: number, newHeight: number): void {
   const oldW = template.label.width

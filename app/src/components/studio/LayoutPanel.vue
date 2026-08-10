@@ -10,7 +10,12 @@ import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { LabelTemplate } from '@/types/template'
 import { labelPapers } from '@/data/labelPapers'
-import { applyLabelPaper, isPaperCompatible, matchLabelPaper } from '@/utils/labelPaper'
+import {
+  applyLabelPaper,
+  isPaperCompatible,
+  matchLabelPaper,
+  releaseLabelPaper,
+} from '@/utils/labelPaper'
 import {
   bestPaperForTemplate,
   evaluatePaperFit,
@@ -61,6 +66,12 @@ const labelPaperSlug = computed({
   get: () =>
     matchLabelPaper(workspace.template.page, workspace.template.label)?.slug ?? 'none',
   set: (slug: string) => {
+    if (slug === 'none') {
+      if (!matchLabelPaper(workspace.template.page, workspace.template.label)) return
+      releaseLabelPaper(workspace.template, designTemplate.value)
+      toast.info('已取消纸型锁定', '恢复模板默认排版，可自由调整行列、尺寸与边距')
+      return
+    }
     const spec = labelPapers.find((p) => p.slug === slug)
     if (!spec) return
     if (!isPaperCompatible(workspace.template, spec)) {
