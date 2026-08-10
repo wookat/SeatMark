@@ -499,9 +499,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function warnRareChars(rows: DataRow[]) {
     const missing = findUnsupportedChars(rows.flatMap((row) => Object.values(row)))
     if (!missing.length) return
+    // 正文只用码位描述，不直接嵌入缺字形字符：目标受众正是缺字体的设备，
+    // 生僻字混入正文会把整段文字的字体回退一起污染成方块
+    const codes = missing.map((char) => `U+${char.codePointAt(0)!.toString(16).toUpperCase()}`)
     toast.warning(
-      '名单含生僻字',
-      `「${missing.join('、')}」在当前设备字体中缺少字形，预览与导出可能显示为方块；建议在有该字字体的设备上操作，或与当事人确认替代写法`,
+      `名单含 ${missing.length} 个生僻字`,
+      `名单中有生僻字（码位 ${codes.join('、')}）在当前设备字体中缺少字形，预览与导出可能显示为方块；建议在有该字字体的设备上操作，或与当事人确认替代写法`,
     )
   }
 
