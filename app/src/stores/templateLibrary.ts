@@ -29,6 +29,8 @@ function loadFromStorage(): LabelTemplate[] {
 export const useTemplateLibrary = defineStore('templateLibrary', () => {
   const toast = useToastStore()
   const customTemplates = ref<LabelTemplate[]>(loadFromStorage())
+  /** 最近一次写入是否成功落盘（存储满时为 false，调用方据此决定是否弹成功提示） */
+  const lastPersistOk = ref(true)
 
   // 其他标签页写入后同步内存，避免本页后续保存用陈旧数组整体覆写
   if (typeof window !== 'undefined') {
@@ -50,8 +52,10 @@ export const useTemplateLibrary = defineStore('templateLibrary', () => {
   function persist(): boolean {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(customTemplates.value))
+      lastPersistOk.value = true
       return true
     } catch {
+      lastPersistOk.value = false
       // 存储满 / 隐私模式：模板仍保留在内存中，但需明确告知用户未持久化
       toast.danger(
         '模板未能保存到本设备',
@@ -120,6 +124,7 @@ export const useTemplateLibrary = defineStore('templateLibrary', () => {
 
   return {
     customTemplates,
+    lastPersistOk,
     allTemplates,
     findById,
     saveAsCustom,

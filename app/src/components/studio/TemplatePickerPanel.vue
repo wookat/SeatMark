@@ -251,7 +251,7 @@ function onImportFile(event: Event) {
       parsed.name = parsed.name || '导入的模板'
       const saved = library.saveAsCustom(parsed)
       workspace.selectTemplate(saved, { silent: true })
-      toast.success('模板导入成功', saved.name)
+      if (library.lastPersistOk) toast.success('模板导入成功', saved.name)
     } catch {
       toast.danger('模板解析失败', '请确认导入的是有效的 JSON 模板文件')
     }

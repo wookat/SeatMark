@@ -63,7 +63,8 @@ function onDesignerSave(template: LabelTemplate, asNew: boolean) {
       : library.saveAsCustom(template)
   workspace.selectTemplate(saved, { silent: true })
   designerOpen.value = false
-  toast.success('模板已保存', `「${saved.name}」已加入我的模板并应用`)
+  if (library.lastPersistOk)
+    toast.success('模板已保存', `「${saved.name}」已加入我的模板并应用`)
 }
 
 // ---------- 分享链接接收 ----------
@@ -99,7 +100,8 @@ function saveShared() {
   const saved = library.saveAsCustom(sharedTemplate.value)
   workspace.selectTemplate(saved, { silent: true })
   sharedTemplate.value = null
-  toast.success('模板已保存', `「${saved.name}」已加入我的模板并应用`)
+  if (library.lastPersistOk)
+    toast.success('模板已保存', `「${saved.name}」已加入我的模板并应用`)
 }
 
 onMounted(() => {

@@ -108,7 +108,8 @@ async function onRestoreFromCloud() {
     const data = await apiFetch<{ templates: unknown[] }>('/api/account/templates')
     const templates = data.templates.filter(isValidTemplate) as LabelTemplate[]
     const added = library.importTemplates(templates)
-    toast.success('云端模板已找回', `云端共 ${templates.length} 个模板，新增 ${added} 个到本设备`)
+    if (library.lastPersistOk)
+      toast.success('云端模板已找回', `云端共 ${templates.length} 个模板，新增 ${added} 个到本设备`)
   } catch (err) {
     toast.danger('找回失败', err instanceof ApiError ? err.message : '请稍后再试')
   } finally {
