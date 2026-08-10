@@ -9,7 +9,11 @@ import { useToastStore } from '@/stores/toast'
 import type { DataRow, FieldMapping, LabelTemplate, TemplateField } from '@/types/template'
 import { autoMapFields } from '@/utils/autoMap'
 import { evaluateFieldTemplate, isCompositeMapping } from '@/utils/fieldTemplate'
-import { findUnsupportedChars, resolveWithExtendedFont } from '@/utils/glyphSupport'
+import {
+  findUnsupportedChars,
+  findUnsupportedMinorityChars,
+  resolveWithExtendedFont,
+} from '@/utils/glyphSupport'
 import { applyLabelPaper, matchLabelPaper } from '@/utils/labelPaper'
 import { evaluatePaperFit, FIT_LEVEL_LABELS } from '@/utils/paperFit'
 import { demoExcelFor } from '@/data/demoDatasets'
@@ -523,7 +527,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
    * （遍黑体分包，按需下载）兜底，兜住则提示已自动处理；仍缺字形才警告。
    */
   async function warnRareChars(rows: DataRow[]) {
-    const missing = findUnsupportedChars(rows.flatMap((row) => Object.values(row)))
+    const values = rows.flatMap((row) => Object.values(row))
+    // 少数民族文种（维/藏/蒙/彝）不在遍黑体扩展字库覆盖范围，缺字时只能提醒
+    const minorityMissing = findUnsupportedMinorityChars(values)
+    if (minorityMissing.length) {
+      const codes = minorityMissing.map(
+        (char) => `U+${char.codePointAt(0)!.toString(16).toUpperCase()}`,
+      )
+      toast.warning(
+        `名单含 ${minorityMissing.length} 个无法显示的字符`,
+        `名单中有少数民族文字（码位 ${codes.join('、')}）在当前设备字体中缺少字形，预览与导出可能显示为方块；建议换到安装了对应文种字体的设备上操作`,
+      )
+    }
+    const missing = findUnsupportedChars(values)
     if (!missing.length) return
     const unresolved = await resolveWithExtendedFont(missing)
     // 扩展字库是在预览文本已排版之后才加载完成的，Chromium 不会为晚到的
