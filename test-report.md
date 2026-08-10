@@ -1,3 +1,15 @@
+# 第 175 轮（2026-08-10）：#184 `.sheet-page` forced-color-adjust: none 线上验收 ✅（**核心判据 PASS，第 172/174 轮 forced-colors 导出失色 P3 正式闭环**：forced-colors 模拟下导出 PNG 与正常基线逐位一致、品牌青 113,898 像素完整保留；屏上 UI 强制配色边界正确、冒烟无回归）
+
+**背景**：第 174 轮定位到 html2canvas 克隆进自建 iframe 后丢失 `.offscreen-host` 祖先豁免。PR #184 把 `forced-color-adjust: none` 直接加在捕获根 `.sheet-page` 上（main.css L247-257，`.offscreen-host` 原豁免保留）。部署翻转：17:19:09 三指标齐变（js `index-h2r97RJA.js`→`index-BADM1vql.js`、css `index-VqHoINT7.css`→`index-BCHVWv3_.css`、sw `af129298…`→`4c3f26d6…`），二次采样一致；新 CSS 构建产物实测含 `sheet-page{forced-color-adjust:none;…}`。
+
+**T1 forced-colors 下导出保留设计色（核心判据）— PASS**：/studio?template=deskName&demo=1，同 tab 先正常导出整页 PNG 基线（2481×3509 @ pHYs 11811，md5 `3e8fdf3e0c8530297998d8ad25623f21` 与 r170 逐位一致），再 Emulation.setEmulatedMedia forced-colors:active（matchMedia 导出前后均 True，屏上壳按钮已被强制为 rgb(0,0,159)——强制配色确在生效）导出：产物 2481×3509 @ pHYs 11811、**md5 与基线逐位相同、numpy 像素 diff = 0、品牌青 rgb(13,148,136) = 113,898 像素（r174 失败版为 0）、纯黑 0 像素**。判据可区分性：r174 同流程产物青色 0 像素、diff 861,650 点。
+
+**T2 屏上强制配色边界 — PASS**：forced-colors 下首页与正常态截图像素差 213,796/1,500,000（应用壳 UI 仍被强制配色，豁免未外溢），文本可读、pageerror 0。/studio 预览纸张区域保留设计色（截图近青像素 9,128）——`.sheet-page` 所见即所得，符合 #184 预期。
+
+**T3 冒烟 — PASS**：正常导出 md5/pHYs 与 r170 基线一致（T1 基线即证）；新 tab 打印通道 hook `window.print()` 调起 1 次、pageerrors 全程为空。
+
+**产物**：/home/ubuntu/r175_dl/（基线 1720 / forced 1723、1724 三份 zip，字节级一致）；截图 r175_*。收尾：重置模拟、关闭全部测试 tab。**遗留**：真实 Windows 高对比度下打印渲染色 headless 无法核验（低风险：打印走原文档，`.sheet-page`/`.offscreen-host` 双豁免均在场）。
+
 # 第 174 轮（2026-08-10）：#183 `.offscreen-host` forced-color-adjust: none 线上验收 ❌（**核心判据 FAIL**：forced-colors 模拟下导出 PNG 仍全灰阶、品牌青 0 像素——根因已定位：html2canvas 克隆到独立 iframe 渲染，克隆树丢失 `.offscreen-host` 祖先的豁免继承；屏上 UI 与冒烟均正常）
 
 **背景**：PR #183 给 `.offscreen-host`（main.css L440-449）加 `forced-color-adjust: none`，意图闭环第 172 轮 P3。部署翻转：17:04:16 三指标齐变（js `index-BTp5Le9S.js`→`index-h2r97RJA.js`、css `index-CTzSm9NE.css`→`index-VqHoINT7.css`、sw `e7e91bb4…`→`af129298…`），二次采样一致；新 CSS 构建产物实测含 `offscreen-host{…forced-color-adjust:none…}`。

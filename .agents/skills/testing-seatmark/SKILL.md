@@ -185,3 +185,6 @@ PNG/PDF export scale is fully decoupled from page zoom and devicePixelRatio (png
 
 ## forced-colors export gotcha (round 174)
 html2canvas renders a CLONE inside its own same-origin iframe — forced-colors still matches there and any inheritable exemption on an ancestor OUTSIDE the captured root (e.g. `.offscreen-host`) is lost in the clone. The exemption must live on the captured root itself (`.sheet-page`, added round 175). Judge the fix by counting brand-teal rgb(13,148,136) pixels in the artifact (baseline ~114k on deskName A4) plus numpy diff vs a same-tab non-forced export. Stale window.print hooks die on tab reload — always re-hook in a fresh script before asserting print invocation.
+
+## forced-colors export baseline (r175, #184)
+With `forced-color-adjust:none` on the capture root `.sheet-page`, a forced-colors export is byte-identical to the normal baseline (deskName A4: md5 3e8fdf3e…, teal px 113,898). CDP gotcha: `Emulation.setEmulatedMedia` is SESSION-scoped — a freshly attached session reads matchMedia False even if another session set it earlier; always set the emulation and export within the same WS session, and assert matchMedia True both before AND after the export to rule out false passes.
