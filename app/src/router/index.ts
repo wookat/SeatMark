@@ -62,6 +62,26 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/PaperDetailView.vue'),
   },
   {
+    path: '/vs',
+    name: 'vs-index',
+    component: () => import('@/views/VsIndexView.vue'),
+  },
+  {
+    path: '/vs/:slug',
+    name: 'vs-detail',
+    component: () => import('@/views/VsDetailView.vue'),
+  },
+  {
+    path: '/desk-card-generator',
+    name: 'topic-desk-card-generator',
+    component: () => import('@/views/TopicLandingView.vue'),
+  },
+  {
+    path: '/name-card-batch',
+    name: 'topic-name-card-batch',
+    component: () => import('@/views/TopicLandingView.vue'),
+  },
+  {
     path: '/seating',
     name: 'seating',
     component: () => import('@/views/SeatingView.vue'),

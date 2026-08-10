@@ -26,6 +26,9 @@ const GROUPS = [
   {
     title: '资源',
     links: [
+      { label: '工具对比选型', to: '/vs' },
+      { label: '桌牌在线生成', to: '/desk-card-generator' },
+      { label: '姓名卡片批量生成', to: '/name-card-batch' },
       { label: '使用流程', to: '/#how' },
       { label: '功能特性', to: '/#features' },
       { label: '常见问题', to: '/#faq' },

@@ -385,6 +385,85 @@ export async function resolveSeo(path: string): Promise<PageSeo> {
     }
   }
 
+  if (p === '/vs') {
+    const { vsPages } = await import('@/data/vsPages')
+    return {
+      title: '工具对比：SeatMark 与常见桌牌席卡做法逐项对照 - SeatMark 座签',
+      description:
+        'SeatMark 与创客贴、WPS 邮件合并、placecard.us、Canva 可画做桌牌席卡的实测对比合集：名单批量生成、打印拼版、校准精度、隐私与价格逐项对照，帮你按场景选对工具。',
+      path: '/vs',
+      jsonLd: [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: '工具对比 - SeatMark 座签',
+          url: `${SITE_ORIGIN}/vs`,
+          inLanguage: 'zh-CN',
+          hasPart: vsPages.map((v) => ({
+            '@type': 'Article',
+            headline: v.seoTitle,
+            url: `${SITE_ORIGIN}/vs/${v.slug}`,
+          })),
+        },
+        breadcrumb([
+          { name: '首页', path: '/' },
+          { name: '工具对比', path: '/vs' },
+        ]),
+      ],
+    }
+  }
+
+  if (p.startsWith('/vs/')) {
+    const { findVsPage } = await import('@/data/vsPages')
+    const page = findVsPage(p.slice('/vs/'.length))
+    if (page) {
+      return {
+        title: `${page.seoTitle} - SeatMark 座签`,
+        description: page.seoDescription,
+        path: `/vs/${page.slug}`,
+        jsonLd: [
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Article',
+            headline: page.heading,
+            description: page.seoDescription,
+            inLanguage: 'zh-CN',
+            author: { '@type': 'Organization', name: SITE_NAME, url: `${SITE_ORIGIN}/` },
+            publisher: { '@type': 'Organization', name: SITE_NAME, url: `${SITE_ORIGIN}/` },
+            mainEntityOfPage: `${SITE_ORIGIN}/vs/${page.slug}`,
+          },
+          faqJsonLd(page.faqs),
+          breadcrumb([
+            { name: '首页', path: '/' },
+            { name: '工具对比', path: '/vs' },
+            { name: `vs ${page.competitorName}`, path: `/vs/${page.slug}` },
+          ]),
+        ],
+      }
+    }
+  }
+
+  {
+    const { findTopicPage } = await import('@/data/topicPages')
+    const topic = findTopicPage(p)
+    if (topic) {
+      return {
+        title: `${topic.seoTitle} - SeatMark 座签`,
+        description: topic.seoDescription,
+        path: topic.path,
+        jsonLd: [
+          SOFTWARE_APP_JSONLD,
+          howToJsonLd(topic.howToName, topic.steps),
+          faqJsonLd(topic.faqs),
+          breadcrumb([
+            { name: '首页', path: '/' },
+            { name: topic.shortName, path: topic.path },
+          ]),
+        ],
+      }
+    }
+  }
+
   if (p === '/seating') {
     return {
       title: '班级座位表在线制作打印，一键生成桌贴 - SeatMark 座签',
@@ -458,10 +537,12 @@ export function appShellPaths(): string[] {
 
 /** 需要构建期预渲染的全部路径（同时是 sitemap 的路径清单）；仅构建脚本使用 */
 export async function prerenderPaths(): Promise<string[]> {
-  const [{ guides }, { templateDetails }, { labelPapers }] = await Promise.all([
+  const [{ guides }, { templateDetails }, { labelPapers }, { vsPages }, { topicPages }] = await Promise.all([
     import('@/data/guides'),
     import('@/data/templateDetails'),
     import('@/data/labelPapers'),
+    import('@/data/vsPages'),
+    import('@/data/topicPages'),
   ])
   return [
     '/',
@@ -473,6 +554,9 @@ export async function prerenderPaths(): Promise<string[]> {
     ...templateDetails.map((t) => `/templates/${t.slug}`),
     '/papers',
     ...labelPapers.map((paper) => `/papers/${paper.slug}`),
+    '/vs',
+    ...vsPages.map((v) => `/vs/${v.slug}`),
+    ...topicPages.map((t) => t.path),
     '/seating',
     '/terms',
     '/privacy',
