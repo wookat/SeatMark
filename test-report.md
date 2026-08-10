@@ -1,3 +1,20 @@
+# 第 168 轮（2026-08-10）：#177 /seating 座位号加深至 slate-600 全场景 AA 验收 ✅（computed color=rgb(71,85,105)；白底 7.58:1、blue-50 6.96:1、pink-50 6.94:1 全部 ≥4.5；第 166 轮 P3 观察项闭环）
+
+**部署翻转**：15:49:13 观测 entry `index-BMP5xFFC.js` → `index-BPYEjASD.js`、sw.js md5 `3ab611f8…` → `35927928…`，双采样一致 + 稳定 2 分钟后开测（本次 sw.js 先于 entry 翻转约 30 秒，属边缘节点传播次序差异）。
+
+## T1 对比度全场景 AA（核心）
+- 1280×900 /seating「用演示名单」48 席（含性别着色）。
+- `.seating-seat-no` computed color = **rgb(71, 85, 105)**（=#475569 slate-600；第 166 轮值 rgb(100,116,139) 可区分）✅
+- WCAG 对比度（背景取实测 computed 值）：对白底（`.seating-sheet` 纯白）**7.58:1**、对 blue-50 rgb(239,246,255) **6.96:1**、对 pink-50 rgb(253,242,248) **6.94:1**——三场景全部 ≥4.5 ✅（**第 166 轮 P3 观察项「彩底 4.37:1」闭环**）
+- 姓名层级不变：15.1px/700/rgb(15,23,42) > 座位号 10.6px/600，截图 + 2x 裁片目视座位号加深但仍为次级 ✅
+
+## T2 390px 冒烟（Regression）
+- sw=cw=390 无横向溢出、48 席渲染、座位号同色 rgb(71,85,105)、pageerror 0 ✅
+
+**截图**：/home/ubuntu/screenshots/r168_seating_1280.png、r168_seatno_crop.png、r168_390.png。
+
+---
+
 # 第 166 轮（2026-08-10）：#176 /seating 座位号小字对比度提升验收 ✅（computed color=rgb(100,116,139)、对白底 4.76:1 ≥4.5 达标；1 条 P3 观察项：男女混排彩色底上为 4.37:1 略低于 4.5）
 
 **部署翻转**：15:33:39 观测 entry `index-YLrANFvw.js` → `index-BMP5xFFC.js`、sw.js md5 `30110b96…` → `3ab611f8…`，双采样一致 + 稳定 2 分钟后开测。
