@@ -175,30 +175,32 @@ export async function waitForElementReady(el: HTMLElement): Promise<void> {
  * 栅格化引擎不支持 -webkit-line-clamp 多行裁剪：预览中被省略号截断的
  * 超长文本会以全部行绘制并相互叠压。截图前把被裁剪字段的文本物理截断为
  * 「可见前缀 + 省略号」，与预览显示保持一致（所见即所得）。
- * 只处理确实溢出的字段；宿主每次导出都会重新挂载，改动不会泄漏到预览。
+ * 只截断确实溢出的字段；宿主每次导出都会重新挂载，改动不会泄漏到预览。
  */
 export function truncateClampedText(root: HTMLElement): void {
   const overflows = (body: HTMLElement) => body.scrollHeight > body.clientHeight + 1
   for (const body of Array.from(root.querySelectorAll<HTMLElement>('.label-field__body'))) {
-    if (!overflows(body)) continue
-    const content = body.querySelector<HTMLElement>('.label-field__content')
-    if (!content) continue
-    // 按码点切分：不劈开 emoji / 增补平面字符
-    const chars = Array.from(content.textContent ?? '')
-    if (!chars.length) continue
-    // 二分找最长能放下的前缀（含省略号）
-    let lo = 0
-    let hi = chars.length
-    while (lo < hi) {
-      const mid = Math.ceil((lo + hi) / 2)
-      content.textContent = `${chars.slice(0, mid).join('')}…`
-      if (overflows(body)) hi = mid - 1
-      else lo = mid
+    if (overflows(body)) {
+      const content = body.querySelector<HTMLElement>('.label-field__content')
+      if (!content) continue
+      // 按码点切分：不劈开 emoji / 增补平面字符
+      const chars = Array.from(content.textContent ?? '')
+      if (!chars.length) continue
+      // 二分找最长能放下的前缀（含省略号）
+      let lo = 0
+      let hi = chars.length
+      while (lo < hi) {
+        const mid = Math.ceil((lo + hi) / 2)
+        content.textContent = `${chars.slice(0, mid).join('')}…`
+        if (overflows(body)) hi = mid - 1
+        else lo = mid
+      }
+      content.textContent = `${chars.slice(0, lo).join('')}…`
     }
-    content.textContent = `${chars.slice(0, lo).join('')}…`
-    // 截断后解除 line-clamp / overflow 裁切：文本已物理放得下，不再需要 CSS 裁剪；
-    // 保留 overflow:hidden 会让栅格化引擎按内容盒平切字形顶部（王→土、单→早），
-    // 浏览器绘制允许字形 ascent 溢出行盒而栅格化引擎不允许
+    // 解除 line-clamp / overflow 裁切：文本已放得下（或已物理截断），不再需要 CSS 裁剪；
+    // 保留 overflow:hidden 会让栅格化引擎按内容盒平切字形顶部（王→土、单→早）——
+    // 浏览器绘制允许字形 ascent 溢出行盒而栅格化引擎不允许，且 Firefox 的
+    // Range 度量下即使未溢出的单行字段 ascent 也会被平切，故对所有字段统一解除
     body.style.setProperty('-webkit-line-clamp', 'unset')
     body.style.setProperty('line-clamp', 'unset')
     body.style.overflow = 'visible'
