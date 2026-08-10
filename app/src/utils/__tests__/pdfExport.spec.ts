@@ -73,6 +73,21 @@ describe('truncateClampedText 导出前物理截断', () => {
     expect(Array.from(content.textContent!).length).toBeLessThanOrEqual(10)
     expect(content.textContent!.endsWith('…')).toBe(true)
   })
+
+  it('截断后解除 overflow / line-clamp 裁切（字形 ascent 不被平切）', () => {
+    const { root } = makeBody('欧阳先生'.repeat(6))
+    truncateClampedText(root)
+    const body = root.querySelector<HTMLElement>('.label-field__body')!
+    expect(body.style.overflow).toBe('visible')
+    expect(body.style.getPropertyValue('-webkit-line-clamp')).toBe('unset')
+  })
+
+  it('不溢出的字段不解除裁切样式', () => {
+    const { root } = makeBody('张同学')
+    truncateClampedText(root)
+    const body = root.querySelector<HTMLElement>('.label-field__body')!
+    expect(body.style.overflow).toBe('')
+  })
 })
 
 describe('pdfExport 参数选取', () => {

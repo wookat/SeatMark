@@ -192,6 +192,12 @@ export function truncateClampedText(root: HTMLElement): void {
       else lo = mid
     }
     content.textContent = `${chars.slice(0, lo).join('')}…`
+    // 截断后解除 line-clamp / overflow 裁切：文本已物理放得下，不再需要 CSS 裁剪；
+    // 保留 overflow:hidden 会让栅格化引擎按内容盒平切字形顶部（王→土、单→早），
+    // 浏览器绘制允许字形 ascent 溢出行盒而栅格化引擎不允许
+    body.style.setProperty('-webkit-line-clamp', 'unset')
+    body.style.setProperty('line-clamp', 'unset')
+    body.style.overflow = 'visible'
   }
 }
 
