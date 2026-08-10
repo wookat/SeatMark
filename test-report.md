@@ -1,3 +1,31 @@
+# 第 155 轮（2026-08-10）：#160 SEO 新页面线上验收 ✅（/vs 矩阵 5 页 + 2 长尾落地页全部通过，无新增 P 级问题）
+
+**背景**：SEO 子会话 #160（commit 5c1b44a）已合入 main 并部署到生产。新增 /vs 对比索引 + /vs/chuangkit、/vs/wps-mail-merge、/vs/placecard-us、/vs/canva 与 /desk-card-generator、/name-card-batch。本轮直接线上验收（部署已稳定，未见边缘传播窗口现象）。
+
+**方法**：curl 抓取 prerender 静态 HTML 做 SEO 元数据/JSON-LD/FAQ 一致性/内链解析（生产为 prerender 静态 HTML，HTTP 检查权威）；headless Chromium 29229 真实 UI 做 1280×900 / 390×844 视口渲染、CTA 点击与老页面回归；事实性对照 docs/competitive-round3.md 与 docs/competitive-analysis.md。计划：test-plan-round155.md。
+
+## 结果
+
+| 验收点 | 结果 |
+|---|---|
+| 7 个新 URL 全部 HTTP 200 | ✅ |
+| title/description/canonical/OG(title/description/image/url)/twitter:card 全部非空，canonical 与 og:url 精确等于页面 URL | ✅ 7/7 |
+| JSON-LD 全部可解析：/vs=CollectionPage+Breadcrumb；4 个对比页=Article+FAQPage+Breadcrumb；2 个落地页=SoftwareApplication+HowTo+FAQPage+Breadcrumb | ✅ |
+| FAQPage 与可见 FAQ 一致（对比页各 3 问、落地页各 4 问，JSON-LD 问题文本全部出现在可见 HTML，missing=0） | ✅ 6/6 |
+| sitemap.xml 收录（324→331，7 个新 URL 全在）；llms.txt 收录 /vs、/desk-card-generator、/name-card-batch | ✅ |
+| footer 新增 3 内链（工具对比选型/桌牌在线生成/姓名卡片批量生成）在首页存在且可达 | ✅ |
+| 新页面全部站内内链（35 个去重 URL，含 relatedGuides、CTA）线上 GET 全 200，无死链 | ✅ |
+| 事实性抽查：创客贴（微信扫码登录墙、无名单批量/拼版、印刷下单独有、会员 ¥139 起）、placecard.us（Excel/CSV/Google Sheets+字段映射、~100+ 欧美婚礼风、无校准向导/照片匹配/eink、水印预览免费+$12.9 起一次性）、Canva（国际版 Bulk Create 中文站受限、¥168/年、无毫米级拼版）、WPS（邮件合并多步、稻壳会员约 ¥179）——全部能在 competitive-round3.md / competitive-analysis.md 找到实测支撑，无编造能力；页面均披露「2026-08 实际上手调研，以对方官网最新为准」 | ✅ |
+| 1280×900 与 390×844：/vs、/vs/chuangkit、/desk-card-generator scrollWidth<=clientWidth 无横向溢出；390 下对照表为 overflow-x-auto 内部滚动容器（sw560/cw356，可横滑看全，页面本身不溢出），布局正常 | ✅ |
+| CTA：/desk-card-generator 「开始制作」→ /studio 正常渲染（模板列表出现），无 pageerror | ✅ |
+| 回归（Regression）：/ /templates /studio?demo=1 正常渲染、26 标签 2 页预览正常，pageerror 全空 | ✅ |
+
+**注记**：test-report.md 在 main 分支上是旧版（第 150–154 轮报告在分支 devin/1786368685-skill-r154 的 69f4feb 提交），本轮已先 `git checkout 69f4feb -- test-report.md` 恢复完整 80 节后再追加。
+
+**截图**：/home/ubuntu/screenshots/r155_1280_vs_index.png、r155_1280_vs_chuangkit.png、r155_1280_deskcard.png、r155_390_vs_index.png、r155_390_vs_chuangkit.png、r155_390_table_scrolled.png、r155_390_deskcard.png、r155_cta_studio.png、r155_reg_home/templates/studio.png。脚本：/home/ubuntu/r155_seo.py、/home/ubuntu/r155_ui.py；数据：/home/ubuntu/r155_seo.json、r155_ui.json。
+
+---
+
 # 第 154 轮（2026-08-10）：PR #162 裁切线二修（内联 SVG）线上复测 ✅（第 150 轮裁切线问题闭环；附 1 项部署过渡期观察注记）
 
 **方法**：轮询确认 EdgeOne 部署新 bundle（`index-CuMqeM6b.js` → `index-BB02NSJB.js`，代码依据 commit 3497116 / PR #162：LabelSheet.vue cut-layer 改为单个 `<svg viewBox="0 0 W H">` + `<line stroke-width="0.35" stroke-dasharray="1.2 1.2">`，main.css 渐变规则删除）→ 生产 www.seatmark.cn，headless Chromium 29229 真实 UI（standard a4-24up demo 26 行 2 页 + deluxeConfAurora），导出物 PIL/zipfile/pypdfium2 像素核验（2481px/210mm ≈ 11.81px/mm，判据同第 152 轮）；打印路径「延迟 afterprint 10s 按住宿主 + Page.printToPDF(printBackground)」。不录屏（headless）。
