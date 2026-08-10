@@ -1,3 +1,24 @@
+# 第 174 轮（2026-08-10）：#183 `.offscreen-host` forced-color-adjust: none 线上验收 ❌（**核心判据 FAIL**：forced-colors 模拟下导出 PNG 仍全灰阶、品牌青 0 像素——根因已定位：html2canvas 克隆到独立 iframe 渲染，克隆树丢失 `.offscreen-host` 祖先的豁免继承；屏上 UI 与冒烟均正常）
+
+**背景**：PR #183 给 `.offscreen-host`（main.css L440-449）加 `forced-color-adjust: none`，意图闭环第 172 轮 P3。部署翻转：17:04:16 三指标齐变（js `index-BTp5Le9S.js`→`index-h2r97RJA.js`、css `index-CTzSm9NE.css`→`index-VqHoINT7.css`、sw `e7e91bb4…`→`af129298…`），二次采样一致；新 CSS 构建产物实测含 `offscreen-host{…forced-color-adjust:none…}`。
+
+## T1 forced-colors 下导出保留设计色 — **FAIL**
+- 同 tab 基线（非 forced）：2481×3509 @ pHYs 11811、md5=`3e8fdf3e…` 与 r170/172 基线一致 ✅
+- forced-colors: active 下导出：尺寸/pHYs 正常，但**品牌青 rgb(13,148,136) 像素数 = 0**（基线 113,898）、纯黑 68,518 + 全灰阶 top colors，与基线像素差 861,650 点、覆盖 99.7% 行——**设计色仍全部丢失，#183 未达成目标**。
+- **根因（已实证）**：CSS 本身生效——原文档内 `.offscreen-host` 后代 computed color 保持 `rgb(13,148,136)`、forcedColorAdjust=none ✅；但 html2canvas 把被捕获节点克隆进**自建同源 iframe** 渲染：实测 iframe 内 `forced-colors: active` 仍匹配、无 `.offscreen-host` 祖先的 `.sheet-page` 元素颜色被强制为 `rgb(0,0,0)`。克隆根为 sheet-page（不含 offscreen-host 祖先），可继承豁免丢失 → 强制配色照旧烙进产物。
+- **修复建议**：把 `forced-color-adjust: none` 直接加在 `.sheet-page`（或被 html2canvas 捕获的根元素及其类）上，而非仅祖先宿主；或用 html2canvas `onclone` 钩子在克隆文档根上补 `forced-color-adjust: none`。真实 Windows 高对比度下同理（iframe 同样被强制），非模拟假象。
+
+## T2 屏上 UI 在 forced-colors 下（负向对照）
+- / 强制配色截图与正常截图像素差 271,200/1,500,000（UI 确实仍被强制改写，豁免未外溢）；文本可读、dark frac 0.036 正常、pageerror 0 ✅
+
+## T3 冒烟（Regression）
+- 正常导出整页 PNG：md5=`3e8fdf3e…` 与 r170 基线逐位一致、pHYs 11811 ✅
+- 打印通道：hook 确认 `window.print()` 调起 1 次、pageerror 0 ✅（注：真实打印走原文档 @media print，`.offscreen-host` 豁免对**打印通道**应有效，但 headless 无法核验打印渲染色，untested）
+
+全程 pageerror 0。产物：/home/ubuntu/r174_dl/；截图 r174_*（含 r174_export_base_crop.png / r174_export_forced_crop.png 对照）。清理：模拟重置、测试 tab 全关。headless 不录屏。**第 172 轮 P3 未闭环，需按根因返工。**
+
+---
+
 # 第 172 轮（2026-08-10）：视觉稳健性专项——页面缩放/高 DPR/forced-colors/prefers-contrast/减动效下的渲染与导出一致性 ✅（缩放 150%/80% 与 DPR 1/2/3 下整页 PNG 产物像素级一致；减动效降级正常；**1 条 P3 观察项**：forced-colors 模拟激活期间导出的 PNG 会丢失设计色——品牌青/深蓝灰被强制映射为纯黑/灰阶）
 
 **背景**：无代码变更走查轮（bundle `index-BTp5Le9S.js`）。CDP Emulation.setPageScaleFactor / setDeviceMetricsOverride / setEmulatedMedia 模拟；产物按 pHYs 基线（r170/171）逐 chunk + Pillow + numpy 像素 diff 核验。代码依据：pngExport.ts 渲染倍率与 devicePixelRatio/页面缩放完全无关（L159-176/330-336/410-418）；减动效路径 main.css L233 + HomeView.vue L18。

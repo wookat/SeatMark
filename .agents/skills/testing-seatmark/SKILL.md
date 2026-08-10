@@ -182,3 +182,6 @@ Templates narrower than ~84.7mm trigger pngRasterScale upscaling (min output wid
 
 ## Display-settings robustness (round 172/173)
 PNG/PDF export scale is fully decoupled from page zoom and devicePixelRatio (pngExport.ts uses pngRasterScale only) — exports under Emulation.setPageScaleFactor 0.8-1.5 and DPR 1-3 are pixel-identical to baseline (md5 may differ at high DPR from PNG encoding; always compare with a numpy pixel diff, not md5). Since round 173 the offscreen export/print host sets `forced-color-adjust: none`, so exports keep design colors even while forced-colors is active — brand teal rgb(13,148,136) surviving in the artifact is the pass criterion. High-DPR exports render slower — extend download-wait and re-set downloadPath per script.
+
+## forced-colors export gotcha (round 174)
+html2canvas renders a CLONE inside its own same-origin iframe — forced-colors still matches there and any inheritable exemption on an ancestor OUTSIDE the captured root (e.g. `.offscreen-host`) is lost in the clone. The exemption must live on the captured root itself (`.sheet-page`, added round 175). Judge the fix by counting brand-teal rgb(13,148,136) pixels in the artifact (baseline ~114k on deskName A4) plus numpy diff vs a same-tab non-forced export. Stale window.print hooks die on tab reload — always re-hook in a fresh script before asserting print invocation.
