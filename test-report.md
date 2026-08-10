@@ -1,3 +1,21 @@
+# 第 179 轮（2026-08-10）：Clarity 移除后 Lighthouse BP 重建基线 ⚠️（**BP 中值仍 58 未上升**——剩余扣分已定位：三项 0 分审计全部溯源到百度统计——第三方 Cookie `HMACCOUNT_BFESS`（两项）+ hm.js 注册的 unload 监听（deprecations，经 Sentry addEventListener 包装被归因到 bundle）；Perf/CLS 无回归，新基线已建）
+
+**方法**：lighthouse@13.4.1，SKILL.md 标准命令（mobile 模拟节流），`/`、`/studio`、`/templates` 各 3 跑取中值；原始 JSON 存 /home/ubuntu/r179_lighthouse/。
+
+**结果（中值）**：
+- `/`：Perf **98**（3 跑 80/99/98，首跑冷启动偏低符合已知规律）、BP **58**、CLS **0**、LCP 1.83s
+- `/studio`：Perf **78**（70/78/79）、BP **58**、CLS **0**、LCP 4.71s
+- `/templates`：Perf **93**（71/93/96）、BP **58**、CLS **0**、LCP 2.48s
+- Perf 无回归（home ≥87✓、studio ≥66✓、templates ≥70✓，均优于/持平旧基线）；CLS 三页全 0 ✓。
+
+**BP 未上升的定位**：BP 58 由三项 0 分审计构成，Clarity 移除只消掉了 Clarity 相关 cookie，剩余：
+1. `third-party-cookies`：百度统计 `HMACCOUNT_BFESS`（hm.baidu.com/hm.js 种）——1 个 cookie 即 0 分；
+2. `deprecations`：「Unload event listeners are deprecated」——初判为 Sentry SDK，主会话复核后修正：**真实注册者是百度统计 hm.js**（脚本内两处 `b.c(window,"unload",…)`/`d.c(window,"unload",…)`），Lighthouse 将其归因到 bundle（line21 col6877）是因为 Sentry breadcrumb 集成包装了 `addEventListener`，第三方脚本注册监听时实际执行的是 bundle 内的包装函数；bundle 与 src/ 本身均无 unload 监听（bundle 内唯一 "unload" 字符串是 Sentry 导航 span 名数组）；
+3. `inspector-issues`：同为百度 cookie 的 CookieIssue。
+即：**三项失败审计的根因都是百度统计，只要保留它 BP 即钉死在 58**；升级 Sentry 无助（它不是 unload 的注册者）。裁量项：是否接受 BP=58 为「保留百度统计的既定代价」（面向中国市场默认保留），或砍掉百度统计换 BP 分。
+
+**收尾**：清理 lighthouse 临时 Chrome 进程。未改产品代码。
+
 # 第 178 轮（2026-08-10）：#186 移除 Microsoft Clarity——第 176 轮弹窗泄漏闭环复测 ✅（**核心判据 PASS**：弹窗开关 10→30 轮节点/监听器/heap 完全持平（8,095/1,731/9.7MB 三次采样零增长，r176 失败版线性涨至 103k/15.3k/88.8MB）；三家统计通道正常、clarity 请求 0、导出冒烟无回归）
 
 **背景**：第 176 轮发现「浏览全部」弹窗每轮开关泄漏约 3.3k 节点/约 500 监听器/约 2.7MB；第 177 轮 retainer 分析定位 `window.clarity → closure → Map(table)` 永久保留 detached TemplateThumb 树；#186（8e1c3b3）从 app/index.html 移除 Clarity stub+tag，产品 JS 零改动。部署翻转：20:03:34 生产 HTML clarity 计数 3→0、15s 复采样仍 0（entry/css 如预期不变 `index-BADM1vql.js`/`index-BCHVWv3_.css`，sw md5 `4c3f26d6…`→`fcd98953…` 随 index.html 预缓存翻转）；页面内 `typeof window.clarity === 'undefined'`。
