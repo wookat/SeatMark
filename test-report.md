@@ -1,3 +1,31 @@
+# 第 200 轮（2026-08-11）：整页导出空白观察项压测排查（无代码变更前置，entry `index-DbXPcBBk.js`）⚠️ 复现 1 次（合计 2/70），空白页字节级确定性、可逃过空白检测——建议定级 **P3（偏 P2 裁量）**
+
+**测法**：生产 /studio?template=deskName&demo=1，带水印整页 PNG，每次校验 zip 两页非白像素（<200 灰度，正常 [661794, 361149]）与逐页 md5；全程采集 console/exception/network（Runtime + Network 事件）与下载时序。
+
+**结果**：
+- T1 30 次基线压测（同 tab 连续）：30/30 正常，page1 md5 每次都= r170 基线 `3e8fdf3e0c…`、page2 md5 恒定 `1cede32f30…`；渲染耗时稳定 1.57–1.75s（首个 2.64s）；console/network 零异常事件 — PASS
+- T2 10 次扰动变体：**第 1 次（预览容器滚到底后立即导出 + 渲染期窗口滚动抖动）复现 BLANK**——page1 非白像素 163768（正常 661794），page2 正常。其余 9 次（含同款 scroll、zoom 双击、导出点击前滚动）全部正常。
+- T3 定向排查（复现后加测 17 次，均未再中）：
+  - rAF 循环钉住窗口 scrollTop=600 贯穿导出 ×3 — 正常；
+  - 每帧窗口滚动抖动 0↔1500 贯穿导出 ×5 — 正常；
+  - 每帧预览容器滚动抖动 ×5 — 正常；
+  - 复刻 r199 场景（二次 attach + 容器预滚 + 立即导出）×3 — 正常；
+  - 钉住滚动的对照导出 ×1 — 正常。
+- 全程 pageerror 0（所有 tab）；storage 清理 + 全部测试 tab 关闭 — PASS
+
+**关键取证（异常产物特征）**：
+1. **字节级确定性**：本轮空白 page1 md5 = `52e62a47bbfbae41a51373d46bf91714` 与 r199 那次**逐字节一致**（两次独立发生、不同日内不同会话）——不是随机噪声，是一条确定的失败渲染路径。
+2. 只坏第 1 页：两次事件 page2 均正常（r199 组合口径 page2、r200 默认口径 page2 各自正常）。
+3. 异常页内容：仅水印文字 + 墨迹集中在左缘 x∈[0,1063]（首 250px 列 99913 px，x>1250 全白）——html2canvas 输出画布尺寸正确（2481×3509）但绘制不完整。
+4. **为何逃过产品自检**：pdfExport.ts:112 `isCanvasBlank` 只采样画布左上 96×128 角——异常页左缘恰有墨迹，空白检测判「非空白」，:571 的重试/rebuildHost 兜底全部未触发，静默产出坏页。
+5. 复现时 console/exception/network 事件为零、无 pageerror。
+
+**定级建议**：P3（发生率低：2/70≈2.9%，rule of three 95% 上界 ≈6.3%；重导一次即恢复）。若按「静默产出不可用产物且用户无提示」口径可升 P2。**修复线索**：`isCanvasBlank` 改为多点采样（四角+中心）或统计全图非白像素占比，可把该失败转化为既有重试路径自动恢复；根因疑与预览容器滚动状态下 html2canvas 克隆窗口的绘制截断有关（复现需滚动扰动，但非充分条件）。
+
+**产物**：异常 zip `/home/ubuntu/r200_dl/16563943-*`（+r199 的 `/home/ubuntu/r199_dl/1af7ec03-*`）、正常对照若干；日志 `/home/ubuntu/r200_log.json`、`r200_log_perturb.json`；截图 `/home/ubuntu/screenshots/r200_blank_leftstrip.png`（🔴 异常页左缘）vs `r200_normal_leftstrip.png`（🟢 正常页同区域）；脚本 `/home/ubuntu/r200_stress.py`、`r200_perturb.py`、`r200_determ.py`、`r200_thrash.py`、`r200_attach.py`；计划 `test-plan-round200.md`。
+
+---
+
 # 第 199 轮（2026-08-11）：组合字段 UI 全流程 + 微信 UA 引导浮层（补第 196 轮两项 untested；无代码变更前置）✅ 两大项全部 PASS；另记 1 次未复现的整页导出空白异常（观察项）
 
 **前置**：entry 仍为 `index-DbXPcBBk.js`（#205 无产品代码变更）。生产 /studio 真实 UI（CDP headless），pytesseract（chi_sim，本轮新装 tesseract-ocr + tesseract-ocr-chi-sim）做导出产物 OCR 取证。

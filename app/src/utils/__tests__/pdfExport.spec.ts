@@ -14,6 +14,7 @@ import {
   formatBytes,
   isCanvasBlank,
   isPixelDataBlank,
+  isProbeTruncated,
   JPEG_QUALITY,
   jpegQualityFor,
   neutralizeSyntheticBoldRareGlyphs,
@@ -358,6 +359,43 @@ describe('导出稳定性防线', () => {
 
   it('isPixelDataBlank：接近白色的浅灰在阈值内仍算空白', () => {
     expect(isPixelDataBlank([252, 253, 251, 255])).toBe(true)
+  })
+
+  it('isProbeTruncated：左侧有墨、右侧纯白判为截断', () => {
+    const width = 10
+    const height = 2
+    const data = new Array(width * height * 4).fill(255)
+    // 在左侧 x=1 处放一个深色像素
+    for (let y = 0; y < height; y++) {
+      const i = (y * width + 1) * 4
+      data[i] = 0
+      data[i + 1] = 0
+      data[i + 2] = 0
+      data[i + 3] = 255
+    }
+    expect(isProbeTruncated(data, width, height)).toBe(true)
+  })
+
+  it('isProbeTruncated：右侧也有墨迹则不判截断（正常页）', () => {
+    const width = 10
+    const height = 2
+    const data = new Array(width * height * 4).fill(255)
+    for (const x of [1, 8]) {
+      const i = x * 4
+      data[i] = 0
+      data[i + 1] = 0
+      data[i + 2] = 0
+      data[i + 3] = 255
+    }
+    expect(isProbeTruncated(data, width, height)).toBe(false)
+  })
+
+  it('isProbeTruncated：全白（空白页）不判截断，由空白判据接管', () => {
+    const width = 10
+    const height = 2
+    const data = new Array(width * height * 4).fill(255)
+    expect(isProbeTruncated(data, width, height)).toBe(false)
+    expect(isProbeTruncated([], 0, 0)).toBe(false)
   })
 
   it('isCanvasBlank：零尺寸画布视为空白', () => {

@@ -127,6 +127,54 @@ export function isCanvasBlank(canvas: HTMLCanvasElement): boolean {
   }
 }
 
+/**
+ * 截断渲染检测（对缩采样后的像素数据）：左侧有墨迹而右侧大片纯白，
+ * 是 html2canvas 偶发只绘出左半页的失败特征（整页网格/水印版式右侧必有内容）。
+ * 稀疏尾页可能误中，因此该判据只用于触发重试，最后一次渲染仅按空白判据放行。
+ */
+export function isProbeTruncated(
+  data: ArrayLike<number>,
+  width: number,
+  height: number,
+): boolean {
+  if (width <= 0 || height <= 0) return false
+  const rightStart = Math.floor(width * 0.6)
+  const left: number[] = []
+  const right: number[] = []
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4
+      const target = x < rightStart ? left : right
+      target.push(
+        data[i] ?? 255,
+        data[i + 1] ?? 255,
+        data[i + 2] ?? 255,
+        data[i + 3] ?? 0,
+      )
+    }
+  }
+  return isPixelDataBlank(right) && !isPixelDataBlank(left)
+}
+
+/** canvas 截断渲染检测：整幅缩到小画布后交给 isProbeTruncated 判据 */
+export function isCanvasTruncated(canvas: HTMLCanvasElement): boolean {
+  if (!canvas.width || !canvas.height) return false
+  try {
+    const sampleW = Math.min(canvas.width, 128)
+    const sampleH = Math.min(canvas.height, 128)
+    const probe = document.createElement('canvas')
+    probe.width = sampleW
+    probe.height = sampleH
+    const ctx = probe.getContext('2d', { willReadFrequently: true })
+    if (!ctx) return false
+    ctx.drawImage(canvas, 0, 0, sampleW, sampleH)
+    const { data } = ctx.getImageData(0, 0, sampleW, sampleH)
+    return isProbeTruncated(data, sampleW, sampleH)
+  } catch {
+    return false
+  }
+}
+
 /** 就绪等待属于尽力而为：给 Promise 加“到时即放行”的兜底，防止其永不落定拖死导出 */
 export function settleWithin<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
   return Promise.race([
@@ -534,8 +582,8 @@ export function createPageRenderer(
     if (options.signal?.aborted) throw new Error(EXPORT_CANCELLED_MESSAGE)
   }
 
-  /** 渲染单页一次：等节点完全就绪后再截图，并做空白页检测 */
-  function renderOnce(i: number): Promise<HTMLCanvasElement> {
+  /** 渲染单页一次：等节点完全就绪后再截图，并做空白/截断页检测 */
+  function renderOnce(i: number, strict = true): Promise<HTMLCanvasElement> {
     // 看门狗覆盖整条单页链路（挂载节点 + 就绪等待 + 栅格化），
     // 任一环节挂起都会在超时后报错，杜绝“无提示、无产物”的静默失败
     return withTimeout(
@@ -555,6 +603,9 @@ export function createPageRenderer(
           logging: false,
         })
         if (isCanvasBlank(canvas)) throw new Error('页面渲染为空白')
+        // 截断判据只在 strict 渲染中生效：真截断重渲即恢复，
+        // 稀疏尾页误中则由最后一次宽松渲染放行，不会把合法页变成报错
+        if (strict && isCanvasTruncated(canvas)) throw new Error('页面疑似渲染不完整（右侧大片空白）')
         return canvas
       })(),
       pageTimeoutMs,
@@ -573,12 +624,13 @@ export function createPageRenderer(
         // 超时或空白自动重试一次；用户取消不重试
         if (isCancelError(firstErr)) throw firstErr
         try {
-          return await renderOnce(i)
+          // 无重建兜底时本次就是最后一次渲染，截断判据改宽松
+          return await renderOnce(i, Boolean(options.rebuildHost))
         } catch (secondErr) {
           // 重试仍失败：重建离屏容器后做最后一次重渲（长会话容器劣化的兜底）
           if (isCancelError(secondErr) || !options.rebuildHost) throw secondErr
           await options.rebuildHost()
-          return await renderOnce(i)
+          return await renderOnce(i, false)
         }
       }
     } catch (err) {
