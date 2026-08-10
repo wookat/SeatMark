@@ -95,6 +95,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   // 当前模板与选择持久化（防抖合并连续修改）
   let persistTimer: number | undefined
+  let persistFailWarned = false
   watch(
     [template, selectedTemplateId],
     () => {
@@ -105,8 +106,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
             WORKSPACE_TEMPLATE_KEY,
             JSON.stringify({ id: selectedTemplateId.value, template: template.value }),
           )
+          persistFailWarned = false
         } catch {
-          /* 存储满 / 隐私模式下静默失败 */
+          // 存储满 / 隐私模式：本次编辑仍生效，但刷新后会回到上次成功保存的状态
+          if (!persistFailWarned) {
+            persistFailWarned = true
+            toast.warning(
+              '当前编辑未能保存到本设备',
+              '浏览器本地存储空间已满或不可用，刷新后将回到之前的状态。可删除部分自定义模板释放空间',
+            )
+          }
         }
       }, 400)
     },

@@ -1,8 +1,9 @@
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { defaultTemplates } from '@/data/defaultTemplates'
 import { useTemplateLibrary } from '@/stores/templateLibrary'
+import { useToastStore } from '@/stores/toast'
 import { cloneTemplate } from '@/utils/layout'
 
 const STORAGE_KEY = 'seatmark.custom-templates.v1'
@@ -65,5 +66,47 @@ describe('useTemplateLibrary', () => {
     library.removeCustom(saved.id)
     expect(library.customTemplates).toHaveLength(0)
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).toHaveLength(0)
+  })
+
+  it('保存前先同步最新存储：不覆写其他标签页写入的模板', () => {
+    const library = useTemplateLibrary()
+
+    // 模拟另一标签页在本页启动后直接写入 localStorage
+    const other = cloneTemplate(defaultTemplates[0]!)
+    other.id = 'custom_other_tab'
+    other.name = '其他标签页的模板'
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([other]))
+
+    const saved = library.saveAsCustom(defaultTemplates[0]!, '本页模板')
+    const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as { id: string }[]
+    expect(persisted.map((t) => t.id)).toEqual(['custom_other_tab', saved.id])
+  })
+
+  it('其他标签页删除后本页保存不会使被删模板复活', () => {
+    const library = useTemplateLibrary()
+    library.saveAsCustom(defaultTemplates[0]!, '将被删除')
+
+    // 模拟另一标签页删除了全部自定义模板
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([]))
+
+    const saved = library.saveAsCustom(defaultTemplates[0]!, '新模板')
+    const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as { id: string }[]
+    expect(persisted.map((t) => t.id)).toEqual([saved.id])
+  })
+
+  it('存储写入失败时提示用户而非静默丢失', () => {
+    const library = useTemplateLibrary()
+    const toast = useToastStore()
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota', 'QuotaExceededError')
+    })
+    try {
+      library.saveAsCustom(defaultTemplates[0]!, '配额满')
+      expect(toast.toasts.some((t) => t.type === 'danger' && t.title.includes('未能保存'))).toBe(
+        true,
+      )
+    } finally {
+      spy.mockRestore()
+    }
   })
 })
