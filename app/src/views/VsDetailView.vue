@@ -47,6 +47,7 @@ const page = computed(() => findVsPage(String(route.params.slug ?? '')))
     <!-- 能力对照表 -->
     <section class="mt-8">
       <h2 class="text-lg font-bold tracking-tight text-slate-900">逐项能力对照</h2>
+      <p class="mt-2 text-[11px] leading-5 text-slate-400 sm:hidden">← 左右滑动查看完整对照表 →</p>
       <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200">
         <table class="w-full min-w-[560px] border-collapse bg-white text-left text-sm">
           <thead>
