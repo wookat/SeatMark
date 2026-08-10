@@ -1,4 +1,16 @@
-<<<<<<< Updated upstream
+# 第 184 轮（2026-08-11）：#191 少数民族文种缺字形检测线上验收 ✅（部署翻转后：r180 多文种名单零误报、CJK 生僻字链路不变、阳性分支用 U+1166F 真缺字字符成功触发新警告且文案正确、demo 冒烟+整页 PNG md5 与 r170 基线逐位一致、pageerror 0）
+
+**部署**：entry `index-BPAT-y6Z.js`→`index-BZ_MgILR.js`（15s 二次采样一致）；css 不变 `index-BCHVWv3_.css`；sw md5 `7006c579…`。
+
+**结果**：
+- T1 零误报：/studio?template=deskName 导入 r180_names.xlsx（维/藏/传统蒙/彝/朝/西里尔/扩B/超长名 10 行），导入后 12s 轮询**无任何「无法显示的字符」/生僻字警告**；数据表「共 10 条数据」；pageerror 0。CJK 链路不变：含扩 H U+31350 名单仍触发「名单含 1 个生僻字」+「已自动启用生僻字扩展字库（遍黑体）」（r180 同判据）。
+- T2 阳性分支（PASS，非 untested）：自造名单含 U+1166F（蒙古文补充区，`fc-list :charset=1166f`=0 本地字体，必然豆腐；astral 码位顺带验证 codePointAt 处理）→ 触发 toast「名单含 1 个无法显示的字符」，正文「名单中有少数民族文字（码位 U+1166F）在当前设备字体中缺少字形，预览与导出可能显示为方块；建议换到安装了对应文种字体的设备上操作」——码位以 U+XXXX 文本描述、toast 正文无豆腐块混入（预览标签中该字符如实显示 tofu，正是警告所指）；遍黑体兜底 toast 未误触发（不走 CJK 链路，符合设计）。截图 r184_minority_toast.png。
+- T3 冒烟回归：demo=1 纯汉字导入零警告；整页 PNG（带水印口径）md5=`3e8fdf3e0c8530297998d8ad25623f21` 与 r170 基线逐位一致（导入检测改动不影响导出链路）；全程 pageerror 0。
+- 收尾：清 local/sessionStorage + 关闭全部测试 tab。
+
+**产物**：截图 /home/ubuntu/screenshots/r184_minority_toast.png（关键）、r184_cjk_toast.png、r184_t1_import.png；导出 /home/ubuntu/r184_dl/；阳性名单 /home/ubuntu/r184_positive.xlsx；脚本 /home/ubuntu/r184_t1.py、r184_t1b.py、r184_t3.py。
+
+
 # 第 182 轮（2026-08-10）：#189 RTL 字段导出预栅格化线上验收 ✅（**第 180 轮 P2 闭环**：维文 ئابدۇللا ئابلىز 在整页 PNG / 逐张 zip / 图片版 PDF 三种产物中连写正常、无重叠，与预览一致；非 RTL 文种像素级零变化；纯汉字 demo 整页 PNG md5 与 r170 基线逐位一致）
 
 **部署**：entry `index-BADM1vql.js`→`index-BPAT-y6Z.js`（二次采样一致；css 不变 `index-BCHVWv3_.css`、sw md5 `af87e785…`）。
@@ -14,21 +26,6 @@
 
 **产物**：/home/ubuntu/r182_dl/（perlabel.zip、wholepage.png、photo.pdf、demo_wholepage_wm.zip 等）；截图 /home/ubuntu/screenshots/r182_*；脚本 /home/ubuntu/r182_t*.py。
 
-||||||| constructed merge base
-=======
-# 第 184 轮（2026-08-11）：#191 少数民族文种缺字形检测线上验收 ✅（部署翻转后：r180 多文种名单零误报、CJK 生僻字链路不变、阳性分支用 U+1166F 真缺字字符成功触发新警告且文案正确、demo 冒烟+整页 PNG md5 与 r170 基线逐位一致、pageerror 0）
-
-**部署**：entry `index-BPAT-y6Z.js`→`index-BZ_MgILR.js`（15s 二次采样一致）；css 不变 `index-BCHVWv3_.css`；sw md5 `7006c579…`。
-
-**结果**：
-- T1 零误报：/studio?template=deskName 导入 r180_names.xlsx（维/藏/传统蒙/彝/朝/西里尔/扩B/超长名 10 行），导入后 12s 轮询**无任何「无法显示的字符」/生僻字警告**；数据表「共 10 条数据」；pageerror 0。CJK 链路不变：含扩 H U+31350 名单仍触发「名单含 1 个生僻字」+「已自动启用生僻字扩展字库（遍黑体）」（r180 同判据）。
-- T2 阳性分支（PASS，非 untested）：自造名单含 U+1166F（蒙古文补充区，`fc-list :charset=1166f`=0 本地字体，必然豆腐；astral 码位顺带验证 codePointAt 处理）→ 触发 toast「名单含 1 个无法显示的字符」，正文「名单中有少数民族文字（码位 U+1166F）在当前设备字体中缺少字形，预览与导出可能显示为方块；建议换到安装了对应文种字体的设备上操作」——码位以 U+XXXX 文本描述、toast 正文无豆腐块混入（预览标签中该字符如实显示 tofu，正是警告所指）；遍黑体兜底 toast 未误触发（不走 CJK 链路，符合设计）。截图 r184_minority_toast.png。
-- T3 冒烟回归：demo=1 纯汉字导入零警告；整页 PNG（带水印口径）md5=`3e8fdf3e0c8530297998d8ad25623f21` 与 r170 基线逐位一致（导入检测改动不影响导出链路）；全程 pageerror 0。
-- 收尾：清 local/sessionStorage + 关闭全部测试 tab。
-
-**产物**：截图 /home/ubuntu/screenshots/r184_minority_toast.png（关键）、r184_cjk_toast.png、r184_t1_import.png；导出 /home/ubuntu/r184_dl/；阳性名单 /home/ubuntu/r184_positive.xlsx；脚本 /home/ubuntu/r184_t1.py、r184_t1b.py、r184_t3.py。
-
->>>>>>> Stashed changes
 # 第 180 轮（2026-08-10）：少数民族/多文种姓名支持走查 ⚠️（导入/数据表/朝鲜文·西里尔·彝文·藏文全链路正常；**发现 P2 缺陷：维吾尔文（RTL）姓名在 PNG/PDF 导出产物中字形严重重叠错位，而预览完全正常**；另有扩 B 生僻字（遍黑体栈首）预览与导出均字形碎裂重影、非 CJK 文种缺字永不告警（代码缺口）、超长名/传统蒙文 18px 下限后省略号截断三条观察/P3 项）
 
 **名单**：自造 xlsx 10 行——汉、维（ئابدۇللا ئابلىز）、藏（བསོད་ནམས་དབང་འདུས）、传统蒙文（ᠪᠠᠲᠤᠪᠠᠭᠠᠲᠤᠷ）、西里尔蒙文、彝（ꆈꌠꀿꃀ）、朝（김철수）、扩 B 阳性对照（王𱁬明）、超长名。生产 /studio?template=deskName（课桌姓名贴 2×8）。
