@@ -148,6 +148,47 @@ function pngChunk(type: string, payload: Uint8Array): Uint8Array {
   return out
 }
 
+/**
+ * 在 PNG 字节流的 IHDR 之后插入 pHYs 物理分辨率块（像素/米），
+ * 打印/看图软件据此换算物理尺寸；已有 pHYs 时原样返回
+ */
+export function withPngPhys(bytes: Uint8Array, pixelsPerMeter: number): Uint8Array {
+  // 签名 8 字节 + IHDR 块 25 字节（长度 4 + 类型 4 + 载荷 13 + CRC 4）
+  const insertAt = 33
+  if (bytes.length < insertAt) return bytes
+  if (findChunkType(bytes, 'pHYs') >= 0) return bytes
+  const payload = new Uint8Array(9)
+  const view = new DataView(payload.buffer)
+  const ppm = Math.round(pixelsPerMeter)
+  view.setUint32(0, ppm)
+  view.setUint32(4, ppm)
+  payload[8] = 1 // 单位：米
+  const phys = pngChunk('pHYs', payload)
+  const out = new Uint8Array(bytes.length + phys.length)
+  out.set(bytes.subarray(0, insertAt), 0)
+  out.set(phys, insertAt)
+  out.set(bytes.subarray(insertAt), insertAt + phys.length)
+  return out
+}
+
+function findChunkType(bytes: Uint8Array, type: string): number {
+  let offset = 8
+  while (offset + 8 <= bytes.length) {
+    const length =
+      (bytes[offset]! << 24) | (bytes[offset + 1]! << 16) | (bytes[offset + 2]! << 8) | bytes[offset + 3]!
+    const name = String.fromCharCode(
+      bytes[offset + 4]!,
+      bytes[offset + 5]!,
+      bytes[offset + 6]!,
+      bytes[offset + 7]!,
+    )
+    if (name === type) return offset
+    if (name === 'IEND') return -1
+    offset += 12 + (length >>> 0)
+  }
+  return -1
+}
+
 async function zlibDeflate(bytes: Uint8Array): Promise<Uint8Array | null> {
   if (typeof CompressionStream === 'undefined') return null
   try {

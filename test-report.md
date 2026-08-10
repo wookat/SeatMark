@@ -1,3 +1,27 @@
+# 第 169 轮（2026-08-10）：前进/后退与滚动恢复 + 导出 PNG 物理 DPI 元数据 + 模板缩略图灰字对比度复查 ✅（导航链全绿；**2 条报告项**：导出 PNG 无 pHYs chunk（P3 裁量）、缩略图装饰灰字 2.56:1 但 aria-hidden 纯装饰建议维持现状）
+
+**背景**：无新部署走查轮（bundle `index-BPYEjASD.js`）。
+
+## T1 浏览器前进/后退与状态/滚动恢复
+- 真实 UI 导航链 / → /studio（导入 10 行 BOM CSV + 切课桌姓名贴）→ /templates（滚到 scrollY=1200）→ history.back() 回 /studio：roster 键 536B 不变、模板仍课桌姓名贴、名单在 ✅
+- history.forward() 回 /templates：scrollY 恢复 1200（router scrollBehavior savedPosition 双 rAF 恢复生效）✅
+- 继续 → /seating 后 back×3 逐站 /templates → /studio → /：URL 正确、页面均正常渲染 ✅；forward×1 回 /studio 正常 ✅；全程 pageerror 0 ✅
+- 注：Vue SPA 内部导航不触发 bfcache（无整页卸载），状态保持依赖组件缓存与 sessionStorage——实测均不丢。
+
+## T2 导出 PNG pHYs 元数据（报告 only，P3 裁量）
+- 整页 PNG（标准清晰度 300dpi，A4）：2481×3509 px（=A4@300dpi 正确）；chunk 序列 IHDR/PLTE/IDAT/IEND——**无 pHYs**。
+- 逐张 PNG（24 张 zip，1063×354/张）同样无 pHYs。
+- 影响评估：无 pHYs 时看图/打印软件按默认 72/96dpi 解释物理尺寸（A4 会被认成 ~26×37 英寸）。但产品主推打印链路是矢量 PDF/直接打印（有正确物理尺寸），PNG 定位屏显/电子屏；且多数用户打印 PNG 时会选「适应页面」。**定级 P3 裁量**：如需增强，可在 canvasToPngBlob（pngExport.ts L274-291）产物中插入 pHYs（300dpi=11811 px/m，索引色路径可在 rasterizeIndexedPng 输出时一并写入）。仅报告，未改代码。
+
+## T3 模板缩略图灰字对比度（第 122 轮裁量项收口）
+- /templates 222 个缩略图容器均 `aria-hidden="true"`（TemplateThumb.vue L55，纯装饰语义正确）。
+- 实测缩略图内最浅文字「座位号 SEAT」rgb(148,163,184) 对白底 **2.56:1**（7.3px 装饰小字）；其余装饰字 4.76–17.85:1。
+- **结论：建议维持现状**——容器已 aria-hidden，装饰性文本不适用 WCAG 1.4.3（AA 只约束信息性文本）；真实模板导出中的对应字段颜色由模板定义控制，与缩略图渲染无关。裁量项闭环。
+
+**截图**：/home/ubuntu/screenshots/r169_back_studio.png、r169_back_templates_scroll.png、r169_png_export.png、r169_thumb.png、r169_thumb_crop.png。产物：/home/ubuntu/r169_dl/（整页与逐张 PNG zip）。
+
+---
+
 # 第 168 轮（2026-08-10）：#177 /seating 座位号加深至 slate-600 全场景 AA 验收 ✅（computed color=rgb(71,85,105)；白底 7.58:1、blue-50 6.96:1、pink-50 6.94:1 全部 ≥4.5；第 166 轮 P3 观察项闭环）
 
 **部署翻转**：15:49:13 观测 entry `index-BMP5xFFC.js` → `index-BPYEjASD.js`、sw.js md5 `3ab611f8…` → `35927928…`，双采样一致 + 稳定 2 分钟后开测（本次 sw.js 先于 entry 翻转约 30 秒，属边缘节点传播次序差异）。

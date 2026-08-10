@@ -7,6 +7,7 @@ import {
   medianCutPalette,
   packIndexRow,
   paletteBitDepth,
+  withPngPhys,
 } from '@/utils/indexedPng'
 
 function rgba(colors: number[][], repeat = 1): Uint8ClampedArray {
@@ -164,5 +165,41 @@ describe('encodeIndexedPng', () => {
     // jsdom 无 CompressionStream 时为 null；浏览器环境应正常产出索引 PNG
     if (!png) return
     expect(png[25]).toBe(3)
+  })
+})
+
+describe('withPngPhys', () => {
+  /** 最小合法 PNG 骨架：签名 + IHDR(13 字节载荷) + IEND */
+  function minimalPng(): Uint8Array {
+    const out = new Uint8Array(8 + 25 + 12)
+    out.set([137, 80, 78, 71, 13, 10, 26, 10], 0)
+    const view = new DataView(out.buffer)
+    view.setUint32(8, 13)
+    for (let i = 0; i < 4; i++) out[12 + i] = 'IHDR'.charCodeAt(i)
+    view.setUint32(33, 0)
+    for (let i = 0; i < 4; i++) out[37 + i] = 'IEND'.charCodeAt(i)
+    return out
+  }
+
+  it('在 IHDR 后插入 pHYs（像素/米，单位=米）', () => {
+    const png = withPngPhys(minimalPng(), 11811)
+    // pHYs 块紧跟 IHDR：offset 33 起 长度 9 + 类型 pHYs
+    const view = new DataView(png.buffer)
+    expect(view.getUint32(33)).toBe(9)
+    expect(String.fromCharCode(png[37]!, png[38]!, png[39]!, png[40]!)).toBe('pHYs')
+    expect(view.getUint32(41)).toBe(11811) // x 像素/米
+    expect(view.getUint32(45)).toBe(11811) // y 像素/米
+    expect(png[49]).toBe(1) // 单位：米
+    expect(png.length).toBe(minimalPng().length + 21)
+  })
+
+  it('已有 pHYs 时原样返回', () => {
+    const once = withPngPhys(minimalPng(), 11811)
+    expect(withPngPhys(once, 5000)).toBe(once)
+  })
+
+  it('非 PNG/过短字节流原样返回', () => {
+    const junk = new Uint8Array([1, 2, 3])
+    expect(withPngPhys(junk, 11811)).toBe(junk)
   })
 })
