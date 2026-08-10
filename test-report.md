@@ -1,3 +1,31 @@
+# 第 162 轮（2026-08-10）：教程内容质检抽样 + 样例 Excel 下载链路 + 依赖安全审计 ✅（10 篇教程全绿零死链、样例下载→再导入回路全通、npm audit 0 critical / 6 high 均为间接依赖且实际可利用性低，仅报告不升级）
+
+**背景**：无产品代码变更轮（自上轮仅纯文档 PR #172）。三方向：教程质检抽样、样例文件链路、依赖安全。
+
+**方法**：guides 数据文件共 76 slug（用户口径 66 为旧数，按线上实际 76 抽样），跨 13 类目等距抽 10 篇（考务外覆盖会务/会议/使用技巧/婚庆/对比/打印/打印技巧/排版/教学/数据）；HTTP 层 curl+正则核验 title/h1/结构/死链，quickStart CTA 用 headless Chromium 真实点击落地核验；样例 Excel 经 CDP 下载捕获 + openpyxl 外部读取 + 原样再导入闭环；`npm audit --json`（--omit=dev 与全量）+ `npm ls` 链路溯源。未升级任何依赖。
+
+## T1 教程质检（10 篇）
+
+| 检查项 | 结果 |
+|---|---|
+| 10 篇全部 HTTP 200，title 与 h1 一致 | ✅ |
+| 结构完整：每篇 8–10 个 h2、含 FAQ、无空节 | ✅ |
+| 站内链接 52 个去重 URL 全 200，死链 0 | ✅ |
+| quickStart CTA 实点 5 篇：standard/meetingTent/weddingPlace 三种 `?template=…&demo=1` 落地后模板名出现在页面且演示名单已载入；/papers 与 /seating 落地正确 | ✅ |
+| 事实性抽查：①「打印校准向导」真实存在（studio「打印校准」→ 三步向导 + 校准页 PDF，与 print-offset-calibration-wizard 描述一致）；②「按整页导出」PNG 选项真实存在（label-print-troubleshooting 声明）；③ 分享解锁/水印配额徽标存在（share-unlock-watermark-free：「无水印导出（今日剩余 N 次）/带水印导出（不限次数）」）；④ /seating 男女混排等（classroom-seating-chart-print）已由第 160 轮实测支撑 | ✅ |
+
+## T2 样例 Excel 下载→再导入回路
+- 标准考场版：toast「「考场座位」样例已下载」→ `考场座位样例.xlsx`（表头 姓名/性别/考场/座位号/准考证号/班级/学号/学校/身份证号，5 行，无乱码）→ 原样再导入「已读取 5 条数据」、**0 个未映射** ✅
+- 课桌姓名贴：`班级教学样例.xlsx`（表头 姓名/班级/学号/小组/座位号/科目/老师/学校）同判据通过，样例内容随模板场景变化 ✅
+
+## T3 依赖安全（npm audit，报告 only）
+- **critical 0**。生产依赖树（--omit=dev）：high 4（brace-expansion / fast-uri / nanoid / postcss），全量另有 glob、undici（dev）。
+- 可利用性评估（npm ls 溯源）：4 个"prod" high 全部经 `vite-plugin-pwa → workbox-build / vite` 传入——**均为构建期工具链依赖，不进浏览器 bundle**，运行时为纯静态站，无服务端 Node 暴露面；undici/glob 亦为 dev 工具链。综合定级：**无需紧急处置，建议随下次依赖例行升级消化**（vite-plugin-pwa/workbox-build 升级可收敛大半）。明细见 `/home/ubuntu/r162_audit_prod.json`、`r162_audit_all.json`。
+
+**截图**：/home/ubuntu/screenshots/r162_cta_*.png（5 张 CTA 落地）、r162_fact_calibration.png、r162_fact_png_dialog.png、r162_sample_download.png、r162_sample_import_standard.png、r162_sample_import_deskName.png。样例文件：/home/ubuntu/r162_dl/。
+
+---
+
 # 第 161 轮（2026-08-10）：性能回归审计 ✅（五页双端无 >15% 劣化，多项改善；全站移动 CLS=0、桌面首页 CLS=0 保持；#122 idle 注入、40 行导入均无退化；/vs 与 /desk-card-generator 建立移动新基线）
 
 **背景**：无代码变更审计轮。距第 117–118 轮基线已隔 40+ PR（生僻字字库、SW 改造、安全头、SEO 新页、CSV 编码等）。bundle `index-DTLWjJ7n.js`。
