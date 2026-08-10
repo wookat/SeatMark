@@ -864,7 +864,7 @@ function toDeskLabels() {
 .seating-seat-no {
   font-size: 2.8mm;
   line-height: 1.2;
-  color: #94a3b8;
+  color: #64748b;
   font-weight: 600;
 }
 
