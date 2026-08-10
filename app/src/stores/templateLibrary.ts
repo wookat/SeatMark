@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 import { defaultTemplates } from '@/data/defaultTemplates'
+import { useToastStore } from '@/stores/toast'
 import type { LabelTemplate } from '@/types/template'
 import { uid } from '@/utils/id'
 import { isValidTemplate } from '@/utils/templateValidate'
@@ -26,18 +27,37 @@ function loadFromStorage(): LabelTemplate[] {
 }
 
 export const useTemplateLibrary = defineStore('templateLibrary', () => {
+  const toast = useToastStore()
   const customTemplates = ref<LabelTemplate[]>(loadFromStorage())
+
+  // 其他标签页写入后同步内存，避免本页后续保存用陈旧数组整体覆写
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_KEY || e.key === null) customTemplates.value = loadFromStorage()
+    })
+  }
 
   const allTemplates = computed<LabelTemplate[]>(() => [
     ...defaultTemplates,
     ...customTemplates.value,
   ])
 
-  function persist() {
+  /** 写入前先取最新存储作为基底：本页只应用自己的增删改，不覆写其他标签页的写入 */
+  function syncFromStorage() {
+    customTemplates.value = loadFromStorage()
+  }
+
+  function persist(): boolean {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(customTemplates.value))
+      return true
     } catch {
-      // 存储满 / 隐私模式下静默失败，模板仍保留在内存中
+      // 存储满 / 隐私模式：模板仍保留在内存中，但需明确告知用户未持久化
+      toast.danger(
+        '模板未能保存到本设备',
+        '浏览器本地存储空间已满或不可用，刷新后此模板将丢失。可删除部分自定义模板后重试',
+      )
+      return false
     }
   }
 
@@ -52,6 +72,7 @@ export const useTemplateLibrary = defineStore('templateLibrary', () => {
     copy.builtin = false
     if (name) copy.name = name
     copy.description = copy.description || '自定义模板'
+    syncFromStorage()
     customTemplates.value.push(copy)
     persist()
     return copy
@@ -59,6 +80,7 @@ export const useTemplateLibrary = defineStore('templateLibrary', () => {
 
   /** 覆盖已有的自定义模板；若不存在则按新模板保存 */
   function updateCustom(template: LabelTemplate): LabelTemplate {
+    syncFromStorage()
     const idx = customTemplates.value.findIndex((t) => t.id === template.id)
     if (idx === -1) return saveAsCustom(template)
     const copy = cloneTemplate(template)
@@ -69,12 +91,14 @@ export const useTemplateLibrary = defineStore('templateLibrary', () => {
   }
 
   function removeCustom(id: string) {
+    syncFromStorage()
     customTemplates.value = customTemplates.value.filter((t) => t.id !== id)
     persist()
   }
 
   /** 从云端找回：按 id 升级合并（保留云端 id，避免反复找回产生重复），返回新增数量 */
   function importTemplates(templates: LabelTemplate[]): number {
+    syncFromStorage()
     let added = 0
     for (const template of templates) {
       const copy = { ...cloneTemplate(template), builtin: false }
