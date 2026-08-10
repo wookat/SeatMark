@@ -16,9 +16,64 @@ import {
   JPEG_QUALITY,
   jpegQualityFor,
   rasterDpi,
+  truncateClampedText,
   waitForElementReady,
   withTimeout,
 } from '@/utils/pdfExport'
+
+describe('truncateClampedText 导出前物理截断', () => {
+  /** 构造字段结构，并用 getter 模拟布局：每行容 10 字、可见高度固定 1 行 */
+  function makeBody(text: string, charsPerLine = 10) {
+    const body = document.createElement('span')
+    body.className = 'label-field__body'
+    const content = document.createElement('span')
+    content.className = 'label-field__content'
+    content.textContent = text
+    body.appendChild(content)
+    Object.defineProperty(body, 'clientHeight', { get: () => 20 })
+    Object.defineProperty(body, 'scrollHeight', {
+      get: () =>
+        Math.max(1, Math.ceil(Array.from(content.textContent ?? '').length / charsPerLine)) * 20,
+    })
+    const root = document.createElement('div')
+    root.appendChild(body)
+    return { root, content }
+  }
+
+  it('不溢出的文本不动', () => {
+    const { root, content } = makeBody('张同学')
+    truncateClampedText(root)
+    expect(content.textContent).toBe('张同学')
+  })
+
+  it('溢出文本截断为可见前缀 + 省略号，不再多行', () => {
+    const long = '欧阳先生'.repeat(6) // 24 字
+    const { root, content } = makeBody(long)
+    truncateClampedText(root)
+    const out = content.textContent!
+    expect(out.endsWith('…')).toBe(true)
+    // 含省略号共 10 字以内：只占一行
+    expect(Array.from(out).length).toBeLessThanOrEqual(10)
+    expect(long.startsWith(out.slice(0, -1))).toBe(true)
+  })
+
+  it('emoji 不被劈开（按码点截断）', () => {
+    const text = '🎉'.repeat(30)
+    const { root, content } = makeBody(text)
+    truncateClampedText(root)
+    const out = content.textContent!
+    expect(out.endsWith('…')).toBe(true)
+    // 前缀部分全部是完整 emoji
+    for (const ch of Array.from(out.slice(0, -1))) expect(ch).toBe('🎉')
+  })
+
+  it('极端溢出（500 字单元格）也收敛到单行', () => {
+    const { root, content } = makeBody('长'.repeat(500))
+    truncateClampedText(root)
+    expect(Array.from(content.textContent!).length).toBeLessThanOrEqual(10)
+    expect(content.textContent!.endsWith('…')).toBe(true)
+  })
+})
 
 describe('pdfExport 参数选取', () => {
   it('渲染倍率随页数递减：≤2 页 300dpi，页多降到 150–200dpi', () => {

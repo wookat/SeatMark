@@ -168,6 +168,34 @@ export async function waitForElementReady(el: HTMLElement): Promise<void> {
 }
 
 /**
+ * 栅格化引擎不支持 -webkit-line-clamp 多行裁剪：预览中被省略号截断的
+ * 超长文本会以全部行绘制并相互叠压。截图前把被裁剪字段的文本物理截断为
+ * 「可见前缀 + 省略号」，与预览显示保持一致（所见即所得）。
+ * 只处理确实溢出的字段；宿主每次导出都会重新挂载，改动不会泄漏到预览。
+ */
+export function truncateClampedText(root: HTMLElement): void {
+  const overflows = (body: HTMLElement) => body.scrollHeight > body.clientHeight + 1
+  for (const body of Array.from(root.querySelectorAll<HTMLElement>('.label-field__body'))) {
+    if (!overflows(body)) continue
+    const content = body.querySelector<HTMLElement>('.label-field__content')
+    if (!content) continue
+    // 按码点切分：不劈开 emoji / 增补平面字符
+    const chars = Array.from(content.textContent ?? '')
+    if (!chars.length) continue
+    // 二分找最长能放下的前缀（含省略号）
+    let lo = 0
+    let hi = chars.length
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2)
+      content.textContent = `${chars.slice(0, mid).join('')}…`
+      if (overflows(body)) hi = mid - 1
+      else lo = mid
+    }
+    content.textContent = `${chars.slice(0, lo).join('')}…`
+  }
+}
+
+/**
  * 按页数选取渲染倍率（96 CSS px/in × scale ≈ DPI）：
  * 页少时 300dpi 足够打印清晰，页多时降到 150–200dpi 控制体积、内存与耗时
  */
@@ -381,6 +409,7 @@ export function createPageRenderer(
         if (injected) throw injected
         const el = await getPage(i)
         await waitForElementReady(el)
+        truncateClampedText(el)
         throwIfCancelled()
         const canvas = await html2canvas(el, {
           scale,
