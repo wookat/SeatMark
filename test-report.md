@@ -1,3 +1,15 @@
+# 第 180 轮（2026-08-10）：少数民族/多文种姓名支持走查 ⚠️（导入/数据表/朝鲜文·西里尔·彝文·藏文全链路正常；**发现 P2 缺陷：维吾尔文（RTL）姓名在 PNG/PDF 导出产物中字形严重重叠错位，而预览完全正常**；另有扩 B 生僻字（遍黑体栈首）预览与导出均字形碎裂重影、非 CJK 文种缺字永不告警（代码缺口）、超长名/传统蒙文 18px 下限后省略号截断三条观察/P3 项）
+
+**名单**：自造 xlsx 10 行——汉、维（ئابدۇللا ئابلىز）、藏（བསོད་ནམས་དབང་འདུས）、传统蒙文（ᠪᠠᠲᠤᠪᠠᠭᠠᠲᠤᠷ）、西里尔蒙文、彝（ꆈꌠꀿꃀ）、朝（김철수）、扩 B 阳性对照（王𱁬明）、超长名。生产 /studio?template=deskName（课桌姓名贴 2×8）。
+
+**结果**：
+- T1 导入：字段映射/数据表 10 行全对，各文种 DOM 逐字符与源一致、无 U+FFFD；「共 10 条数据」。扩 B/H 真缺字形字触发「已自动启用生僻字扩展字库（遍黑体）」toast（用扩 H U+31350 复核，本环境 Noto 覆盖 𱁬 故其不触发——检测逻辑正确）。**代码缺口（P3）**：`glyphSupport.ts` L13-19 检测只覆盖 CJK 扩展/兼容区——维/藏/蒙/彝文码位缺字形时永不告警（本环境有 Unifont 兜底未豆腐；无这些字体的用户设备会豆腐且零提示，符合用户判据 5 的「产品提醒缺口」）。
+- T2 预览：全部 10 名非豆腐；维文 shaping 生效（连写宽 205 < 孤立和 359）、藏文叠字完整；autofit 生效（长名 18px vs 常规 36px、无溢出）。**观察**：18px 下限后超长名/传统蒙文以省略号「…」截断（预览与导出一致）；扩 B 𱁬 在 .sheet-page（遍黑体栈首）预览即碎裂重影错位（数据表中 Noto 渲染正常）。
+- T3 导出：整页 PNG 2481×3509 @ pHYs 11811；逐张 zip 10 张 1063×354；图片版 PDF 1 页可栅格化。藏/彝/朝/西里尔产物与预览一致。**P2 缺陷：维文姓名在整页 PNG、逐张 PNG、图片版 PDF 三种产物中字形全部严重重叠堆叠（预览正常连写）**——html2canvas 渲染 RTL 阿拉伯字母文本的定位缺陷；证据 r180_preview_uy.png（预览正常）vs r180_label_003.png（导出重叠）。𱁬 导出同预览一样碎裂（所见即所得成立，但字形本身坏）。
+- T4 打印通道 window.print 调起 1 次；全程 pageerror 0。收尾清 storage + 关闭全部测试 tab。
+
+**产物**：/home/ubuntu/r180_dl/（wholepage.png、perlabel*.zip、photo.pdf）；截图 /home/ubuntu/screenshots/r180_*；脚本 /home/ubuntu/r180_t*.py；名单 /home/ubuntu/r180_names.xlsx。
+
 # 第 179 轮（2026-08-10）：Clarity 移除后 Lighthouse BP 重建基线 ⚠️（**BP 中值仍 58 未上升**——剩余扣分已定位：三项 0 分审计全部溯源到百度统计——第三方 Cookie `HMACCOUNT_BFESS`（两项）+ hm.js 注册的 unload 监听（deprecations，经 Sentry addEventListener 包装被归因到 bundle）；Perf/CLS 无回归，新基线已建）
 
 **方法**：lighthouse@13.4.1，SKILL.md 标准命令（mobile 模拟节流），`/`、`/studio`、`/templates` 各 3 跑取中值；原始 JSON 存 /home/ubuntu/r179_lighthouse/。

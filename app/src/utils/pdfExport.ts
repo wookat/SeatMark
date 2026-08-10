@@ -207,6 +207,79 @@ export function truncateClampedText(root: HTMLElement): void {
   }
 }
 
+/** 右向左书写文种码位：希伯来文、阿拉伯字母（含维文）、叙利亚文、塔纳文及其表现形式区 */
+const RTL_SCRIPT_RE = /[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufeff]/
+
+/** 文本是否含需要双向/连写整形的 RTL 文种字符 */
+export function containsRtlText(text: string): boolean {
+  return RTL_SCRIPT_RE.test(text)
+}
+
+/**
+ * 栅格化引擎逐词/逐字素定位绘制文本，会破坏阿拉伯字母系（维文等）
+ * 的连写整形与双向定位，导出产物中字形相互叠压。截图前把含 RTL
+ * 文种的字段文本用 Canvas 2D（浏览器原生整形器）预先栅格化为图片，
+ * 字形、方向与预览一致；宿主每次导出重新挂载，改动不泄漏到预览。
+ */
+export async function rasterizeRtlText(root: HTMLElement): Promise<void> {
+  const decodes: Promise<void>[] = []
+  for (const content of Array.from(root.querySelectorAll<HTMLElement>('.label-field__content'))) {
+    const text = (content.textContent ?? '').trim()
+    if (!text || !containsRtlText(text)) continue
+    const rect = content.getBoundingClientRect()
+    if (!rect.width || !rect.height) continue
+    const style = getComputedStyle(content)
+    const oversample = 4 // 高于导出倍率采样，保证打印清晰度
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.ceil(rect.width * oversample))
+    canvas.height = Math.max(1, Math.ceil(rect.height * oversample))
+    const ctx = canvas.getContext('2d')
+    if (!ctx) continue
+    ctx.scale(oversample, oversample)
+    ctx.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
+    if (style.letterSpacing !== 'normal' && 'letterSpacing' in ctx) {
+      ctx.letterSpacing = style.letterSpacing
+    }
+    ctx.fillStyle = style.color
+    const rtl = style.direction === 'rtl'
+    ctx.direction = rtl ? 'rtl' : 'ltr'
+    ctx.textBaseline = 'middle'
+    const align = style.textAlign
+    let x: number
+    if (align === 'center') {
+      ctx.textAlign = 'center'
+      x = rect.width / 2
+    } else if (align === 'right' || (align === 'start' && rtl) || (align === 'end' && !rtl)) {
+      ctx.textAlign = 'right'
+      x = rect.width
+    } else {
+      ctx.textAlign = 'left'
+      x = 0
+    }
+    // 自适应缩放后文本应能放下；若实测仍超宽，水平压缩以免溢出被裁
+    const measured = ctx.measureText(text).width
+    if (measured > rect.width) {
+      ctx.save()
+      ctx.translate(align === 'center' ? rect.width / 2 : x, 0)
+      ctx.scale(rect.width / measured, 1)
+      ctx.translate(align === 'center' ? -rect.width / 2 : -x, 0)
+      ctx.fillText(text, x, rect.height / 2)
+      ctx.restore()
+    } else {
+      ctx.fillText(text, x, rect.height / 2)
+    }
+    const img = document.createElement('img')
+    img.src = canvas.toDataURL('image/png')
+    img.style.display = 'block'
+    img.style.width = `${rect.width}px`
+    img.style.height = `${rect.height}px`
+    img.alt = text
+    content.replaceChildren(img)
+    if (typeof img.decode === 'function') decodes.push(img.decode().catch(() => undefined))
+  }
+  await Promise.all(decodes)
+}
+
 /**
  * 按页数选取渲染倍率（96 CSS px/in × scale ≈ DPI）：
  * 页少时 300dpi 足够打印清晰，页多时降到 150–200dpi 控制体积、内存与耗时
@@ -422,6 +495,7 @@ export function createPageRenderer(
         const el = await getPage(i)
         await waitForElementReady(el)
         truncateClampedText(el)
+        await rasterizeRtlText(el)
         throwIfCancelled()
         const canvas = await html2canvas(el, {
           scale,

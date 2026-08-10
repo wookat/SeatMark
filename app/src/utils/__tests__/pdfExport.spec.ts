@@ -4,6 +4,7 @@ import {
   adaptiveRasterScale,
   bytesAlias,
   classifyPixelColors,
+  containsRtlText,
   defaultImageFormat,
   defaultPdfFileName,
   defaultRasterScale,
@@ -16,6 +17,7 @@ import {
   JPEG_QUALITY,
   jpegQualityFor,
   rasterDpi,
+  rasterizeRtlText,
   truncateClampedText,
   waitForElementReady,
   withTimeout,
@@ -89,6 +91,83 @@ describe('truncateClampedText 导出前物理截断', () => {
     expect(content.textContent).toBe('张同学')
     expect(body.style.overflow).toBe('visible')
     expect(body.style.getPropertyValue('-webkit-line-clamp')).toBe('unset')
+  })
+})
+
+describe('rasterizeRtlText 导出前 RTL 文本预栅格化', () => {
+  function makeContent(text: string) {
+    const root = document.createElement('div')
+    const content = document.createElement('span')
+    content.className = 'label-field__content'
+    content.textContent = text
+    root.appendChild(content)
+    return { root, content }
+  }
+
+  it('containsRtlText 识别阿拉伯字母（维文）/希伯来文，不误报 CJK/拉丁/藏文/蒙文/彝文/韩文', () => {
+    expect(containsRtlText('ئابدۇللا ئابلىز')).toBe(true)
+    expect(containsRtlText('שלום')).toBe(true)
+    expect(containsRtlText('张三')).toBe(false)
+    expect(containsRtlText('Alice')).toBe(false)
+    expect(containsRtlText('བསོད་ནམས')).toBe(false)
+    expect(containsRtlText('ᠠᠡᠨ')).toBe(false)
+    expect(containsRtlText('ꆈꌠ')).toBe(false)
+    expect(containsRtlText('김철수')).toBe(false)
+  })
+
+  it('非 RTL 文本不被改动', async () => {
+    const { root, content } = makeContent('张三')
+    await rasterizeRtlText(root)
+    expect(content.textContent).toBe('张三')
+    expect(content.querySelector('img')).toBeNull()
+  })
+
+  it('环境无 2D 上下文/零尺寸时跳过，不破坏 DOM', async () => {
+    const { root, content } = makeContent('ئابدۇللا')
+    // jsdom 下 getBoundingClientRect 全 0，函数应跳过而非报错
+    await expect(rasterizeRtlText(root)).resolves.toBeUndefined()
+    expect(content.textContent).toBe('ئابدۇللا')
+  })
+
+  it('含 RTL 文本且环境支持时替换为同尺寸图片', async () => {
+    const { root, content } = makeContent('ئابدۇللا')
+    Object.defineProperty(content, 'getBoundingClientRect', {
+      value: () => ({ width: 120, height: 40 }),
+    })
+    const fillText = vi.fn()
+    const ctx = {
+      scale: vi.fn(),
+      measureText: () => ({ width: 100 }),
+      fillText,
+      save: vi.fn(),
+      restore: vi.fn(),
+      translate: vi.fn(),
+      direction: 'ltr',
+      textAlign: 'left',
+      textBaseline: 'alphabetic',
+      font: '',
+      fillStyle: '',
+    }
+    const origCreate = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      if (tag === 'canvas') {
+        const canvas = origCreate('canvas') as HTMLCanvasElement
+        canvas.getContext = (() => ctx) as unknown as HTMLCanvasElement['getContext']
+        canvas.toDataURL = () => 'data:image/png;base64,AAAA'
+        return canvas
+      }
+      return origCreate(tag)
+    })
+    try {
+      await rasterizeRtlText(root)
+    } finally {
+      vi.restoreAllMocks()
+    }
+    const img = content.querySelector('img')!
+    expect(img).not.toBeNull()
+    expect(img.style.width).toBe('120px')
+    expect(img.style.height).toBe('40px')
+    expect(fillText).toHaveBeenCalledOnce()
   })
 })
 
