@@ -1,3 +1,20 @@
+# 第 198 轮（2026-08-11）：#204 教程数字修正线上复测 ✅（4 落点新文案全部上线、旧数字全部消失；demo 整页导出 md5 仍 = r170 基线逐位一致；pageerror 0）
+
+**部署**：entry `index-BmwKWsHK.js`→`index-DbXPcBBk.js`（15s 二次采样一致）。
+
+**结果**：
+- T1 4 落点（curl 生产预渲染 HTML，均 200、canonical 正常）：
+  - `exam-seat-label-batch-print`：含「200 多款免费模板」×1，「20 款免费模板」0 处 — PASS
+  - `online-label-tools-review`：含「200 多款」×1，「61 款」0 处 — PASS（注：lead 所指 guidesRound2 落点实为 guides.ts 的本篇 + guidesRound2 的 exam-system-vs-seatmark，slug「school-seat-arrangement-tool」不存在，已按 #204 源码 diff 定位 4 处）
+  - `exam-system-vs-seatmark`：含「200 多款」×1，「61 款」0 处 — PASS
+  - `sticker-paper-size-picker`：含「70×42.4 mm」×1，「42.3」0 处 — PASS
+- T2 导出回归冒烟：/studio?template=deskName&demo=1 整页导出（带水印、先读模式字段避记忆陷阱）md5 = `3e8fdf3e0c8530297998d8ad25623f21` = r170 基线逐位一致 — PASS（教程数据变更不影响导出实证）
+- T3 全程 pageerror 0；storage 清理 + 全部测试 tab 关闭 — PASS
+
+**产物**：`/home/ubuntu/r197_dl/`（demo 整页 zip）、脚本 `/home/ubuntu/r197_t2.py`、计划 `test-plan-round197.md`。第 196 轮 P3×2 + P4 全部闭环。
+
+---
+
 # 第 196 轮（2026-08-11）：教程站 76 篇全量质检（新角度走查，无代码变更前置）✅ 结构/链路/CTA/图片/pageerror 全过；事实性抽查发现 2 处 P3 过时数字 + 1 处 P4 尺寸笔误
 
 **范围与方法**：entry 仍为 `index-BmwKWsHK.js`（无部署变化）。用 tsx 从源码（guides.ts 25 + Round2 17 + Round3 2 + Round4 18 + Round5 4 + Round6 10 = 76 篇）dump 权威 slug/quickStart/body；curl 全量抓取生产预渲染 HTML 逐篇断言；浏览器（CDP headless）做 15 次真实 CTA 点击、76 篇 SPA 路由遍历（图片加载 + 网络失败 + pageerror 采集）与产品事实真值取证。
