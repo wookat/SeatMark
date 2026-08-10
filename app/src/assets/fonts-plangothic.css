@@ -1,0 +1,152 @@
+/**
+ * 遍黑体（Plangothic，SIL OFL / MIT，可免费商用）生僻字扩展字库。
+ * 按 Unicode 块分包 + unicode-range 按需下载：只有名单中真的出现
+ * 对应扩展区汉字时浏览器才会拉取相应分包（约 80–620KB/包），
+ * 常规使用零网络开销。覆盖 CJK 扩展 A–I 与兼容表意文字。
+ */
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-exta-compat.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+3400-4DBF, U+F900-FAFF, U+2F800-2FA1F;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-20.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+20000-20FFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-21.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+21000-21FFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-22.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+22000-22FFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-23.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+23000-23FFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-24.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+24000-24FFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-25.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+25000-25FFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-26.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+26000-26FFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-27.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+27000-27FFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-28.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+28000-28FFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-29.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+29000-29FFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-2a.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+2A000-2AFFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-2b.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+2B000-2BFFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-2c.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+2C000-2CFFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-2d.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+2D000-2DFFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-2e.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+2E000-2EFFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extb-2f.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+2F000-2FFFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extg-30.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+30000-30FFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extg-31.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+31000-31FFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extg-32.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+32000-32FFF;
+}
+
+@font-face {
+  font-family: 'Plangothic';
+  src: url('/fonts/plangothic/plangothic-extg-33.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+33000-33FFF;
+}

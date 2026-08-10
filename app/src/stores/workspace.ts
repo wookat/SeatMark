@@ -9,7 +9,7 @@ import { useToastStore } from '@/stores/toast'
 import type { DataRow, FieldMapping, LabelTemplate, TemplateField } from '@/types/template'
 import { autoMapFields } from '@/utils/autoMap'
 import { evaluateFieldTemplate, isCompositeMapping } from '@/utils/fieldTemplate'
-import { findUnsupportedChars } from '@/utils/glyphSupport'
+import { findUnsupportedChars, resolveWithExtendedFont } from '@/utils/glyphSupport'
 import { applyLabelPaper, matchLabelPaper } from '@/utils/labelPaper'
 import { evaluatePaperFit, FIT_LEVEL_LABELS } from '@/utils/paperFit'
 import { demoExcelFor } from '@/data/demoDatasets'
@@ -495,15 +495,26 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     Object.assign(mapping, autoMapFields(template.value.fields, data.headers))
   }
 
-  /** 名单含当前设备字体缺字形的生僻字时提醒：导出前而不是打印后才发现豆腐块 */
-  function warnRareChars(rows: DataRow[]) {
+  /**
+   * 名单含当前设备字体缺字形的生僻字时：先尝试用内置的生僻字扩展字库
+   * （遍黑体分包，按需下载）兜底，兜住则提示已自动处理；仍缺字形才警告。
+   */
+  async function warnRareChars(rows: DataRow[]) {
     const missing = findUnsupportedChars(rows.flatMap((row) => Object.values(row)))
     if (!missing.length) return
+    const unresolved = await resolveWithExtendedFont(missing)
+    if (!unresolved.length) {
+      toast.info(
+        `名单含 ${missing.length} 个生僻字`,
+        '已自动启用生僻字扩展字库（遍黑体），预览与导出将正常显示',
+      )
+      return
+    }
     // 正文只用码位描述，不直接嵌入缺字形字符：目标受众正是缺字体的设备，
     // 生僻字混入正文会把整段文字的字体回退一起污染成方块
-    const codes = missing.map((char) => `U+${char.codePointAt(0)!.toString(16).toUpperCase()}`)
+    const codes = unresolved.map((char) => `U+${char.codePointAt(0)!.toString(16).toUpperCase()}`)
     toast.warning(
-      `名单含 ${missing.length} 个生僻字`,
+      `名单含 ${unresolved.length} 个生僻字`,
       `名单中有生僻字（码位 ${codes.join('、')}）在当前设备字体中缺少字形，预览与导出可能显示为方块；建议在有该字字体的设备上操作，或与当事人确认替代写法`,
     )
   }
@@ -520,7 +531,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
             ? `；文件含 ${parsed.sheetNames.length} 个工作表，可在导入面板切换`
             : ''
         toast.success('Excel 导入成功', `已读取 ${parsed.rows.length} 条数据${multiSheetNote}`)
-        warnRareChars(parsed.rows)
+        void warnRareChars(parsed.rows)
       } catch (err) {
         toast.danger('Excel 导入失败', err instanceof Error ? err.message : String(err))
       }
@@ -536,7 +547,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         applyExcel(parsed)
         isDemoData.value = false
         toast.success(`已切换到工作表「${parsed.sheetName}」`, `已读取 ${parsed.rows.length} 条数据`)
-        warnRareChars(parsed.rows)
+        void warnRareChars(parsed.rows)
       } catch (err) {
         toast.danger('工作表切换失败', err instanceof Error ? err.message : String(err))
       }

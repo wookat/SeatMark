@@ -46,6 +46,8 @@ export default defineConfig(({ isSsrBuild }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // 生僻字扩展字库共 ~11MB，浏览器按 unicode-range 按需下载，不进预缓存
+        globIgnores: ['fonts/plangothic/**'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // 新版本立即接管，服务端响应头/资源更新不必等用户关闭全部标签页
         skipWaiting: true,
