@@ -143,6 +143,15 @@ export function defaultPngExportName(prefix = '考场座位标签'): string {
   return `${prefix}-${stamp}`
 }
 
+/**
+ * 精确像素导出的文件名前缀：追加实际输出分辨率（如 296x128）。
+ * 模板名可能自带其他规格字样（如「电子座签 800×480」），
+ * 换预设导出时以实际分辨率为准，避免文件名误导。
+ */
+export function exactPixelNamePrefix(prefix: string, width: number, height: number): string {
+  return `${prefix}-${width}x${height}`
+}
+
 /** 精确像素模式的超采样倍数：先按 2 倍渲染再高质量缩到目标尺寸，文字边缘更平滑 */
 export const EXACT_PIXEL_SUPERSAMPLE = 2
 

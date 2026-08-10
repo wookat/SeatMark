@@ -39,6 +39,7 @@ import {
   defaultPngExportName,
   EINK_PRESETS,
   exactPixelHeight,
+  exactPixelNamePrefix,
   exportPagedPng,
   findEinkPreset,
   isValidExactPixelWidth,
@@ -558,7 +559,11 @@ async function doExportPng() {
     const pageCount = workspace.totalPages
     const exact = pngSizeMode.value === 'exact'
     const perLabel = pngExportUnit.value === 'label'
-    const baseName = defaultPngExportName(exportNamePrefix.value)
+    const baseName = defaultPngExportName(
+      exact
+        ? exactPixelNamePrefix(exportNamePrefix.value, pngExactWidth.value, pngExactHeight.value)
+        : exportNamePrefix.value,
+    )
     // 逐标签成图：收集每页各占位标签的裁剪区域与对应名单行（逐行命名，
     // 多枚/页模板不再按页首行命名）
     let labelsByPage: LabelExportItem[][] | undefined
