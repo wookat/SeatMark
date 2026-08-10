@@ -69,11 +69,13 @@ Local attacker page at `/tmp/r103web/frame.html` + `frame2.html`, served by `pyt
 - Lighthouse audits: the first `npx lighthouse` run in a session can be a cold-start outlier (Perf 15+ points low) — always take ≥3 runs of key pages and use medians. `/studio` mobile LCP jitters ±40% between runs. Current baselines (r118): home mobile Perf≈91/LCP≈1.9s, studio mobile Perf 71/LCP 4.79s/TBT 356ms, CLS 0 everywhere, SEO 100; raw JSONs in `/home/ubuntu/r117_lighthouse/` and `/home/ubuntu/r118_lighthouse/`.
 
 ## Analytics & console checks
-Analytics are injected after `load` via `requestIdleCallback`. Collect `Network.requestWillBeSent` for ≥12 s and assert hits for `gtag/js`, `hm.baidu.com/hm.js`, `zz.bdstatic.com`, `clarity.ms`. Ignore Chrome's `Blocked third-party cookie` warnings — they are pre-existing noise.
+Analytics are injected after `load` via `requestIdleCallback`. Collect `Network.requestWillBeSent` for ≥12 s and assert hits for `gtag/js`, `hm.baidu.com/hm.js`, `zz.bdstatic.com`. Microsoft Clarity was removed in round 177: its internal node Map retained every detached DOM tree it had observed (root cause of the round-176 "template picker modal leaks 3.3k nodes/cycle" P3 — heap-snapshot retainer path ended at `window.clarity → closure → Map → <h3>`). If a `clarity.ms` request appears, that's a regression. Ignore Chrome's `Blocked third-party cookie` warnings — they are pre-existing noise.
+
+When auditing memory: `Memory.getDOMCounters` + `HeapProfiler.collectGarbage` alone can't tell you the retainer — take `HeapProfiler.takeHeapSnapshot` and walk reverse edges (skip weak) from a leaked element to a GC root; third-party analytics scripts are prime suspects for detached-tree retention.
 
 ## Lighthouse
 `npx -y lighthouse@13.4.1 <url> --only-categories=performance,best-practices --form-factor=mobile --screenEmulation.mobile --throttling-method=simulate --output=json --output=html --output-path=<dir>/<name> --chrome-flags="--headless=new --no-sandbox"`.
-Baselines (`/` mobile): Perf 92–95, CLS 0, Best Practices **58** — BP is capped by third-party cookies from Clarity/Baidu plus an `unload` deprecation, and security headers do not raise it. Root-document response time fluctuates (60 ms – 3.2 s); re-sample before calling it a regression.
+Baselines (`/` mobile): Perf 92–95, CLS 0, Best Practices **58** (expected to rise after Clarity removal in round 177 — re-baseline) — BP was capped by third-party cookies from Clarity/Baidu plus an `unload` deprecation, and security headers do not raise it. Root-document response time fluctuates (60 ms – 3.2 s); re-sample before calling it a regression.
 
 ## Known production limitations
 `x-seatmark-storage: memory` (KV unbound) → rate limits ineffective, short share codes unreadable, and `/api/auth/code` returns 502 (SES unconfigured) so **login-gated flows cannot be tested online**. Report them as untested rather than guessing.

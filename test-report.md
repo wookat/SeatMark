@@ -1,3 +1,33 @@
+# 第 177 轮（2026-08-10）：第 176 轮弹窗泄漏根因定位 ✅（**根因 = Microsoft Clarity 统计脚本**：heap snapshot retainer 路径终点为 `window.clarity` 闭包内部的节点 Map，Clarity 把弹窗每次打开渲染的 TemplateThumb 卡片树（含 `<h3>`、ResizeObserver、事件监听器）永久保留在其内部映射中，detached 树因此无法回收；产品代码（ModalDialog/TemplateThumb/useElementSize/LabelCard autofit）清理路径全部验证正确）
+
+**定位过程（本地 dev + 生产均复现）**：
+- 复现判据完全对齐第 176 轮脚本口径（JS 合成点击开弹窗、等待 >10 张卡片渲染、点「关闭」、循环，GC×4 后 Memory.getDOMCounters）：本地 +7.6k 节点/+1.1k 监听器每轮、生产 +3.8k/+588 每轮——复现成立。
+- 排除法：stub 掉弹窗内 TemplateThumb（换纯 div）泄漏仍在；`__autofitRegistry` 插桩 size 恒 185、无 detached 成员——LabelCard autofit 注册表清理正确；Vue 升 3.5.41 无变化。
+- **heap snapshot retainer 分析（5 轮后快照 85MB，解析逆边 BFS 到 GC 根）**：669 份 detached TemplateThumb 容器 div 的强引用路径一致终结于 `Window.clarity → closure context → Map(table) → <h3 class="min-w-0 truncate …">`——Clarity 内部节点 Map 持有弹窗卡片标题 `<h3>`，经 parentNode 链保留整棵 detached 弹窗树（含 670 个 ResizeObserver、4.4k EventListener）。
+- **反证确认**：route 拦截 `**/*clarity*` 后同脚本 10 轮——节点/监听器 **+0/轮（2,783→2,783 / 369→369）**，泄漏完全消失。
+
+**修复（本 PR）**：从 `app/index.html` 移除 Clarity 注入（stub + tag script）。收益：①长会话内存泄漏根除；②Lighthouse Best Practices 扣分项减少（Clarity 贡献了大部分第三方 Cookie）。保留 GA4 + 百度统计 + 百度主动推送。此前「统计供应商精简」为待裁量项，本轮以泄漏实证升级为默认执行；如需保留 Clarity 请回复，可回滚并改为按需注入。
+
+**第 176 轮 T2 观察项（导出后暂态 detached 节点累积）**同源可解释：Clarity 同样观察导出离屏宿主节点，其 Map 定期清理后回落——与「数分钟后自行回落」现象吻合，移除后一并消除。
+
+# 第 176 轮（2026-08-10）：长会话稳定性/资源泄漏审计 ⚠️（**1 条 P3 泄漏发现**：「全部模板」弹窗每次开关泄漏约 3.3k DOM 节点 + 约 500 事件监听器 + 约 2.7MB heap，线性累积、GC 与路由切换后仍保留；模板切换/翻页/导出通道稳定，导出产物字节一致、耗时无劣化，storage 无膨胀）
+
+**环境**：生产 www.seatmark.cn（无代码变更轮，bundle `index-BADM1vql.js`），headless Chromium 29229；度量 = CDP Memory.getDOMCounters + Performance.getMetrics，每次采样前 HeapProfiler.collectGarbage ×4。
+
+**P3 发现（弹窗泄漏）**：/studio 反复「浏览全部」打开/关闭模板弹窗（不选模板），10/20/30 次后 GC 采样：节点 4,321→31,270→67,202→103,134；监听器 383→4,451→9,875→15,299；heap 9.1→35.7→63.9→88.8MB——**每次开关约 +3.3k 节点/+497 监听器/+2.7MB，线性无回落**；路由切走 /templates 再返回并 GC 后仍保留 112k 节点/15.9k 监听器（非暂态）。对照组：同 tab 仅在侧栏 3 张卡片间切换模板 30 次——节点/监听器持平（4,321→3,922 / 383→386），**证明泄漏源是弹窗内容（约 225-327 个 TemplateThumb 卡片被整体保留），而非模板切换本身**。ModalDialog window keydown 有 onBeforeUnmount 清理、TemplateThumb IO observer 有 disconnect——保留者在别处（建议 lead 用 heap snapshot 查 detached tree 的 retainer）。普通用户少量开关无感知，长会话反复浏览模板库会持续膨胀，定 P3。
+
+**T1 连续切换 34 次/31 款模板**（弹窗逐款点选，含 eink800 电子座签、照片核验版、会议桌牌·鎏金雅框等重模板）：每次 `.sheet-page` 均正常渲染、pageerror 0；首尾 GC 采样 heap 9.6→125.5MB、节点 5k→166k——增长与「弹窗开了 34 次」的泄漏率吻合（见上），切换本身无泄漏（对照组持平）。Documents/Frames 恒为 1（html2canvas iframe 不累积）。
+
+**T2 连续导出 15 整页 + 5 逐张**：Browser.downloadProgress 事件级计时，整页 15 次全部 2.8-3.1s、逐张 5 次 3.1s——**无逐次劣化**；产物 md5 全一致（整页 = r170 基线 `3e8fdf3e…`，逐张首张 `6be1f14a…`）；每次导出后 `.offscreen-host` 与 iframe 数均为 0（**离屏宿主清理正常**）。观察项（不定级）：每次整页导出后 GC 仍残留约 13k detached 节点线性累积（15 次→约 20 万节点/70MB），但监听器不涨，且数分钟后可自行回落至 1.3 万（暂态保留，疑与导出 toast/10s revokeObjectURL 定时器闭包相关），无用户可见影响。
+
+**T3 翻页往返 30 次**：节点/监听器持平（13,239→12,983 / 420→411），pageerror 0。弹窗开关 30 次见 P3 发现。
+
+**T4 storage**：全部动作后 localStorage+sessionStorage 合计 4,485 字节，最大键 `seatmark.workspace-roster.v1` 2,642B——无膨胀。
+
+**取证注记（自动化假象，非缺陷）**：①同分钟内连续导出的文件名（`模板名-YYYYMMDD-HHMM.zip`）相同，CDP downloadPath 模式下 Chrome 直接**覆盖同名文件**、不产生新路径——按"新文件出现"判导出完成会交替假超时（本轮曾误现约 185s 交替延迟，事件级计时证伪）；判完成应改用 `Browser.setDownloadBehavior eventsEnabled:true` + downloadProgress completed 事件。②弹窗搜索框是 v-model，须 `Input.insertText` 而非直接赋 value；且搜索词跨开关保留，会把后续弹窗列表过滤为空。
+
+**收尾**：清 localStorage/sessionStorage、关闭全部 16 个测试 tab。未改产品代码。
+
 # 第 175 轮（2026-08-10）：#184 `.sheet-page` forced-color-adjust: none 线上验收 ✅（**核心判据 PASS，第 172/174 轮 forced-colors 导出失色 P3 正式闭环**：forced-colors 模拟下导出 PNG 与正常基线逐位一致、品牌青 113,898 像素完整保留；屏上 UI 强制配色边界正确、冒烟无回归）
 
 **背景**：第 174 轮定位到 html2canvas 克隆进自建 iframe 后丢失 `.offscreen-host` 祖先豁免。PR #184 把 `forced-color-adjust: none` 直接加在捕获根 `.sheet-page` 上（main.css L247-257，`.offscreen-host` 原豁免保留）。部署翻转：17:19:09 三指标齐变（js `index-h2r97RJA.js`→`index-BADM1vql.js`、css `index-VqHoINT7.css`→`index-BCHVWv3_.css`、sw `af129298…`→`4c3f26d6…`），二次采样一致；新 CSS 构建产物实测含 `sheet-page{forced-color-adjust:none;…}`。
