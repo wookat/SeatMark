@@ -1,3 +1,32 @@
+# 第 160 轮（2026-08-10）：/seating 座位表深度回归 + 长链分享全链路 ✅（全部通过，无新增 P0–P3；2 条取证注记）
+
+**背景**：无代码变更探索/回归轮。距第 87 轮座位表专项后历经 #105 桌贴联动、#76 状态持久化、#123 键盘换座等多次重构，做一次综合回归 + 长链 `#tpl=` 分享全链路。
+
+**方法**：生产 www.seatmark.cn，headless Chromium 29229 真实 UI（1500×1000 与 390×844）；打印路径用 override window.print 延迟 afterprint + `Page.printToPDF(landscape,A4)` 捕获真实打印产物并以 pypdfium2 提取文本核验；分享还原用 `Target.createBrowserContext` 全新无痕上下文新 tab（技能判据）。
+
+## 结果
+
+| 验收点 | 结果 |
+|---|---|
+| /seating 基础：4×5 行列设置、演示名单 20 人、过道（第 2-3 列间）4 处渲染 | ✅ |
+| 完全随机排座：序变化且同一多重集；「已完全随机排座」toast；男女混排 toast | ✅ |
+| 拖拽换座（Pointer 拖 seat1→seat8）：姓名互换（陈发春↔黄霞伟），拖拽中截图 | ✅ |
+| 键盘换座（#123）：focus+Enter 选中→Enter 互换（张涛利↔杨敏强） | ✅ |
+| 讲台开关：取消勾选 `.seating-podium` 消失、勾回恢复 | ✅ |
+| 状态持久化（#76）：reload 后 4×5、过道、换座后网格 20 席逐席一致 | ✅ |
+| 一键生成对应桌贴（#105）：跳 /studio?from=seating，toast「已切换到课桌贴模板」+「座位表名单已带入｜共 20 人」；roster 5 字段（姓名/座位号/排/列/班级）20 行正确，预览按课桌姓名贴渲染姓名+班级 | ✅ |
+| 座位表打印（#77）：toast「即将调起浏览器打印」；打印瞬间宿主含「讲　台」；printToPDF A4 横向捕获含标题/讲台/「共 4 排 × 5 列 · 20 人 · 教师视角」/全部姓名 | ✅ |
+| 长链分享：「复制当前模板分享链接」→ `#tpl=v1.` URL（1164 字符）；无痕新 tab 弹「收到一个分享模板」（含 mm 规格）→「仅本次使用」→「已应用分享模板」预览正常 | ✅ |
+| 篡改 hash 容错（147 判据）：payload 中段替换后新 tab 打开 toast「分享链接无效」、studio 正常渲染不白屏、无 pageerror | ✅ |
+| 390×844 冒烟：sw=cw=390 无横向溢出、20 席网格渲染 | ✅ |
+| 全程 pageerror | 0 |
+
+**取证注记**（自动化假象，非缺陷）：① 拖拽结束会置 suppressClick，紧跟其后的首次 Enter 键换座会被吞掉——键盘换座需在无未决拖拽状态下测；② headless 下 `navigator.clipboard.writeText` 静默失败且无失败 toast（真实浏览器不受影响），取分享链接需 shim writeText 捕获。
+
+**截图**：/home/ubuntu/screenshots/r160_seating.png、r160_drag.png、r160_kbswap.png、r160_persist.png、r160_handoff_toast.png、r160_handoff.png、r160_print_toast.png、r160_print.png（打印捕获渲染）、r160_share_copy.png、r160_share_restore_dialog.png、r160_share_restore.png、r160_share_bad.png、r160_390.png。打印产物：/home/ubuntu/r160_print.pdf。
+
+---
+
 # 第 159 轮（2026-08-10）：#168 manifest lang=zh-CN 部署翻转验收 ✅（manifest 全绿；#126 SW 一刷接管仍 untested——本次部署未产生新 SW，如实报告）
 
 **背景**：#168 / 28aaa28 在 VitePWA manifest 增 `lang:'zh-CN'`。轻量轮：验收线上 manifest + 顺带补测 #126「新部署 SW 一次刷新接管」。
