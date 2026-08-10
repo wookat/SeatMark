@@ -251,6 +251,10 @@
   background: #ffffff;
   overflow: hidden;
   flex-shrink: 0;
+  /* 强制配色（Windows 高对比度等）不改写页面设计色：产物所见即所得。
+   * 必须放在捕获根自身——html2canvas 把节点克隆进自建 iframe 渲染，
+   * 放在克隆根之外的祖先（如 .offscreen-host）上的可继承豁免会丢失 */
+  forced-color-adjust: none;
 }
 
 /* 页脚角标水印：位于页边距区域，不遮挡标签内容，打印可见 */
