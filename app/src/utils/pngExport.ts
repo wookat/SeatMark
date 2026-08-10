@@ -5,6 +5,7 @@ import {
   isCanvasBlank,
   rasterizeIndexedPng,
 } from '@/utils/pdfExport'
+import { withPngPhys } from '@/utils/indexedPng'
 import { evaluateFieldTemplate } from '@/utils/fieldTemplate'
 import type { DataRow } from '@/types/template'
 
@@ -276,17 +277,26 @@ export function toOutputCanvas(
  * （调色板量化，体积远小于原生 RGBA PNG 且文字边缘无损），
  * 渐变/照片类或环境不支持时回退浏览器原生 PNG 编码。
  */
-async function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+async function canvasToPngBlob(
+  canvas: HTMLCanvasElement,
+  pixelsPerMeter?: number,
+): Promise<Blob> {
+  const finish = (bytes: Uint8Array): Blob => {
+    const out = pixelsPerMeter ? withPngPhys(bytes, pixelsPerMeter) : bytes
+    return new Blob([out.slice().buffer], { type: 'image/png' })
+  }
   if (classifyCanvasContent(canvas) === 'flat') {
     const indexed = await rasterizeIndexedPng(canvas)
-    if (indexed) return new Blob([indexed.slice().buffer], { type: 'image/png' })
+    if (indexed) return finish(indexed)
   }
-  return new Promise<Blob>((resolve, reject) => {
+  const native = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error('页面栅格化失败（toBlob 返回空）'))),
       'image/png',
     )
   })
+  if (!pixelsPerMeter) return native
+  return finish(new Uint8Array(await native.arrayBuffer()))
 }
 
 /** 触发浏览器下载并释放对象 URL */
@@ -348,10 +358,13 @@ export async function exportPagedPng(options: PngExportOptions): Promise<void> {
 
   const baseName = options.fileName ?? defaultPngExportName()
 
+  // 物理分辨率（像素/米）：精确像素模式面向电子屏，不写物理尺寸
+  const pixelsPerMeter = options.exactPixels ? undefined : pxPerMm * 1000
+
   if (pageCount === 1) {
     const canvas = await renderPage(0)
     const output = toOutputCanvas(canvas, { ...options, sourceRect })
-    const blob = await canvasToPngBlob(output)
+    const blob = await canvasToPngBlob(output, pixelsPerMeter)
     canvas.width = 0
     canvas.height = 0
     throwIfCancelled()
@@ -366,7 +379,7 @@ export async function exportPagedPng(options: PngExportOptions): Promise<void> {
     throwIfCancelled()
     const canvas = await renderPage(i)
     const output = toOutputCanvas(canvas, { ...options, sourceRect })
-    const blob = await canvasToPngBlob(output)
+    const blob = await canvasToPngBlob(output, pixelsPerMeter)
     // 释放大画布内存，避免大页数任务累计占用
     canvas.width = 0
     canvas.height = 0
@@ -474,7 +487,11 @@ async function exportPerLabelPng(
     throwIfCancelled()
     const pageIndex = labelsByPage.findIndex((p) => p.length)
     const [output] = await renderAndCutPage(pageIndex, [labelsByPage[pageIndex]![0]!])
-    const blob = await canvasToPngBlob(output!)
+    const rect = labelsByPage[pageIndex]![0]!.rect
+    const blob = await canvasToPngBlob(
+      output!,
+      options.exactPixels ? undefined : (output!.width / rect.width) * 1000,
+    )
     releaseCanvas(output!)
     throwIfCancelled()
     downloadBlob(blob, labelsByPage[pageIndex]![0]!.fileName ?? `${baseName}.png`)
@@ -493,7 +510,10 @@ async function exportPerLabelPng(
     for (let n = 0; n < labels.length; n++) {
       throwIfCancelled()
       const output = outputs[n]!
-      const blob = await canvasToPngBlob(output)
+      const blob = await canvasToPngBlob(
+        output,
+        options.exactPixels ? undefined : (output.width / labels[n]!.rect.width) * 1000,
+      )
       releaseCanvas(output)
       zip.file(labels[n]!.fileName ?? pngPageFileName(baseName, done), blob)
       done++
