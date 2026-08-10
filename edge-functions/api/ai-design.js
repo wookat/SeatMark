@@ -15,6 +15,8 @@
  * - ALERT_WEBHOOK     可选，告警 webhook（企业微信机器人），未配置时使用内置默认值
  */
 
+import { withSecurityHeaders } from './_security.js'
+
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
 const DEEPSEEK_MODEL = 'deepseek-v4-flash'
 
@@ -60,6 +62,10 @@ async function sendAlert(env, level, detail) {
 }
 
 export async function onRequest(context) {
+  return withSecurityHeaders(await handleRequest(context))
+}
+
+async function handleRequest(context) {
   const { request, env } = context
 
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 })
