@@ -1,3 +1,24 @@
+# 第 164 轮（2026-08-10）：#174 /vs 移动端「左右滑动」提示验收 + #126 SW 一刷接管补测 ✅（4 个 /vs 详情页 390px 提示可见+表可横滑、桌面端隐藏无回归；第 159 轮起待测的 #126 新部署 SW 一次刷新接管闭环）
+
+**背景**：#174 合入 main（VsDetailView.vue L50 新增 `sm:hidden` 提示行「← 左右滑动查看完整对照表 →」），含 JS 变更 → 产生新 SW 版本，可真实补测 #126。
+
+**部署翻转**：15:18:54 观测 entry bundle `index-DTLWjJ7n.js` → `index-YLrANFvw.js`，sw.js md5 `653c7c99…` → `30110b96…`，双采样一致 + 稳定 2 分钟后开测。
+
+## T1 #126 SW 一次刷新接管（补测闭环）
+- 翻转前 tab A：旧 bundle、SW activated、precache 57 条含旧 bundle（r164_before.png）。
+- 翻转后 tab A **只刷新一次**：加载 entry = 新 `index-YLrANFvw.js` ✅；controller 非空、active.state=activated、waiting=null（skipWaiting+clientsClaim，无需二刷）✅；precache 短暂过渡（61 条新旧并存）后数秒内收敛为 57 条**含新 bundle、旧 bundle 已清** ✅；Hero 正常渲染、pageerror 0 ✅。截图 r164_sw_takeover.png。
+- **#126「新部署 SW 一刷接管」自第 159 轮以来的 untested 项正式闭环。**
+
+## T2 /vs 提示行（#174）
+- 390×844 逐页（chuangkit / wps-mail-merge / placecard-us / canva）：提示元素 display:block、rect 358×20 在视口内可见（截图 r164_390_*.png，浅灰小字位于对照表上方）；对照表容器 sw560/cw356 可横滑（scrollLeft 0→200 生效）；document scrollWidth=clientWidth=390 无页面级横向溢出；pageerror 0 — 4/4 ✅
+- 1280×900 桌面：提示元素 display:none / offsetHeight=0，不显示；表区布局正常（r164_1280_chuangkit.png）✅
+
+**取证注记**：新 SW activate 后 precache 清理是异步的——一刷后立即查询会看到新旧条目并存（57→61→57），数秒后收敛；判接管以「加载的 entry hash 为新值 + waiting=null」为准，precache 收敛作旁证。
+
+**截图**：/home/ubuntu/screenshots/r164_before.png、r164_sw_takeover.png、r164_390_chuangkit.png、r164_390_wps-mail-merge.png、r164_390_placecard-us.png、r164_390_canva.png、r164_1280_chuangkit.png。
+
+---
+
 # 第 162 轮（2026-08-10）：教程内容质检抽样 + 样例 Excel 下载链路 + 依赖安全审计 ✅（10 篇教程全绿零死链、样例下载→再导入回路全通、npm audit 0 critical / 6 high 均为间接依赖且实际可利用性低，仅报告不升级）
 
 **背景**：无产品代码变更轮（自上轮仅纯文档 PR #172）。三方向：教程质检抽样、样例文件链路、依赖安全。
