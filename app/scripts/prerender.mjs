@@ -156,6 +156,9 @@ ${SITE_INTRO}
 - [模板库](${SITE_ORIGIN}/templates)
 - [教程中心](${SITE_ORIGIN}/guides)
 - [定价（Beta 期间免费）](${SITE_ORIGIN}/pricing)
+- [工具对比（vs 创客贴 / WPS 邮件合并 / placecard.us / Canva）](${SITE_ORIGIN}/vs)
+- [桌牌在线生成](${SITE_ORIGIN}/desk-card-generator)
+- [姓名卡片批量生成器](${SITE_ORIGIN}/name-card-batch)
 
 ## 教程（共 ${guides.length} 篇）
 
