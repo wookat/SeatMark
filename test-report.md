@@ -1,3 +1,16 @@
+# 第 195 轮（2026-08-10）：#202 回退 html2canvas-pro 2.3.2→2.0.4 线上验证 ✅（三判据全中：demo 整页 PNG md5 逐位回到 r170 基线 `3e8fdf3e…`、𱁬 逐张 009.png md5 逐位回到 r188 基线 `eb4eb7bd…`、姓名对齐 4x 比值回到 0.6351（≈2.0.4 基线 0.635、预览 0.639）——r192 发现的 P3 上移偏差闭环、所见即所得恢复；pageerror 0）
+
+**部署**：entry `index-DzDe9l0M.js`→`index-BmwKWsHK.js`（回到 r191 时的 2.0.4 构建 hash，15s 二次采样一致）。
+
+**结果**：
+- T1 demo 整页 PNG（带水印）md5=`3e8fdf3e0c8530297998d8ad25623f21` = r170 基线逐位一致 — PASS
+- T2 r180 名单逐张 009.png（王𱁬明）md5=`eb4eb7bd8dafd597b0c86d57ff83bf32` = r188 基线逐位一致 — PASS
+- T3 姓名对齐比值（学号行中心−姓名中心)/姓名字高 = 0.6351（r192 的 2.3.2 值 0.716 未复现，与 DOM 预览 0.639 吻合）— PASS
+- 导出模式记忆陷阱已按「先读模式字段」规避；全程 pageerror 0；清 storage + 关闭全部测试 tab。
+- 注记：SKILL.md 中 r192 的「2.3.2 新基线」注记（ef6b69ad…/cec2aac0…）已随 #202 回退作废，r170/r188 基线恢复有效。
+
+**产物**：/home/ubuntu/r194_dl/（demo 整页 zip、逐张 zip）；脚本 /home/ubuntu/r194_t1.py。
+
 # 第 193 轮（2026-08-10）：#200 html2canvas-pro 2.0.4→2.3.2 升级全量导出回归 ⚠️（功能全通过、无 P1/P2；**发现一处 P3 偏差：大字号姓名字段在 PNG 导出中相对 DOM 预览整体上移 ~12px@300dpi（≈1mm）**，2.0.4 时导出与预览对齐更准；小字段仅上移 ~3px。其余：𱁬 完整不碎裂、RTL 维文正常、裁切线真带线、pHYs 三分支正确、水印/页脚正常、图片版 PDF 正常、pageerror 0）
 
 **部署**：entry `index-BmwKWsHK.js`→`index-DzDe9l0M.js`（15s 二次采样一致）；css 不变 `index-n4PFQFvb.css`。
