@@ -1,3 +1,17 @@
+# 第 178 轮（2026-08-10）：#186 移除 Microsoft Clarity——第 176 轮弹窗泄漏闭环复测 ✅（**核心判据 PASS**：弹窗开关 10→30 轮节点/监听器/heap 完全持平（8,095/1,731/9.7MB 三次采样零增长，r176 失败版线性涨至 103k/15.3k/88.8MB）；三家统计通道正常、clarity 请求 0、导出冒烟无回归）
+
+**背景**：第 176 轮发现「浏览全部」弹窗每轮开关泄漏约 3.3k 节点/约 500 监听器/约 2.7MB；第 177 轮 retainer 分析定位 `window.clarity → closure → Map(table)` 永久保留 detached TemplateThumb 树；#186（8e1c3b3）从 app/index.html 移除 Clarity stub+tag，产品 JS 零改动。部署翻转：20:03:34 生产 HTML clarity 计数 3→0、15s 复采样仍 0（entry/css 如预期不变 `index-BADM1vql.js`/`index-BCHVWv3_.css`，sw md5 `4c3f26d6…`→`fcd98953…` 随 index.html 预缓存翻转）；页面内 `typeof window.clarity === 'undefined'`。
+
+**T1 弹窗泄漏闭环（核心判据，r176 同口径 30 轮）— PASS**：GC×4 后采样——起点 2,761 节点/375 监听器/7.7MB；10/20/30 轮后均为 **8,095 节点/1,731 监听器/9.6-9.7MB，三次采样完全持平（零线性增长）**；r176 失败基线同口径为 31,270→67,202→103,134 节点线性上涨——判据可区分。第 30 轮弹窗仍正常渲染（截图）。观察项（不定级）：首次打开弹窗有一次性 +5.3k 节点/+1.36k 监听器留存（首开后恒定，疑组件懒初始化/一次性缓存，非泄漏）。
+
+**T2 统计通道 — PASS**：新 tab 首页加载 idle 后 Network 采集——`googletagmanager.com/gtag/js`×1、`hm.baidu.com/hm.js`×1、`zz.bdstatic.com`×1 均注入且实际命中（google-analytics collect×1、hm.gif×2）；**clarity 请求 = 0**；dataLayer/_hmt 均为 object、push 不抛错；pageerror 0。取证注记：Tab 封装的 nav/js 会在命令往返中消费 Network 事件，采集统计请求须用独立 recv 循环在 navigate 后直收（首次采集误得全 0，独立循环复测取真值）。
+
+**T3 冒烟 — PASS**：整页 PNG 导出（downloadProgress 事件判定）md5=`3e8fdf3e0c8530297998d8ad25623f21`（=r170 基线）、pHYs 11811；pageerror 0。
+
+**T4 观察项（r176 导出后暂态 detached 累积复查）**：连续 5 次整页导出 GC 后采样——2,005→5,932→5,938→5,941→5,941→5,941，**首次导出后 +3.9k 一次性留存，其后每次 +0~9 节点，r176 的每次 +13k 线性累积已消失**（Clarity 移除的连带收益，符合根因推断）。
+
+**收尾**：清 storage、关闭全部测试 tab。未改产品代码。
+
 # 第 177 轮（2026-08-10）：第 176 轮弹窗泄漏根因定位 ✅（**根因 = Microsoft Clarity 统计脚本**：heap snapshot retainer 路径终点为 `window.clarity` 闭包内部的节点 Map，Clarity 把弹窗每次打开渲染的 TemplateThumb 卡片树（含 `<h3>`、ResizeObserver、事件监听器）永久保留在其内部映射中，detached 树因此无法回收；产品代码（ModalDialog/TemplateThumb/useElementSize/LabelCard autofit）清理路径全部验证正确）
 
 **定位过程（本地 dev + 生产均复现）**：

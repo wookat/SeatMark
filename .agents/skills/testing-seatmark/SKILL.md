@@ -73,6 +73,8 @@ Analytics are injected after `load` via `requestIdleCallback`. Collect `Network.
 
 When auditing memory: `Memory.getDOMCounters` + `HeapProfiler.collectGarbage` alone can't tell you the retainer — take `HeapProfiler.takeHeapSnapshot` and walk reverse edges (skip weak) from a leaked element to a GC root; third-party analytics scripts are prime suspects for detached-tree retention.
 
+Leak-retest baseline (r178, #186): with Clarity removed, 30 open/close cycles of the 全部模板 modal hold FLAT at ~8.1k nodes / 1.73k listeners after GC (a one-time ~+5.3k/+1.36k jump on FIRST open is lazy-init, not a leak — always compare round-10 vs round-30, not round-0). index.html-only deploys do NOT change the entry bundle hash — judge the flip by HTML content (e.g. grep count) + sw.js md5. To capture analytics/network requests, run a dedicated recv loop right after Page.navigate: helper wrappers that issue CDP commands consume Network events in their round-trips and will falsely report zero requests.
+
 ## Lighthouse
 `npx -y lighthouse@13.4.1 <url> --only-categories=performance,best-practices --form-factor=mobile --screenEmulation.mobile --throttling-method=simulate --output=json --output=html --output-path=<dir>/<name> --chrome-flags="--headless=new --no-sandbox"`.
 Baselines (`/` mobile): Perf 92–95, CLS 0, Best Practices **58** (expected to rise after Clarity removal in round 177 — re-baseline) — BP was capped by third-party cookies from Clarity/Baidu plus an `unload` deprecation, and security headers do not raise it. Root-document response time fluctuates (60 ms – 3.2 s); re-sample before calling it a regression.
