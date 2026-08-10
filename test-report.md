@@ -1,3 +1,27 @@
+# 第 170 轮（2026-08-10）：#180 标准模式导出 PNG 写入 pHYs 物理分辨率块 线上验收 ✅（整页与逐张 PNG 均含 pHYs=11811 px/m ≈300dpi，eink 精确像素 800×480 无 pHYs 且纯二值，PDF/打印冒烟无回归；第 169 轮 P3「无 pHYs」闭环）
+
+**背景**：PR #180 合入 main（`withPngPhys`：indexedPng.ts L155-172 IHDR 后插入 pHYs、幂等；pngExport.ts L362 `pixelsPerMeter = exactPixels ? undefined : pxPerMm*1000`，索引色与原生 toBlob 两通道均生效）。部署翻转：16:13:57 观测 entry `index-BPYEjASD.js` → `index-BTp5Le9S.js`、sw.js md5 `35927928…` → `e7e91bb4…`，二次采样一致，稳定 2 分钟后开测。生产 www.seatmark.cn，headless Chromium 29229，产物经 Browser.setDownloadBehavior 捕获后 struct 逐 chunk 解析 + Pillow 复核。
+
+## T1 整页 PNG（标准 300dpi，A4 课桌姓名贴 24 标签 2 页）
+- zip 内 2 张整页 PNG：chunk 序列 IHDR/**pHYs**/PLTE/IDAT/IEND，pHYs x=y=**11811 px/m、unit=1（米）**；Pillow `img.info['dpi']=(299.9994, 299.9994)`；IHDR 尺寸仍 **2481×3509**（A4@300dpi）；内容非空白多色渲染正常 ✅（第 169 轮「无 pHYs」P3 闭环）
+
+## T2 逐张 PNG（24 张 zip 抽首/中/尾 3 张）
+- 001/013/024 均含 pHYs=11811 px/m（unit=1），换算 **300.0 dpi**；尺寸 1063×354 与第 169 轮基线一致；内容正常 ✅
+- 注：本模板标签 90×30mm 未触发小标签提清（1063px/90mm×25.4≈300dpi），倍清路径未另行验证（与整页同一 canvasToPngBlob 通道）。
+
+## T3 eink 精确像素（负向判据）
+- `/studio?template=eink800&demo=1` 默认「精确像素（电子墨水屏 800×480）+纯黑白」；导出 zip 抽 3 张：IHDR=**800×480** 精确、chunk 序列 IHDR/PLTE/IDAT/IEND **无 pHYs**（刻意不写 ✅）、像素仅纯黑 (0,0,0) 与纯白 (255,255,255) 两色（二值化无回归）✅
+
+## T4 冒烟（Regression）
+- 图片版 PDF（课桌姓名贴）：下载成功，pypdfium2 打开 2 页、A4 595×842pt，渲染正常 ✅
+- 打印通道：「打印 / 矢量 PDF」→ 带水印导出，hook 确认 `window.print()` 被调起 1 次（headless 无打印 UI），pageerror 0 ✅
+
+**取证注记**：headless CDP 的 Browser.setDownloadBehavior 会在浏览器级 WS 断开后失效——每个导出脚本内须重新连 browser WS 重设下载目录，否则导出 toast 成功但落盘为空（本轮逐张/eink 首跑即此假象，重设后复跑通过）。
+
+产物：/home/ubuntu/r170_dl/（整页/逐张/eink zip + 2 份 PDF）；截图 /home/ubuntu/screenshots/r170_*。清理：测试 tab 全部关闭。headless 不录屏。
+
+---
+
 # 第 169 轮（2026-08-10）：前进/后退与滚动恢复 + 导出 PNG 物理 DPI 元数据 + 模板缩略图灰字对比度复查 ✅（导航链全绿；**2 条报告项**：导出 PNG 无 pHYs chunk（P3 裁量）、缩略图装饰灰字 2.56:1 但 aria-hidden 纯装饰建议维持现状）
 
 **背景**：无新部署走查轮（bundle `index-BPYEjASD.js`）。
