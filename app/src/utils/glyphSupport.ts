@@ -7,6 +7,8 @@
  * 离屏 canvas 上，像素完全一致即认为当前环境没有该字的字形。
  */
 
+import { RARE_CJK_FAMILY } from '@/data/fonts'
+
 /** 命中才值得上 canvas 检测的码位区间（常用汉字/字母数字不检测） */
 function isRareCodePoint(cp: number): boolean {
   return (
@@ -21,12 +23,12 @@ const FONT = '32px system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK S
 const SIZE = 40
 
 let ctx: CanvasRenderingContext2D | null | undefined
-let tofuPixels: string | null = null
+const tofuCache = new Map<string, string>()
 const cache = new Map<string, boolean>()
 
-function renderPixels(context: CanvasRenderingContext2D, char: string): string {
+function renderPixels(context: CanvasRenderingContext2D, char: string, font: string): string {
   context.clearRect(0, 0, SIZE, SIZE)
-  context.font = FONT
+  context.font = font
   context.textBaseline = 'top'
   context.fillText(char, 2, 2)
   return String.fromCharCode(...new Uint8Array(context.getImageData(0, 0, SIZE, SIZE).data.buffer))
@@ -39,27 +41,36 @@ function getContext(): CanvasRenderingContext2D | null {
     canvas.width = SIZE
     canvas.height = SIZE
     ctx = canvas.getContext('2d', { willReadFrequently: true })
-    if (ctx) tofuPixels = renderPixels(ctx, '\uffff')
   } catch {
     ctx = null
   }
   return ctx ?? null
 }
 
+function tofuPixelsFor(context: CanvasRenderingContext2D, font: string): string {
+  let pixels = tofuCache.get(font)
+  if (pixels === undefined) {
+    pixels = renderPixels(context, '\uffff', font)
+    tofuCache.set(font, pixels)
+  }
+  return pixels
+}
+
 /** 当前环境是否有该字符的字形；检测不可用（如无 canvas）时按「有」处理 */
-export function isGlyphSupported(char: string): boolean {
-  const cached = cache.get(char)
+export function isGlyphSupported(char: string, font: string = FONT): boolean {
+  const key = `${font}\u0000${char}`
+  const cached = cache.get(key)
   if (cached !== undefined) return cached
   const context = getContext()
   let supported = true
-  if (context && tofuPixels != null) {
+  if (context) {
     try {
-      supported = renderPixels(context, char) !== tofuPixels
+      supported = renderPixels(context, char, font) !== tofuPixelsFor(context, font)
     } catch {
       supported = true
     }
   }
-  cache.set(char, supported)
+  cache.set(key, supported)
   return supported
 }
 
@@ -83,4 +94,21 @@ export function findUnsupportedChars(values: Iterable<unknown>, limit = 5): stri
     }
   }
   return missing
+}
+
+/**
+ * 尝试用生僻字扩展字库（遍黑体分包，unicode-range 按需下载）兜底一批
+ * 缺字形字符：触发对应分包下载后重新检测，返回扩展字库也覆盖不了的字符
+ * （如离线/下载失败时返回全部，调用方据此降级为原有警告）。
+ */
+export async function resolveWithExtendedFont(chars: string[]): Promise<string[]> {
+  if (!chars.length) return []
+  const font = `32px '${RARE_CJK_FAMILY}'`
+  try {
+    if (typeof document === 'undefined' || !document.fonts?.load) return chars
+    await Promise.all(chars.map((char) => document.fonts.load(font, char)))
+    return chars.filter((char) => !isGlyphSupported(char, font))
+  } catch {
+    return chars
+  }
 }

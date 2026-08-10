@@ -6,6 +6,7 @@ import App from '@/App.vue'
 import { router } from '@/router'
 
 import '@/assets/main.css'
+import '@/assets/fonts-plangothic.css'
 
 const SENTRY_DSN = 'https://e07e934a609b9b8aab670cf18d669e42@o4511621503451136.ingest.us.sentry.io/4511621514592256'
 

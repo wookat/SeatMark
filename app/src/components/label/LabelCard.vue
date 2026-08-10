@@ -88,7 +88,7 @@ const vAutofit: Directive<HTMLElement, number> = {
 <script setup lang="ts">
 import { computed, type CSSProperties } from 'vue'
 
-import { combineFontStacks, DEFAULT_FONT_STACK } from '@/data/fonts'
+import { combineFontStacks, DEFAULT_FONT_STACK, withRareCJKFallback } from '@/data/fonts'
 import { watermarkToneFor } from '@/utils/watermark'
 import type { LabelTemplate, TemplateField } from '@/types/template'
 
@@ -304,10 +304,13 @@ function fieldStyle(field: TemplateField): CSSProperties {
     fontWeight: field.fontWeight ?? 'normal',
     textAlign: field.align ?? 'center',
     color: field.color ?? (field.fontWeight === 'bold' ? '#0f172a' : '#334155'),
-    // 西文字体在前仅覆盖英文/数字，中文字体兜底汉字；字段未设置时跟随模板
-    fontFamily: combineFontStacks(
-      field.fontFamilyEn ?? props.template.fontFamilyEn,
-      field.fontFamily ?? props.template.fontFamily ?? DEFAULT_FONT_STACK,
+    // 西文字体在前仅覆盖英文/数字，中文字体兜底汉字；字段未设置时跟随模板；
+    // 末尾的生僻字扩展字库仅覆盖 CJK 扩展区码位，按需下载
+    fontFamily: withRareCJKFallback(
+      combineFontStacks(
+        field.fontFamilyEn ?? props.template.fontFamilyEn,
+        field.fontFamily ?? props.template.fontFamily ?? DEFAULT_FONT_STACK,
+      ),
     ),
     ...(field.letterSpacing != null ? { letterSpacing: `${field.letterSpacing}em` } : {}),
     lineHeight: String(field.lineHeight ?? 1.15),
