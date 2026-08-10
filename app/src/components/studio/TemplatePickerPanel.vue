@@ -55,7 +55,9 @@ function sortByFit(list: LabelTemplate[]): LabelTemplate[] {
 const COLLAPSED_COUNT = 3
 
 const visibleTemplates = computed<LabelTemplate[]>(() => {
-  const all = sortByFit(library.allTemplates)
+  const sorted = sortByFit(library.allTemplates)
+  // 自定义模板置顶：用户自建的模板刷新后直接可见，无需进「浏览全部」弹窗
+  const all = [...sorted.filter((t) => !t.builtin), ...sorted.filter((t) => t.builtin)]
   if (all.length <= COLLAPSED_COUNT) return all
   const head = all.slice(0, COLLAPSED_COUNT)
   if (head.some((t) => t.id === workspace.selectedTemplateId)) return head
