@@ -311,17 +311,25 @@
   z-index: 1;
 }
 
+/* 虚线用背景渐变而非 dashed border 绘制：html2canvas-pro 不栅格化零宽元素的虚线边框，导出会丢线 */
 .cut-line {
   position: absolute;
-  border: 0 dashed rgba(120, 130, 150, 0.65);
 }
 
 .cut-line--v {
-  border-left-width: 0.35mm;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(120, 130, 150, 0.65) 0 1.2mm,
+    transparent 1.2mm 2.4mm
+  );
 }
 
 .cut-line--h {
-  border-top-width: 0.35mm;
+  background-image: repeating-linear-gradient(
+    to right,
+    rgba(120, 130, 150, 0.65) 0 1.2mm,
+    transparent 1.2mm 2.4mm
+  );
 }
 
 .label-box {
