@@ -1,3 +1,30 @@
+# 第 188 轮（2026-08-10）：#194 导出前中和合成加粗线上复测 ✅（**#193 导出路径闭环**：逐张 009.png md5 由失败基线 d241c042… 翻转为 eb4eb7bd…，𱁬 在逐张与整页产物中均为常规字重完整字形、无重影碎裂，王/明 仍粗体；预览与导出形态一致，所见即所得恢复；demo 整页 md5 与 r170 基线逐位一致（rare 区间外 DOM 零触碰）；维文 RTL 无回归；pageerror 0）
+
+**部署**：entry `index-BSD8AYv1.js`→`index-DDHydYPE.js`（15s 二次采样一致）；css 不变 `index-D3VMV82H.css`；sw md5 `52f6b960…`。
+
+**结果**：
+- T1 核心：r180 名单逐张 zip 009.png（1063×354）md5=`eb4eb7bd8dafd597b0c86d57ff83bf32` ≠ 失败基线 `d241c042…`；放大裁片 𱁬 单一完整（三龍三雲结构清晰可辨），对照 r186_label_009_zoom.png 碎裂涂抹形态判据可区分；王/明 笔画仍粗体。整页 PNG（2481×3509）同标签裁片同样完整。PASS。
+- T2 所见即所得：预览裁片（r188_preview_biang.png）与导出 009 裁片形态一致——𱁬 常规字重完整、王/明 粗体。PASS。
+- T3 Regression：demo 整页 PNG（带水印）md5=`3e8fdf3e0c8530297998d8ad25623f21` = r170 基线逐位一致（常用字不在 rare 区间、neutralize 零触碰）。PASS。
+- T4 RTL：003.png 维文连写正常无堆叠（neutralize 在 rasterizeRtlText 之前，链路无扰）。PASS。
+- 全程 pageerror 0；清 storage + 关闭全部测试 tab。
+
+**产物**：截图 /home/ubuntu/screenshots/r186_label_009_zoom.png（🔴 修复前导出碎裂）vs r188_label_009_zoom.png（🟢 修复后完整）；r188_preview_biang.png（预览对照）、r188_wholepage_biang_crop.png、r188_label_003.png。导出 /home/ubuntu/r188_dl/；脚本 /home/ubuntu/r188_t1.py。
+
+# 第 186 轮（2026-08-10）：#193 捕获根 font-synthesis:none 线上验收 ⚠️（**预览闭环、导出未闭环**：𱁬 预览不再碎裂重影、以常规字重完整渲染；但整页 PNG 与逐张导出产物中 𱁬 仍碎裂——逐张 009.png 与 r180 修复前**逐字节相同**（md5 d241c042…、numpy diff=0），html2canvas 用 canvas fillText 自行合成加粗，CSS font-synthesis 不作用于 canvas 文本绘制；「所见即所得」反向破裂：预览好、导出坏）
+
+**部署**：entry `index-BZ_MgILR.js`→`index-BSD8AYv1.js`、css `index-BCHVWv3_.css`→`index-D3VMV82H.css`（15s 二次采样一致）；sw md5 `008fed78…`。
+
+**结果**：
+- T1 预览：r180 名单导入后「王𱁬明」字段 computed `font-synthesis-weight: none`（weight 800、栈首 Plangothic）；截图对照 r180_preview_biang.png 碎裂基线——**𱁬 现以常规字重完整渲染、无重影碎裂**（王/明 仍粗体，Noto 真 Bold）。PASS。
+- T1 导出：**FAIL**——逐张 009.png（1063×354）与 r180 修复前逐字节相同（md5 `d241c0422af37935285527a622544b69`、像素 diff=0），整页 PNG 该标签裁片同样碎裂。根因：html2canvas 以 canvas fillText 绘文本，canvas 自身对无粗体面字体合成加粗，CSS `font-synthesis` 不适用；修复只覆盖 DOM 预览路径。
+- T2 粗体回归：deskName「张伟」platform fonts = Noto Sans CJK SC（非合成、真 Bold 面），预览字形明显粗体无异常；deluxeConfAurora demo 预览正常渲染无碎裂。本机有真 CJK Bold，未观察到「粗体变常规」现象。PASS。
+- T3 Regression：demo 整页 PNG（带水印）md5=`3e8fdf3e0c8530297998d8ad25623f21` 与 r170 基线逐位一致。PASS。
+- T4 RTL：逐张 003.png 维文连写正常无堆叠（#189 链路无回归）。PASS。
+- r180 名单导入零缺字误报（与 r184 一致）；全程 pageerror 0；清 storage + 关闭全部测试 tab。
+
+**产物**：截图 /home/ubuntu/screenshots/r186_preview_biang.png（🟢 预览修复）vs r180_preview_biang.png（🔴 基线）；r186_label_009_zoom.png（🔴 导出仍碎裂）vs r180_label_009_zoom.png（🔴 修复前，逐字节相同）；r186_wholepage_biang_crop.png、r186_preview_zhangwei.png、r186_deluxe_preview.png、r186_label_003.png。导出 /home/ubuntu/r186_dl/；脚本 /home/ubuntu/r186_t1d.py、r186_t3.py、r186_t5.py。
+
 # 第 184 轮（2026-08-11）：#191 少数民族文种缺字形检测线上验收 ✅（部署翻转后：r180 多文种名单零误报、CJK 生僻字链路不变、阳性分支用 U+1166F 真缺字字符成功触发新警告且文案正确、demo 冒烟+整页 PNG md5 与 r170 基线逐位一致、pageerror 0）
 
 **部署**：entry `index-BPAT-y6Z.js`→`index-BZ_MgILR.js`（15s 二次采样一致）；css 不变 `index-BCHVWv3_.css`；sw md5 `7006c579…`。
