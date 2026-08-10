@@ -1,3 +1,25 @@
+# 第 196 轮（2026-08-11）：教程站 76 篇全量质检（新角度走查，无代码变更前置）✅ 结构/链路/CTA/图片/pageerror 全过；事实性抽查发现 2 处 P3 过时数字 + 1 处 P4 尺寸笔误
+
+**范围与方法**：entry 仍为 `index-BmwKWsHK.js`（无部署变化）。用 tsx 从源码（guides.ts 25 + Round2 17 + Round3 2 + Round4 18 + Round5 4 + Round6 10 = 76 篇）dump 权威 slug/quickStart/body；curl 全量抓取生产预渲染 HTML 逐篇断言；浏览器（CDP headless）做 15 次真实 CTA 点击、76 篇 SPA 路由遍历（图片加载 + 网络失败 + pageerror 采集）与产品事实真值取证。
+
+**结果**：
+- T1 元数据 76/76 全过：HTTP 全 200；title/description 与源一致；canonical 全部 = `https://www.seatmark.cn/guides/<slug>`；JSON-LD（`data-route-jsonld`，Article + BreadcrumbList，另按篇 HowTo/FAQPage）可解析、URL 含本篇 slug、howTo/faqs 与源数据一一对应。
+- T2 内链全过：正文+related+quickStart 提取站内路径去重 150 条，逐条 200、0 死链；锚点链接 0 条（无死锚点问题面）；站外链接 0 条（仅记录口径下无可记录项）。
+- T3 quickStart CTA：76 篇全部带 quickStart。静态：68 篇指向 /studio 且 template 参数全部命中模板库 222 个 id（100%）；其余 8 篇指向 /seating（4）与 /papers（4），均 200，属排座/纸型合法入口。动态：15 篇真实点击（12 个不同模板 + /seating×2 + /papers×1）全部落地正确、workspace 当前模板 id == 参数、demo=1 篇目名单非空（18–26 行）——15/15 PASS。
+- T4 事实性抽查（10 篇）：产品真值——/papers 实际 17 种纸型、/templates 实际「222 款」、导出角标实测「今日剩余 1 次」（`QUOTA_ANON_DAILY=1`，带水印/打印不限次）、standard 模板 3 列 × 8 行 = 24 枚 60×32 mm、纸型库 a4-1up…a4-65up-round、分享送次数 API（share/visit IP+日去重）均与教程口径吻合。**发现 3 处偏差**：
+  - **P3**：`exam-seat-label-batch-print` 称「SeatMark 内置了 20 款免费模板」——实际 222 款（过时数字）。
+  - **P3**：`exam-system-vs-seatmark` 称「61 款模板」——实际 222 款（过时数字）。
+  - **P4**：`sticker-paper-size-picker` 称 21 枚为「70×42.3 mm」——纸型库实际 70×42.4 mm（0.1mm 笔误）。
+  - 注：`wechat-browser-print-guide` 的「微信内自动弹出引导浮层」未在微信 UA 下实测（headless 无微信环境）——untested；`composite-field-template-string` 的「自定义组合…/{列名} 模板串」仅代码面证实（MappingPanel.vue COMPOSITE_OPTION），未走 UI 全流程。
+- T5 图片：76 篇遍历 0 个加载失败 `<img>`、0 个 ≥400 网络响应、0 个 loadingFailed（正文 body 源码本身 0 个 `<img>`，页面级图标/资源全部正常）。
+- T6 全程 pageerror 0（含 15 次 CTA 点击与 76 篇遍历）；收尾已清 storage 并关闭全部测试 tab。
+
+**问题清单（P 级）**：P1 无；P2 无；P3 ×2（模板数量过时：20 款、61 款 → 应为 222 款或改为不写死数字）；P4 ×1（21 枚纸型 42.3→42.4 mm）。
+
+**产物**：脚本 `/home/ubuntu/r196_t1.py`、`r196_t1b.py`、`r196_t2.py`、`r196_t3.py`、`r196_t56.py`、`r196_t4.py`、dump `/home/ubuntu/r196_guides.json`、`r196_template_ids.json`、结果 `r196_t3_results.json`；截图 `/home/ubuntu/screenshots/r196_quota_badge.png`、`r196_papers.png`。计划 `test-plan-round196.md`。
+
+---
+
 # 第 195 轮（2026-08-10）：#202 回退 html2canvas-pro 2.3.2→2.0.4 线上验证 ✅（三判据全中：demo 整页 PNG md5 逐位回到 r170 基线 `3e8fdf3e…`、𱁬 逐张 009.png md5 逐位回到 r188 基线 `eb4eb7bd…`、姓名对齐 4x 比值回到 0.6351（≈2.0.4 基线 0.635、预览 0.639）——r192 发现的 P3 上移偏差闭环、所见即所得恢复；pageerror 0）
 
 **部署**：entry `index-DzDe9l0M.js`→`index-BmwKWsHK.js`（回到 r191 时的 2.0.4 构建 hash，15s 二次采样一致）。
