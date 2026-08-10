@@ -1,3 +1,2048 @@
+# 第 154 轮（2026-08-10）：PR #162 裁切线二修（内联 SVG）线上复测 ✅（第 150 轮裁切线问题闭环；附 1 项部署过渡期观察注记）
+
+**方法**：轮询确认 EdgeOne 部署新 bundle（`index-CuMqeM6b.js` → `index-BB02NSJB.js`，代码依据 commit 3497116 / PR #162：LabelSheet.vue cut-layer 改为单个 `<svg viewBox="0 0 W H">` + `<line stroke-width="0.35" stroke-dasharray="1.2 1.2">`，main.css 渐变规则删除）→ 生产 www.seatmark.cn，headless Chromium 29229 真实 UI（standard a4-24up demo 26 行 2 页 + deluxeConfAurora），导出物 PIL/zipfile/pypdfium2 像素核验（2481px/210mm ≈ 11.81px/mm，判据同第 152 轮）；打印路径「延迟 afterprint 10s 按住宿主 + Page.printToPDF(printBackground)」。不录屏（headless）。
+
+**结论**：
+- ✅ **整页 PNG：裁切线 ON/OFF 现有真实差异（第 152 轮 P2 修复确认）**——ON 首页 md5 `ee1f745e…` ≠ OFF 首页 md5 `68a9e834…`（OFF 与旧无线渲染字节一致，符合预期）；ON 时 v@73mm、v@137mm ±3px 条带 frac=0.532、trans=247（约 1:1 虚线，与打印捕获基线一致），两页均有；OFF 时同坐标 frac=0.000。多次复验（1248/1250/1256/1301/1319 五次 ON 全部有线；1300/1309/1317 三次 OFF 全部无线）。
+- ✅ 图片版 PDF：ON 导出首页 pypdfium2 渲染 v@73/137mm frac=0.567、trans=247——虚线进入图片版 PDF。
+- ✅ 逐张 PNG 仍无裁切线：26 张标签图（1000×534），边缘仅标签自身实线边框（top/left edge trans=0），hostSuppressCutLines 路径不受影响。
+- ✅ 预览回归：`svg.cut-layer`（viewBox="0 0 210 297"）内 13 条 `line.cut-line`（x=11/73/137/199mm 垂直 + 9 条水平），stroke-dasharray="1.2 1.2"、stroke-width 0.35——虚线位置/密度与第 150/152 轮一致；关闭复选框后 svg 消失；首页 Hero（show-cut-lines 常开）svg 13 条正常渲染不破版，无 pageerror。
+- ✅ 打印宿主回归：print 触发瞬间宿主 2 页 × 2 svg × 26 line；printToPDF 捕获 v@73/137mm frac=0.537、trans=247——打印路径虚线保持。
+- ✅ 冒烟：standard 2 页 / deluxeConfAurora 6 页整页导出均 2481×3509、内容正常（aurora p1 ink 1202283），无 pageerror。
+- **观察注记（不定级，无法在稳定态复现）**：bundle 切换后约 12:25–12:44 的过渡窗口内，3 次「裁切线 ON」整页导出产物为无线渲染（md5 = 旧行为 `68a9e834…`），且出现 1 份排版破损的整页 zip（单列大格无姓名，疑似新 JS + 旧 CSS 的边缘节点资产错配）；12:48 起全部导出行为稳定正确（5 次 ON 全有线）。另：同一分钟内两次导出的 zip 文件名相同（`模板名-YYYYMMDD-HHMM.zip`），CDP allow 下载模式下会静默覆盖，测试取证需错开分钟或分目录。
+- 既有运维项不变：`x-seatmark-storage: memory` + SES 未配置，认证链路持续 untested。
+
+**证据**：/home/ubuntu/screenshots/r154_*（关键：r154_png_on_off.png ON/OFF v@73 对比、r154_preview_cutlines.png、r154_pdf_v73.png、r154_print_v73.png、r154_hero.png、r154_perlabel_first.png、r154_aurora_p1_thumb.png）；导出物 /home/ubuntu/r154_dl3/（ON 1319.zip / OFF 1317.zip / 逐张 1312.zip / print_capture.pdf / aurora 1326.zip）+ /home/ubuntu/r154_dl2/（图片版 PDF 1302.pdf）；SVG 独立可栅格化复现 /home/ubuntu/r154_repro.html（html2canvas-pro@2.0.4 渲染 svg dashed line frac=0.531/trans=50）。**第 150 轮发现、第 152 轮定级 P2 的「整页导出静默丢裁切线」自此闭环。**
+
+# 第 152 轮（2026-08-10）：PR #161 裁切线导出修复线上复测 ❌（核心复测点未通过：整页 PNG / 图片版 PDF 仍丢裁切线，P2）
+
+**方法**：生产 www.seatmark.cn（bundle `index-CuMqeM6b.js` / `index-CsAP7MKc.css`，已含 f09e1a4 的 repeating-linear-gradient 裁切线 CSS），headless Chromium 29229 真实 UI，standard（a4-24up 原生排版，demo 26 行 2 页）+ deluxeConfAurora 冒烟；导出物 PIL/zipfile/pypdfium2 像素核验；打印路径用「按住 afterprint 10s + Page.printToPDF(printBackground)」捕获真实打印栅格。不录屏（headless）。
+
+**结论**：
+- ❌ **P2：整页 PNG 导出裁切线仍然静默丢失**——裁切线 ON/OFF 两次整页导出 **md5 完全相同**（`68a9e834…`），列间隙裁切线位置（v@73mm、v@137mm）像素全白（frac=0.000）。与第 150 轮（修复前）行为一致，#161 对整页 PNG 无效。
+- ❌ **P2（同因）：图片版 PDF 同样无裁切线**——pypdfium2 渲染首页，v@73/137mm frac=0.000。
+- **根因独立复现**（/home/ubuntu/r152_repro.html + html2canvas-pro@2.0.4 CDN）：html2canvas-pro 2.0.4 **不栅格化 repeating-linear-gradient 背景**（mm 或 px 停止点均失败，frac≈0.010），**纯色背景可以**（frac=1.000）。即修复方向（dashed border→背景渐变）恰好落在 html2canvas-pro 的另一个不支持点上。可行替代：纯色细线（solid 可栅格化，已验证）、SVG data-URI background-image、或导出 onclone 时以子元素小段实色 div 拼虚线。
+- ✅ 预览：裁切线 ON 时 13 条线（v@11/73/137/199mm，h@10…293mm）虚线正常显示，位置/密度与第 150 轮一致；OFF 消失；首页 Hero 排版正常（13 条 cut-line）无破版，无 pageerror。
+- ✅ 逐张 PNG：26 张标签图边缘仅有标签自身实线边框（trans=0），无裁切线杂线——hostSuppressCutLines 路径不受影响。
+- ✅ 浏览器打印宿主：window.print 触发瞬间宿主 2 页 × 13 条 .cut-line（width 0.35mm，computed background 为 repeating-linear-gradient）；**真实打印栅格捕获**（printToPDF + printBackground）v@73/137mm frac=0.503、trans=248——约 1:1 虚线正确出现在打印输出中（@media print 的 print-color-adjust:exact 生效）。「打印 / 矢量 PDF」路径已被 #161 修复。
+- ✅ 冒烟回归：standard 整页 2 页 / deluxeConfAurora 整页 6 页导出均 2481×3509、内容正常，无 pageerror。（注：`?template=aurora` id 不存在会兜底 standard，正确 id 为 deluxeConfAurora。）
+
+**证据**：/home/ubuntu/screenshots/r152_*（关键：r152_export_vs_print.png 导出 vs 打印对比、r152_png_on_off.png、r152_prev_crop.png、r152_pdf_v73.png、r152_print_v73.png、r152_repro_h2c.png）；导出物 /home/ubuntu/r152_dl/（ON/OFF 整页 zip、逐张 zip、图片版 PDF、print_capture.pdf、aurora zip）；复现页 /home/ubuntu/r152_repro.html。
+
+# 第 150 轮（2026-08-10）：数据视图交互 × 预览辅助选项组合深度 + Firefox 全流程冒烟（生产站，无代码改动）✅（1 项设计事实注记）
+
+**方法**：生产 www.seatmark.cn（bundle `index-DkfDPQCs.js`，与 repo fedd014 一致），headless Chromium 29229 真实 UI（表头点击/漏斗筛选/复选框/单张覆写弹窗均为真实鼠标事件），导出物 PIL/zipfile/pypdfium2 像素核验；Firefox 用 Playwright firefox 121 全流程冒烟。名单 /home/ubuntu/r150_fix.xlsx（12 行，姓名/组别 A/B/编号 01–12 乱序）。不录屏（headless）。
+
+## 1. 数据表交互（全通过）
+- 「查看全部数据（可筛选排序）」弹窗点「编号」表头三态循环：升序 01–12（上箭头）→ 降序 12–01（下箭头）→ 恢复导入原序（07,03,11,01,09,05,12,02,08,04,10,06）——与 workspace.toggleSort 设计一致。截图 r150_sort_asc/desc/reset.png。
+- 漏斗筛选「组别」只勾 A → 6/12 条；叠加编号升序 → 表格 07..12 全 A 组；预览 `.sheet-page` 标签顺序与表格逐一一致（07 赵一 → 12 郑七）。截图 r150_sort_filter.png、r150_preview_sortfilter.png。
+- 主面板出现「排版顺序：…」提示条 +「恢复原序」按钮；点击后条消失、恢复原序。截图 r150_view_banner.png。
+- 刷新后：名单恢复（sessionStorage roster），但排序/筛选态清空——**设计上不持久化**（workspace.ts:157-186 的 roster watch 不含 sort/columnFilters/rowOverrides），如实记录非缺陷。截图 r150_after_reload.png。
+
+## 2. 单张覆写（全通过；覆写以行对象为键，跟行不跟索引）
+- 点击预览「赵一/07」标签 → 覆写弹窗改姓名为「覆写测试」→ 标签显示「已改」角标。
+- 编号降序 + 筛选 A 后（07 从第 1 位移到第 6 位），「已改」角标与「覆写测试」文本仍在 07 那张标签上（位置 idx5）——覆写跟随行对象（workspace.ts:190 Map<DataRow,…>），不按数组索引。截图 r150_override_after_sortfilter.png。
+- 逐张 PNG 导出（6 张）：第 6 张（07）与清除覆写后同视图重导的第 6 张 diff 8262 px（姓名区），其余标签逐张 diff=0——覆写内容确实进导出且与预览一致。对比图 r150_override_export_compare.png。
+- 「清空」→ 重新导入：无「已改」角标、无覆写文本残留、伴随 toast；覆写不复现。
+
+## 3. 预览辅助选项组合
+- 高亮缺失：开启后预览琥珀色高亮像素 2→2169（有未映射字段占位）；导出整页 PNG 中琥珀像素 0——**高亮只进预览不进导出** ✅（宿主 LabelSheet 不传 highlight-missing）。截图 r150_t3_highlight_on.png。
+- 裁切线：预览开/关像素差 3732 px（虚线可见/消失）✅；**整页 PNG 导出开/关两次产物字节级相同（md5 一致），且导出内 v@105mm 等裁切线位置全白——裁切线当前完全不进 PNG 导出，开关对导出无效**。注记（不定级）：代码意图上宿主传了 `show-cut-lines=workspace.showCutLines`（PreviewArea.vue:1415，且 hostSuppressCutLines 注释暗示整页导出应含裁切线），实测 html2canvas-pro 未把 `.cut-line`（border 0 dashed + border-left/top-width 0.35mm）栅格化出来。与本轮用户预期「裁切线不应进导出」行为一致，但与代码意图存在出入；浏览器打印宿主走真实 CSS 渲染、打印时裁切线应仍在（本轮未实纸打印验证）。是否属预期请产品裁量。
+- 裁切排序：12 行 ×10 枚/页 = 2 页，开启后预览页 1 = 07,11,09,12,08,10（原序偶数位）+4 空位、页 2 = 03,01,05,02,04,06——与 stackSortRows（叠齐裁切后每摞连续）一致；导出整页 PNG 同步变化：ON 页 2 第 1 格与 OFF 页 1 第 2 格（03 钱二）像素几乎一致（diff 4px）、页 1 尾 4 格 ink=0 空位 ✅。对比图 r150_stack_export_compare.png。
+- 对折双联（镜像）：vTent 模板默认开启；导出整页 PNG 上半区 ink 30744（ON）vs 16172（OFF），ON 时上半区旋转 180° 与下半区暗像素 IoU 0.68（OFF 仅 0.34）——镜像确实进导出、关闭后上半区仅剩折线提示 ✅。对比图 r150_mirror_export_compare.png。
+
+## 4. Firefox 全流程冒烟（Playwright firefox 121，全通过，#146 后无回归）
+- 导入 r150.xlsx →「共 12 条数据」、自动匹配 2/4（标准考场版对 姓名/编号 表头的预期匹配）、预览 12 枚渲染。
+- 带水印逐张 PNG 导出 zip 12 张（1000×534/张）、图片版 PDF 1 页（pypdfium2 ink 6354 非空白）、打印宿主 window.print 被调起且宿主 sheet-page 挂载。全程 0 pageerror。
+- 字体栈记录（已知开放项，不定级）：预览 computed font-family = `ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif`（模板宋体字段另有栈）；Linux 下 Firefox/Chromium 实际回退字体可能不同，导出为各自浏览器栅格化结果，跨浏览器产物像素不保证一致。截图 r150_ff_preview.png、r150_ff_png_p1.png、r150_ff_pdf_p1.png。
+
+## 5. 演示/真实名单切换清理（全通过）
+- 演示数据 + 排序 + 单张覆写（DEMO覆写）→ 导入真实名单：toast「单张覆写已清除」、排序态清空、角标 0、覆写文本无残留。
+- 反向：真实名单 + 排序 + 覆写（REAL覆写）→ 清空 → 演示数据：同样干净（badge 0、无视图态、无残留）。截图 r150_t5_*.png。0 pageerror。
+
+**结论**：无新增 P0–P2。1 项注记（不定级，产品裁量）：整页 PNG 导出中「裁切线」开关无效（永不渲染进导出），与宿主代码传参意图不符但与「裁切线仅预览」预期一致。收尾已清空名单与 roster 键。
+
+# 第 149 轮（2026-08-10）：#159 线上复测——.xlsx ZIP 魔数校验 + 照片内容魔数校验（第 147 轮 P3-1/P3-2 闭环）✅
+
+**方法**：轮询确认 EdgeOne 部署新 bundle（`index-rRU9KX0x.js` → `index-DkfDPQCs.js`，代码依据 commit fedd014）→ 生产 www.seatmark.cn，headless Chromium 29229 真实 UI，第 147 轮同一批 fixtures（/home/ubuntu/r147_fix/）复测。不录屏。
+
+## 断言明细
+
+| # | 断言 | 第 147 轮旧行为 | 结果 |
+|---|------|----------------|------|
+| 1 | 文本改名 .xlsx → toast「Excel 导入失败｜文件内容不是有效的 .xlsx 工作簿（可能是改名或损坏的文件）；若是 CSV 名单请将扩展名改回 .csv 后重试」，无「导入成功」、无 99 条垃圾行 | 「导入成功 99 条」 | ✅ 闭环 |
+| 2 | 20MB /dev/urandom .xlsx → 同上文案，0.4s 快速失败 | 4.8s「导入成功 160512 条」 | ✅ 闭环 |
+| 3 | Regression：正常 xlsx 40 条 / CSV 3 条（PK 校验不拦 .csv）/ 双 sheet「文件含 2 个工作表」均导入成功 | — | ✅ |
+| 4 | 文本改名 .jpg → toast「本次匹配 0 张」（不再计 matched）；明细「测员001.jpg - 不是有效的图片文件（内容无法识别，可能是改名或损坏的文件）」；预览 img 数 0（无裂图） | 「本次匹配 1 张」+ naturalWidth=0 裂图 | ✅ 闭环 |
+| 5 | 截断 JPEG（FFD8 头完整）→ 仍「本次匹配 1 张」，预览 400×500 正常 | 同 | ✅ |
+| 6 | Regression：batch200 200 张真 jpg → 匹配 40/40 覆盖率 100%，160 未匹配均为文件名原因，无「不是有效的图片文件」误杀 | 同 | ✅ |
+
+至此第 147 轮两个 P3 观察项全部闭环。
+
+**产物**：截图 `/home/ubuntu/screenshots/r149_faketext.png`、`r149_junk20mb.png`、`r149_normal_xlsx.png`、`r149_csv.png`、`r149_2sheet.png`、`r149_fakejpg_details.png`、`r149_truncjpg.png`、`r149_batch200.png`；脚本 `/home/ubuntu/r149_run.py`；PR 评论 `/home/ubuntu/r149_comment.md`（#159）。测试数据已清理。
+
+# 第 147 轮（2026-08-10）：探索性走查——错误恢复与异常输入健壮性 ✅（2 个 P3 观察项）
+
+**方法**：生产 www.seatmark.cn（bundle `index-rRU9KX0x.js`，无代码变更轮），headless Chromium 29229 真实 UI：CDP `DOM.setFileInputFiles(objectId)` 注入损坏文件（脚本自造：文本/PNG 改名 .xlsx、0 字节、20MB /dev/urandom、msoffcrypto 加密 xlsx、文本改名 .jpg、截断 JPEG、7100×7100 50MP PNG、200 张小图批量、非法/缺字段/万层嵌套 JSON）；`Network.emulateNetworkConditions` 模拟断网；`Page.javascriptDialogOpening` 监听 XSS。不录屏。
+
+## 断言明细
+
+| # | 断言 | 结果 |
+|---|------|------|
+| 1 | PNG 改名 .xlsx / 密码保护 xlsx → toast「Excel 导入失败｜文件解析失败：文件可能已损坏或格式不受支持…」；0 字节 →「Excel 至少需要包含表头行和一行数据」；均无白屏无 pageerror | ✅ |
+| 2 | 报错后导入正常 40 行 xlsx →「已读取 40 条数据」，可恢复 | ✅ |
+| 3 | 照片：未匹配文件进「N 个文件未匹配，查看详情」列表；200 张批量 0.4s 完成、匹配 40/40 覆盖率 100%、160 张列明细、UI 不卡（JS 探针 2ms）；50MP PNG 不冻死 | ✅ |
+| 4 | 分享 hash 篡改 4 例（截断 v1 / 非 base64 / v9 版本 / v0 缺字段 JSON）→ 均 toast「分享链接无效｜链接可能不完整或已损坏…」+ hash 清除 + 页面正常无 pageerror | ✅ |
+| 5 | 模板 JSON 导入：非法 JSON →「模板解析失败」；缺字段/fields 类型错/万层嵌套 →「模板文件无效｜文件缺少 label、page 或 fields 字段」；customs 不被污染、demo 预览完好 | ✅ |
+| 6 | URL fuzz（?template=不存在、?paper=乱串、?demo=xss"><script>、8KB 长参）→ 页面正常、默认模板兜底、无 alert 弹窗、无注入 script、无 pageerror | ✅ |
+| 7 | 断网导出：offline 下带水印逐张 PNG 导出成功（zip 40 张，纯本地渲染） | ✅ |
+| 8 | 断网分享：微信扫码 → 弹窗内「短链服务暂时不可用｜已自动重试仍未成功…」+「重试」「改用长链接二维码」，不白屏；恢复在线点重试 → 二维码正常渲染 | ✅ |
+
+## P3 观察项（产品裁量）
+
+- **P3-1 垃圾字节按 CSV 兜底导入**：SheetJS 对非 ZIP 内容回退文本/CSV 解析——文本改名 .xlsx「导入成功 99 条」；20MB /dev/urandom 4.8s「导入成功 160512 条数据」（不冻死、可清空恢复）。不算崩溃，但「导入成功」提示对明显垃圾文件有误导性，可考虑对单列且乱码占比高的结果给出提示。
+- **P3-2 假图片静默裂图**：文本改名 .jpg 经 FileReader dataURL「照片已加载」成功 toast，预览 img naturalWidth=0（裂图）无任何警告；截断 JPEG（前 40%）浏览器可部分解码正常显示 400×500。可考虑加载后校验 naturalWidth 为 0 的照片并列入错误明细。
+
+**产物**：截图 `/home/ubuntu/screenshots/r147_*.png`（错误 toast/明细/断网弹窗/裂图单元格等 20+ 张）；fixtures `/home/ubuntu/r147_fix/`；断网导出物 `/home/ubuntu/r147_dl/标准考场版-20260810-1043.zip`（40 张）；脚本 `/home/ubuntu/r147_lib.py` / `r147_t1.py` / `r147_t2.py` / `r147_t3.py` / `r147_t6.py`。测试数据已清理（roster 键删除、customs `[]`）。
+
+# 第 146 轮（2026-08-10）：探索性走查——全站链接完整性与 SEO 资产一致性（324 URL 全量扫描）✅
+
+**方法**：纯线上 HTTP/HTML 扫描（curl/urllib，并发 8、失败重试 1 次），生产 www.seatmark.cn（bundle `index-rRU9KX0x.js`，无代码变更轮）。页面为预渲染静态 HTML（title/description/canonical/JSON-LD/OG 均在响应中），且未知路由返回真实 HTTP 404（noindex + canonical /404）——curl 结论即线上死链结论。不录屏（headless 无可视桌面）。
+
+## 断言明细
+
+| # | 断言 | 结果 |
+|---|------|------|
+| 1 | sitemap.xml 恰 324 个 `<loc>`；逐一 GET 全部 200（0 非 200） | ✅ |
+| 2 | 324 页 canonical == sitemap URL（0 不一致） | ✅ |
+| 3 | 324 页 title/description 全部非空；title 与 description 全站零重复 | ✅ |
+| 4 | 内链爬取：12 个种子页（首页/三大列表/3 模板详情/3 教程详情/2 纸型详情）提取 343 个去重站内 href，逐一线上 GET 全部 200，死链 0 | ✅ |
+| 5 | 锚点链接（/#how、/#features、/#faq 等）目标页均存在对应 `id=`，错误锚点 0 | ✅ |
+| 6 | quickStart 深链参数：template ∈ {archiveBoxSpine, deluxeConfAurora, standard, weddingPlace, withPhoto}、paper ∈ {a4-21up, a4-8up-spine}，与 repo 222 模板 id 及 labelPapers slug 全部匹配，无效 id 0 | ✅ |
+| 7 | JSON-LD 抽查 10 页：全部块 `json.loads` 通过；类型符合预期（首页 SoftwareApplication；列表页 CollectionPage+BreadcrumbList；/pricing 含 FAQPage；模板详情 HowTo（archiveBoxSpine 另含 FAQPage）；教程详情 Article+HowTo+FAQPage；纸型详情 Product+BreadcrumbList） | ✅ |
+| 8 | robots.txt Sitemap 行 = `https://www.seatmark.cn/sitemap.xml`；llms.txt（91 URL）+ llms-full.txt（301 URL）合计 305 个去重 URL 逐一 GET 全部 200，不可达 0 | ✅ |
+| 9 | llms 文件 URL 与 sitemap 一致性：仅 sitemap.xml / llms-full.txt 两个自引用不在 sitemap（预期），其余全部收录 | ✅ |
+| 10 | OG/Twitter 抽查 10 页：og:title/description/image/url 与 twitter:card/title/description/image 全部存在且非空，og:url == canonical | ✅ |
+
+## 备注
+
+- JSON-LD script 标签带 `data-route-jsonld` 属性（提取时正则需 `[^>]*`）。
+- llms.txt 首段简介中的裸域名 URL 被中文全角括号紧跟（`https://www.seatmark.cn）是…`），朴素 URL 正则会截出假 URL——扫描脚本已按 URL 合法字符集收敛，非站点缺陷。
+- 未知路由（/nonexistent-page-xyz、/templates/notexist-xyz）返回真实 404 + `noindex, follow` + canonical `/404`，且 404 页含返回首页/工坊/教程推荐入口，SEO 处理正确。
+- 本轮 0 个 P0–P3 新发现。
+
+**产物**：`/home/ubuntu/r146_sitemap_scan.json`、`/home/ubuntu/r146_links.json`、`/home/ubuntu/r146_seo_10pages.json`、`/home/ubuntu/r146_llms_check.json`；脚本 `/home/ubuntu/r146_scan.py` / `r146_crawl.py` / `r146_seo.py` / `r146_llms.py`；截图 `/home/ubuntu/screenshots/r146_home.png` / `r146_404.png` / `r146_llms.png`。
+
+# 第 145 轮（2026-08-10）：PR #157 线上复测——新增纸型 a4-8up-spine（40×120 竖条 4×2）✅
+
+**方法**：轮询确认 EdgeOne 部署新 bundle（`index-Dx0xG7HB.js` → `index-rRU9KX0x.js`）、sitemap 323→324；headless Chromium 29229 真实 UI + PIL/zipfile 产物核验。
+
+## 断言明细
+- /papers 列表出现「A4 8格竖条不干胶（40×120，4 列 × 2 行）」卡片 — PASS（r145_papers_list.png）
+- /papers/a4-8up-spine 详情：40 × 120 mm、4 列 × 2 行、一页 8 枚、用途文案齐全；推荐模板含 档案盒脊标 + 图书物品标签 + 固定资产标签；title 非空、canonical=`https://www.seatmark.cn/papers/a4-8up-spine` — PASS（r145_paper_detail.png）
+- /studio?template=archiveBoxSpine&demo=1：纸型下拉默认即显示 a4-8up-spine（模板默认尺寸被 matchLabelPaper 自动匹配）；打开下拉后排序首位 = a4-8up-spine 带「推荐」徽标，次位起为「勉强」档（上轮该模板 0 适配，区分点成立）— PASS（r145_picker.png / r145_picker_zoom.png）
+- 锁定链路：先选「不使用纸型」→ toast「已取消纸型锁定」；再选 a4-8up-spine → toast「已按纸型锁定排版｜A4 8格竖条不干胶…4 列 × 2 行，每页 8 枚（40 × 120 mm）」；18 行 demo → 3 页、无溢出提示 — PASS（r145_locked.png）
+- 导出几何：带水印整页 PNG zip 3 页、2481×3509；按 16mm 边距 + 40+6mm 栅格逐格采样：第 1/2 页 8 枚全有内容（ink 51k–55k）、列间隙 ink=0（不串格不溢出）、第 3 页恰 2 枚（18=8+8+2 分页正确）— PASS（r145_png_grid.png，产物 /home/ubuntu/r145_dl/档案盒脊标-20260810-1008.zip）
+- 反向深链：/papers/a4-8up-spine「用此纸型开始排版」→ /studio?paper=a4-8up-spine → 当前模板（standard）不适配时按 StudioView:134 自动换用 archiveBoxSpine 并锁定，toast「已换用适配该纸型的模板｜…每页 8 枚」；无裸「适配度不足」warning — PASS（r145_deeplink.png）
+- Regression：standard 纸型首位仍为「A4 24格圆角不干胶（63.5×33.9）推荐」（standard 原生 24 枚排版，无回归）；archiveBoxSpine 取消锁定后自由排版预览正常渲染（ink 12150）— PASS（r145_regression_standard.png / r145_free_layout.png）
+
+**计划更正注记**：计划中 Regression 预期误写为「a4-21up」，standard 的原生适配纸型实为 a4-24up（详情页 SEO 亦为「一页 24 枚」）——按代码事实修正预期后核验通过。**结论**：无新增 P 级问题，第 144 轮 P3（archiveBoxSpine 0 适配）闭环。
+
+# 第 144 轮（2026-08-10）：全量模板库 222 款自动化冒烟（无代码变更，线上走查）✅
+
+**方法**：repo `defaultTemplates*.ts` 经 vite-node 导出 222 款期望值（name/mappable 字段数/演示数据集 via resolveDemoDataset/适配纸型数 via evaluatePaperFit）→ headless Chromium 29229 单 tab 逐款 `Page.navigate` 到 `/studio?template=<id>&demo=1`（单款 25s 超时 + 失败重试一次，injected error hook 过滤良性 ResizeObserver），断言：模板应用、演示数据集名、映射 N/N、预览 `.sheet-page` 裁剪截图 ink 阈值；缩略图全量存档。
+
+## 结果汇总（222/222 完成，0 缺测）
+- 预览渲染：222 款全部非空白非纯黑（ink 3060–…；最低 tableNoStand 3060 为极简设计，ASCII 核验有内容）— PASS
+- JS pageerror：222 款全部 0（ResizeObserver 良性除外）— PASS
+- 演示数据集不串场景：222 款 sessionStorage roster 的 sheetName 全部 = resolveDemoDataset 期望（考场/班级/会议/政务/餐饮/电竞等）— PASS
+- 字段映射：222 款全部「已自动匹配 N/N」满配且 N = repo mappable 定义 — PASS
+- 模板应用：批跑中 4 款（roundtableCard/gymClassDoor/deluxeGovGuilloche/afterSchoolPickup）localStorage 读到陈旧模板名——逐款复测均正确（localStorage 名 + 预览内容均为目标模板），判定为防抖持久化读取时机的自动化假象，非缺陷 — PASS（复测截图 r144_recheck_*.png）
+- 适配纸型数：中位 12；**唯一 0 适配：archiveBoxSpine（档案盒脊标）**——竖长条形无内置纸型适配，自由排版仍可用，记 P3 观察项。
+- SEO 抽查 10 款：title 含模板关键词、description 非空、canonical 精确 = /templates/<id>，10/10 通过。其中 2 款（deluxeAnnualRibbon「年会席卡·红绶飘带」→ title「红绶飘带年会席卡模板…」、macaronName 同理）title 用重排词序的 SEO 文案而非精确模板名，属刻意措辞非缺失。
+
+**结论**：无新增 P0–P2；1 个 P3 观察项（archiveBoxSpine 适配纸型数 0）。缩略图 /home/ubuntu/screenshots/r144_thumbs/（222 张）。
+
+# 第 143 轮（2026-08-10）：WebKit（Safari 引擎）移动端全流程与导出一致性专项（无代码变更，线上走查）✅
+
+**方法**：Playwright WebKit（python，iPhone 视口 390×844、触控 UA、DPR3、真实 tap），访问生产 www.seatmark.cn。前置安装：`sudo apt-get install libgles2 gstreamer1.0-libav` + `python3 -m playwright install webkit`，启动需 `PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1`（apt 装齐后校验仍误报）。带水印导出（WebKit context 独立配额，未消耗无水印额度）。
+
+## 断言明细
+- 移动全流程：首页 scrollWidth=390 无水平溢出、CTA「开始制作」tap 进 /studio；demo 26 条 +「已自动匹配 4/4」；预览 tab 渲染正常（截图非空白）；全程无 JS pageerror — PASS（r143_home/studio/preview.png）
+- 触控交互：纸型 listbox tap 打开 → 选 A4 21格 → toast「已按纸型锁定排版」、「2 页」；导出选择弹窗触控开合正常 — PASS（r143_lock_toast/export_dialog.png）。移动端注记：导出按钮仅在「预览」tab 可见（移动分栏），数据 tab 下不可见——布局设计而非缺陷。
+- WebKit PNG 导出 vs Chromium：整页带水印 zip 2 页、每页 2481×3509 与第 142 轮 Chromium 完全一致、体积同为 0.4MB；页底水印带 ink 18485（有水印特征）；首标签「考场座位」字形完整不平切（裁图 ASCII 核验）— PASS
+- WebKit 图片版 PDF：2 页 / 0.4MB、首页 ink 46594 非空白 — PASS（r143_wk_pdf_p1.png）
+- 生僻字（扩A「㐆㵘」+ 扩B「𠀋𩽾𩾌」）：导入/预览/导出 PNG 中全部实心字形非豆腐块（4 单元格裁图 ASCII 核验，对照行「张三」正常）— PASS（r143_rare_cell1-4.png）。注记：本机 WebKit 系统字体（Noto CJK）本就覆盖扩B（canvas 探针 extB=true），故「已自动启用生僻字扩展字库（遍黑体）」toast 分支未触发——设备缺字时的 Plangothic 懒加载链路本轮 untested（无法在有字形的主机上自然触发）。
+- 存储恢复（WebKit）：刷新后名单恢复「26 条数据」+ roster 键在；设计器保存「R143 WebKit」→ 成功 toast → localStorage 落盘 → 刷新后置顶可见 — PASS（r143_restore/restore_tpl.png）
+- /seating 移动端：scrollWidth=390 无溢出、载入演示名单 →「按行填充」→「已输入 48 人 / 座位 48 个」网格渲染 — PASS（r143_seating_fill.png）
+- 控制台观察（非 P 级）：`ResizeObserver loop completed with undelivered notifications`（良性）与 clarity.ms 统计脚本被访问控制拦截（第三方统计，不影响功能）。
+
+**结论**：无新增 P 级问题。1 项覆盖缺口如实记录（遍黑体懒加载 toast 分支需缺字设备）。既有运维项不变。
+
+# 第 142 轮（2026-08-10）：匿名无水印配额链路 + 站内搜索/拼音专项（无代码变更，index-Dx0xG7HB.js 线上走查）✅
+
+**方法**：生产 /studio、/templates、/guides，headless Chromium 29229 真实 UI。第 141 轮特意保留的匿名每日 1 次无水印额度本轮消耗（前置核验键 `seatmark.clean-export-usage.v1` 为空 + 角标「今日剩余 1 次」）。取消/扣次顺序：先测取消不扣，再测真实消耗，避免额度先被耗尽。
+
+## A. 无水印配额
+- 取消不扣次：1000 行无水印图片版 PDF 第 15/48 页点「取消导出」→ toast「已取消导出｜本次未扣除无水印次数」、配额键仍空、导出选择框角标仍「今日剩余 1 次」、无落盘 — PASS（r142_cancel_clean.png）
+- 首次无水印导出（demo 26 行整页 PNG zip，2 页）：成功落盘；与随后同参数带水印版逐像素对比：差异 72121px 集中于页底水印带（y≈3387/3509），无水印版对应区域 ink 明显更少（footer 16488 vs 24237），放大裁图对证 — PASS（r142_wm_zoom.png / r142_clean_zoom.png / r142_footer_*.png）；键变 `{"date":"2026-08-10","used":1}`、角标变「无水印导出（今日剩余 0 次）」+ 按钮角标转「带水印免费」（r142_badge_zero.png）
+- 耗尽后再点无水印：QuotaLimitDialog 出现（「免费登录，每天 3 次无水印导出」「分享被点开 1 次再 +1 次（每日最多 10 次）」「也可以直接选择带水印导出继续使用…」），未触发渲染、键仍 used=1 不误扣 — PASS（r142_limit_dialog.png）
+- 持久化：刷新后键保持 used=1、角标仍 0 次（r142_exhausted_persist.png）；新隔离 context 打开 /studio → 键为空、角标回「今日剩余 1 次」——本地配额可被无痕/换浏览器绕过，属已知设计，如实记录 — PASS（r142_fresh_ctx.png）
+
+## B. 站内搜索/拼音
+- /templates：「hunyan」=「婚宴」= 8 款一致；「kaochang」10 款；部分拼音「hunya」8 款（支持前缀）；简拼「hy」66 款（命中面广但非空，如实记录）；乱串「zzzzqq」空态精确「没有匹配“zzzzqq”的模板，换个关键词试试，或在设计器里从空白新建。」+ 推荐兜底 3 卡 — PASS（r142_tpl_pinyin.png / r142_tpl_empty.png）
+- 分类 pill 回退（#105 回归）：搜「hunyan」+ 点「考试」pill → 「「考试」分类下无匹配，已在全部分类中找到 8 款」且仍展示 8 卡 — PASS（r142_pill_fallback.png）
+- /guides：「打印」=「dayin」= 共 40 篇一致；简拼「jkz」共 1 篇（监考照片核验教程，placeholder 示例自洽）；乱串空态「该条件下暂无教程，换个关键词或筛选条件试试。」+ 推荐兜底 — PASS（r142_guides_pinyin.png / r142_guides_empty.png）
+
+- 清理：名单清空、customs `[]`；配额键 used=1 为当日真实消耗，按计划保留不人为重置。
+
+**结论**：无新增 P 级问题。既有运维项不变（x-seatmark-storage: memory、SES 未配置；服务端配额/登录链路不在范围）。
+
+# 第 141 轮（2026-08-10）：超大名单极限与导出耐久性专项（无代码变更，index-Dx0xG7HB.js 线上走查）✅
+
+**方法**：生产 /studio，headless Chromium 29229 真实 UI。脚本生成 r141_500/1000.xlsx（姓名/部门/职务/桌号，中文）导入计时；标准考场版 + A4 21格（3×7）纸型锁定；1000 行整册图片版 PDF 与逐张 PNG（{姓名} 字段命名）均走「带水印导出」（免费不限次，规避匿名无水印每日 1 次配额）；pypdfium2/PIL/zipfile 核验产物；中途取消与刷新恢复边界。
+
+## 断言明细
+- 导入极限：500 行与 1000 行导入均约 0.5s 出「N 条数据」、无卡死（布局探针 0ms）、字段映射 UI 可正常改选 4/4 — PASS（r141_import_1000.png）
+- 分页计算：1000 行 A4 21格 → 「48 页」= ceil(1000/21) 精确 — PASS（r141_pages_1000.png）。注：500 行档仅验证导入耗时，未单独停留核对 24 页（随即导入 1000 行），如实记录。
+- 1000 行图片版 PDF：61s 完成，进度文本持续更新（46 次不同值：「正在渲染第 i/48 页...」→「已完成 48/48 页，正在写入 PDF...」，截图 r141_pdf_progress_1-3.png）；产物 48 页 / 6.0MB（面板预估 6.2MB 相符）、首/末页非空白（ink 71260/44141），末页首标签像素读出「测员0988」（=21×47+1 行，分配正确，r141_p48_digits.png）— PASS
+- 1000 张逐张 PNG zip：93s 完成，进度含逐张计数（「已完成 970/1000 张标签…」）；zip 25.8MB、条目恰 1000、字段命名正确（测员0001.png…测员1000.png，四位补零来自名单值本身）、抽样首/中/尾 9 张全部 1000×606 一致且无空白（ink 42k-44k）— PASS
+- 中途取消：第 15/48 页点「取消导出」→ toast「已取消导出｜本次未扣除无水印次数，可随时重新导出」、loading 消失、无文件落盘；随后重新导出 67s 成功（48 页/6.0MB）— PASS（r141_cancel_progress.png / r141_cancel_toast.png）
+- sessionStorage 边界：1000 行 roster payload 仅 47KB（远低于配额）→ 刷新完整恢复「1000 条数据」+ 4/4 映射 — PASS（r141_restore_1000.png）。未触及超配额降级路径（payload 太小，按设计静默跳过的分支本轮无法自然触发）。
+- 清理：名单清空（roster 键删除）、customs `[]` — 完成
+
+**结论**：无新增 P 级问题（1000 行全链路顺畅：导入 0.5s、PDF 61s、PNG zip 93s、取消/恢复健壮）。既有运维项不变（x-seatmark-storage: memory、SES 未配置，登录/分享短码不在本轮范围）。
+
+# 第 140 轮（2026-08-10）：PR #155 复测——刷新后照片提醒重新上传 + 匹配列恢复 ✅（第 137 轮 P3 观察项闭环）
+
+**方法**：确认 EdgeOne 部署新 bundle（`index-C7zVLvQG.js` → `index-Dx0xG7HB.js`，chunk `StudioView-DNkLMxuS.js` 含「照片需重新上传」；代码依据 60beb63）。生产 /studio，headless Chromium 29229 真实 UI：照片核验版模板 + 40 行名单（r140_40.xlsx，姓名=学生NNN）+ r137_photos 3 张 jpg 匹配后刷新；反例仅名单；demo 名单回归。
+
+## 断言明细
+- 核心闭环：匹配列选「姓名」+ 上传 3 张照片（「已导入 3 张照片，匹配 3/40 行（覆盖率 8%）」）→ 刷新 → info toast「照片需重新上传｜为保护隐私，照片仅保存在浏览器内存中；名单与匹配列已恢复，重新上传照片即可」出现（第 137 轮此步静默清空无提示）— PASS（r140_reload_toast.png/_zoom.png，DOM+像素双证；toast 约 0.5s 即出、数秒后自动消失，需刷新后立即捕获）
+- 匹配列恢复：刷新后照片匹配列下拉仍为「姓名」（旧行为重置为「请选择 Excel 中的一列」）；名单 40 条 + 4/4 字段映射恢复；payload {hadPhotos:true, photoColumn:"姓名"} — PASS（r140_col_restored.png）
+- 重新上传可再匹配：同批 3 张 jpg 再上传 → 「已导入 3 张照片，匹配 3/40 行（覆盖率 8%）」恢复 — PASS（r140_rematched.png）
+- 反例：仅导入名单（payload hadPhotos:false, photoColumn:""）→ 刷新 8s 内无「照片需重新上传」toast，名单正常恢复 — PASS（r140_no_photo_no_toast.png）
+- Regression：标准考场版 + demo 名单（26 条）→ 刷新恢复正常、无照片提醒误弹、模板保持 — PASS（r140_demo_reload.png）
+- 清理：名单清空（roster 键删除）、customs `[]`、无残留键 — 完成
+
+**结论**：第 137 轮 P3（照片刷新静默清空无提示）闭环。无新增问题。既有运维项不变（x-seatmark-storage: memory、SES 未配置、认证链路 untested）。
+
+# 第 139 轮（2026-08-10）：PR #154 复测——保存类成功 toast 依据 lastPersistOk 分支 ✅（第 138 轮 P3 观察项闭环）
+
+**方法**：确认 EdgeOne 部署新 bundle（`index-FWoZ0gOK.js` → `index-C7zVLvQG.js`，chunk `StudioView-faFeqswd.js` 含 lastPersistOk 分支；代码依据 0b23d28）。生产 /studio，headless Chromium 29229 真实 UI：filler 填满 localStorage（33 键，4KB probe 复核 QuotaExceededError）后设计器保存；清 filler 后正常保存；双 tab 同步冒烟。
+
+## 断言明细
+- 核心闭环：配额满 UI 保存「R139 配额」→ **只出现** danger toast「模板未能保存到本设备｜…刷新后此模板将丢失…」，成功 toast「模板已保存/已加入我的模板」**不再出现**（第 138 轮此步两者并存）— PASS（r139_quota_only_danger.png/_zoom.png，DOM 全文匹配 + 像素核验双证）。注：截图中同屏还有 workspace warning「当前编辑未能保存到本设备」（配额满态下工作区防抖写触发，属 #153 预期行为，非并存回归）。
+- 正常保存无回归：清 filler 后保存「R139 正常」→ 成功 toast「模板已保存｜「R139 正常」已加入我的模板并应用」出现、无 danger、storage 落盘 — PASS（r139_normal_success.png/_zoom.png）
+- Regression 删除/刷新：删除 → toast「自定义模板已删除」、storage `[]`、刷新后无 R139 残留 — PASS
+- Regression 双 tab 同步：A 存「R139 同步E」→ B 未刷新即显示（r139_tab_sync.png）；A 删除 → B 即时移除 — PASS
+- 清理：customs `[]`、r139_filler/probe 全删、B tab 关闭 — 完成
+
+**结论**：第 138 轮 P3（成功/失败 toast 并存）闭环。无新增问题。既有运维项不变（x-seatmark-storage: memory、SES 未配置、认证链路 untested——AccountView 云端找回的同类分支因需登录未覆盖）。
+
+# 第 138 轮（2026-08-10）：PR #153 复测——多标签写竞争 + 配额满假成功修复 ✅（第 137 轮 P2-①/P2-② 闭环）
+
+**方法**：确认 EdgeOne 部署新 bundle（`index-BdWvwfSE.js` → `index-FWoZ0gOK.js`，chunk `templateLibrary-DP0pL5j2.js` 含「模板未能保存到本设备」；代码依据 1d6655b）。生产 /studio，headless Chromium 29229 同 context 双 tab 真实 UI 设计器保存/删除；filler 填满 localStorage 至 QuotaExceededError（4KB probe 复核）后走 UI。
+
+## 断言明细
+- P2-① 写竞争闭环：A 存「R138 并发A」→ B 存「R138 并发B」→ storage 同含两者（第 137 轮只剩后写者）— PASS（r138_both_saved.png）
+- P2-① 删除不复活：A 删 并发A → B 再存「R138 复活哨兵C」→ storage=[并发B, 复活哨兵C]，并发A 不复活 — PASS（r138_no_resurrect.png）
+- 加分项 storage 事件实时同步：A 保存后 B 面板未刷新即显示 并发A；A 删除后 B 面板即时移除；B 保存后 A 面板显示 并发B — PASS（r138_tabB_synced.png）
+- P2-② danger toast：配额满 UI 保存「R138 配额」→ danger toast「模板未能保存到本设备｜…刷新后此模板将丢失…」出现 — PASS（r138_quota_danger.png/_zoom.png）。**观感如实记录**：成功 toast「模板已保存｜已加入我的模板并应用」与 danger toast 同屏并存，信息矛盾（P3 观察项，StudioView 保存路径未依据 persist() 返回值分支）。
+- P2-② workspace warning：配额满（且工作区键不存在使写入需新分配）微调标签宽 → warning「当前编辑未能保存到本设备」出现一次；连续微调 72/73 不再新增（persistFailWarned 生效，不刷屏）— PASS（r138_ws_warning.png/_zoom.png、r138_no_spam.png）
+- warning 重置：清 filler 后微调 → 成功持久化（w=74 入 storage）、无新 warning — PASS
+- **测试注记（重要边界）**：同尺寸覆写已存在的 `seatmark.workspace-template.v1` 键在存储满时仍成功（localStorage 覆写语义），warning 仅在写入需净增空间时触发——非缺陷，但意味着多数「配额满微调」场景实际不丢数据；第 137 轮 2c 的「静默回旧值」实为当时脚本仅派发 input 事件未更新 Vue 模型的取证假象，特此更正。
+- Regression：单 tab 存「R138 回归D」→ 刷新置顶可见 → 删除 → storage `[]`；40 行导入 + PNG 导出落盘（r138_dl/标准考场版-20260810-0827.zip）— PASS
+- 清理：customs `[]`、r138_filler/probe 全删、名单清空、B tab 关闭 — 完成
+
+**结论**：第 137 轮 P2-①、P2-② 均闭环。新增 P3 观察项 1 个（配额满保存时成功与失败 toast 并存）。既有运维项不变（x-seatmark-storage: memory、SES 未配置、认证链路 untested）。
+
+# 第 137 轮（2026-08-10）：多标签页并发 + 本地存储边界专项（无代码变更，index-BdWvwfSE.js 线上走查）
+
+**方法**：生产 www.seatmark.cn /studio，headless Chromium 29229 默认 context 开两个真实 tab（A/B），真实 UI 设计器保存/删除；localStorage 填充至 QuotaExceededError 后走 UI 保存；300 行 xlsx + 照片核验版模板照片匹配后刷新。代码定位：templateLibrary.ts:29（内存一次性载入）/36-42（persist 整数组覆写 + 静默 catch）、workspace.ts:96-114（工作区模板静默写）、:51-160（名单 sessionStorage per-tab）、照片仅内存 Map（workspace.ts:196-214）。
+
+**发现（本轮新增 2 个 P 级 + 1 观察项）**
+- **P2-①（静默丢数据·多标签写竞争）**：A tab 保存「R137 并发A」→ B tab（陈旧内存）保存「R137 并发B」→ storage 只剩 并发B，并发A 被整数组覆写**静默丢失**（A 刷新后消失，无任何提示）。同根因反向表现：A 删除某模板后，B（内存仍持有）再保存任何模板会让被删模板**复活**（实测 并发B 删除后复活）。根因：templateLibrary 启动时一次读入内存 + persist() 全量覆写，无 storage 事件监听/合并。
+- **P2-②（静默丢数据·配额满）**：localStorage 填至 QuotaExceededError 后，设计器保存「R137 配额」→ toast 仍报「模板已保存|已加入我的模板并应用」，但 storage 写入静默失败（persist catch{}），刷新后模板消失、无任何失败提示。同态下工作区微调（标签宽 60→77）刷新后也静默回旧值。建议：persist 失败时 toast.danger 提示存储已满。
+- 观察项（P3 候选）：照片匹配（3/300，覆盖率 1%）刷新后照片静默清空、匹配列重置，无「照片需重新上传」提示——与 guides「照片保存在内存」的设计一致、照片面板回到初始可上传态，尚可接受，但已加载态无恢复提示可再友好。
+
+**其余断言（通过）**
+- 1a 多 tab 状态：A 导入 40 行 + 切 eink800 → B 刷新恢复 eink800 工作区模板（localStorage 共享）、名单不出现（sessionStorage per-tab，符合设计）— PASS
+- 2a 55 个自定义模板：折叠区置顶正常、「浏览全部」自定义 55、打开 722ms 无卡死、搜索「批量33」精确过滤 1 张 — PASS
+- 3 大体量：300 行导入 + 刷新后名单 300 条完整恢复、字段映射保留、页面即时可交互 — PASS
+- 4 Regression 单 tab：标准考场版 300 行 PNG 导出成功（标准考场版-20260810-0812.zip 落盘）— PASS
+- 清理：名单清空（session 键删除）、自定义模板 []、filler 全部移除 — 完成（清空 toast 截图未及时捕获，storage 证据为准）
+
+**截图**：/home/ubuntu/screenshots/r137_tabA_state.png、r137_tabB_state.png、r137_tabA_saved.png、r137_tabB_saved.png、r137_tabA_lost.png（并发A 丢失）、r137_tabB_resurrect.png（删除复活）、r137_many_browse.png、r137_quota_saved_toast.png（配额满仍报已保存）、r137_quota_after_reload.png（刷新后消失）、r137_300rows_before/after.png、r137_photos_loaded.png、r137_photos_after_reload.png、r137_regression_export.png
+
+---
+
+# 第 136 轮（2026-08-10）：PR #152 复测——主面板折叠区自定义模板置顶 ✅
+
+**部署核验**：生产 bundle `index-NUcnYu0I.js` → `index-BdWvwfSE.js`（轮询确认后开测）。
+
+**方法**：生产 www.seatmark.cn /studio，headless Chromium 29229 真实 UI：设计器保存自定义模板 → 刷新读取主面板折叠区卡片顺序；隔离 context 验证无自定义态；浏览全部弹窗回归；CDP 真实键盘事件复核 HEX 输入框。
+
+**结果（全部通过）**
+1. 保存「R136 置顶A」→ 刷新：折叠区 3 张卡顺序 = [R136 置顶A, 标准考场版, 考号贴]，自定义置顶、无需进「浏览全部」（第 134 轮 P3-③ 旧行为闭环）— PASS
+2. 再保存「R136 置顶B」→ 刷新：折叠区 = [R136 置顶A, R136 置顶B, 标准考场版]，多个自定义均置顶 — PASS
+3. 选中内置 eink800 后刷新：折叠区 = [电子座签 800×480(选中), R136 置顶A, R136 置顶B]，选中模板置顶逻辑不回归、自定义仍可见 — PASS
+4. 全新隔离 context（无 localStorage）：折叠区 = [标准考场版, 考号贴, 课桌姓名贴] 纯内置，与旧行为一致 — PASS
+5. Regression 浏览全部：分类含「自定义 2」、搜索「R136」过滤只剩 2 张自定义卡；两模板删除（确认弹窗 → toast「自定义模板已删除」×2 → storage []、刷新后折叠区恢复纯内置）— PASS
+6. 第 134 轮 P3-① 复核：设计器 HEX 文本输入框用 CDP 真实键盘事件（keyDown/char/keyUp 逐字 + Enter）键入 #dc2626 → 文本框与拾色器同步为 #dc2626，且该颜色随模板保存入 localStorage（seatNo.color=#dc2626）——**P3-① 撤销**：为第 134 轮 synthetic 事件（仅 dispatchEvent）不触发 Vue 更新的自动化假象，真实键入生效 — PASS
+
+**截图**：/home/ubuntu/screenshots/r136_one_custom.png、r136_two_custom.png、r136_selected_builtin.png、r136_fresh.png、r136_browse.png、r136_delete_confirm_0.png、r136_deleted_0.png、r136_after_cleanup.png、r136_hex.png、r136_saved_a.png
+
+---
+
+# 第 135 轮（2026-08-10）：PR #151 复测——精确像素导出文件名追加实际分辨率 ✅
+
+**部署核验**：生产 bundle 由 `index-CHdjLWrt.js` 更新为 `index-NUcnYu0I.js`（轮询确认后开测）。
+
+**方法**：生产 www.seatmark.cn /studio，headless Chromium 29229 真实 UI（图片 PNG 面板 → 选预设/自定义宽度 → 带水印导出），下载 zip 落盘 /home/ubuntu/r135_dl，PIL 实测内部 PNG 尺寸与灰度集合。
+
+**结果（全部通过）**
+1. eink800 + 800×480 预设：`电子座签 800×480-800x480-20260810-0737.zip`，内部 PNG 恰 800×480，灰度 {0,255} — PASS
+2. eink800 + 296×128 预设：`电子座签 800×480-296x128-20260810-0738.zip`，内部 PNG 恰 296×128，灰度 {0,255} — PASS（第 134 轮 P3-② 闭环）
+3. 自定义宽度 500（无预设）：面板显示「输出 500×300 像素（高度按模板比例自动推导）」，`电子座签 800×480-500x300-20260810-0740.zip`，内部 PNG 恰 500×300，灰度 {0,255} — PASS
+4. 标准清晰度（300dpi）标准考场版：`标准考场版-20260810-0740.zip`，无 `-\d+x\d+-` 分辨率段（无回归），内部 PNG 1000×534 — PASS
+
+附加实证：过程中一次误改模板标签宽为 420mm 后导出（预设 296 保持），文件名为 `-296x85-` 且图片恰 296×85——文件名后缀确实取实际推导输出尺寸，而非静态预设值。
+
+**截图**：/home/ubuntu/screenshots/r135_296_panel.png、r135_custom500_panel.png、r135_standard_panel.png
+**产物**：/home/ubuntu/r135_dl/（4 zip）
+
+---
+
+# 第 134 轮：eink 电子墨水通道 + 自定义模板设计器持久化全链路（无代码变更，线上走查）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn（`index-CHdjLWrt.js`），headless Chromium 29229 真实 UI 操作，PIL/pypdfium2 像素测量。未录屏。
+
+**结论**: **全部通过，无新增 P 级问题**。
+
+**A. eink 通道**（/studio?template=eink800）：PNG 面板默认「精确像素（电子墨水屏 800×480）」预设 + 纯黑白勾选；demo/135 行两次导出共 139 张 PNG 全部恰 800×480 像素、灰度值集合精确 = {0,255}（无任何抗锯齿灰边，二值化彻底）；生僻字名单（王𠀀 U+20000、李𪛖 U+2A6D6）导入触发 toast「名单含 2 个生僻字 | 已自动启用生僻字扩展字库（遍黑体）」、`document.fonts.check('20px Plangothic','𠀀')=true`、导出后像素级 ASCII 渲染确认「王」三横完整、「𠀀」「𪛖」字形完整非豆腐块（r134_eink_rare_zoom*.png）；预设 296×128（宽高比 2.31 vs 模板 5:3）出现「该预设宽高比与当前模板不一致，画面会被拉伸…」提示、仍导出则恰 296×128 纯黑白；640×384（精确 5:3）无提示、输出恰 640×384。测量 r134_measure_eink.txt。
+
+**B. 自定义模板全链路**：标准考场版「以此为基础设计」进设计器 → 改名「R134 自定义」、座位号字段 x 1.5→5 / y 2→3 / 字号 30→28 / 颜色 #0f172a→#dc2626 → 保存 → toast「模板已保存」、localStorage `seatmark.custom-templates.v1` 中字段 JSON 与所设值精确一致（r134_custom_saved.json）。刷新后模板保留、字段 JSON 逐键相等（不失真）；应用后预览红色字段可见。导出 PNG zip（标签 1000×534，红色像素 10536）与图片版 PDF（页面精确 210.000×297.000mm，红像素 5513）。「复制当前模板分享链接」得 `#tpl=v1.…` 长链（1334 字符）→ 在全新隔离 browser context（无 localStorage）打开 → 「分享了模板 “R134 自定义”」提示 + 「保存并应用」→ 还原模板与原保存快照逐键比对：fields/label/page/font 全部相等，仅 id 重新生成（预期行为）。两个上下文中删除均：确认弹窗 → toast「自定义模板已删除」→ localStorage 变 `[]`、卡片消失。
+
+## 断言明细
+- eink 默认预设 800×480 + 纯黑白勾选 — passed
+- 导出 PNG 精确像素（800×480/296×128/640×384 三档全部 ±0px）— passed
+- 纯黑白二值化（全部像素 ∈ {0,255}，无灰边）— passed
+- 生僻字 Plangothic 生效、二值化后字形完整 — passed
+- 宽高比不匹配提示（296×128 提示、640×384 无提示）— passed
+- 设计器保存字段几何/颜色/字号精确入库 — passed
+- 刷新持久化（JSON 逐键相等）— passed
+- 自定义模板导出 PNG/图片版 PDF（红色字段渲染、页面 210×297 精确）— passed
+- #tpl= 长链新上下文还原（fields/label/page/font 逐键相等）— passed
+- 删除（两个上下文，toast + storage 清空 + 卡片消失）— passed
+
+**观察项（非缺陷，P3 候选/UI 语义记录）**：① 设计器「HEX 色值」文本输入框经程序化 input/change 事件写入未生效（原生 color 拾色器输入生效）——可能仅是脚本事件时序问题，如人工键入失效才值得跟进；② 导出 PNG 的 zip 文件名取模板名（eink 模板名即「电子座签 800×480」），改选 296×128 预设导出时文件名仍为「电子座签 800×480-….zip」，用户可能误读实际分辨率（实际图片尺寸正确）；③ 自定义模板卡片在主面板仅显示于「浏览全部」弹窗的「自定义」分组或最近区，刷新后需从「浏览全部」进入选择。
+
+截图：/home/ubuntu/screenshots/r134_*（eink_panel、eink_rare_zoom1-4、eink_mismatch、designer_open/edited、saved_toast、after_reload、custom_applied、custom_png、custom_pdf_p1、share_received、share_restored、delete_confirm*、deleted_*）。产物：/home/ubuntu/r134_dl/（3 个 eink zip + 自定义 PNG zip×2 + 图片版 PDF）、/home/ubuntu/r134_measure_eink.txt、/home/ubuntu/r134_custom_saved.json、/home/ubuntu/r134_share_url.txt。
+
+---
+
+# 第 133 轮：PR #150 复测——「不使用纸型（自由排版）」解除纸型锁定闭环
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn 新构建（`index-CHdjLWrt.js`，chunk `StudioView-CkFJkInA.js` 含「已取消纸型锁定」指纹），headless Chromium 29229 真实 UI 操作。未录屏。
+
+**结论**: **全部通过，第 132 轮 P3 观察项闭环**。标准考场版锁定 A4 21格（70×42.4、3×7）后选「不使用纸型（自由排版）」：toast「已取消纸型锁定 | 恢复模板默认排版，可自由调整行列、尺寸与边距」出现（像素证据 r133_release_toast_zoom.png），下拉回到「不使用纸型」，排版恢复模板默认（标签 60×32、3 列 × 8 行、间距 4/3.857、边距 11/10），字段几何精确恢复设计稿值（座位号 left 1.5/top 2/width 21/height 23mm，分隔线 x 23.5mm 等），无溢出警示。解除后重新锁回 21格 正常（toast + 70×42.4/3×7）。未锁态再点「不使用纸型」零副作用（无 toast、状态 JSON 完全相等）。整页模板 vTent（277×190、1×1）点「不使用纸型」同样零副作用、无报错。回归：锁定 toast 正常；解除后打印通道注入 `@page { size: 210mm 297mm; margin: 0; }` 跟随恢复后的纸张。
+
+## 断言明细
+- 部署核验：新 bundle + 「已取消纸型锁定」字符串在 StudioView chunk — passed
+- 锁定→解除：toast + 下拉复位 + label/page/边距全恢复设计稿 + 字段等比缩回（实测=设计稿精确值）+ 无溢出 — passed
+- 解除后重新锁回 21格 — passed
+- 未锁时点「不使用纸型」无副作用（状态快照前后相等、无 toast）— passed
+- 整页模板 vTent 不受影响 — passed
+- 回归 5a 锁定 toast / 5b @page 210×297 — passed
+
+截图：/home/ubuntu/screenshots/r133_release_toast.png（全页）、r133_release_toast_zoom.png（toast 放大）、r133_after_release.png、r133_relock.png、r133_vtent.png。
+
+注：本轮生产构建中纸型选择器 DOM 由 `[role=combobox]` 变为 `button[aria-haspopup=listbox]`（测试脚本选择器需同步）。
+
+---
+
+# 第 132 轮：校准页「下载校准页 PDF」几何专项核验（无代码变更，线上走查）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn（`index-DAlIoE8V.js`），headless Chromium 29229，真实 UI 校准向导下载 PDF，pypdfium2 600dpi 像素测量 + 文本提取。未录屏。
+
+**结论**: **全部通过，无新增 P 级问题**。校准页 PDF 几何精确（jsPDF 矢量直出，最大偏差 0.04mm，远小于 0.3mm 判据），校准基准不会系统性带偏校准链路。A4 页：页面精确 210.000×297.000mm，基准框边线 [19.98, 189.99]×[19.98, 276.99]（框宽 170.01、框高 257.01），上/左标尺 10mm 刻度全部 ±0.03mm，中心十字 (105.017, 148.485) vs 理论 (105, 148.5)。A5 页（经「纸张规格→A5 纵向」切换）：148.000×210.000mm，框 [19.98,128.02]×[19.98,189.99]（108.04×170.01），刻度 ±0.03mm，十字 y=105.006。向导自洽闭环：把 PDF 实测几何（=名义值 20/20/170/257）填回向导 → 「0.00 mm / 0.00 mm / 100.00% / 100.00%」+「实测值与设计值一致，无需补偿」。文件名 `seatmark-calibration-210x297.pdf` / `seatmark-calibration-148x210.pdf` 与页内标注（`Paper: 210 x 297 mm`、`Frame nominal: left/top = 20 mm, width = 170 mm, height = 257 mm`；A5 对应 108/170）与实测几何一致，无误导。
+
+## 断言明细（测量 /home/ubuntu/r132_measure_a4.txt / r132_measure_a5.txt，PDF /home/ubuntu/r132_dl/）
+- A4 页面尺寸 210.000×297.000mm（±0.05）— passed
+- A4 基准框 20/20/170/257（实测最大偏差 0.02mm ≤0.3）— passed
+- A4 标尺 10mm 刻度（上边 18 个/左边 26 个抽验全列）±0.03mm — passed
+- A4 中心十字 (105, 148.5)（实测 105.017/148.485）— passed
+- 自洽闭环：名义值回填 → 0 偏移/100% 缩放 + 「无需补偿」提示 — passed
+- A5 第二尺寸：对话框「打印标尺校准页（A5 纵向）」+ 设计值「框宽 108 mm、框高 170 mm」；PDF 148.000×210.000、框 108.04×170.01（≤0.3）、十字/刻度精确 — passed
+- 文件名与页内英文标注与实测几何一致 — passed
+- 下载成功 toast 文案 — inconclusive（脚本 4 秒后读取已自动消失；文件落盘与内容正确已证）
+
+截图：/home/ubuntu/screenshots/r132_a4_dialog.png、r132_selfcheck.png、r132_a5_dialog.png、r132_a4_ruler_zoom.png（标尺放大）。
+
+**观察项（非缺陷，UI 语义说明）**：纸型下拉中「不使用纸型（自由排版）」选项当前实现为 no-op（LayoutPanel.vue:63-65 对 'none' 找不到 spec 直接 return），已锁纸型后无法用该选项解除，需经「纸张规格」选择器换纸（本轮即以此达到 A5）。如产品预期该选项能解除纸型锁定，可作为 P3 体验项另行处理。
+
+---
+
+# 第 131 轮：高行数纸型（A4 65格）逐行累积误差专项（无代码变更，线上走查）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn（`index-DAlIoE8V.js`），headless Chromium 29229 + CDP printToPDF 捕获 + pypdfium2 600dpi 逐线测量（同 128–130 轮方法）。素材 /home/ubuntu/r131_135.xlsx（135 行 → 65+65+5 共 3 页），极简留白版模板 + A4 65格圆角不干胶（5 列 × 13 行，38.1×21.2mm，gapX 2.5）。理论网格：行边界 y=10.7+21.2k（页底 286.3mm）、列边界 [4.8, 42.9, 45.4, …, 205.3]。未录屏。
+
+**结论**: **全部通过，无新增 P 级问题**。第 128 轮担心的高行数累积压缩不成立：13 行页底累计偏差仅 **-0.07mm（打印通道）/ -0.12mm（图片版 PDF）**，远低于 1mm 废纸线；打印通道逐行偏差 ∈ [-0.12, +0.11]mm（非单调累积，属亚 0.1mm 级独立舍入而非 per-row 定向漂移），竖线最大 |0.28|mm（圆角边缘峰值偏移所致，≤0.5 判据内）。图片版 PDF 页面精确 210.000×297.000mm，两通道逐线差 ≤0.15mm。多页零漂移：第 2 页与第 1 页全部 27 条横线/14 条竖线逐线差 ≤0.02mm。叠加 +2.00/-1.50mm 校准后打印通道全部线 = 无校准实测 ±偏移 ±0.03mm，行间距 21.17mm 不变（#149 裁剪修复在 5 列 × 13 行同样不触发 shrink-to-fit），页底 284.73 = 286.23-1.50 精确。3 页均非空白（6.2%/6.2%/1.8% 非白像素），首枚标签文字四向均有 >1.2mm 内边距不溢出小格。
+
+## 断言明细（测量 /home/ubuntu/r131_measure_*.txt，PDF /home/ubuntu/r131_print*.pdf 与 r131_dl/）
+- 纸型锁定 toast「A4 65格圆角不干胶（38.1×21.2）：5 列 × 13 行，每页 65 枚」— passed
+- 无校准打印通道行边界偏差（14 条）：[+0.01, +0.11, +0.08, +0.04, +0.01, -0.02, -0.06, -0.09, -0.12, +0.10, +0.06, +0.03, 0.00, **-0.07（页底）**]，全部 ≤0.5、页底 ≤1mm — passed
+- 无校准打印通道列边界（10 条）：最大 |0.28|mm ≤0.5 — passed
+- 图片版 PDF：210.000×297.000mm，行边界偏差 [-0.12, +0.12]，页底 -0.12mm；与打印通道逐线差 ≤0.15mm — passed
+- 多页漂移：第 2 页 vs 第 1 页逐线 ≤0.02mm — passed
+- 校准 +2/-1.5 高行数不缩水（#149 回归）：全部线 = 基线±偏移 ±0.03mm、行距不变 — passed
+- 页面完整性：3 页非空白、标签文字不溢出（内缩 1.5mm 后 bbox 仍离边 >3px）— passed
+
+截图：/home/ubuntu/screenshots/r131_paper_selected.png、r131_print_p1.png（第 1 页 65 枚渲染）、r131_label_zoom.png（首枚放大）。测试结束保持校准清除态。
+
+**观察项（非缺陷）**：65up 实测行距 21.17mm vs 名义 21.2（-0.13%，与第 128 轮 21up 同源的 mm→px 量化），因逐行非单调分布，13 行也不形成累积——高行数纸型无需担心页底废纸。
+
+---
+
+# 第 130 轮：PR #149 复测——正向校准偏移打印 shrink-to-fit 修复（第 129 轮 P2-1 闭环）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn，与第 129 轮同方法（标准考场版 + r113_40.xlsx + A4 21格，stub window.print + CDP printToPDF 捕获，pypdfium2 600dpi 逐线测量，基线=第 128 轮网格坐标）。未录屏。取证注记：正偏移打印捕获后桌面 29229 Chromium 进程崩退，其余步骤在重启的 headless Chromium（同 29229 端口、生产同 bundle、重新导入同素材同纸型）中完成，正偏移证据在崩退前已完整落盘。
+
+**部署核验**: `index-DAlIoE8V.js` → chunk `seating-BcjFmHsA.js` 含 #149 指纹 `@media print { .offscreen-host { width: ${e}mm; overflow: hidden !important; } }`（97d1f3c）。
+
+**结论**: **全部通过，第 129 轮 P2-1 闭环**。正向偏移 +2.00/-1.50mm 打印通道不再缩水：竖线实测 [2.12, 72.04, 141.82] vs 期望 [2.12, 72.02, 141.83]（第 129 轮缩水态为 [2.10, 71.45, 140.67]），横线含页底 295.05mm 全部误差 ≤0.03mm；页数 2 页不变、两页非空白（非白像素 6.6%/6.0%）、彩色/水印保留（彩色像素 86万/76万）、第 2 页与第 1 页逐线差 ≤0.07mm。负向偏移（-2/+1.5，≤0.04mm）、缩放补偿（99.01%/99.00%，≤0.04mm，0 线不动）均不回归、不受新裁剪影响。图片版 PDF 通道 +2/-1.5 仍精确（页面精确 210×297mm，网格误差 ≤0.21mm）。持久化（刷新后 localStorage 保留 + 工具栏 emerald 绿点，像素核验 366 px）与「清除校准」（toast「已清除校准」、键删除、打印网格与第 128 轮基线逐线一致 ≤0.01mm、注入 style 恢复为纯 @page 无 offscreen-host 规则——无校准行为不变）正常。边界：+17mm 琥珀提示（像素核验 1255 px）+ 保存禁用，+10mm 可保存。
+
+## 断言明细（测量数据 /home/ubuntu/r130_measure_*.txt，PDF /home/ubuntu/r130_print_*.pdf）
+- 对话框反推（左18/上21.5/框170×257 → +2.00/-1.50/100.00%）— passed
+- 正向偏移打印精度 ≤0.3mm、无 0.8% 缩水（P2-1 复测核心）：竖线最大误差 0.02mm、横线（含页底）≤0.03mm — **passed（P2-1 闭环）**
+- 页数/内容完整：2 页、非空白、彩色/水印保留、页间漂移 ≤0.07mm — passed
+- 负向偏移不回归（-2/+1.5）：≤0.04mm — passed
+- 缩放补偿不受裁剪影响（99.01%/99.00%）：≤0.04mm、origin 左上 — passed
+- 图片版 PDF 通道正偏移仍精确：210.000×297.000mm、≤0.21mm — passed
+- 持久化（刷新保留+绿点）与清除重置（回基线 ≤0.01mm、style 无残留规则）— passed
+- 边界校验（+17mm 禁存琥珀提示 / +10mm 可存）— passed
+
+截图：/home/ubuntu/screenshots/r130_dialog_offset.png、r130_reload_dot.png、r130_reload_dialog.png、r130_boundary_17mm.png、r130_boundary_10mm.png。测试结束保持校准清除态。
+
+---
+
+# 第 129 轮：打印校准（CalibrationDialog）补偿链路专项（无代码变更，线上走查）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn，沿用第 128 轮素材/纸型（标准考场版 + r113_40.xlsx + A4 21格）与测量方法（stub window.print + CDP printToPDF 捕获，pypdfium2 600dpi 逐线测量，基线=第 128 轮网格坐标）。未录屏。
+
+**结论**: 校准链路整体可用：**负向偏移、缩放补偿、持久化/重置、边界校验、图片版 PDF 通道全部精确**（≤0.03mm）；**但发现 1 个新 P2：正向偏移（内容向右/超出纸边方向平移）会触发 Chromium 打印通道整体缩水约 0.8%**，页底网格误差累计约 -2mm，与图片版 PDF 通道行为不一致。另注：代码与 toast 均设计为「校准同时作用于导出与打印」（pdfExport.ts:510-514），与"只影响打印通道"的假设不同，按实际设计验证。
+
+## P2-1（新增）正偏移校准下打印通道整体缩水
+设 +2.00/-1.50mm 偏移后打印捕获：竖线 [2.10, 71.45, 140.67]（期望 [2.12, 72.02, 141.83]）、横向间距同缩 ~0.8%，页底行累计 -2mm。根因推断：translate(+2mm) 使 .sheet-page 内容超出 210mm 页宽，Chromium 打印布局触发 shrink-to-fit 整体缩放（负偏移/缩放补偿均无此现象，图片版 PDF 通道 +2mm 平移精确无缩水）。对需要正偏移补偿的用户实际套打误差可达 1-2mm（废纸线附近）。建议：打印样式对超出部分裁剪（如打印媒体下 overflow:hidden / 约束宿主宽度）以避免触发 shrink。
+
+## 断言明细（测量数据 /home/ubuntu/r129_measure_*.txt）
+- 对话框反推参数：填 左18/上21.5/框170×257 → 显示「+2.00 mm / -1.50 mm / 100.00%」与 computeCalibration 一致 — passed
+- 打印通道偏移精度（+2/-1.5）：出现 ~0.8% 整体缩水，页底误差 -2mm — **failed（P2-1）**
+- 打印通道偏移精度（-2/+1.5，无纸边溢出）：竖线 [38.44…207.76]=基线-2±0.02、横线 [1.61…]=基线+1.5±0.03 — passed
+- 打印通道缩放补偿（99.01%/99.00%）：全部线 = 基线×scale ±0.02mm，origin 左上（0 线不动）— passed
+- 图片版 PDF 通道（+2/-1.5）：页面精确 210×297，网格 = 基线+2/-1.5 ±0.03mm（设计即为导出也补偿，与 toast 一致）— passed
+- 持久化：刷新后 localStorage 保留、工具栏「打印校准」绿点、对话框「当前已有生效的校准（偏移 +2.00 mm / -1.50 mm…）」— passed
+- 重置：「清除校准」→ toast「已清除校准」→ localStorage 键删除、绿点消失、打印网格与第 128 轮基线逐线一致（≤0.01mm）— passed
+- 边界：offsetX=+17mm（>15）→ 琥珀提示「超出常见打印机误差范围」+「保存并全局应用」禁用；+10mm（≤15）可保存 — passed（±10mm 属设计允许范围，无夹取、以禁用保存方式校验）
+
+# 第 128 轮：打印输出物理精度与跨浏览器打印（无代码变更，线上走查）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。未录屏。方法：/studio 标准考场版 + r113_40.xlsx（40 行→2 页）→ 纸张设置「按纸型选择」锁定 A4 21格不干胶（3×7、70×42.4mm，居中推导边距 0/0.1mm）→ 三通道产 PDF：① 浏览器打印通道（真实 UI 点「打印 / 矢量 PDF」带水印导出，stub window.print + 延长 1.5s 卸载兜底保持打印宿主挂载，CDP `Page.printToPDF` preferCSSPageSize 抓取）；② 产品内「图片版 PDF」通道；③ Playwright Firefox 静默打印到 PDF（print.always_print_silent + Mozilla Save to PDF）。测量：pypdfium2 600dpi 渲染 + 像素灰度剖面找切线/标签边界，换算 mm 与纸型理论坐标（竖 0/70/140/210，横 0.1+42.4k）逐线对比，允差 ≤0.5mm。
+
+**结论**: **全部通过，无新增 P 级问题**。三通道 21 格网格坐标全部落在 ±0.35mm 内（远小于 1mm 废纸线）；多页零漂移（≤0.08mm）；Firefox 打印通道输出不空白、布局正确、彩色保留。
+
+## 断言明细（测量数据 /home/ubuntu/r128_measure_*.txt）
+- Chromium 打印通道页面尺寸：594.96×841.92pt = 209.889×297.011mm（-0.111/+0.011mm，±0.2 内）— passed（注：Chromium printToPDF 对 A4 有 0.11mm 量化取整，属引擎行为）
+- Chromium 打印通道网格：竖线偏差 [+0.12, +0.02, -0.17, -0.26]、横线最大 -0.35mm（页底累积），全部 ≤0.5mm — passed
+- 多页不漂移：第 2 页 vs 第 1 页逐线偏差 ≤0.08mm — passed
+- 产品「图片版 PDF」通道：页面精确 595.28×841.89pt = 210.000×297.000mm；网格最大偏差 -0.24mm；与打印通道逐线一致（差 ≤0.15mm）— passed
+- Firefox 打印链路冒烟：静默打印到 PDF 成功（2 页非空白）、页面 596×842pt = 210.256×297.039mm（Firefox 按整数 pt 取整，+0.26mm，粗测 ≤1mm 内）、网格最大偏差 -0.11mm（三通道中最准）、水印/分栏色彩保留（12.7 万彩色像素）、控制台 0 错误 — passed
+- 观察项（非缺陷）：Chromium 两通道均有约 0.09% 的系统性纵向压缩（每行 -0.04mm，页底累积 -0.24~-0.35mm），源于 mm→px→pt 换算取整；仍在允差内，如未来支持更多行数纸型（如 65 格）可复测累积值。
+- 打印校准功能（CalibrationDialog 偏移/缩放补偿）本轮未单独验证 — untested（默认未启用校准，不影响本轮基线测量）。
+
+# 第 127 轮：复测 PR #146（导出前对所有字段统一解除 overflow/line-clamp，合入 74ccd50）——第 126 轮 P2-1 闭环
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。部署核验：`index-CLoFDGoD.js` → `index-DCbT6c26.js`（等待约 8 分钟上线）。未录屏。
+
+**结论**: **全部通过，第 126 轮 P2-1（Firefox 导出字形顶部平切）闭环**：Firefox 同素材导出「王𠀀」的「王」三横完整、𠀀 台阶钩完整、「李𪛖」顶部不再压扁；Chromium 超长 24 字姓名 PNG/图片版 PDF 省略号截断与常规姓名均不回归；WebKit 冒烟不回归。**残留观察项（#146 未处理，非 fail）**：Firefox 导出字体仍与其预览不一致（预览衬线、导出黑体），字形完整可读。
+
+## 断言明细
+- 部署核验：新 bundle `index-DCbT6c26.js` — passed
+- **Firefox P2-1 闭环（核心）**：同第 126 轮素材（r123_rare.xlsx）/模板（标准考场版）带水印 PNG 导出，`r127_firefox_png001_zoom.png` 王三横完整（对照 `r126_firefox_png1_zoom.png` 的「土」状）、`png002` 李𪛖 顶部完整、`png004` 张伟正常；下载正常、控制台 0 错误 — passed
+- 残留观察项：Firefox 预览衬线 vs 导出黑体仍不一致（`r127_firefox_preview.png` vs 导出 PNG）——#146 范畴外，如实记录 — 观察项
+- Regression Chromium PNG：`r127_long.xlsx`（24 字姓名「欧阳锋×8」+ 2 常规名）带水印导出，超长名呈「欧阳锋欧阳锋欧阳锋欧…」省略号截断、无叠压、顶部无平切（`r127_chromium_png001_zoom.png`）；常规名完整（`png002`）— passed
+- Regression Chromium 图片版 PDF（带水印）：同素材一页，超长名省略号截断、常规名完整、无平切（`r127_pdf_zoom.png`）— passed
+- Regression WebKit 冒烟：r123_rare.xlsx 导出字形完整（`r127_webkit_png001/002_zoom.png`，对照 r126 无回归）、下载正常、0 控制台错误 — passed
+- 取证注记：Playwright 中导入 toast 6 秒后读取已消失（与第 126 轮相同的读取时机问题），以数据表/预览/导出产物确认导入成功。
+
+# 第 126 轮：新角度线上走查——页面缩放适配 + 手输/粘贴名单链路 + Firefox/WebKit 跨浏览器冒烟
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn（无代码变更，纯探索走查）。未录屏。工具：桌面 Chromium 真实浏览器缩放（Ctrl+= / Ctrl+-，devicePixelRatio 实测 1.5 / 0.8 确认档位）+ CDP 取证；Playwright Firefox 1438 与 WebKit 1967（本轮新装，WebKit 另装了系统依赖并用 `PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1` 启动）。
+
+**结论**: 缩放 150%/80% 主链路、手输（insertText 模拟 IME）/增删改/真实剪贴板粘贴名单、/seating→/studio 桌贴带入与导出、WebKit 冒烟全部通过；**发现 1 个新 P2：Firefox 下「图片 PNG」导出的姓名字段字形顶部被裁切**（王𠀀 的「王」缺顶横呈「土」状、𠀀 顶部台阶缺失、「李」顶部压扁——同素材 WebKit 与 Chromium 导出均正常），且 Firefox 导出字体与其预览不一致（预览衬线、导出黑体）。
+
+## P 级问题
+- **P2-1（新增）Firefox 图片 PNG 导出字形顶部裁切**：导入 r123_rare.xlsx 后带水印导出，`标准考场版-…-001.png` 中「王𠀀」渲染为「土 + 简化钩」（`r126_firefox_png1_zoom.png`），「李𪛖」顶部压扁（`r126_firefox_png2_zoom.png`）；同一素材同模板 WebKit 导出「王」三横完整、𠀀 台阶钩完整（`r126_webkit_png001_zoom.png`），第 125 轮 Chromium 导出亦正常。伴随现象：Firefox 预览为衬线字体、导出为黑体（字体未随导出管线应用）。疑似 html-to-image 在 Firefox 下的字体嵌入/垂直度量问题。Firefox 控制台 0 错误、下载行为正常（zip 73KB 正常落盘）。
+- 无 P0/P1/P3 新增。
+
+## 断言明细
+### 1. 页面缩放（Chromium 真实浏览器缩放）
+- 150%（dpr=1.5）：/studio 导入 40 行名单成功、无水平溢出（scrollWidth 1039 ≤ innerWidth 1045）、「图片 PNG」按钮可点、导出弹窗 6 个按钮全部在视口内（`r126_zoom150_studio.png`、`r126_zoom150_export.png`）— passed
+- 80%（dpr=0.8）：同链路无溢出（1947 ≤ 1960）、弹窗完整（`r126_zoom80_*.png`）、window error 0 — passed
+### 2. 手输/粘贴名单（/seating → /studio）
+- CDP `Input.insertText` 模拟 IME 输入 3 个中文姓名：计数「已输入 3 人」，座位预览即时同步（`r126_seating_ime.png`）— passed
+- 编辑（王强→王小强）与删行（李娜）：textarea 与预览即时同步为 2 人（`r126_seating_edit.png`）— passed
+- 真实剪贴板粘贴 6 行「姓名 性别」（xclip + Ctrl+A/Ctrl+V）：替换生效、6 人入座、「男女混排」按钮由禁用变可用（`r126_seating_paste.png`）— passed
+- 「一键生成对应桌贴」：跳 /studio?from=seating，6 条数据带入（姓名/座位号/排/列/班级 五列），座位号+姓名自动映射（考场/准考证号无对应列为「未映射」，合理），预览 6 张卡（`r126_handoff_studio.png`）；带水印 PNG 导出首试成功，6 张 PNG 内容正确（`r126_handoff_png1.png`）— passed
+- 注：/studio 数据查看器为只读（搜索/筛选/排序，无添加/编辑行入口），与代码一致（DataImportPanel.vue「仅查看，不影响排版」），非缺陷。
+### 3. 跨浏览器冒烟（r123_rare.xlsx 导入→预览→带水印 PNG 导出）
+- Firefox：预览生僻字真实字形（`r126_firefox_rare_zoom.png`）、下载正常、控制台 0 错误 — passed；**导出字形顶部裁切 — failed（P2-1）**
+- WebKit：预览生僻字正常（`r126_webkit_preview.png`）、导出 4 张 PNG 字形完整（`r126_webkit_png001/002/004_zoom.png`）、下载正常、控制台 0 错误 — passed
+- 取证注记：两个 Playwright 浏览器中导入成功 toast 在 6 秒后读取时已消失（读取时机问题），toast 文案本项记 inconclusive，不影响其余断言（数据表/预览均确认导入成功）。
+### 4. 跳过项
+- 登录/短码链路：生产 KV/SES 未配置 — untested（既有限制）。
+- #145 为测试技能文档 PR，不涉产品，未回归。
+
+# 第 125 轮：复测 PR #144（Plangothic 置栈首，合入 4ccd10a）——#142–#144 系列闭环
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。部署核验：`index-CLoFDGoD.js`；导入后 label computed font-family = `Plangothic, "Times New Roman", Times, SimSun, …`（栈首）。素材复用 `/home/ubuntu/r123_rare.xlsx`。未录屏。
+
+**结论**: **全部通过，P1-1 闭环，#142–#144 生僻字扩展字库系列三轮收官**：预览「王𠀀」「李𪛖」真实字形（`getPlatformFontsForNode` = Plangothic P1，第 124 轮为 Liberation Serif），冷启动全新浏览器复现正常；导出首试成功不回归；常规汉字仍由模板字体（Noto Sans CJK SC）渲染、常规名单 0 字体请求、0 控制台错误。
+
+## 断言明细
+- 部署核验：新 bundle + 字体栈以 `Plangothic` 开头 — passed
+- **预览字形（P1-1 闭环）**：王𠀀 / 李𪛖 真实遍黑体字形（`r125_preview_zoom.png` vs 第 124 轮 tofu）；platform fonts = `['Noto Sans CJK SC','Plangothic P1']`（常规字 Noto、生僻字 Plangothic）— passed
+- 冷启动全新浏览器：字形正常（`r125_fresh_browser_zoom.png`）— passed
+- info toast 文案不变 — passed
+- 导出首试即成功（Regression）：一次点击产出 zip，放大核验字形正常（`r125_png_zoom1/2.png`）— passed
+- **常规字符不受栈首置换影响（Regression 重点）**：40 行常用名单「王晓彤」「谢跃平」节点 platform fonts = `['Noto Sans CJK SC']`（非 Plangothic）；**冷启动浏览器导入常规名单 0 个 plangothic 请求**；window error 0 条 — passed
+  - 取证注记：9222 复用标签页里 performance 条目出现 3 个 plangothic 项（含 exta-compat，为同标签页先前生僻字会话的缓存重取），冷启动浏览器 request 监听证实常规名单 0 请求，以冷启动为准。
+  - 附带观察：Plangothic 置栈首后，扩展A 区「㐀」也改由遍黑体渲染（多下载 exta-compat 一包，字形正确）——按需加载语义正常，非问题。
+
+**产物**: 截图 `/home/ubuntu/screenshots/r125_*.png`；导出 `/home/ubuntu/r125_dl/`；计划 `/home/ubuntu/repos/SeatMark/test-plan-round125.md`。
+
+## 系列小结（第 123–125 轮）
+- 第 123 轮（#142）：字库上线，发现 P1-1 预览豆腐块 + P2 导出空白竞态。
+- 第 124 轮（#143）：P2 闭环（loadRareGlyphFonts）；P1-1 的 :key 重建方案无效（Chromium 按 FontDescription 缓存回退）。
+- 第 125 轮（#144）：Plangothic 置栈首，P1-1 闭环；常规字体选择与导出均无回归。
+
+---
+
+# 第 124 轮：复测 PR #143（生僻字扩展字库两处修复，合入 9cf1529）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。部署核验：`index-U3ovpkRM.js` → `StudioView-CIeNiW-r.js` 含 `rareFontTick` 指纹 ×1。素材复用 `/home/ubuntu/r123_rare.xlsx`。未录屏。
+
+**结论**: **P2（导出空白失败）已闭环——连续 2 轮带水印 PNG 导出均第一次点击即成功、字形正确；但 P1-1（预览豆腐块）未修复——`rareFontTick` 确认已自增到 1、LabelSheet 已按 :key 重建，重建后的节点仍由 Liberation Serif（.notdef）渲染，9222 会话与冷启动全新浏览器均复现。常规名单回归干净。**
+
+## 断言明细
+- 部署核验：新 bundle + `rareFontTick` 指纹 — passed
+- info toast 不变：「名单含 2 个生僻字 | 已自动启用生僻字扩展字库（遍黑体），预览与导出将正常显示」（`r124_rare_toast.png`）— passed
+- **预览字形（P1-1 复测）**：王𠀀 / 李𪛖 仍豆腐块（`r124_preview_zoom.png`；冷启动浏览器 `r124_fresh_browser_zoom.png`）；Pinia `workspace.rareFontTick`=1（重建确已触发）、分包 2 个均下载，但 `CSS.getPlatformFontsForNode` 仍 = Liberation Serif — **failed（P1-1 仍开放）**
+- **导出首试即成功（P2 复测）**：连续 2 轮「图片 PNG → 带水印导出」均一次成功产出 zip（0455、0456），无「渲染为空白」toast；解包放大 王𠀀 / 李𪛖 字形正常（`r124_png_zoom1/2.png`）— passed（P2 闭环）
+- Regression 40 行常用名单：仅成功 toast、0 个 plangothic 请求、window error 0 条（`r124_normal_import.png`）— passed
+
+## P1-1 根因补充（供修复参考）
+`:key` 重建生成的新 DOM 节点与旧节点具有**完全相同的 FontDescription**（同字体栈/字号/字重/字距），Chromium 的字体回退缓存按 FontDescription 命中——重建拿到的仍是「加载前」解析出的 Liberation Serif 回退，故重建无效（与第 123 轮克隆节点复现一致）。已验证有效的口径（第 123 轮诊断）：**改变字体栈本身**——把 `'Plangothic'` 插到栈首（unicode-range 保证常规字符零影响），元素立即出字形；或在重建时给含生僻字的字段附加可忽略的描述差异。建议 withRareCJKFallback 直接前置 Plangothic。
+
+**产物**: 截图 `/home/ubuntu/screenshots/r124_*.png`；导出 `/home/ubuntu/r124_dl/`；计划 `/home/ubuntu/repos/SeatMark/test-plan-round124.md`。
+
+---
+
+# 第 123 轮：回归 PR #142（遍黑体生僻字扩展字库，合入 179d6ce）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。部署核验：`index-CzFr1-Dz.js`（CSS `index-DfAKOVgD.css` 含 21 条 Plangothic @font-face；`StudioView-rcrT9nhD.js` 含「已自动启用生僻字扩展字库」指纹；`/fonts/plangothic/plangothic-extb-20.woff2` 200 + `cache-control: public, max-age=2592000`；sw.js 预缓存 0 条 plangothic）。素材 `/home/ubuntu/r123_rare.xlsx`（王𠀀 U+20000、李𪛖 U+2A6D6、陈㐀 U+3400、张伟）。未录屏。
+
+**结论**: **toast、按需分包下载、导出 PNG 字形三项达成；但发现 2 个新 P 级问题：P1-1 预览区生僻字仍显示豆腐块（与 toast 承诺「预览与导出将正常显示」矛盾，全新浏览器/新标签页/重导入/改缩放均复现）；P2-1 PNG 导出对含生僻字名单前两次连续失败「第 1/1 页第 2 枚标签渲染为空白」，第三次成功（未扣次数，重试可恢复）。常规 40 行名单回归干净。**
+
+## 核心链路
+- 导入 toast：「名单含 2 个生僻字 | 已自动启用生僻字扩展字库（遍黑体），预览与导出将正常显示」info 样式，无黄色码位警告（`r123_rare_toast.png`）。检测数 2 = 本环境实际缺字形数（㐀 ExtA 由 Noto Sans CJK 提供字形，正确不计）— passed
+- 按需分包：仅下载 `plangothic-extb-20.woff2` + `plangothic-extb-2a.woff2` 两包（21 包中命中 2 包，均 200）— passed
+- **P1-1 预览豆腐块**：导入后预览卡「王𠀀」「李𪛖」持续 tofu（`r123_preview_zoom.png`、全新浏览器 `r123_fresh_browser_zoom.png`）。CDP `CSS.getPlatformFontsForNode` 显示生僻字由 **Liberation Serif**（.notdef）渲染而非 Plangothic，尽管 `document.fonts.check('32px Plangothic','𠀀')`=true、两包 status=loaded、元素 computed font-family 含 Plangothic。诊断：把该元素 font-family 改为 `Plangothic` 或 `Plangothic, ...`（置首）立即出字形；同栈新建 span 也出字形——疑似 Chromium 对「先以回退渲染、后完成加载的 unicode-range 分包字体」不重新解析既有文本 run 的失效缺陷，叠加 Plangothic 排在栈尾。重导入、新标签页、冷启动浏览器、改缩放均不恢复 — **failed**
+- **P2-1 导出前两次失败**：「PNG 生成失败 | 第 1/1 页第 2 枚标签渲染为空白；本次未扣除无水印次数，可直接重试」连续 2 次，第 3 次成功 — failed（可重试恢复）
+- 导出 PNG 字形（核心验收）：zip 4 张逐张 PNG，放大核验 王𠀀 / 李𪛖 均为真实遍黑体字形、陈㐀 / 张伟 正常（`r123_png_zoom1/2.png`）— passed
+
+## Regression
+- 40 行常用名单：仅「Excel 导入成功 | 已读取 40 条数据」，**0 个** plangothic 字体请求，window error 0 条 — passed
+
+**产物**: 截图 `/home/ubuntu/screenshots/r123_*.png`；导出 `/home/ubuntu/r123_dl/`；素材 `/home/ubuntu/r123_rare.xlsx`；脚本 `/home/ubuntu/r123_ui.py`、`r123_png.py`。
+
+修复方向（供参考）：① 预览——加载完成后强制重排生僻字文本（如 fonts.load 兜住后对含生僻字的 label 触发一次 key 重建/文本重写），或把 Plangothic 插到字体栈更前位置（诊断证实置首即出字形，unicode-range 保证常规字符不受影响）；② 导出——导出前 `await document.fonts.load` 对应分包再渲染，消除「渲染为空白」竞态。
+
+---
+
+# 第 122 轮：回归 PR #140（设计器补 aria-label + 滚动区可聚焦，合入 ff33f50）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。部署核验：`index-DB3MfAP2.js` → `StudioView-DBBwVtxp.js` 含「设计器状态栏」指纹 ×1。同第 121 轮口径（axe-core 4.10.2 CDP 注入，设计器 390 选中文本字段态 + /studio 1280 默认态）复扫。未录屏。
+
+**结论**: **第 121 轮 P2-1（critical label）与 P2-2（serious scrollable-region-focusable）两组全部清零；属性面板编辑与预览区键盘聚焦/滚动无回归；存量 P3 对比度组按约定保留不算失败。控制台 error / ≥400 0 条。**
+
+## axe 复扫（同口径对比）
+
+| 位置 | 第 121 轮 | 本轮 | 判定 |
+|---|---|---|---|
+| 设计器（390）label critical | 1 组 4+ 节点 | **0** | ✅ P2-1 闭环 |
+| 设计器（390）scrollable-region-focusable | 1（状态栏） | **0** | ✅ P2-2 闭环 |
+| /studio 1280 scrollable-region-focusable | 1（预览容器） | **0** | ✅ P2-2 闭环 |
+| 存量 color-contrast（P3-2） | serious | 仍在（studio 5 / designer 6 节点） | 存量保留，不算失败 |
+| 设计器 landmark-unique（moderate） | 1 | 仍在 | 存量 P3 随手项 |
+
+属性检查：预览容器 `tabindex=0` + `aria-label="标签预览区"`；状态栏 footer `tabindex=0` + `aria-label="设计器状态栏"`；设计器 29 个 input 均带 aria-label（显示名称/固定文本内容/示例内容（仅预览用）/标签名前缀（可选）/列数/行数/模板说明全数确认，示例内容在 Excel 数据列来源字段下可见，截图 `r122_sample_input.png`）。
+
+## 无回归抽查
+- 属性面板编辑：改「显示名称」→「姓名2」，字段列表/状态栏即时同步（截图 `r122_edit_label.png`）；「列数」2→3 生效（页脚「3 列 × 5 行」）；全部在草稿内完成后点「取消」丢弃，未保存 — passed
+- /studio 预览滚动区：纯 Tab 键盘路径第 55 次聚焦到「标签预览区」容器，聚焦环像素可见（`r122_preview_focus.png`），scrollBy 后 scrollTop=200 滚动正常 — passed
+- 控制台 error / ≥400：0 条 — passed
+
+**截图**: `/home/ubuntu/screenshots/r122_preview_focus.png`、`r122_sample_input.png`、`r122_edit_label.png`。axe JSON：`/home/ubuntu/r122_axe/`。脚本：`/home/ubuntu/r122_scan.py`、`r122_preview.py`、`r122_sel4.py` 等。
+
+注记：预览容器焦点在 Tab 顺序第 55 位（其前为模板列表/导入/映射等常规控件），键盘用户到达成本较高，属可用性观察项（非违例，lead 裁量）。
+
+---
+
+# 第 121 轮：全站无障碍复审（axe-core 4.10.2，生产 index-DbIr-7Wl.js，无代码改动前置）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。axe 4.10.2 CDP 注入扫描五页（/、/studio、/templates、/seating、/pricing）× 390/844 与 1280/900 双视口（10 组）+ 设计器（390）加扫 1 组；键盘路径用 Input.dispatchKeyEvent 真实按键。历史基线明细已不在 repo（仅存 ≥72 轮），口径对齐方式：同一根因去重、整改后预期 serious/critical=0，本轮 serious/critical 均以 git blame 判新旧。未录屏。
+
+**结论**: **主站五页双视口 critical=0；键盘路径（skip-link / SelectField 方向键 / 导出弹窗焦点圈闭+Esc / toast status 语义）与新增组件 label（切换工作表 select / 移动侧栏按钮 / HEX 色值输入）全部通过。发现 4 组存量违例（均早于 #64/#65，非新增退化）：1 组 critical（设计器属性面板/列×行输入无程序化标签）+ 3 组 serious（预览滚动区不可聚焦、/seating 座位号对比度、模板缩略图小字对比度）。**
+
+## axe 扫描（去重后按根因）
+
+| # | 根因 | impact | 页面/视口 | 引入时间 | 判级 |
+|---|---|---|---|---|---|
+| 1 | 设计器属性面板文本输入（显示名称/固定文本/示例内容/模板描述，`TemplateDesigner.vue:1626` 等 label 无 for/无 aria-label）+「列 × 行」NumberField 无 aria-label（`TemplateDesigner.vue:1934-1948`；同类 `LayoutPanel.vue:261,271` 已在 #64 修复） | **critical**（label） | 设计器（390） | 2026-06-11（#64 漏网） | **P2-1** |
+| 2 | Studio 预览滚动容器 `.overflow-auto` 无 tabindex（`PreviewArea.vue:1085`）；设计器底部状态条 `.gap-x-4 overflow-x-auto` 同类 | serious（scrollable-region-focusable） | /studio d1280、设计器 | 2026-08-06（#64 只修了数据表） | **P2-2** |
+| 3 | /seating 座位号 `.seating-seat-no` slate-400（rgb 148,163,184）10.6px 白底，对比度≈2.4:1（`SeatingView.vue:864`），40 节点 | serious（color-contrast） | /seating 双视口 | 2026-08-04 | **P3-1**（打印预览装饰性小号，屏显亦应≥4.5:1） |
+| 4 | 模板缩略图/预览 `label-field__content` 缩小灰字（多数位于 `aria-hidden="true"` 装饰容器内） | serious（color-contrast） | /studio、/templates、设计器 | ≤2026-06-11 | **P3-2**（装饰性缩略图，建议对 aria-hidden 容器加 axe 排除或提对比度） |
+
+/、/pricing 双视口 0 违例；critical 全站仅设计器 1 组；另设计器 1 条 moderate（landmark-unique）记 P3 随手项。原始 JSON：`/home/ubuntu/r121_axe/`（11 份）。
+
+## 键盘抽查（/studio 1280，真实按键）
+- skip-link：Tab 1 次焦点即「跳到主内容」且像素可见（`r121_skiplink.png`），回车后焦点落 MAIN、页面滚至主内容 — passed
+- 多 sheet 下拉：原生 `select[aria-label="切换工作表"]`，选项 2 个 — passed
+- 映射 SelectField：触发钮按 ↓ 展开（5 options）；↓/↓/↑ 焦点在 role=option 间移动（未映射→姓名→未映射，截图 `r121_selectfield.png`）；Esc 关闭且焦点回触发钮 — passed
+- 导出弹窗（图片 PNG）：aria-modal + aria-label「导出图片（PNG）」；连续 14 次 Tab 全部圈闭在弹窗内并循环（关闭→单位→尺寸→黑白→命名→无水印→带水印→关闭…）；Shift+Tab 反向；Esc 关闭且焦点回「图片 PNG」按钮 — passed
+- toast 容器 `[role=status][aria-label="操作提示"]` 语义仍在 — passed
+
+## 新增组件 label/name
+- 设计器移动侧栏（390）：「字段列表」「属性面板」按钮 aria-label 存在且可见可用（`r121_designer_layers.png`）— passed
+- 颜色 HEX 输入：`input[aria-label="HEX 色值"]`（值 #94A3B8）+「打开取色器」label，像素可见（`r121_designer_hex.png`）— passed
+- 五页导航控制台 error / ≥400：0 条 — passed
+
+**截图**: `/home/ubuntu/screenshots/r121_skiplink.png`、`r121_selectfield.png`、`r121_export_dialog.png`、`r121_designer_layers.png`、`r121_designer_hex.png`、`r121_seating.png`。脚本：`/home/ubuntu/r121_scan.py`、`r121_kbd.py`、`r121_kbd2.py`、`r121_kbd3.py`、`r121_designer3.py`、`r121_hexshot.py`、`r121_err.py`。
+
+---
+
+# 第 120 轮：回归 PR #138（Excel 导入 raw:false 读格式化文本，合入 3468901）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn `/studio`（签到桌牌版）。部署核验：`index-DbIr-7Wl.js` → `excel-BTvehrnn.js` 含 `raw:!1` 指纹 ×1（`app/src/utils/excel.ts:36`）。同素材 `/home/ubuntu/r119_fmt.xlsx` 逐列回归 + 常规导入回归。未录屏。
+
+**结论**: **第 119 轮 3 个 P2 + 2 个 P3 全部闭环。数据表/映射预览/导出 PNG 三处均显示格式化文本；常规导入（40 行名单、CSV、标题行跳过、多 sheet 切换 + 生僻字警告）无退化；控制台 error / ≥400 响应 0 条。**
+
+## 逐列判定（预期 = 产品同版本 SheetJS 0.20.3 `raw:false` 本地预读值）
+
+| 列 | 第 119 轮（raw） | 本轮实际（数据表） | 判定 |
+|---|---|---|---|
+| 考试日期 | 46249 | **2026/8/15** | ✅ P2-1 闭环 |
+| 入场时间 | 0.5625 | **13:30** | ✅ P2-2 闭环 |
+| 工号（fmt 000） | 7 | **007** | ✅ P2-3 闭环 |
+| 出勤率（0.0%） | 0.985 | **98.5%** | ✅ P3-1 闭环 |
+| 分数（0.00，12345.678） | 12345.678 | **12345.68** | ✅ P3-2 闭环 |
+| 报名费（¥#,##0.00，128.5） | 128.5 | **128.5**（SheetJS 对该货币格式渲染文本即 128.5，非「¥128.50」；按用户要求如实记录，非回归） | 注记 |
+| 身份证文本 | 110101200808154321 | 不变 | ✅ |
+| 身份证数字 | 110101200808154300 | 不变（Excel 存储层丢精度，与 Excel 一致） | ✅ |
+| 称呼（公式缓存值） | 张伟老师 | 不变 | ✅ |
+
+映射（座位号→工号/考场→考试日期/准考证号→入场时间）后预览显示「007」「2026/8/15」「13:30」；整页 PNG 导出（`/home/ubuntu/r120_dl/签到桌牌版-20260810-0315.png`，2481×3509）放大同样清晰显示 007 / 2026/8/15 / 13:30。第二行 王芳（012、2026/8/16、9:00、50.0%、88.10）同样正确。
+
+## 常规导入回归（本地 raw:false 预读均已建立预期，全部一致）
+
+- 40 行常用名单 `r113_40.xlsx`：「已读取 40 条数据」，考号 20260001 原样（无千分位/科学计数）— passed
+- CSV `r120_list.csv`（UTF-8 BOM）：「已读取 2 条数据」，座位号「03」「04」前导零保留，预览正常 — passed
+- 合并标题行 `r120_title.xlsx`（A1:C1 合并大标题+空行+第 3 行表头）：标题行正确跳过，表头=姓名/座位号/考场，数据 01/02 — passed
+- 多 sheet `r115_rare.xlsx`：默认 sheet「已读取 3 条数据；文件含 2 个工作表」；切换到「生僻字名单」成功且生僻字警告（码位 U+20000、U+2A6A5）仍正常触发（#135/#136 路径无退化）— passed
+- 全程控制台 error / HTTP ≥400：0 条 — passed
+
+**截图**: `/home/ubuntu/screenshots/r120_table.png`、`r120_table_right.png`、`r120_mapping.png`、`r120_png_zoom.png`、`r120_csv.png`、`r120_title.png`、`r120_sheet_switch.png`、`r120_import.png`。脚本：`/home/ubuntu/r120_reg.py`、`/home/ubuntu/r120_ms.py`（复用 r119_ui/map3/png 系列）。
+
+取证注记：复用第 119 轮脚本时两张第 119 轮截图（`r119_import.png`、`r119_table_right.png`）被本轮内容覆盖/更名（第 119 轮核心证据 `r119_table.png`、`r119_mapping.png`、`r119_png_zoom.png` 完好）。
+
+---
+
+# 第 119 轮：Excel 单元格类型与格式真实性走查（无代码改动，线上 index-DJutNByJ.js）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn `/studio`（签到桌牌版）。素材 `/home/ubuntu/r119_fmt.xlsx`：openpyxl 构造真实类型单元格（date/time/文本与数字身份证/前导零工号/百分比/货币/两位小数格式/含缓存值的公式），并先用产品同版本 SheetJS 0.20.3 同参数（`excel.ts:24,35` `raw:true`）本地预读建立预期。真实 UI 导入 → 字段映射（姓名/座位号→工号/考场→考试日期/准考证号→入场时间）→ 预览 + 整页 PNG 导出核验。未录屏。未改任何产品代码。
+
+**结论**: **预判全部命中——导入按原始值（`.v`）读取、完全忽略单元格数字格式：新发现 3 个 P2（日期显示序列数 46249、时间显示 0.5625、前导零丢失 007→7）+ 2 个 P3（百分比 98.5%→0.985、格式化小数/货币按原值显示）；文本格式身份证、含缓存值的公式单元格（读值「张伟老师」非公式）表现正确；数字格式身份证丢精度与 Excel 内一致（Excel 本身限制，非我方问题）。预览/数据表/导出 PNG 三处显示一致（无进一步失真）。**
+
+## 逐列判定（Excel 用户所见 vs 线上 UI/导出实际显示）
+
+| 列（格式） | Excel 中显示 | UI 数据表/预览/导出 PNG | 判定 |
+|---|---|---|---|
+| 考试日期（date 型，yyyy/m/d） | 2026/8/15 | **46249**（序列数） | **P2-1** |
+| 入场时间（time 型，h:mm） | 13:30 | **0.5625** | **P2-2** |
+| 工号（数字，fmt 000，值 7） | 007 | **7**（前导零丢） | **P2-3** |
+| 出勤率（0.0%，值 0.985） | 98.5% | 0.985 | **P3-1** |
+| 报名费（¥#,##0.00，128.5） | ¥128.50 | 128.5 | P3-2（同类：格式修饰丢失） |
+| 分数（0.00，12345.678） | 12345.68 | 12345.678 | P3-2 |
+| 身份证文本（@） | 110101200808154321 | 110101200808154321 | passed |
+| 身份证数字（0） | 110101200808154300（Excel 已丢精度） | 110101200808154300 | passed（与 Excel 一致；丢精度发生在 Excel 存储层） |
+| 称呼（公式 =A2&"老师"+缓存值） | 张伟老师 | 张伟老师（读缓存值非公式串） | passed |
+
+- 根因（代码层）：`app/src/utils/excel.ts:24,35` `XLSX.read` 未开 `cellDates`，`sheet_to_json` 默认 `raw:true` 取 `.v` 原始值。SheetJS 同文件以 `raw:false` 读出的 `w`（格式化文本）恰为 Excel 所见（2026/8/15、13:30、007、98.5%、12345.68）——**修复方向现成：改用 `raw:false`（或对含 `z` 格式的单元格取 `.w`），文本/公式列不受影响**。
+- 一致性：预览标签（座位号椭圆「7」、页脚「46249」「0.5625」）与导出 PNG 渲染逐像素一致（`r119_png_zoom.png`），无二次失真。
+- 导入成功 toast「已读取 2 条数据」；映射自动匹配后手工指定 4/4；控制台 error / ≥400 响应 0 条。
+
+**产物**: 素材 `/home/ubuntu/r119_fmt.xlsx`；截图 `r119_import.png`、`r119_table.png`（原始值数据表左半）、`r119_table_right.png`（右半：工号/出勤率/报名费/分数/称呼）、`r119_mapping.png`（映射+预览）、`r119_png_zoom.png`（导出放大）；导出 `/home/ubuntu/r119_dl/签到桌牌版-20260810-0301.png`；脚本 `/home/ubuntu/r119_ui.py`、`r119_map3.py`、`r119_png.py`；计划 `test-plan-round119.md`。
+
+---
+
+# 第 118 轮：复测 PR #137（Hero 首帧估算宽度定高，2e963e8）+ /studio 移动新基线
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。npx lighthouse 13.x + Chromium 121 headless（同第 98/117 轮口径）；Hero 目视用 9222 真实 UI 1280×900 与 390×844 截图。未录屏。未改任何产品代码。
+
+**结论**: **#137 目标达成——桌面首页 CLS 三跑全 0.0000（第 117 轮为 0.0435 ×2 可复现），layout-shifts 明细中 hero 区块条目消失；桌面 Perf 中值 100 不劣化；移动首页 CLS 保持 0、LCP 中值 1.91s（vs 第 117 轮 1.87s，+2%）；Hero 1280/390 目视正常。/studio 移动新基线已建立（同构建 5 跑中值）。无新增 P 级问题。**
+
+## 1. 部署核验
+- `/` 新 `index-DJutNByJ.js` → `HomeView-CeMkV3NK.js` 含指纹 `Math.min(448,window.innerWidth-32)` ×1。
+
+## 2. 桌面首页 ×3（核心）
+| 跑 | Perf | LCP | TBT | CLS | layout-shifts 明细 |
+|---|---|---|---|---|---|
+| 1 | 88 | 1.44s | 11ms | **0.0000** | 空 |
+| 2 | 100 | 0.58s | 6ms | **0.0000** | 空 |
+| 3 | 100 | 0.49s | 11ms | **0.0000** | 空 |
+
+中值 Perf 100 / CLS 0 — 第 117 轮 hero 区块位移（0.0435 两跑一致）归零。跑 1 Perf 88 为 LCP 网络抖动（CLS 仍 0），中值不受影响。
+
+## 3. 移动首页 ×3（Regression）
+- Perf 85/86/92（中值 86，vs 第 117 轮中值 91，−5 分在 10% 容差内）；LCP 1.73–2.12s（中值 1.91s，vs 1.87s +2%）；TBT 294–458ms（中值 340ms，vs 304ms +12%，与第 117 轮 247–428ms 抖动区间重叠，非趋势性劣化）；CLS 全 0；SEO 100。
+
+## 4. Hero 目视
+- 1280×900：Hero 预览卡（A4 排版 24 枚/页缩略）缩放正常、无溢出/遮罩异常（`r118_hero_1280.png`）。
+- 390×844：布局正常、预览卡在首屏下方正常渲染（`r118_hero_390.png`）。
+
+## 5. /studio 移动新基线（index-DJutNByJ.js 构建，5 跑）
+| 跑 | Perf | LCP | TBT | CLS |
+|---|---|---|---|---|
+| 1 | 61 | 6.55s | 263ms | 0 |
+| 2 | 75 | 4.01s | 365ms | 0 |
+| 3 | 71 | 4.79s | 356ms | 0 |
+| 4 | 62 | 5.91s | 299ms | 0 |
+| 5 | 80 | 2.67s | 410ms | 0 |
+
+**新基线（中值）：Perf 71 · LCP 4.79s · TBT 356ms · CLS 0 · SEO 100**。注：LCP 单跑抖动 2.67–6.55s（±40%），后续对比请用 ≥3 跑中值且以该表为准（第 98 轮旧基线作废）。第 117 轮观察项①按此口径收敛：4.72s（117 中值）vs 4.79s（118 中值）同水平，非趋势性回归。
+
+**产物**: JSON `/home/ubuntu/r118_lighthouse/`（11 份）；截图 `r118_hero_1280.png`、`r118_hero_390.png`；脚本 `/home/ubuntu/r118_hero.py`；计划 `test-plan-round118.md`。
+
+---
+
+# 第 117 轮：性能回归审计（#123–#136 累积，线上 index-EpdOIcut.js，无代码改动）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。npx lighthouse 13.x + Chromium 121 headless（与第 98–100 轮同口径：移动=默认 moto G4 仿真+4x CPU+slow4G 节流；桌面=--preset=desktop）；导入耗时用 9222 真实 UI + 0.1s toast 轮询。未录屏。未改任何产品代码。
+
+**结论**: **首页/`/templates` 无劣化（首页移动 Perf 91–94 vs 基线 92，/templates 移动 64 vs 基线 51 反而提升，五页双端 SEO 全 100、移动 CLS 全 0）；40 行常用名单导入 toast 0.12–0.13s 即出、#135 检测路径零感知开销。一个观察项（未定 P 级，见下）：/studio 移动 LCP/TBT 三跑中值较第 98 轮基线 +14%/+29%，但基线可比性存疑（第 98 轮为 #122 统计延迟注入之前的构建），且跑分抖动大（LCP 4.02–5.79s）；另桌面首页 CLS 0.044（hero 区块，可复现但远低于 0.1 阈值与第 98 轮桌面 0.46）。**
+
+## 1. Lighthouse 分数表（Perf/A11y/BP/SEO · LCP/TBT/CLS）
+
+| 页面 | 移动 | 桌面 |
+|---|---|---|
+| `/` | **91–94**（3 跑，另有 1 次冷跑 75 离群）/100/58/100 · 1.71–2.25s/247–325ms/0 | 100/100/58/100 · 0.47–0.49s/25ms/**0.044** |
+| `/templates` | 64/96/58/100 · 4.09s/431ms/0 | 98/96/58/100 · 0.77s/72ms/0 |
+| `/studio` | 68–78（3 跑）/96/58/100 · 4.02–5.79s/255–336ms/0 | 88/96/58/100 · 1.87s/9ms/0 |
+| `/pricing` | 99/100/58/100 · 1.74s/90ms/0 | 100/100/58/100 · 0.52s/0ms/0 |
+| `/guides/label-print-troubleshooting` | 98/100/58/100 · 1.74s/123ms/0 | 100/100/58/100 · 0.50s/0ms/0 |
+
+## 2. 与基线对比（重点页）
+
+- `/` 移动 vs 第 100 轮（Perf 92 · LCP 1.75s · TBT 311ms · CLS 0）：稳定跑 Perf 91/91/94，LCP 中值 1.87s（+7%，≤10%），TBT 中值 304ms（−2%），CLS 0，SEO 100 — **无劣化**。首跑 75（LCP 3.24s）为 npx 冷启动离群值，复跑 3 次均恢复，如实记录。
+- `/templates` 移动 vs 第 99 轮（51 · 8.20s · 507ms）：64 · 4.09s · 431ms — **提升**。
+- `/studio` 移动 vs 第 98 轮（54 · 4.13s · 249ms · CLS 0.96）：68–78 · LCP 中值 4.72s（+14%）· TBT 中值 321ms（+29%）· CLS 0（0.96→0 大幅改善）。观察项：LCP/TBT 中值超 +10%，但 ① 基线是 14 个 PR 前且 #122（统计 idle 注入）之前的构建、口径不完全可比；② 三跑抖动 LCP 4.02–5.79s 覆盖基线值。保守记为**观察项（建议下轮复测定级）**，非确证 P 级回归。
+- 桌面首页 CLS 0.044（两跑一致，layout-shifts 元凶 `section.relative > div.relative` hero 区块）：低于 0.1 良好阈值、远低于第 98 轮桌面 0.46；「全站 CLS=0」在桌面首页不严格成立，记为观察项。
+- SEO 五页双端全 100 — 无劣化。
+
+## 3. #135 导入路径耗时（40 行常用名单，真实 UI）
+
+- 两次独立导入 `/home/ubuntu/r113_40.xlsx`：文件设入 → 「Excel 导入成功 | 已读取 40 条数据」toast 分别 **0.127s / 0.121s**，无生僻字警告（`isRareCodePoint` 先过滤常用字、canvas 未触发）— 无感知劣化。截图 `r117_import_run1/2.png`。
+
+## 4. 断言汇总
+
+- 部署核验：`index-EpdOIcut.js` 含 `isReady().then` 指纹 ×1 — passed
+- 首页移动 LCP/TBT/CLS 劣化 ≤10%、SEO 100 — passed（稳定跑）
+- /studio 移动 CLS=0、SEO=100 — passed；LCP/TBT 中值 +14%/+29% — 观察项（基线可比性+抖动，未定级）
+- 五页双端 SEO=100 — passed；移动 CLS 全 0 — passed；桌面 CLS：仅首页 0.044 — 观察项
+- 40 行导入 ≤2s 无警告 — passed（0.12–0.13s）
+
+**产物**: `/home/ubuntu/r117_lighthouse/*.json`（14 份）；截图 `r117_import_run1/2.png`；脚本 `/home/ubuntu/r117_import.py`；计划 `test-plan-round117.md`。
+
+---
+
+# 第 116 轮：微回归 PR #136（生僻字警告改码位描述，6e3ba6c）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。改动：`workspace.ts` warnRareChars——标题「名单含 N 个生僻字」、正文只用码位不嵌入缺字形字符。测法：复用第 115 轮素材（r115_rare_only.xlsx / r113_40.xlsx）与 0.25s toast 轮询脚本。未录屏。
+
+**结论**: **第 115 轮 P3-1 闭环——warning 标题「名单含 2 个生僻字」+ 正文「名单中有生僻字（码位 U+20000、U+2A6A5）…」全部清晰可读、零豆腐块（对比第 115 轮整段方块）；码位与本环境缺字形字完全一致；常用名单零误报。无新增 P 级问题。**
+
+- 部署核验：`index-EpdOIcut.js` → `StudioView-JFUAWlrd.js`，新指纹「名单中有生僻字（码位」×1，旧指纹 0。
+- 生僻名单导入：截图 `r116_rare_import.png`（放大 `_zoom`）标题/正文逐字可读；DOM 文本恰为「名单含 2 个生僻字 | 名单中有生僻字（码位 U+20000、U+2A6A5）在当前设备字体中缺少字形…」。
+- 常用 40 行（Regression）：仅「Excel 导入成功 | 已读取 40 条数据」，无警告。
+- 控制台 error / ≥400 响应 0 条。
+
+---
+
+# 第 115 轮：线上回归 PR #135（导入名单生僻字缺字形检测，f42a6cc）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。改动：`glyphSupport.ts`（U+FFFF canvas 像素比对，仅扫扩A/扩B–H/兼容区）+ `workspace.ts:498-507`（importExcel/switchSheet 成功后 `toast.warning('名单含生僻字', …)`）。测法：9222 真实 UI；环境预探（与产品同 canvas 口径）：**𠀀/𪚥 缺字形、㐀 有字形**，据此做对抗性断言（必须恰列「𠀀、𪚥」且不含 㐀）。素材：40 行常用名、双 sheet（常用+生僻）、单 sheet 生僻。未录屏。
+
+**结论**: **检测功能全部符合预期：三条路径（直接导入/多 sheet 切换/常用名单零误报）均正确，warning 恰列「𠀀、𪚥」、无 㐀 误报，控制台零报错。新增 1 个 P3 展示问题：在缺字形设备上（正是该警告的目标受众），把生僻字混入 toast 正文会污染整行字体回退——本环境（headless Chromium 121/Linux）warning 正文整段渲染为豆腐块，标题正常。**
+
+- 部署核验：`index-CFtvvO8q.js` → `StudioView-BCeXz_gk.js` 后继 chunk 含指纹「名单含生僻字」×1（StudioView chunk）。
+- 常用 40 行：仅「Excel 导入成功 | 已读取 40 条数据」，无 warning（截图 `r115_normal_import.png`）— 零误报。
+- 双 sheet 导入（默认常用 sheet）：成功 toast 含「文件含 2 个工作表」，无 warning；切换 select 到「生僻字名单」→「已切换到工作表」+ **「名单含生僻字」warning，DOM 正文恰为「𠀀、𪚥」**（无 㐀）（截图 `r115_switch_warning.png`）。
+- 单 sheet 生僻直接导入：同样弹 warning，正文同上（截图 `r115_rare_import.png`）。
+- **P3-1（新）警告正文在缺字设备整段豆腐块**：截图中 warning 标题「名单含生僻字」清晰，正文两行全部为方块。对照实验（页内注入两个 div）：含「𠀀、𪚥」的整句全部豆腐块，去掉生僻字的同句正常渲染（`r115_fontprobe_zoom.png`）——astral 字符使整个 text run 的字体回退失败（本环境 fontconfig 行为）。真机字体栈更全时可能只有生僻字两个字是方块，但警告的目标场景恰是字体缺失设备。建议：正文里生僻字用独立 span 包裹，或附码位（如 U+20000）兜底可读。
+- 控制台 error / ≥400 响应 0 条。
+
+| 断言 | 结果 |
+|---|---|
+| 部署指纹「名单含生僻字」 | PASS |
+| 常用名单零误报 | PASS |
+| 切换 sheet 触发 warning，恰列 𠀀、𪚥 无 㐀 | PASS |
+| 直接导入触发 warning 同口径 | PASS |
+| 警告正文在缺字设备可读 | **FAIL（P3-1 整段豆腐块）** |
+| 控制台零报错 | PASS |
+
+既有开放项不变：生产 `x-seatmark-storage: memory` + SES 未配置。
+
+---
+
+# 第 114 轮：微验证 PR #134（逐张导出进度单位改「张标签」，6a1ed46）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。改动：`PreviewArea.vue:634`——perLabel 文案改 `已完成 ${done}/${total} 张标签，正在生成图片...`（整页不变）。测法：复用第 113 轮 40 行名单与 50ms 采样脚本，逐张/整页各带水印导出一次。未录屏。
+
+**结论**: **目标达成——逐张模式浮层为「已完成 N/40 张标签，正在生成图片...」（截图+DOM），全程零出现「N/40 页」旧文案；整页模式不变；两模式导出成功，控制台零报错。无新增 P 级问题。**
+
+- 部署核验：`index-EC2GXqhA.js` → `StudioView-BCeXz_gk.js`，新指纹「张标签，正在生成图片」×1，旧指纹「张标签图片」0。
+- 逐张：截图 `r114_label_progress.png` 显示「已完成 6/40 张标签，正在生成图片...」；全程 17 条唯一文案，13 条「已完成」全为「N/40 张标签」形态、零「N/40 页」；zip 恰 40 张 PNG。
+- 整页（Regression）：6 条唯一文案不变（终相「已完成 4/4 页，正在生成图片...」，DOM 采样；浮层像素截到「正在渲染第 4/4 页...」相 `r114_page_render.png`，终相 ~0.3s 本轮未截到像素——与第 113 轮已截图的不变基线一致）；zip 4 张。
+- 控制台 error / ≥400 响应 0 条。
+
+---
+
+# 第 113 轮：线上轻量抽查 PR #133（逐张 PNG 导出进度文案「张」口径，643f7bb；#132 纯文档不测）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。改动：`app/src/components/studio/PreviewArea.vue:630-636`——PNG 导出 `onProgress` 文案 `perLabel ? "已完成 ${done}/${total} 页，正在生成 ${pngTotalLabels} 张标签图片..." : "已完成 ${done}/${total} 页，正在生成图片..."`。测法：9222 真实 UI，40 行名单（签到桌牌版 4 页/40 张），逐张与整页两种模式各带水印导出，导出期间 50-300ms 采样浮层文本并截图。未录屏，未改任何产品代码。
+
+**结论**: **目标达成——逐张模式浮层为「已完成 N/40 页，正在生成 40 张标签图片...」（截图 + DOM 双证据），整页模式仍为「已完成 4/4 页，正在生成图片...」不含「张标签」，两种模式均导出成功（40 张/4 张 zip），控制台零报错。无新增 P 级问题。**
+
+## 部署核验
+- `/studio` index 切到 **`index-DLQ9wyQ1.js`**，`StudioView-NO0Ff-OU.js` 内含指纹「张标签图片」×1（index chunk 0，符合组件在 StudioView chunk）。
+
+## 逐张模式（核心）
+- 浮层截图：`r113_label_progress.png`（放大 `_zoom`）清晰显示「**已完成 3/40 页，正在生成 40 张标签图片...**」+ 取消导出按钮。
+- 全程采样 11 条唯一文案，「已完成 …」条目全部含「40 张标签图片」；zip 落盘 40 张 PNG（951874B）。
+- 观察项（既有，非本 PR）：逐张模式「已完成 N/40 **页**」的单位仍是"页"字但计数是张（第 109 轮已记录的用词瑕疵，本 PR 仅在后半句补「张」口径）。
+
+## 整页模式（Regression）
+- 首跑脚本用 `s.value=` 设自定义下拉无效（SelectField 是 button+options 组件），改真实点击「按整页导出」后生效——如实记录。
+- 全程 6 条唯一文案均不含「张标签」，最终相为「已完成 4/4 页，正在生成图片...」（截图 `r113_page_render.png`，最终相仅存续约 0.3s，需 50ms 采样才截到）；zip 落盘 4 张整页 PNG（812504B）。
+
+## 断言汇总
+| 断言 | 结果 |
+|---|---|
+| 部署：StudioView-NO0Ff-OU.js 含「张标签图片」指纹 | PASS |
+| 逐张模式浮层含「40 张标签图片」（截图）且导出 40 张 zip | PASS |
+| 整页模式浮层不含「张标签」、终相「正在生成图片...」（截图）且导出 4 张 zip | PASS |
+| 控制台 error / ≥400 响应 0 条 | PASS |
+
+既有开放项不变：P3-2 生僻字豆腐块；生产 `x-seatmark-storage: memory` + SES 未配置。
+
+---
+
+# 第 112 轮：线上回归 PR #131（router.isReady 后再挂载，squash 4b7452b）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。改动：`app/src/main.ts:29-35`——挂载改为 `router.isReady().then(() => app.mount('#app'))`，等首个路由异步组件就绪后再挂载，预渲染 HTML 在此之前持续可见。目标：修第 109 轮 P3-1（Slow 3G 首访 t≈6.9s 挂载清空预渲染 DOM → HomeView chunk 到达前 `main.innerText=0` 约 2.4–2.9s）。测法：复用第 109 轮 Slow 3G 方法（全新 profile + `Network.emulateNetworkConditions` RTT 2000ms/50KB/s + `setCacheDisabled`），共 3 次独立干净首访；快网 UI 冒烟 + 刷新一次。未录屏，未改任何产品代码。
+
+**结论**: **第 109 轮 P3-1 闭环——三次独立 Slow 3G 干净首访中，预渲染内容出现后 `main.innerText` 全程不再归零，t≈6.9s 正文空白窗口不复现；快网首访 //templates/studio、刷新一次（SW 接管态）均正常，控制台零报错。无新增 P 级问题。**
+
+## 部署核验
+- 开测时 `/studio` 仍引用旧 `index-3wbB2Bcl.js`；轮询约 1 分钟后切换为 **`index-C2rhFdFr.js`**，chunk 内含 `isReady().then` 挂载指纹 ×1（旧版无）。
+
+## Slow 3G 首访（核心，3 次干净 profile）
+- Run A（每 ~0.8s CDP 采样）：t=8.9s 起 mainLen=2821 稳定至 30s，**无归零**；t≈17s mainH 3739→3871（挂载完成，正文无缝切换）。
+- Run B：t=5.7s 起 mainLen=2821 稳定，**无归零**；t≈9.7s 挂载切换同样无缝。
+- Run C（页内 200ms 密集采样，无 CDP 往返缝隙）：149 个样本，首个 mainLen>100 出现于 201ms 后，**zero-after-content 样本 0 个**，终值 2821。
+- 方法敏感性：同方法在 #131 前（第 109 轮）两次独立复现 2.4–2.9s 的 mainLen=0 窗口，修复无效必然再现。
+- 最终页面完整（hero + 24 枚预览）：`r112_slow3g_A_final.png`、`_B_final.png`、`_C_final.png`。
+- 观察项：Run A/B 脚本在 t≈2.1s 存了一张 "blank" 图（`mainLen=-1`，document 尚未就绪的加载初期），属预渲染出现**之前**的正常空载状态，非回归窗口。
+
+## 快网无回归 + SW 刷新（Regression）
+- 新 profile 正常网速：`/` hero 6.1s 渲染（`r112_fast_home.png`）→ 点导航「模板」出 222 款网格（`r112_fast_templates.png`）→ `/studio` 三步卡「选择模板/导入数据」渲染（`r112_fast_studio.png`）。
+- 回 `/` 后刷新一次（此时 `serviceWorker.controller=true`，SW NetworkFirst 接管态）：页面正常（`r112_fast_home_reload.png`）。
+- 控制台 error 级日志与 ≥400 响应 **0** 条（排除既有 third-party cookie 警告）。
+
+## 断言汇总
+| 断言 | 结果 |
+|---|---|
+| 部署：新 index-C2rhFdFr.js 含 isReady 挂载指纹 | PASS |
+| Slow 3G ×3：内容出现后 mainLen 不归零（P3-1 不复现） | PASS |
+| 快网 / + templates + studio 挂载可交互 | PASS |
+| 刷新一次（SW 接管）页面正常 | PASS |
+| 控制台/网络零报错 | PASS |
+
+既有开放项不变：P3-2 生僻字豆腐块；生产 `x-seatmark-storage: memory` + SES 未配置。
+
+---
+
+# 第 111 轮：线上回归 PR #130（截断字段解除 overflow/line-clamp 裁切，squash c1cd118）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。改动：`app/src/utils/pdfExport.ts:195-200`——`truncateClampedText` 截断完成后对该字段 `-webkit-line-clamp/line-clamp: unset` + `overflow: visible`，未截断字段样式零改动。测法：沿用第 110 轮方法（9222 真实 UI + CDP 脚本），4 行小名单（长姓名/emoji/长单元格/正常各 1）快跑 PNG ZIP 与图片版 PDF，产物字形级放大与 r110 基线对比。未录屏，未改任何产品代码。
+
+**结论**: **第 110 轮 P3-1 闭环——被截断字段导出字形顶部不再平切改字：「王/单/元/宇/文/慕」等字在 PNG 与 PDF 中顶部笔画完整；单行「前缀+…」截断行为无回归、无第二行残影/串字、emoji 与正常长度零回归。无新增 P 级问题。**
+
+## 部署核验
+开测时线上 `/studio` 仍引用旧 `StudioView-BjSYfsw-.js`（无指纹），轮询 1 分钟后切换为 `index-3wbB2Bcl.js` → `StudioView-CGHV4cLr.js`，chunk 内含完整指纹：``join("")}…`,n.style.setProperty("-webkit-line-clamp","unset"),n.style.setProperty("line-clamp","unset"),n.style.overflow="visible"`` ×1。
+
+## 断言结果
+- 字形保真（PNG zip 第 001/003 张放大）：「欧」顶部完整、「宇」宝盖头在（非于）、「文」点+横在（非又）、「慕」艹完整；「王」三横（非土）、「单」倒八点（非早）、「元」两横（非兀）——与 r110 基线（平切改字）逐字对比全部恢复 — passed（对比图 r111_compare_longname/longcell.png）
+- 字形保真（PDF）：`pdftoppm` 第 1 页 120dpi，标签 01/03 同样字形完整 — passed
+- 截断行为无回归：两产物长姓名/长单元格仍为单行「前缀+…」（12 字+…，与预览一致、与 r110 前缀相同），无两行叠压 — passed
+- 无副作用：截断字段下方无第二行文字残影，未与座位号椭圆/页脚串字（整张标签目测干净）；emoji「张伟😀🎉🀄」完整未劈开；正常「考生004」完整 — passed
+- 产物完好：zip 4 张 PNG（1063×638）、PDF `pdfinfo` Pages=1 A4 — passed
+- 控制台回归：两次导出运行 error 级日志与 ≥400 响应 0 条 — passed
+
+产物：`/home/ubuntu/r111_dl/`（zip+pdf）、`/home/ubuntu/screenshots/r111_*.png`（含 r111_compare_longname/longcell.png 修复前后上下对比、r111_zoom_*.png 字形放大、r111_pdf_page1_top.png 四种行同页对照）。
+
+---
+
+# 第 110 轮：线上回归 PR #129（超长文本导出物理截断 truncateClampedText，squash d56bbf6）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。改动：`app/src/utils/pdfExport.ts` 新增 `truncateClampedText(root)`（对溢出的 `.label-field__body` 按码点二分把 `.label-field__content` 截为「可见前缀+…」），`createPageRenderer` 在 `waitForElementReady` 后调用，PNG（整页/逐张）与 PDF 共用。测法：沿用第 109 轮素材（`r109_big320.xlsx`）与 CDP 脚本（9222 真实 UI），导出 PNG ZIP 与图片版 PDF，产物与第 109 轮基线逐图对比 + 像素量化。未录屏，未改任何产品代码。
+
+**结论**: **P2-1 主体闭环——超长姓名/超长单元格在 PNG 与 PDF 中不再两行叠压，均为单行「前缀+…」，与预览省略号形态一致；emoji 与正常长度零回归。残留 1 个新 P3：被截断标签的单行文本在导出产物中字形顶部被裁 1-2px，导致部分字被"改字"（王→土、单→早、元→兀、宇→于、文→又），预览无此现象。**
+
+## 部署核验
+线上 `/studio` HTML 引用 `assets/index-BUOYPklq.js`（旧版为 index-DQ-Z9IXg.js）→ `StudioView-BjSYfsw-.js` 含二分截断指纹 ``Math.ceil((r+p)/2);s.textContent=`${a.slice(0,f).join("")}…` `` ×1，与本地 d56bbf6 构建产物同名同内容。
+
+## 断言结果
+- PNG ZIP 逐张导出（320 张 32.0s，zip 7.9MB 解包恰 320 张）：第 001 张（24 字姓名）与第 004 张（500 字单元格）**单行「前缀+…」，无第二行、无叠压**，与 r109 基线（两行叠字）目测显著不同；量化：同区域暗像素 28164→22753 / 27642→22516（叠压密度消失）— passed
+- 图片版 PDF（32 页 30.8s 4.14MB，`pdfinfo` Pages=32 A4）：第 1 页标签 01/04 同样单行省略号 — passed
+- 逐张 PNG 路径与 PDF 共用链路（两者产物形态一致）— passed
+- emoji 无回归：第 002 张「张伟😀🎉🀄」完整渲染、未被截断、emoji 未劈开 — passed
+- 正常长度无误截断：第 005 张「考生005」完整；PDF 第 1 页 05-10 全部完整 — passed
+- 生僻字 𠀀𪚥 维持豆腐块（P3-2 字体限制，非本 PR 范围）— passed（记录用）
+- 所见即所得：预览与导出的省略号前缀内容一致（均为 12 字+…）— passed
+- **导出字形顶部裁切 — failed（新 P3-1）**：被截断标签的单行大字在 PNG 与 PDF 中顶部被裁约 1-2px，字形被"改字"：王→土、单→早、元→兀、宇→于、文→又、慕 顶部平切；**预览中同一标签字形完整**（见 r110_pdf_done.png vs r110_zoom_longname/longcell.png）。仅影响触发截断的超长字段，正常/emoji 标签不受影响。疑因物理截断后单行大字号的 ascent 超出 line-height(1.15) 的内容盒，html2canvas 按盒裁切而浏览器绘制允许溢出。
+- 控制台回归：error 级日志与 ≥400 响应 0 条（两次导出运行均零报错，第 109 轮的 ERR_CONNECTION_RESET 未再出现）— passed
+
+产物：`/home/ubuntu/r110_dl/`（zip+pdf）、`/home/ubuntu/screenshots/r110_*.png`（含 r110_compare_longname/longcell.png 修复前后并排、r110_zoom_*.png 字形放大、r110_pdf_page1_top.png、r110_pdf_done.png 预览对照）。
+
+---
+
+# 第 109 轮：线上探索性走查（无代码变更，main 2e3c353，压力/弱网/边界输入）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。无新代码变更。测法：CDP 真实 UI（9222，1280×900）导入 320/640 行大名单跑全量图片版 PDF 与逐张 PNG ZIP 导出（进度/取消/心跳/内存采样）；全新 profile + CDP Slow 3G（RTT 2000ms / 50KB/s，Chrome DevTools 口径）首访 `/` 与 `/templates`；边界输入（24 字超长姓名、emoji、生僻字 𠀀𪚥、500+ 字单元格）核验预览与 PNG/PDF 产物像素。未录屏，未改任何产品代码。
+
+**结论**: 压力/规模与取消行为全部通过（640 行 64 页 PDF 67.6s、320 张 PNG ZIP 32.8s，进度文案逐页更新、取消即时生效且不产出文件）。**新增 2 个发现：P2-1 超长文本预览省略号截断但导出 PNG/PDF 渲染为两行重叠压字（所见非所得、产物不可读）；P3-1 弱网首访预渲染内容显示后出现约 2.4–2.9s 正文全空白窗口（hydration 等待懒加载 HomeView chunk 期间无任何加载反馈）**。
+
+## 发现
+
+### P2-1 超长文本：预览截断 vs 导出重叠压字（所见非所得）
+- 预览（Studio 画布）：24 字姓名与 500 字单元格均显示为**单行 + 省略号截断**（`欧阳纳兰性德慕容长孙宇文…`），排版正常。截图 `r109_import320.png`。
+- 导出 PNG（zip 第 001/004 张）与图片版 PDF 第 1 页：同一标签渲染为**两行且两行相互重叠**，字形叠压完全不可读。截图 `r109_png_longname.png`、`r109_png_longcell.png`、`r109_pdf_page1.png`。
+- 影响：含超长姓名/单元格的行，打印产物损坏且用户在预览中无法预知。正常长度（含 emoji 4 字）不受影响。
+
+### P3-1 弱网首访：hydration 期间正文空白约 2.4–2.9s，无加载反馈
+- 全新 profile + Slow 3G：t≈2.5s 预渲染 HTML 完整可见（hero + 24 枚排版图）→ **t≈6.9s 正文被清空（main.innerText=0，仅剩页头）→ t≈9.8s 恢复**。两次独立复现（2.4s / 2.9s 窗口）。截图 `r109_slow3g_prerender/blankwindow/recovered.png`、时间线见 r109_slow4.py 输出。
+- 机理：首页路由懒加载（`router/index.ts:12` `component: () => import('@/views/HomeView.vue')`），app.mount 替换预渲染 DOM 后需等 HomeView chunk 在弱网下载完，期间 router-view 为空且无骨架/spinner。
+- SW 安装不阻塞首访：首访渲染期间 `controller=false`，`/templates` 二跳后才被接管 — 符合预期。
+
+### P3-2（信息性）生僻字 𠀀𪚥 显示为豆腐块
+预览与 PNG/PDF 产物一致显示为空白方框（字体缺字，𡃁 可正常渲染），emoji 😀🎉🀄 彩色正常。属字体覆盖限制，预览与产物一致（无所见非所得问题）。
+
+### 观察（不分级）
+- PNG 逐张导出进度文案为「已完成 N/320 **页**」，实际单位是"张/标签"，用词轻微不准。
+- 9222 老 profile 两次导出运行各出现 1 条 `Failed to load resource: net::ERR_CONNECTION_RESET`（Log API 未含 URL，疑似第三方统计脚本瞬断），不影响导出产物。
+- 导出后 JS 堆：320 行导入 21→27MB；32 页 PDF 后 219MB；64 页 PDF 后 289MB；取消后 165MB（未回收部分随 GC 波动，未见持续增长/崩溃）。
+
+## 断言结果（摘要）
+- 320 行导入：「共 320 条数据 / 320 个标签 / 32 页」8.1s — passed
+- 640 行导入 64 页；图片版 PDF 全量导出 67.6s，落盘 8.3MB，`pdfinfo` Pages=64 A4 — passed
+- 320 行图片版 PDF 44.7s，Pages=32；预估体积 4.2MB vs 实际 4.14MB — passed
+- 进度反馈：`正在渲染第 N/64 页...` 逐页更新 + `已完成 64/64 页，正在写入 PDF...`，遮罩含「取消导出」按钮 — passed
+- 导出期间 UI 心跳：Runtime.evaluate 最大 1.0s / 平均 0.26s（PDF）、0.25s/0.08s（PNG），无卡死 — passed
+- PNG ZIP 逐张：320 张 32.8s，zip 7.9MB 解包恰 320 张 PNG（1063×638），抽验 4 张非空白 — passed
+- 取消行为：进度中点「取消导出」→ toast「已取消导出」、遮罩消失、**零文件落盘**、随后可重新打开导出弹窗 — passed
+- 弱网 Slow 3G 首访 `/`：FCP≈5.0s、预渲染内容 2.5s 可见、最终完整渲染，无持久白屏/错误页 — passed（但见 P3-1 中途空白）
+- 弱网首访 `/templates` 二跳：6.2s 出「222 款」网格 — passed
+- SW 不阻塞首访 — passed
+- 边界输入预览：省略号截断、emoji/𡃁 正常、𠀀𪚥 豆腐块 — passed（P3-2 记录）
+- 边界输入导出产物 — **failed**（P2-1：两行重叠压字，与预览不一致）
+- 控制台回归：除 2 条 ERR_CONNECTION_RESET（第三方资源瞬断，观察项）外，error 级日志与 ≥400 响应 0 条 — passed
+
+产物：`/home/ubuntu/screenshots/r109_*.png`、`/home/ubuntu/r109_dl/`（PDF×2、zip×1）、`/home/ubuntu/r109_big320.xlsx`、`r109_big640.xlsx`、脚本 `/home/ubuntu/r109_{stress,pdf,slow3,slow4,slow5}.py`。
+
+---
+
+# 第 108 轮：线上回归 PR #128（/api/* Edge Function 统一补安全头，squash 2e3c353）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。改动：新增 `edge-functions/api/_security.js` 的 `withSecurityHeaders`（HSTS/nosniff/XFO/CSP frame-ancestors 'self'/Referrer-Policy 5 头），`[[default]].js`（含 500 兜底）、`feedback.js`、`ai-design.js` 的 onRequest 统一包裹。业务逻辑零改动。测法：curl 端点头矩阵 + 第 103 轮畸形输入抽测 + CDP 真实 UI 前端冒烟（9222）。未录屏，未改任何产品代码。
+
+**结论**: **第 103/104 轮遗留的「/api/* 不带安全头」项闭环——全部受测 API 响应（200/400/405/204、含 Set-Cookie 的 logout、畸形输入 4xx）均带 5 头且值全等，业务头零丢失，前端功能不受影响。** 无新增 P 级问题。
+
+## 0. 部署核验
+Edge Function 变更与 sw.js/bundle 无关；开测时（00:24 UTC）`/api/quota` 已带全部 5 头，视为已部署。
+
+## 1. 端点头矩阵（curl，原始输出 `/home/ubuntu/r108_headers.txt`）— 全部 PASS
+期望 5 头精确值均命中：`strict-transport-security: max-age=31536000; includeSubDomains`、`x-content-type-options: nosniff`、`x-frame-options: SAMEORIGIN`、`content-security-policy: frame-ancestors 'self'`、`referrer-policy: strict-origin-when-cross-origin`。
+
+| 请求 | 状态 | 5 头 | 业务头 |
+|---|---|---|---|
+| GET /api/quota | 200 `{"anonymous":true,"limit":1,…}` | ✅ 全 | `cache-control: no-store` + `x-seatmark-storage: memory` 仍在 ✅ |
+| GET /api/auth/me | 200 `{"user":null}` | ✅ | 同上 ✅ |
+| POST /api/feedback 空 body | 400 `请求体格式错误` | ✅ | content-type json ✅ |
+| POST /api/ai-design 空 body | 400 `请求体格式错误` | ✅ | ✅ |
+| GET /api/feedback（错误方法） | 405 `请求方法不支持` | ✅ | ✅ |
+| GET /api/ai-design（错误方法） | 405 | ✅ | ✅ |
+| POST /api/auth/logout | 200 `{ok:true}` | ✅ | **`set-cookie: sm_session=; …HttpOnly; Secure; SameSite=Lax; Max-Age=0` 与 5 头共存** ✅（withSecurityHeaders 未吞 Set-Cookie） |
+| OPTIONS /api/feedback | 204 | ✅ | 无 body ✅ |
+
+## 2. 第 103 轮畸形输入抽测 — 全部 PASS
+| 输入 | 结果 | 头 |
+|---|---|---|
+| POST /api/auth/verify `{"email":123,"code":{"a":1}}` | 400 `邮箱或验证码格式不正确` | 5 头全 ✅ |
+| GET `/api/share/tpl?code=' OR 1=1--` | 400 `短码无效` | ✅ |
+| POST /api/ai-design `{"messages":[{"role":"admin",…}]}` | 400 `消息内容无效` | ✅ |
+| POST /api/feedback 2MB content | 400 `请填写反馈内容（不超过 2000 字）` | ✅ |
+
+零 500/545、body 均为结构化中文错误 JSON、无栈/密钥泄漏——与第 103 轮口径一致且现在全部带头。
+
+## 3. 前端功能不受影响（CDP 真实 UI，9222）— PASS
+- `/studio?template=signage` 正常渲染；导入 `/home/ubuntu/r96_singlecol.xlsx` →「共 2 条数据 / 2 个标签 / 张伟·王芳」。
+- 点「图片 PNG」→ 导出弹窗**截图可见**「无水印导出（今日剩余 1 次）」+「带水印导出（不限次数）」——/api/quota 消费正常（配额角标「今日剩余 1 次」同时出现在工具栏）。
+- error 级日志与 ≥400 响应 **0** 条（排除既有 third-party cookie 警告）。
+- 注：本轮 CDP 会话未捕获到 /api/quota 的 responseReceived 事件（请求发生在监听窗口前/由 SW 应答），响应头证据以 curl（测项 1）为准。
+
+## 限制（如实记录）
+- 500 兜底路径（`[[default]].js` catch 分支）无法在线上安全触发，未直接验证其带头；代码上与正常路径同一包裹（`withSecurityHeaders(json(...,500))`）。
+- 未登录态限制不变：生产 `x-seatmark-storage: memory`、SES 未配置，认证态/管理端 200 路径持续无法覆盖（含 Set-Cookie 的登录成功路径以 logout 的清 cookie 响应替代验证）。
+- `Permissions-Policy` 不在本 PR 的 5 头之列（edgeone.json 静态路由才有），API 响应不带——符合 PR 范围，非缺陷。
+
+**产物**：`/home/ubuntu/r108_headers.txt`；截图 `/home/ubuntu/screenshots/r108_import_ok.png`、`r108_export_dialog.png`；脚本 `/home/ubuntu/r108_ui2.py`；计划 `/home/ubuntu/repos/SeatMark/test-plan-round108.md`。录屏：无（按约定）。
+
+---
+
+# 第 107 轮：线上回归 PR #127（precache 禁用 directoryIndex，修第 106 轮 P3-1，squash 8905797）
+
+**日期**: 2026-08-10　**环境**: 生产 www.seatmark.cn。改动仅 `app/vite.config.ts` workbox 段新增 `directoryIndex: ''`；其余 #126 行为（`skipWaiting`/`clientsClaim`/`globPatterns` 含 html/`precacheFallback: {fallbackURL:'/index.html'}`）保留。测法：curl 轮询 sw.js 判部署 → 全新 profile（`/tmp/r107prof`）装 SW 后在线依次导航 `/studio` → `/` → `/templates` 核验 `pages` 缓存 → 同 user-data-dir 加 `--host-resolver-rules="MAP www.seatmark.cn 127.0.0.1"` 浏览器级黑洞断网测壳页兜底 → 老 profile（`/tmp/r98profile`，9222，装 #126 版 SW）只顶层刷新一次测接管 → 安全头与跨域 iframe 回归 → 三页渲染 + 一次 PNG 导出。未录屏，未改任何产品代码。
+
+**结论**: **第 106 轮 P3-1 已闭环——根路径 `/` 的导航现在走 NetworkFirst 并写入 `pages` 缓存（第 106 轮 `/` 从不进 `pages`），且离线壳页兜底、SW 即时接管、安全头三项均无劣化。** 无新增 P 级问题。仅有一条 **SW 语义澄清**（非缺陷）：触发更新的那一次导航仍由旧 SW 应答，新 SW 在其后接管，因此老 profile 里 `/` 的缓存回写出现在**下一次**导航（详见测项 3）。
+
+## 0. 部署核验
+| 项 | #126 版 | #127 版（线上，00:05:56 UTC 生效） |
+|---|---|---|
+| `sw.js` 字节 | 4153 | **4170** |
+| `directoryIndex:""` | 0 | **1** |
+| `clientsClaim` / `NetworkFirst` | 1 / 1 | 1 / 1 |
+| `NavigationRoute` | 0 | **0**（未回归） |
+| precache 条目 | 52（含 1 条 index.html） | 52（含 1 条 index.html，**指纹与 #126 相同**） |
+
+⚠️ 因 precache 指纹与 #126 完全一致，本轮**不能**用条目数判断哪个 SW 在控制，改用**行为指纹**（`pages` 是否含 `/`、`/` 条目 Response `date` 是否刷新）。
+
+## 1. 核心：根路径导航改走 NetworkFirst — PASS（第 106 轮此项 fail）
+全新 profile `/tmp/r107prof`：访问一次 `/` 后 `controller=true`、`active: activated`、precache 52 项含 `index.html`。随后**依次**在线导航：
+
+| 步骤 | `pages` 缓存内容 |
+|---|---|
+| 导航 `/studio` 后 | `[/studio]` |
+| 导航 `/` 后 | `[/studio, `**`/`**`]` ← 本轮新增 |
+| 导航 `/templates` 后 | `[/studio, /, /templates]` |
+
+第 106 轮同一序列为 `[/studio]` → `[/studio]` → `[/studio, /templates]`（`/` 从不进 pages）。各条目 Response 头与时间戳：
+```
+/studio     date Mon, 10 Aug 2026 00:08:53 GMT  xfo=SAMEORIGIN csp=frame-ancestors 'self' hsts=true
+/           date Mon, 10 Aug 2026 00:09:04 GMT  xfo=SAMEORIGIN csp=frame-ancestors 'self' hsts=true
+/templates  date Mon, 10 Aug 2026 00:09:14 GMT  xfo=SAMEORIGIN csp=frame-ancestors 'self' hsts=true
+```
+`/` 条目 `date` 为本轮时刻（00:09:04），证明是网络取回后回写，而非旧副本。
+
+## 2. 离线兜底不劣化 — PASS
+保持同一 user-data-dir（`pages` = `/`、`/studio`、`/templates`；`/guides`、`/pricing` 从未访问），重启浏览器加 host-resolver 黑洞：
+
+| 断网导航 | innerText | 耗时 | 浏览器错误页 | 截图可见内容 |
+|---|---|---|---|---|
+| `/`（已缓存） | 3221 | 0.5s | 否 | hero「上传 Excel，批量生成」+ A4 24 枚预览 ✅ |
+| `/guides`（从未访问） | 10479 | 0.5s | 否 | 「教程中心」「共 76 篇教程」+ 教程卡片 ✅ |
+| `/pricing`（从未访问） | 1521 | 0.5s | 否 | 「定价方案」「定价常见问题」✅ |
+
+断网真实性对照：in-page `fetch('https://www.seatmark.cn/api/quota')` 与 `fetch('/robots.txt?ts=…')` 均 `FAILED: Failed to fetch`；整个断网过程 `pages` 条目数保持 3 条**零新增**。→ `precacheFallback` 壳页兜底在 `directoryIndex: ''` 之后仍生效。
+
+## 3. 老 profile 一次刷新接管 — PASS（附 SW 语义澄清）
+老 profile（9222，装 #126 版 SW）开测前：`active: activated, waiting: false`，`pages` 4 条，`/` 条目 `date = Sun, 09 Aug 2026 23:42:35 GMT`。**标签页不关、只顶层刷新一次**：
+- `t=4s`：`active: activating`（新 worker 正在激活）、`waiting: false`；`t=8~20s`：`active: activated, waiting: false, controller=true`。→ 全程无 waiting worker，接管行为无回归。
+- 但该次刷新后 `/` 条目 `date` **仍为 23:42:35**：这是 SW 标准语义——**触发更新的那一次导航仍由旧（#126）SW 应答**（旧 SW 用 precache 抢答 `/`），新 SW 在其后才接管。
+- 因此补做一次顶层导航 `/`：`date` 由 `23:42:35` **刷新为 `Mon, 10 Aug 2026 00:12:16 GMT`**（当时刻 00:12:26），且仍带 `xfo=SAMEORIGIN` / `csp=frame-ancestors 'self'` / HSTS。→ 老 profile 中 `/` 也确实改走 NetworkFirst。
+
+## 4. 安全头与点击劫持回归 — PASS
+- `pages` 中 **`/` 条目**在两 profile 均带 `x-frame-options: SAMEORIGIN` + `content-security-policy: frame-ancestors 'self'` + HSTS（干净 profile 00:09:04 副本、老 profile 00:12:16 副本）；`/studio`、`/templates` 条目同样带头。
+- 跨域 iframe（老 profile）：
+  - `frame3.html` 嵌**根路径** `/`：iframe 空白错误页（截图），控制台 `Refused to frame … "frame-ancestors 'self'"`，响应带 XFO+CSP。
+  - `frame2.html` 嵌 `/studio`：iframe 空白错误页，同样报 `Refused to frame …`，响应 `age: 0 / Cache Miss` 带 XFO+CSP。
+- 反向对照：顶层直接打开 `/studio` 正常渲染（含「选择模板」，innerText 1465）。
+
+## 5. Regression 快速冒烟 — PASS
+- `/` hero+CTA、`/templates`「222 款」网格缩略图、`/studio?template=signage` 三步卡+模板列表+预览区，无白屏。
+- Excel 导入 `/home/ubuntu/r96_singlecol.xlsx`：「共 2 条数据」「2 个标签」「张伟」「王芳」。
+- PNG 导出：实际落盘 `/home/ubuntu/r107_dl/签到桌牌版-20260810-0013.zip`(33 955 B) → 2 张 PNG(17 868 / 15 581 B)，001 像素核验为「张伟」桌牌、非空白率 6.33%、含 seatmark.cn 水印。
+- 控制台/网络：error 级日志与 ≥400 响应 **0** 条（排除既有 third-party cookie 警告）。
+
+## 限制（如实记录）
+- headless Chromium 121 的 page session 不投递**主文档** `Network.responseReceived`，因此在线响应头证据取自「SW 实际会用来应答的缓存副本响应头（`caches.match` → `Response.headers`）」+「跨域 iframe 导航响应」，非顶层文档事件直接抓取（沿用第 106 轮口径）。
+- 线上 precache 实测 52 条（第 106 轮同）；用户所述构建产物计数未在线上复现，本轮同样以线上为准。
+- 既有开放项不变：生产 `x-seatmark-storage: memory`（限频失效、短码分享失效、**无法登录**）、SES 未配置（`/api/auth/code` 502）、`/api/*` 不带安全头、`/assets/*` 头合并；认证态与管理端 200 路径持续无法覆盖。
+
+**产物**：截图 `/home/ubuntu/screenshots/r107_*.png`；导出 zip `/home/ubuntu/r107_dl/签到桌牌版-20260810-0013.zip`；脚本 `/home/ubuntu/r107_core.py`、`/home/ubuntu/r107_old.py`、`/tmp/r107_old2.py`、`/home/ubuntu/r107_smoke.py`；计划 `/home/ubuntu/repos/SeatMark/test-plan-round107.md`。录屏：无（按约定）。
+
+---
+
+# 第 106 轮：线上回归 PR #126（SW 立即接管 + 离线壳页兜底，squash fca464d）
+
+**日期**: 2026-08-09　**环境**: 生产 www.seatmark.cn。改动仅 `app/vite.config.ts` workbox 段（`skipWaiting: true` + `clientsClaim: true`、`globPatterns` 放回 `html`、navigate 的 NetworkFirst 加 `precacheFallback: { fallbackURL: '/index.html' }`），app bundle 仍 `index-DQ-Z9IXg.js`（预期），判部署以 **`sw.js` 内容变化**为准。测法：curl 轮询 sw.js → 老 profile（`/tmp/r98profile`，装的是 #125 版 SW）**只顶层刷新一次、标签页不关** → 攻击者页面复测 → 全新干净 profile（`/tmp/r106prof`）只访问一次首页装 SW → **浏览器级 host-resolver 黑洞断网**测壳页兜底 → 两 profile 在线安全头回归 → CDP 1280×900 真实 UI 功能冒烟。未录屏，未改任何产品代码。
+
+**结论**: **第 105 轮 P3-1（新 SW 不即时接管）已闭环——一次顶层刷新、标签页全程开着，新 SW 即接管并拒绝攻击者 iframe；离线壳页兜底也已生效——从未访问过的 `/guides`、`/pricing` 断网下由壳页 + SPA 正常渲染（第 105 轮同类路由为 ERR_FAILED）。** 未发现安全头被反噬。新增 **1 条 P3（信息性）**：根路径 `/` 的导航被 workbox 预缓存路由（`directoryIndex: 'index.html'`）直接应答，**不经 NetworkFirst**，所以"仅改平台响应头"的部署对老访客在 `/` 上仍不会即时生效（`/studio`、`/templates` 等非根路由不受影响；跨域 iframe 导航不经 SW，故点击劫持面不受影响）。另记录一处与用户描述的差异：线上预缓存清单实测 **51 → 52 条**（用户称构建产物为 55→56）。
+
+## 0. 部署核验
+| 项 | #125 版 | #126 版（线上，23:40 UTC 生效） |
+|---|---|---|
+| `sw.js` 字节 | 4091–4094 | **4153** |
+| `clientsClaim` | 0 | **1** |
+| `precacheFallback` / `fallbackURL` | 0 | **1** |
+| `index.html`（预缓存清单） | 0 | **1** |
+| `NetworkFirst` | 1 | 1 |
+| `NavigationRoute` | 0 | **0**（未回归） |
+
+## 1. 老 profile 一次刷新即接管 + 点击劫持 — PASS（第 105 轮此项 fail）
+老 profile `/tmp/r98profile`（9222）开测前基线（#125 版 SW）：`active: activated, waiting: false`，precache **51 条、`index.html` 计数 0**，`pages` 3 条。
+**标签页不关、只顶层刷新一次** `https://www.seatmark.cn/`，此后逐时刻采样：
+
+```
+t=3s  active=activated waiting=false  precache n=51 html=0
+t=6s  active=activating waiting=false precache n=52 html=1   ← 新 SW 直接 activating，未进 waiting
+t=9s  active=activated  waiting=false precache n=52 html=1
+t=12s active=activated  waiting=false precache n=52 html=1   controller=true
+```
+判据说明：`controller` 非空不足以区分新旧 SW，**precache 由 51→52 且重新出现 `index.html`** 才证明是 #126 版 SW 在控制。第 105 轮同一操作三次刷新后仍 `waiting: true`、precache 停在 52 项旧清单且 iframe 可渲染；本轮**一次刷新、6 秒内**完成接管，`waiting` 全程为 false。
+攻击者页面 `http://localhost:8099/frame2.html`（iframe 嵌 `/studio`）：iframe 区域**空白错误页**（`r106_clickjacking_oldprofile.png`），控制台 `error | Refused to frame 'https://www.seatmark.cn/' because an ancestor violates … "frame-ancestors 'self'"`，该导航响应 `fromServiceWorker: true, fromDiskCache: false, age: 0, eo-cache-status: Cache Miss`，且**带** `x-frame-options: SAMEORIGIN` + `content-security-policy: frame-ancestors 'self'`。
+
+## 2. 离线壳页兜底 — PASS
+干净 profile `/tmp/r106prof`：只访问首页一次 → SW `activated`、`controller=true`、precache 52 条含 `index.html`；随后在线只访问过 `/studio`、`/templates`（`pages` 2 条），**`/guides`、`/pricing` 从未访问**。同一 user-data-dir 重启浏览器并加 `--host-resolver-rules="MAP www.seatmark.cn 127.0.0.1"`（page 与 SW 一并断网）。
+
+| 断网导航 | innerText 长度 | 耗时 | 浏览器错误页 | 路由专属文案 |
+|---|---|---|---|---|
+| `/guides`（从未访问，真实路由） | 10479 | 0.6s | 否 | 「教程中心」「共 76 篇教程」可见 ✅ |
+| `/pricing`（从未访问，真实路由） | 1521 | 0.5s | 否 | 「定价方案」「定价常见问题」「¥29」可见 ✅ |
+| `/`（已缓存） | 3221 | 0.5s | 否 | hero「上传 Excel，批量生成」+ A4 预览可见 ✅ |
+| `/tutorials`（**非** router 路由） | 615 | 0.5s | 否 | 应用自己的「404 NOT FOUND 页面不存在或已被移动」页 ✅ |
+
+反向对照（证明断网真实生效、排除第 105 轮那种假通过）：断网态页面内 `fetch('https://www.seatmark.cn/api/quota')` 与 `fetch('/robots.txt?ts=…')` 均 `failed: Failed to fetch (www.seatmark.cn)`；`pages` 缓存在整个断网过程中**未新增**任何条目（仍为 `/studio`、`/templates` 2 条），说明这些路由确实是壳页回落而非偷偷联网。对比第 105 轮：同等断网条件下从未访问过的 `/tutorials` 出 Chrome `ERR_FAILED`。
+
+## 3. 在线安全头未被壳页兜底反噬 — PASS（附 1 条 P3 机制注记）
+- 老 profile 与干净 profile 在线顶层导航 `/studio` 均正常渲染（`r106_online_studio_9222.png` / `r106_online_studio_9229.png`）。
+- 直接读取 SW 实际会用来应答导航的**缓存副本响应头**（`caches.match` 取 Response.headers），两 profile 全部条目均带安全头：
+
+| profile | 缓存条目 | XFO | CSP | HSTS | date/age |
+|---|---|---|---|---|---|
+| 干净 | precache `index.html?__WB_REVISION__=64c4c6b1…` | SAMEORIGIN | frame-ancestors 'self' | ✅ | 23:43:54 / 75 |
+| 干净 | pages `/studio` | SAMEORIGIN | frame-ancestors 'self' | ✅ | 23:51:53 |
+| 干净 | pages `/templates` | SAMEORIGIN | frame-ancestors 'self' | ✅ | 23:48:00 / 0 |
+| 老 | precache `index.html?…` | SAMEORIGIN | frame-ancestors 'self' | ✅ | 23:42:39 / 0 |
+| 老 | pages `/`、`/studio`、`/studio?template=signage`、`/templates` | SAMEORIGIN | frame-ancestors 'self' | ✅ | 23:30–23:52 |
+
+- 跨域 iframe 嵌**根路径** `https://www.seatmark.cn/`（新造攻击者页 `frame3.html`）也被拒：响应 `fromServiceWorker: false`（跨域 iframe 导航不受 SW 控制，直接走网络）、带 XFO+CSP，控制台 `Refused to frame …`（`r106_clickjacking_root_fresh.png`）。
+- **P3-1（新，信息性）根路径导航绕过 NetworkFirst**：干净 profile 在线依次导航 `/studio` → `/` → `/templates`，`pages` 缓存变化为 `[/studio]` → `[/studio]` → `[/studio, /templates]`——**`/` 从未进入 `pages`**，说明 `/` 命中的是 workbox 预缓存路由（`precacheAndRoute` 默认 `directoryIndex: 'index.html'`，其注册顺序早于 runtimeCaching）。后果：与第 104 轮同类问题在**根路径上仍存在**——只改 `edgeone.json` 响应头（index.html 内容不变、precache revision 不翻转）时，老访客访问 `/` 仍会拿到旧壳页副本。当前实测无安全影响（现有 precache 副本是 #124 之后抓的，带全部安全头；且点击劫持走的跨域 iframe 导航不经 SW）。如需彻底闭环，可给 navigate 规则前置一条对 `/`（或整体导航）优先于 precacheRoute 的处理，或让每次发版 index.html 内容变化。
+
+## 4. Regression 功能冒烟 — PASS
+- `/` hero+CTA、`/templates`「222 款」网格缩略图、`/studio?template=signage` 三步卡+模板列表+预览区均正常（`r106_render_*.png`）。
+- Excel 导入 `/home/ubuntu/r96_singlecol.xlsx`：「共 2 条数据」「2 个标签」，预览「张伟」「王芳」（`r106_import_ok.png`）。
+- PNG 导出（「图片 PNG」→「带水印导出（不限次数）」）：实际落盘 `/home/ubuntu/r106_dl/签到桌牌版-20260809-2353.zip`(33 955 B) → 2 张 PNG(17 868 / 15 581 B)，001 像素核验为「张伟」桌牌、非空白率 6.33%、含 seatmark.cn 水印（`r106_export_png_001.png`）。
+- 打印（stub `window.print` → 「打印 / 矢量 PDF」→ 导出方式卡片，`__printed=1` 时 `Page.printToPDF`）：`/home/ubuntu/r106_print.pdf` **1 页 A4 594.96×841.92 pt**，含两枚标签 + 裁切线 + 页脚，非全白（`r106_print_pdf-1.png`）。
+- 控制台/网络：整轮 error 级日志与 ≥400 响应 **0 条**（排除既有 third-party cookie 警告）。
+
+## 差异与限制（如实记录）
+- 线上预缓存清单实测 **52 条**（含 1 条 `index.html`），非用户所述 56 条；新旧对比（51→52、html 0→1）足以判定新 SW 接管，但绝对条目数与用户核验的构建产物不一致，请以线上为准复核。
+- 主文档（main frame Document）的 `Network.responseReceived` 在 headless Chromium 121 的 page session 中未被投递，因此在线 `/studio` 的**响应头证据取自 SW 缓存副本 + 跨域 iframe 导航响应**，而非顶层文档事件；两者均直接反映 SW 会用什么响应应答，但不是"顶层导航响应头"的直接抓取，属方法学限制。
+- 既有开放项不变：生产 `x-seatmark-storage: memory`（限频失效、短码分享失效、**无法登录**）、SES 未配置（`/api/auth/code` 502）、`/api/*` 不带安全头、`/assets/*` 头合并。认证态与管理端 200 路径持续无法覆盖。
+
+**产物**：截图 `/home/ubuntu/screenshots/r106_*.png`；导出 zip `/home/ubuntu/r106_dl/签到桌牌版-20260809-2353.zip`；打印 PDF `/home/ubuntu/r106_print.pdf`；脚本 `/home/ubuntu/r106_old.py`、`r106_shell.py`、`r106_iframe_root.py`、`r106_smoke.py`、`/tmp/r106_doc.py`、`/tmp/r106_hdr.py`；计划 `/home/ubuntu/repos/SeatMark/test-plan-round106.md`。录屏：无（按约定）。
+
+---
+
+# 第 105 轮：线上回归 PR #125（SW 导航改 NetworkFirst，squash 6365176）
+
+**日期**: 2026-08-09　**环境**: 生产 www.seatmark.cn。改动仅 `app/vite.config.ts` 的 workbox 配置，app bundle 仍 `index-DQ-Z9IXg.js`（预期），判部署以 **`sw.js` 内容变化**为准。测法：curl 核验 sw.js → 第 104 轮那个「已装旧 SW 的老 profile」（user-data-dir `/tmp/r98profile`）复测点击劫持 → 全新干净 profile（`/tmp/r105prof`）核验缓存 → **浏览器级真实断网**做离线回归 → CDP 1280×900 真实 UI 功能冒烟。未录屏。未改任何产品代码。
+
+**结论**: **本轮改动生效，第 104 轮 P3-1（SW 预缓存令老访客绕过安全头）已闭环，且离线可用性未被破坏**（已缓存路由断网仍出完整页面）。但发现 **1 条新 P3**：老访客的新 SW 会停在 `waiting` 状态，**只要站点还有标签页开着就不会接管**——需用户关掉站点全部标签页（或重启浏览器）后才生效，所以修复对老访客**不是即时**的。
+
+## 0. 部署核验（curl）
+
+| | 旧 sw.js（本轮开测前） | 新 sw.js（部署后） |
+|---|---|---|
+| 体积 | 4045 B | 4094 B |
+| `index.html` 出现次数 | **2** | **0** |
+| `NavigationRoute` | **1** | **0** |
+| `NetworkFirst` / `networkTimeoutSeconds` / `"pages"` | 0 / 0 / 0 | **1 / 1 / 1** |
+
+→ 部署已发生且与 diff 一致（precache 去掉 html、移除 NavigationRoute、navigate 走 NetworkFirst 到 `pages` 缓存）— PASS。
+
+## 1. 老访客（已装旧 SW 的 profile）点击劫持复测 —— 本轮核心
+
+老 profile 开测前状态（只读核验，未做任何清理）：`controller` 非空、precache **52 项含 `index.html?__WB_REVISION__=64c4c6b1493672cbb3f8db18411ddfa0`** —— 与第 104 轮 fail 现场一致。
+
+**阶段 A：站点标签页保持开启，顶层刷新 3 次**
+- 3 次刷新后 registration 均为 `active: activated, waiting: true`，**缓存仍是旧 precache（52 项、含 index.html），无 `pages` 缓存**。
+- 此时攻击者页面 iframe 嵌 `/studio`：**仍完整渲染**，响应 `fromServiceWorker: true, fromDiskCache: true, age: 1083, eo-cache-status: Cache Hit`，**无 XFO/CSP** —— 与第 104 轮完全相同 → **此路径仍 FAIL（记 P3-1，见下）**。
+
+**阶段 B：关闭站点全部标签页 / 重启浏览器（同一 user-data-dir，SW 与缓存均保留）**
+- 再访问 `/`：`active: activated, waiting: false`，precache **51 项、`index.html` 计数 0**，并新增 **`pages` 运行时缓存**（含 `https://www.seatmark.cn/`）→ 新 SW 已接管、旧 index.html 预缓存条目已消失。
+- 复测同一攻击者页面 `http://localhost:8099/frame2.html`（iframe src=`https://www.seatmark.cn/studio`）：
+  - iframe 区域**空白错误页**（截图 `r105_clickjacking_oldprofile.png`）；
+  - 控制台 error：`Refused to frame 'https://www.seatmark.cn/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'self'".`；
+  - 导航响应虽仍 `fromServiceWorker: true`，但 `fromDiskCache: false, age: 0, eo-cache-status: Cache Miss`，且**带有** `x-frame-options: SAMEORIGIN` + `content-security-policy: frame-ancestors 'self'` —— 正是 NetworkFirst 从网络取新响应的预期形态。
+- → **第 104 轮 fail 项转为 PASS**（满足计划的"即使经 SW 也带安全头"判据）。
+
+### P3-1（新）新 SW 对老访客不是即时接管：站点标签页未全关前一直停在 waiting
+`app/vite.config.ts` 用 `registerType: 'autoUpdate'` 但 `injectRegister: false`，而 `app/src/main.ts:31-37` 只做了裸 `navigator.serviceWorker.register('/sw.js')`，**没有 virtual:pwa-register / 没有向 waiting worker 发 `SKIP_WAITING`、也没有 `clientsClaim` 立即接管**。实测后果：老访客只刷新页面（3 次）新 SW 永远 `waiting`，旧 SW 继续用旧预缓存 index.html 应答导航 → 安全头仍被绕过；必须关掉站点全部标签页/重启浏览器才生效。
+建议（择一）：① 改用 `injectRegister: 'auto'` / `virtual:pwa-register` 的 autoUpdate 注册（其 registerSW 会 postMessage SKIP_WAITING 并 reload）；② 在自建注册代码里监听 `updatefound`，对 `reg.waiting` 发 `{type:'SKIP_WAITING'}`（sw.js 已内置该消息处理）并配合 `controllerchange` 刷新；③ workbox 加 `skipWaiting: true` + `clientsClaim: true`。
+定级 P3：新访客与已重启过浏览器的老访客均已受保护，且本 PR 已把"永久绕过"降级为"下次全关标签页后自愈"。
+
+## 2. 干净 profile 缓存核验
+
+全新 profile 依次访问 `/` → `/templates` → `/studio` → `/`（首访时 SW 尚在安装，第 4 次导航起 `controller` 就位）：
+- `caches.keys()` = `["workbox-precache-v2-https://www.seatmark.cn/", "pages"]` → **`pages` 运行时缓存存在** — PASS。
+- precache 51 项，`index.html` 匹配数 **0**（旧 profile 旧 SW 时为 1）— PASS。
+- `pages` 缓存条目随访问增长，最终为 `https://www.seatmark.cn/`、`/studio`、`/pricing` — PASS。
+
+## 3. 离线可用性回归（本次主要风险点）
+
+**方法学纠正（重要）**：`Network.emulateNetworkConditions {offline:true}` **只作用于 page target，Service Worker 的 fetch 仍走真实网络**。第一次尝试因此产生了假通过——断网态下**从未访问过**的 `/pricing` 竟返回完整新内容，且 `pages` 缓存随之新增 `/pricing`、`/studio`，证明 SW 实际联网了；headless chromium 121 的 `Target.getTargets` 也不暴露 `service_worker` target，无法单独对其施加 offline。该次结果已作废。
+**改用浏览器级真实断网**：同一 user-data-dir 重启浏览器并加 `--host-resolver-rules="MAP www.seatmark.cn 127.0.0.1"`（本机 443 无监听 → 所有连接被拒，SW 一并断网）。
+
+| 断网态导航 | innerText 长度 | 耗时 | 结果 |
+|---|---|---|---|
+| `/`（已在 pages 缓存） | 3221 | 0.5 s | ✅ 首页完整渲染，hero「上传 Excel，批量生成」+ 右侧 A4 排版预览可见，无错误页 |
+| `/studio`（已在 pages 缓存） | 1407 | 0.5 s | ✅ 工坊完整渲染：三步卡、「选择模板」列表 + 缩略图、右侧预览区与工具栏 |
+| `/tutorials`（**不在**缓存，反向对照） | 169 | 12.1 s | ✅ 按预期出 Chrome 错误页 `This site can't be reached / ERR_FAILED` —— 证明断网真实生效、上面两条不是假通过 |
+
+- 未出现浏览器离线恐龙页/白屏；回落几乎瞬时（连接被拒立即失败，未等满 4 s 超时，属 NetworkFirst 正常行为）— PASS。
+- 去掉 host-resolver 规则重启后 `/` 恢复正常联网渲染，缓存状态不变 — PASS。
+- 取舍如实记录：`navigateFallback` 已移除，**离线访问从未访问过的路由会失败**（旧配置下 SPA 任意路由都能靠预缓存 index.html 离线打开）。这是本 PR 为"安全头即时生效"付出的代价，用户需求文档里已默认接受；若希望两者兼得，可给 navigate 规则加一个"缓存 miss 时回落到某个已缓存壳页"的 handler 兜底。
+
+## 4. Regression 功能冒烟（真实 UI，1280×900，老 profile 新 SW 已接管）
+
+- 渲染：`/` hero + CTA、`/templates`「标签模板库 222 款」网格与缩略图、`/studio?template=signage` 三步卡 + 模板列表 + 预览区，均正常，无白屏 — PASS。
+- Excel 导入 `r96_singlecol.xlsx` →「共 2 条数据」「2 个标签」，预览含「张伟」「王芳」— PASS。
+- PNG 导出（点「图片 PNG」→ 点「带水印导出（不限次数）」卡片）→ 实际落盘 `签到桌牌版-20260809-2331.zip`（33 955 B），解包 2 张 PNG（17 868 / 15 581 B），001 像素核验为「张伟」桌牌（1063×638，非空白 6.33%，含 seatmark.cn 水印）— PASS。
+- 打印（stub `window.print` → 点「打印 / 矢量 PDF」→ 点导出方式卡片 → `__printed=1` 即刻 `printToPDF`）→ **1 页 A4 594.96×841.92 pt**，含「张伟」「王芳」两枚桌牌 + 裁切线 + 页脚，非空白 — PASS。
+- 控制台/网络：整轮 error 级日志 **0** 条、≥400 响应 **0** 条（排除既有 third-party cookie 警告）— PASS。
+
+## 5. 结论与开放项
+
+- 本轮 4 类断言除 P3-1（老访客需关全部标签页才接管）外全部通过；第 104 轮 P3-1（安全头被 SW 绕过）在"新 SW 已接管"前提下确认闭环。
+- 既有开放项不变：生产 `x-seatmark-storage: memory`（限频失效 / 短码分享失效 / 无法登录）、SES 邮件未配置（`/api/auth/code` 502）、`/api/*` 不带安全头（edge function 自建 Response）、`/assets/*` 头合并、`/templates` 根文档时延波动。
+
+**产物**：截图 `/home/ubuntu/screenshots/r105_clickjacking_oldprofile.png`、`r105_offline_home.png`、`r105_offline_studio.png`、`r105_offline_uncached.png`、`r105_recovered_online.png`、`r105_render_home.png`、`r105_render_templates.png`、`r105_render_studio.png`、`r105_import_ok.png`、`r105_export_done.png`、`r105_export_png_001.png`、`r105_print_state.png`、`r105_print_pdf-1.png`；PDF `/home/ubuntu/r105_print.pdf`；导出 zip `/home/ubuntu/r105_dl/签到桌牌版-20260809-2331.zip`；脚本 `/home/ubuntu/r105_old.py`、`r105_swtakeover.py`、`r105_clean_offline.py`、`r105_offline2.py`、`r105_smoke.py`；计划 `/home/ubuntu/repos/SeatMark/test-plan-round105.md`。
+
+---
+
+# 第 104 轮：线上回归 PR #124（edgeone.json 安全响应头，squash 38e1f3c）
+
+**日期**: 2026-08-09　**环境**: 生产 www.seatmark.cn（bundle 仍 `index-DQ-Z9IXg.js`，符合"仅改平台配置"预期）。curl 抓头 + CDP 1280×900 真实 UI（含全新干净 profile 浏览器实例）+ Lighthouse 13.4.1 移动仿真。未录屏。未改任何产品代码。
+**结论**: **六个新头在 `/`、`/studio`、`/templates` 全部生效且值与 edgeone.json 完全一致；跨域 iframe 嵌 `/studio` 在干净浏览器里被拒绝渲染（控制台明确报 frame-ancestors 'self' 拒绝），第 103 轮 P2-1 主体闭环；功能回归（渲染/导入/PNG 导出/打印/统计脚本/控制台）全部通过。但发现 2 条新注记：① `/assets/*` 并未如预期"覆盖"`/*` 头集合，实际是合并（资产也带上了 XFO/CSP/Referrer/Permissions），属平台行为、无害；② **Service Worker 预缓存的 index.html 使老访客的导航请求绕过新头**——在已装 PWA SW 的浏览器 profile 里 iframe 仍完整渲染工坊（`fromServiceWorker: true`），记 P3。**
+
+## 1. 响应头逐条核验（curl，原始输出 `/home/ubuntu/r104_headers.txt`）
+
+| 头 | `/` | `/studio` | `/templates` | `/assets/index-DQ-Z9IXg.js` | `/api/quota` |
+|---|---|---|---|---|---|
+| Cache-Control | `no-cache, must-revalidate` ✅ | 同 ✅ | 同 ✅ | `public, max-age=31536000, immutable` ✅ | `no-store` |
+| Strict-Transport-Security | `max-age=31536000; includeSubDomains` ✅ | ✅ | ✅ | ✅ | ❌ 无 |
+| X-Content-Type-Options | `nosniff` ✅ | ✅ | ✅ | ✅ | ❌ 无 |
+| X-Frame-Options | `SAMEORIGIN` ✅ | ✅ | ✅ | ⚠️ 也存在（预期外，见下） | ❌ 无 |
+| Content-Security-Policy | `frame-ancestors 'self'` ✅ | ✅ | ✅ | ⚠️ 也存在 | ❌ 无 |
+| Referrer-Policy | `strict-origin-when-cross-origin` ✅ | ✅ | ✅ | ⚠️ 也存在 | ❌ 无 |
+| Permissions-Policy | `geolocation=(), microphone=(), camera=(), payment=(), usb=()` ✅ | ✅ | ✅ | ⚠️ 也存在 | ❌ 无 |
+
+- 三个静态路由：**六个新头逐条值全等** edgeone.json 配置，无缺无错 — PASS。
+- `/assets/*`：Cache-Control 正确取到更具体规则的 immutable，HSTS + nosniff 齐全；但**用户预期的"只应有这三项"未成立**——EdgeOne 把 `/*` 与 `/assets/*` 两段的头**合并**下发，资产响应也带 XFO/CSP/Referrer/Permissions。属平台合并语义（非配置错误），对 JS/CSS 资产无副作用（XFO/CSP frame-ancestors 只影响文档级 frame 嵌套）。如实记为平台行为。
+- `/api/quota`（edge function）：**六个新头全部不生效**，仅 `content-type`/`cache-control: no-store`/`x-seatmark-storage: memory`/`server: edgeone-pages`。与第 103 轮源码分析一致——`json()` 自建 Response，不受 `headers` 段控制，属平台行为；API 为 JSON 响应、不可被 frame 渲染，风险低。如需覆盖须在 `json()` 里补 `extraHeaders`。
+
+## 2. 点击劫持复测
+
+- **干净浏览器 profile（全新 `--user-data-dir`，无 SW/无缓存）**：本地攻击者页面 `http://localhost:8099/frame2.html` 内 `<iframe src="https://www.seatmark.cn/studio?r104=1">`
+  - iframe 响应头实测：`x-frame-options: SAMEORIGIN`、`content-security-policy: frame-ancestors 'self'`、`eo-cache-status: Cache Miss`、`fromDiskCache: false`
+  - 控制台（`Log.entryAdded`, level=error, source=security）：`Refused to frame 'https://www.seatmark.cn/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'self'".`
+  - 视觉：iframe 区域为**空白错误页**（截图 `r104_clickjacking_freshprofile.png`），与第 103 轮 `r103_clickjacking_iframe.png` 的完整工坊界面形成红/绿对照 — **PASS**
+- 反向对照：同一环境顶层直接打开 `https://www.seatmark.cn/studio` 正常渲染（`r104_toplevel_studio_ok.png`），证明拒绝来自跨源嵌套而非站点坏了 — PASS
+
+### P3-1（新）Service Worker 预缓存令老访客的新头失效
+在**此前访问过站点的浏览器 profile** 里，同一攻击者 iframe **仍完整渲染工坊界面**（`r104_clickjacking_blocked.png` / `r104_clickjacking_after_swpurge.png`）。CDP 实测该 iframe 响应为 `fromServiceWorker: true, fromDiskCache: true, age: 1083, eo-cache-status: Cache Hit`，头里**没有** XFO/CSP。
+根因：站点 PWA 的 workbox 预缓存里含 `https://www.seatmark.cn/index.html?__WB_REVISION__=64c4c6b1…`（`caches.keys()` = `workbox-precache-v2-https://www.seatmark.cn/`，27 项），SPA 任意路由导航（含跨域 iframe 导航）由 SW 用这份**部署前抓取的 Response** 应答，其响应头是旧的 → XFO/CSP 不被强制。
+影响：#124 对**已安装 SW 的老访客**在其预缓存刷新前不生效；因 #124 未改 index.html 内容，precache revision 不变，该条目不会自动换新——直到下次触及 index.html 的构建。
+建议（只报告不改）：下次发版顺带让 index.html 内容变化（如注入构建时间戳注释）以翻转 precache revision；或让 SW 对导航请求走 NetworkFirst/不预缓存 index.html。风险等级 P3：新访客与刷新过缓存的访客已受保护，且利用仍需受害者先访问过站点。
+
+## 3. 功能回归（真实 UI，CDP 1280×900）
+
+- 渲染：`/`（hero「上传 Excel，批量生成」+ 双 CTA + A4 排版预览）、`/templates`（222 款网格缩略图正常）、`/studio`（三步卡 + 预览区）全部正常，无白屏、无样式丢失 — PASS（`r104_render_home.png`、`r104_render_templates.png`、`r104_render_studio.png`）
+- Excel 导入：`/studio` 文件选择器上传 `r96_singlecol.xlsx` → 「共 2 条数据 / 2 个标签」、预览渲染「张伟」「王芳」两枚桌牌 — PASS（`r104_import_ok.png`）
+- PNG 导出：点「图片 PNG」→ 弹窗 → 点「带水印导出（不限次数）」→ 实际下载 `签到桌牌版-20260809-2305.zip`（33 955 B），解包含 `…-001.png`(17 868 B)、`…-002.png`(15 581 B)，`001` 像素核验为「张伟」桌牌含 seatmark.cn 水印 — PASS（`r104_export_done.png`、`r104_export_png_001.png`）
+- 打印：点「打印 / 矢量 PDF」→ 弹窗选导出方式后 `window.print` stub 被调用（`__printed=1`），期间 `Page.printToPDF(preferCSSPageSize)` 捕获 **1 页 A4 纵向（594.96×841.92pt）**，含「张伟」「王芳」两枚标签 + 裁切线 + 页脚水印，无空白页 — PASS（`r104_print_pdf-1.png`、PDF `/home/ubuntu/r104_print.pdf`）
+- 统计脚本（clean state 加载 `/` 等 idle，CDP Network）：`googletagmanager.com/gtag/js?id=G-5MKTF5XDYQ` HIT、`hm.baidu.com/hm.js` HIT、`zz.bdstatic.com/linksubmit/push.js` HIT、`clarity.ms` HIT — 四家全部照常加载，Referrer-Policy/Permissions-Policy 未阻断 — PASS
+- 控制台/网络：整轮回归收集到的 error 级日志与 ≥400 响应 **0 条**（仅有 Chrome 的 third-party cookie 警告，与第 100/103 轮同，非新增）— PASS
+
+## 4. Lighthouse（参考项，`/home/ubuntu/r104_lighthouse/m_home.report.json`）
+
+| `/` 移动仿真 | 第 100 轮 | 第 104 轮 |
+|---|---|---|
+| Performance | 92 | **95** |
+| Best Practices | 58 | **58（无变化）** |
+| CLS | 0 | 0 |
+| TBT | 310 ms | 210 ms |
+| LCP | 1.7 s | 1.8 s |
+| 根文档响应 | — | 60 ms |
+
+Best Practices 未因 HSTS/nosniff 变化：扣分项仍为 `third-party-cookies`（8 个，来自 Clarity/百度统计）、`deprecations`（app bundle 内 `unload` 监听）、`inspector-issues`——Lighthouse 的 BP 分类不为安全响应头加分。按用户约定仅作参考。
+
+## 结论与遗留
+
+- #124 主体目标达成：静态路由六头齐备、值正确，跨域点击劫持在干净客户端被拒绝，功能与统计无回归。
+- 新增 **P3-1**（SW 预缓存令老访客新头失效，含修法建议）。
+- 平台行为注记：`/assets/*` 头为合并而非覆盖；`/api/*` 完全不受 `headers` 段控制。
+- 既有开放项不变：生产 KV 绑定（`x-seatmark-storage: memory`）、登录链路待 SES+KV、`/templates` 根文档时延波动。
+
+---
+
+# 第 103 轮：线上安全与网络响应头卫生审计（www.seatmark.cn，只审计不改码）
+
+**日期**: 2026-08-09　**环境**: 生产 www.seatmark.cn（bundle `index-DQ-Z9IXg.js`，`x-seatmark-storage: memory`）。curl 抓头/畸形输入探测 + CDP 1280×900 真实 UI 注入面测试 + 本地 http://localhost:8099 攻击者页面 iframe 嵌套实证。未录屏。未改任何产品代码。
+**结论**: **API 面稳健（全部畸形输入均为可控 4xx、零 500/545、零栈或密钥泄漏、JWT 伪造被拦、Cookie 属性齐全、CORS 未放宽、v-html 装饰层安全门禁有效且对照组证明非假通过）；但响应头卫生为空白：全站零安全响应头，站点可被任意第三方页面 iframe 嵌套（点击劫持）——记 1×P2 + 3×P3。**
+
+## 问题清单
+
+### P2-1 全站零安全响应头，可被任意站点 iframe 嵌套（点击劫持面）
+`/`、`/studio`、`/templates`、`/api/quota`、`/api/announcement` 逐个抓头：**HSTS / X-Content-Type-Options / X-Frame-Options / CSP(frame-ancestors) / Referrer-Policy / Permissions-Policy 全部缺失**，EdgeOne 平台默认不补（响应仅含 cache-control、etag、eo-*、server: edgeone-pages）。
+实证：本地起 `http://localhost:8099/frame.html` 用 `<iframe src="https://www.seatmark.cn/studio">` 嵌套 → **完整渲染可交互**（`window.frames.length=1`，跨域加载成功，见 `r103_clickjacking_iframe.png`）。
+影响：点击劫持（可覆盖透明层诱导点击「打印/导出/删除账号」）、MIME 嗅探、Referrer 全量外泄给三家统计与上游。
+修法（只报告不改）：`edgeone.json` 的 `headers` 段已在用（现仅配 Cache-Control），可在 `source: "/*"` 下补
+`Strict-Transport-Security: max-age=31536000; includeSubDomains`、`X-Content-Type-Options: nosniff`、`X-Frame-Options: SAMEORIGIN`（或 CSP `frame-ancestors 'self'`）、`Referrer-Policy: strict-origin-when-cross-origin`、`Permissions-Policy: geolocation=(), microphone=(), camera=()`。CSP 完整策略因站内有 v-html/内联注入器与三家统计脚本，建议先上 frame-ancestors + Report-Only 观察。
+附：`http://www.seatmark.cn/` → 302 `https://...`（跳转有，但无 HSTS 预加载保护）。
+
+### P3-1 生产 memory 存储下所有限频形同失效（未认证写入端点无节流）
+- POST /api/feedback 连打 12 次（代码日限 `FEEDBACK_IP_DAILY_LIMIT=10`）→ **12/12 全 200 `{"ok":true}`**，未出现 429。
+- POST /api/auth/code 同邮箱连打 6 次 → 6/6 均 502（邮件未配置，见 P3-2），限频分支未被触达。
+- POST /api/share/tpl 连打 10 次合法负载 → **10/10 200 各得短码**，代码本身无任何限频；未认证即可写入 ≤20000 字符负载。
+归因：既有最高优先级开放项「生产未绑定 KV/Blob，`x-seatmark-storage: memory`」使跨 isolate 计数器全部失效——按本轮指示不算新缺陷，但它把「无限频未认证写入」变成实际滥用面，绑定 KV 后需复测。
+
+### P3-2 /api/auth/code 线上 502，登录链路仍不可用
+6/6 次返回 `{"error":"验证码发送失败，请稍后再试"}`（502）。与既有「登录链路待 SES+KV」开放项一致，本轮再次线上确认。
+
+### P3-3 /api/share/tpl 写入后读不回（短码分享在生产不可用）
+POST 得短码 `45c2aa5add` 后 GET `?code=45c2aa5add` → 404 `{"error":"短码不存在或已过期"}`。前端 `createVerifiedShortShareCode` 有回读校验兜底（不会发出扫不开的码），故用户侧表现为降级长链，但云端短码分享在生产实质不可用——同属 KV 未绑定的后果。
+
+## 通过项（objective evidence）
+
+- **CORS 未放宽**：带 `Origin: https://evil.example` 抓 `/`、`/api/quota` 与 OPTIONS 预检 → **无 `Access-Control-Allow-Origin`**（不反射、非 `*`），预检 204 无 ACA-* 头 — passed
+- **错误方法**：GET 打 /api/auth/{code,verify,logout}、/api/account/delete、/api/quota/consume、/api/share/visit → 404「接口不存在」；/api/feedback、/api/ai-design → 405「请求方法不支持」；PUT /api/account/templates 未登录 → 401 — passed
+- **非 JSON 体**（`this is not json <<<>>>`）7 端点 → 全 400 固定中文文案 — passed
+- **缺字段/类型污染**（`{"email":{"$ne":null}}`、`{"code":null}`、`payload` 为对象、`role:"admin"`、2000 层嵌套数组、`?code=' OR 1=1--`、`/api/../../etc/passwd`）→ 全 400/404，无 500 — passed
+- **超大 body**：300KB email、300KB/2MB share payload、2MB feedback content、2MB ai-design content → 全 400，**无 500/545、无边缘实例崩溃** — passed
+- **无栈/密钥泄漏**：全部响应体为固定中文文案 JSON，未出现 `stack`/`TypeError`/`at `/文件路径/`sk-`/`Bearer`/env 变量名 — passed
+- **JWT 伪造与提权**：伪造 `sm_session`（签名乱改）、`alg:none`、垃圾 cookie → /api/admin/{health,users}、/api/account/templates 全 401；/api/auth/me 返回 `{"user":null}`（不 200 泄漏用户） — passed
+- **Cookie 属性**：POST /api/auth/logout → `set-cookie: sm_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0` — passed（注：无法真实登录，登录态 Set-Cookie 走同一 `sessionCookie()`，本轮以 logout 通道核验属性）
+- **名单字段注入（真实 UI）**：造 `r103_xss.xlsx`（姓名列 `<script>alert(1)</script>`、`"><img src=x onerror=alert(1)>`、`{{7*7}}`、`<svg onload=alert(1)>`）经文件选择器导入 /studio → 「已读取 4 条数据」，预览卡片**原样以文本显示尖括号**、`{{7*7}}` 未求值为 49、`window.__xss` 计数 0、DOM 内无 `img[onerror]`/`svg[onload]`/注入 `<script>` — passed（`r103_import_xss.png`、`r103_import_xss_preview.png`）
+- **v-html 装饰层门禁（真实分享链接通道）**：用页面内同算法编码 `#tpl=` 负载模拟攻击者分享链接，5 种恶意 `decorSvg`（`<svg onload=>`、`<svg><script>`、非 svg 开头 `<img onerror>`、`<use xlink:href>`、`<foreignObject><img onerror>`）逐个真实点击弹窗「仅本次使用」应用 → **全部 `.label-decor` 节点数 0（装饰层拒绝渲染）、`window.__xss`=0、无 script/onerror/onload/foreignObject/use 节点**；**对照组**合法 `<svg><rect fill="#ffe4e6"/></svg>` → 4 个 `.label-decor` 渲染、截图可见粉色底纹，证明门禁不是"全都不渲染"的假通过 — passed（`r103_decor2_g_legit.png` vs `r103_decor2_a_svg_onload.png`）
+
+## 方法学注记（诚实记录）
+- 首轮 decorSvg 探测手写的模板 JSON 未通过 `isValidTemplate`（缺 `page`/`fields`），且分享链接需真实点击「仅本次使用」才应用——首轮全部变体（含对照组）都"未渲染"，属**假通过**；补齐 schema 并真实点击弹窗后重测，对照组渲染成功才使阴性结论有效。
+- 超大 body 首次经 curl 命令行传参触发 `Argument list too long`，改为 `--data-binary @file` 重测。
+- 生产 `x-seatmark-storage: memory` 使登录、短码回读、限频均不可用，因此认证态端点（配额消耗、账号模板读写、管理端点 200 路径）**本轮未能覆盖**，仅验证了其未认证拒绝路径——待 KV 绑定 + SES 配置后需补测。
+
+
+# 第 102 轮：线上回归 PR #123（skip-link + SelectField 键盘语义，squash 2d6dc96，bundle index-DQ-Z9IXg.js）
+
+**日期**: 2026-08-09　**环境**: 等 EdgeOne 部署刷新（`index-Bd-zc2r4.js` → `index-DQ-Z9IXg.js`）后开测；CDP Input.dispatchKeyEvent 真实按键 + activeElement 逐步断言 + focus ring 截图；1280×800 与 390×844。未录屏。未改任何产品代码。
+**结论**: **#123 两项修复线上全部生效，第 101 轮 2 条 P3 闭环：/ 首次 Tab 停在「跳到主内容」且左上角像素可见、Enter 后焦点落 main#main-content、后续 Tab 直达主内容 CTA；SelectField ↓ 展开、↑/↓ 移动焦点（端点夹住）、disabled 纸型项被跳过、Enter 选中生效且焦点归还触发按钮、Esc 关闭焦点仍在触发按钮。鼠标通道与导出弹窗焦点管理回归无退化。**
+
+## 1. skip-link — passed
+- / clean 首次 Tab：activeElement=「跳到主内容」链接，左上角紫底白字浮现（`r102_skiplink_focus.png`，对照默认态无该元素 `r102_default_no_skiplink.png`，头部布局不变）；Enter → activeElement=main#main-content；再 Tab → 落主内容区首个可聚焦元素「开始生成标签」（/studio CTA），不再回头部导航（第 101 轮此步为 logo→精选模板…）。
+- 390×844：首屏视觉无异常、首次 Tab 同样落 skip-link（`r102_skip_390.png`、`r102_skip_390_focus.png`）。
+
+## 2. SelectField 键盘语义 — passed
+- /studio 缩放下拉（signage）：触发按钮关态按 ↓ → listbox 直接展开（`r102_select_arrow_open.png`）；↓↓ 到「适应单枚」、↑ 回「适应宽度」，focus ring 可见（`r102_select_option_focus.png`）；连按 ↑×5 顶端夹住不越界；Enter 选中「适应单枚」→ 触发按钮文本变「适应单枚」且 **activeElement===触发按钮**（第 101 轮此处丢 body）；再开 → Esc 关闭，焦点仍在触发按钮（`r102_select_value_changed.png`、`r102_select_esc.png`）。
+- disabled 跳过：fullPage 整页模板纸型下拉 17 项中 15 项 disabled（「不适配 与当前整页/折叠模板不兼容」徽标）——↓ 遍历焦点只落「不使用纸型」「A4 整版不干胶（推荐）」两个可用项并在此夹住，activeElement 从未落 disabled 按钮（`r102_paper_disabled_skip.png`）。注：signage/aurora 等常规模板纸型全兼容（isPaperCompatible 仅对整页模板判不兼容），disabled 场景须用 fullPage 类模板构造。
+
+## 3. Regression — passed
+- 鼠标通道：点击触发按钮开 → 点击「75%」选中生效并关闭 → 再开后点击组件外部关闭 — 与旧行为一致（`r102_mouse_regression.png`）。
+- 导出弹窗抽检：「图片 PNG」Enter 打开 → 焦点入 dialog → Tab×10 全困陷 → Esc 关闭 → 焦点归还「图片 PNG」按钮（`r102_dialog_regression.png`）。诚实注记：第一次抽检 Esc 后焦点曾落到预览标签卡 DIV——复盘为此前鼠标回归步骤在 (900,500) 的外部点击命中了预览卡、污染了 previouslyFocused 链，干净复测焦点精确归还触发按钮，非产品缺陷。
+
+
+# 第 101 轮：线上全键盘可达性与交互语义走查（www.seatmark.cn，无代码改动，找问题为主）
+
+**日期**: 2026-08-09　**环境**: CDP Input.dispatchKeyEvent 发真实 rawKeyDown/keyUp（Tab/Shift+Tab/Enter/Esc/箭头），每步记录 document.activeElement + 截图核验 focus ring 像素可见性；1280×800。未录屏。未改任何产品代码。
+**结论**: **主链路全键盘可达：首页→模板库（搜索/分类/卡片）→模板详情→工坊、导出弹窗焦点困陷+Esc+焦点归还、预览翻页/页码跳转、/seating 键盘选座交换全部可用，focus ring 全程像素可见，无键盘陷阱。发现 2 条 P3（无 skip-link；SelectField 自定义下拉无方向键导航且选中后焦点丢到 body）。**
+
+## 1. 首页→模板库→工坊全键盘链路 — passed
+- / 首次 Tab 落在 logo 链接（无 skip-link → P3-1）；Tab 至头部「模板」focus ring 可见（`r101_nav_templates_focus.png`）→ Enter 到 /templates。
+- /templates：Tab 经 教程/定价/开始制作/登录 到搜索框（ring 可见，`r101_search_focus.png`），键入「桌牌」过滤到 25 款（`r101_search_filtered.png`）；继续 Tab 经 7 个分类 chip 到首张模板卡（ring 可见，`r101_card_focus.png`）→ Enter 进 /templates/signage 详情 → Tab 到「用此模板开始」→ Enter 到 /studio?template=signage。焦点顺序与视觉排布一致，无陷阱。
+
+## 2. 导出弹窗焦点管理（ModalDialog）— passed
+- Tab 到「图片 PNG」（ring 可见，`r101_png_btn_focus.png`）→ Enter：焦点落入 dialog panel（role=dialog aria-modal）；连续 15 次 Tab activeElement 全部保持在弹窗内（困陷生效）；Shift+Tab 反向循环正常；Esc 关闭；**关闭后焦点精确归还「图片 PNG」触发按钮** — 与 ModalDialog.vue L34-95 实现一致（`r101_export_dialog_open/trap/closed.png`）。
+
+## 3. 预览翻页/缩放 — 翻页 passed，缩放 SelectField 两条 P3
+- Tab 到 aria-label「下一页」→ Enter：页码 1→2；Shift+Tab 到「跳转到页码」输入框改 1 回车跳回（`r101_nextpage_focus.png`、`r101_page2.png`）。
+- 缩放（SelectField 自定义下拉）：Enter 打开 listbox，**Tab 可逐项聚焦**、Enter 选中「适应单枚」生效、Esc 关闭（`r101_zoom_option_focus.png`）。但 **P3-2**：①无 ArrowDown/Up 方向键导航（SelectField.vue L53-55 仅处理 Escape，原生 select 习惯用户会困惑）；②选中选项后焦点丢到 body（未归还触发按钮），键盘用户需从头 Tab。全站同组件（字体/纸型/命名等十余处）同此行为。
+
+## 4. /seating 键盘可达性 — passed（超预期）
+- 左侧表单全部可达（标题/排数/列数/填充顺序/过道 7 按钮/演示名单/随机/打印/生成桌贴，Tab 顺序合理）。
+- 座位格为 role=button tabindex=0 + @keydown.enter（SeatingView.vue L686-690）：Tab 到座位 2 → Enter 选中（selected 样式可见，`r101_seat1_selected.png`）→ Tab 到座位 3 → Enter → **两座位键盘交换成功**（2李磊平 ↔ 3张涛利，`r101_seat_swapped.png`）；行首「排」把手同样可聚焦可激活。拖拽不可用键盘替代的部分已有点选交换等价通道，不记问题。
+
+## 问题清单
+- **P3-1 无 skip-link**：/ 首次 Tab 直接落 logo，键盘用户每页需 Tab 穿越整个头部（7 个链接）才到主内容。建议加「跳到主内容」隐藏链接。
+- **P3-2 SelectField 键盘语义不完整**：无方向键导航选项；选中后焦点不归还触发按钮（丢到 body）。建议补 ArrowDown/Up/Home/End + 选中/Esc 后 focus 归还。
+
+诚实注记：走查中曾出现工坊「标签宽」从 90 变为 10 的状态污染——复盘为本测试脚本键盘输入落点偏差所致（刷新后干净状态复核 90 正常），非产品缺陷；第 3 步断言均在干净状态下重测确认。
+
+# 第 100 轮：线上验证 PR #122（统计脚本空闲后注入，squash 9bdd506，bundle index-Bd-zc2r4.js / index.html 已刷新）
+
+**日期**: 2026-08-09　**环境**: 等 EdgeOne 部署刷新（线上 index.html 头部 googletagmanager 直连 <script> 消失、出现 requestIdleCallback 注入器）后开测；CDP Network 时间线 + 真实 UI 导航；npx lighthouse 13.4.1（同第 98/99 轮口径移动仿真）。未录屏。未改任何产品代码。
+**结论**: **#122 线上生效：4 个统计脚本（gtag.js / hm.js / push.js / clarity tag）全部在 load 事件之后才发起请求（load 前 0 个统计请求），stub 队列回放正常（dataLayer 含 config + / 与 /templates 两条 page_view，_hmt 加载后为对象访问不抛错，clarity 为 function）；Lighthouse / 移动 Perf 92（第 99 轮 51-61）、CLS 0、TBT 310ms。诚实记录：Best Practices 仍 58 未提升——扣分项（9 个第三方 Cookie、unload deprecation、inspector-issues）在统计脚本注入后依旧存在，idle 注入只把它们移出关键路径、Lighthouse 观察窗内仍会加载；BP 提升需减少统计供应商或等 Lighthouse 窗口外注入，属预期内限制非回归。**
+
+## 1. 延迟注入时间线 — passed
+
+- clean state 加载 /（共 35 请求）：loadEventFired t+0.92s；4 个统计请求全部 ≥ load 时刻之后发出，load 前统计请求 **0 个**。
+  - googletagmanager.com/gtag/js、hm.baidu.com/hm.js、zz.bdstatic.com/linksubmit/push.js、clarity.ms/tag：均在 load 后立即（idle 可用）注入，无一缺失。
+
+## 2. 队列回放 + SPA 导航上报 — passed
+
+- 注入完成后 dataLayer 含 `('js', Date)`、`('config','G-5MKTF5XDYQ')`（stub 缓冲被 gtag.js 回放）；`_hmt` 为 object（hm.js 加载后替换）访问不抛错；`typeof clarity === 'function'`。
+- 真实点击导航「模板」→ /templates：dataLayer 新增 page_view，page_path 序列 = ['/', '/templates']（router afterEach 上报链路未断）（`r100_templates_after_nav.png`）。
+
+## 3. Lighthouse 对比（移动仿真） | 第 99 轮 → 第 100 轮
+
+| 页面 | Perf | BP | CLS | TBT |
+|---|---|---|---|---|
+| / | 51-61 → **92** | 58 → 58 | 0 → 0 | 520-640ms → **310ms** |
+| /templates | 51 → 50 | 58 → 58 | 0 → 0 | 510ms → 610ms |
+
+- / 大幅改善（LCP 1.7s、根文档 190ms）；/templates 本次采样根文档 3220ms（既有 P3 服务端波动），Perf 50≈51 无回归。
+- BP 未提升的明细：third-party-cookies 9 个（CLID/SM/MUID×2/MR/SRM_B/ANONCHK/HMACCOUNT×2，全部来自 Clarity/百度统计本身）、deprecations 1（app bundle 内 unload 监听，非统计脚本）、inspector-issues——统计脚本在 Lighthouse 跑分窗口内仍会注入（idle timeout 4s < 观察窗），Cookie 扣分不消失。如实记录，非 #122 回归。
+- 原始 JSON：`/home/ubuntu/r100_lighthouse/`。
+
+## 4. 冒烟 — passed
+
+- / 与 /studio 正常渲染（`r100_home_smoke.png`、`r100_studio_smoke.png`）；stub 无任何异常抛出。
+- 诚实注记：首次冒烟收到一条「Failed to load resource: 400」，定位为 google-analytics.com/g/collect 采集 beacon 在本测试环境被中断（ERR_ABORTED，网络出口限制），复测一轮 0 个 4xx/5xx；与 stub/注入器无关。
+
+
+# 第 99 轮：线上回归 PR #120（性能两项 P2 修复对比，squash bf33d85，bundle index-Bd-zc2r4.js）
+
+**日期**: 2026-08-09　**环境**: 等 EdgeOne 部署刷新（`index-Y9DXCqri.js` → `index-Bd-zc2r4.js`）后开测；npx lighthouse 13.4.1 + Chromium headless（与第 98 轮同口径：移动=moto G4 仿真+节流，桌面=--preset=desktop）；功能/视觉用 CDP 1280×800 与 390×844 真实 UI 操作，clean state。未录屏。未改任何产品代码。
+**结论**: **#120 两项修复线上全部生效：全站移动 CLS 0.93 → 0（footer 位移条目消失）；/templates 移动 Perf 4 → 51、TBT 1820 → 510ms、LCP 11.9 → 8.2s，bootup 榜首 TemplateThumb 1611ms 条目消失。功能回归（懒渲染滚动/搜索/工坊选择器）与视觉回归（footer 首帧不入首屏、/privacy 页尾正常、/seating 打印 1 页无空白尾页）均通过。无新增问题。**
+
+## 1. Lighthouse 前后对比（同口径移动仿真）
+
+| 页面 | 端 | 指标 | 第 98 轮 | 第 99 轮 |
+|---|---|---|---|---|
+| / | 移动 | Perf / CLS / LCP / TBT | 60 / **0.931** / 3.1s / 280ms | 51 / **0** / 5.8s / 520ms |
+| /templates | 移动 | Perf / CLS / LCP / TBT | **4** / 0.931 / 11.9s / **1820ms** | **51** / **0** / 8.2s / **510ms** |
+| /templates | 桌面 | Perf / CLS / LCP / TBT | 59 / 0.415 / 1.9s / 290ms | **87** / **0** / 2.0s / 40ms |
+
+- layout-shifts 审计中三份 JSON 均无任何 footer 位移条目（第 98 轮首条均为 `footer.no-print` 0.93）——`min-h-svh` 修复目标达成。
+- /templates 移动 bootup 榜首从 TemplateThumb 1611ms + templates chunk 1551ms 变为页面主文档 198ms——defer 懒渲染目标达成。
+- 诚实注记：/ 移动 Perf 60→51、LCP 3.1→5.8s 系单次采样波动（本轮 server-response-time 1480ms，属第 98 轮已报 P3 根文档响应时延波动区间；CLS/TBT 主因均已消除，FCP 4.3s 亦受其拖累），非 #120 引入回归。已复测第二次采样：/ 移动 Perf 61 / CLS 0 / LCP 4.5s / TBT 640ms，根文档仅 60ms——确认首采低分系服务端时延波动（JSON：m_home_run2.json）。
+- 原始 JSON：`/home/ubuntu/r99_lighthouse/`（m_home / m_templates / d_templates）。
+
+## 2. 功能回归：defer 懒渲染 — passed
+
+- /templates 首屏（1280px，clean）：222 个缩略图容器仅 9 个实际渲染内层 LabelCard，首屏卡片像素正常（`r99_templates_top.png`）。
+- 快速滚到底 + 回滚中部：视口±400px 内 nearUnrevealed=0，无空灰块残留（`r99_templates_bottom.png`、`r99_templates_middle.png`）。
+- 搜索「婚」过滤后 19 张，视口内全部渲染（`r99_templates_search.png`）。
+- 工坊选择器：「浏览全部 222 款模板」打开 → 225 个缩略图仅 9 个渲染；滚动中部/底部视口内全部补渲染（一个计数为“未渲染”的元素经核实被对话框滚动容器完全裁剪在可视区外，IntersectionObserver 判定正确，非可见空块）；点选「小学新生桌贴」切换成功、选中卡带勾且缩略图正常（`r99_picker_open/scrolled/bottom/switched_top.png`）。
+
+## 3. 视觉回归：footer 首帧 — passed
+
+- 390×844 与 1280×800 clean 加载 / 与 /studio：首帧（~0.35s）截图 footer 均不在首屏；加载完成后 footer 文档位置 top=6927/2125/3928/1999px，均在视口外（`r99_footer_{home,studio}_{390,1280}_{firstframe,loaded}.png`）。
+- 短内容页 /privacy：滚到底 footer 完整显示在页尾（产品/教程/资源栏 + 备案号），无消失/重叠（`r99_privacy_footer.png`）。
+
+## 4. /seating 打印 — passed
+
+- 点击「打印座位表（A4 横向）」（stub window.print 避免阻塞对话框，打印宿主挂载期间用 Page.printToPDF preferCSSPageSize 捕获）：**1 页** A4 横向（841.92×594.96pt），内容为完整座位表（讲台+6排×8列+页脚），**无因 min-h-svh 产生的多余空白尾页**——`print:min-h-0` 生效（`r99_seating_print_page1.png`）。
+- 方法注记：系统打印对话框本身无法在 headless CDP 中交互，以上通过真实点击打印按钮 + 打印媒体渲染管线捕获，等价核验分页结果。
+
+
+# 第 98 轮：线上性能与加载体验审计（www.seatmark.cn，bundle index-Y9DXCqri.js，无代码改动）
+
+**日期**: 2026-08-09　**环境**: npx lighthouse 13.4.1 + Chromium headless（移动=moto G4 仿真+4x CPU+slow4G 节流；桌面=--preset=desktop），五页 × 双端各一轮；弱网/CLS 目测用 CDP Network.emulateNetworkConditions + 390×844 连拍。未录屏。未改任何产品代码。
+**结论**: **SEO 全 100、A11y 96-100、桌面性能尚可（74-89）；但移动端 Lighthouse 性能普遍偏低（4-60），核心问题两条 P2（全站移动 CLS≈0.93 的 footer 位移、/templates 移动端 222 模板全量渲染致 TBT 1.8s/LCP 11.9s）+ 2 条 P3。防回归项全过：首屏无 pdf/xlsx chunk、br 压缩、immutable 缓存、弱网无白屏。**
+
+## 分数表（Perf / A11y / BP / SEO · LCP / CLS / TBT）
+
+| 页面 | 移动 | 桌面 |
+|---|---|---|
+| `/` 首页 | **60**/100/58/100 · 3.1s/0.93/280ms | 74/100/58/100 · 1.1s/0.46/10ms |
+| `/studio` | **54**/96/58/100 · 4.1s/0.96/250ms | 76/96/58/100 · 1.2s/0.42/0ms |
+| `/templates` | **4**/96/73/100 · **11.9s/0.93/1820ms** | 59/96/58/100 · 1.9s/0.42/290ms |
+| `/guides/label-print-troubleshooting` | **38**/100/58/100 · 8.4s/0.93/200ms | 78/100/58/100 · 1.1s/0.42/0ms |
+| `/templates/weddingPlace` | 41/96/73/100 · 6.9s/0.93/280ms | **89**/96/58/100 · 1.3s/0.17/0ms |
+
+注：INP 实验室不可测，以 TBT 为代理；移动分含 Lighthouse 4x CPU 节流，非真机绝对值。
+
+## Top 问题清单（只列可行动项）
+
+- **P2 全站移动 CLS≈0.93（桌面 0.42-0.46），元凶 `footer.no-print`**：五页 layout-shifts 首条均为 footer 位移 0.93——SPA 挂载后内容撑开将首屏可见的 footer 推出视口，Lighthouse 判为大位移。建议：给 `#app` 首屏容器设 `min-height:100vh`（或骨架占位），使 footer 初始即在视口外。注：390px 连拍目测首屏内容本身稳定无跳动（截图 r98_cls_*），伤害主要在 CWV 指标/搜索排名而非肉眼体验。
+- **P2 /templates 移动端性能 4 分**：TBT 1820ms、LCP 11.9s、SI 9.7s；bootup 前两名 TemplateThumb.vue 1611ms + templates chunk 1551ms——222 张模板缩略图（SVG 逐张渲染）首屏全量挂载。建议：列表虚拟化或 IntersectionObserver 懒渲染缩略图、首屏只渲染可视区。
+- **P3 第三方分析脚本拖累 BP 与主线程**：GTM/GA(165KB)+Microsoft Clarity+百度 hm 三家齐上，9 个第三方 Cookie 使全站 Best Practices 仅 58-73，GA 在 /templates bootup 占 1505ms；另有 `unload` 事件监听 deprecation 警告。建议：延迟到 idle/交互后注入、评估三家是否都保留、移除 unload 监听。
+- **P3 根文档服务端响应 750-1420ms**（server-response-time 机会项，五页均出现，EdgeOne 边缘函数路径）。建议排查边缘函数冷启动/回源。
+
+## 防回归与弱网（全部通过）
+
+- 首屏网络清单（/ 33 请求、/studio 38 请求 · 共 501KB）**无 vendor-pdf/jspdf/xlsx chunk**（导出/导入仍按需加载）— passed
+- 资源卫生：HTML/JS br 压缩；`/assets/*` `cache-control: public, max-age=31536000, immutable`；无 >150KB 图片（唯一 >150KB 是 GA 脚本）；无 render-blocking 字体（font-display insight 通过，仅 13KB CSS 阻塞属正常）— passed
+- 弱网 Slow 4G（CDP 1.6Mbps/750kbps/RTT150ms，未加 CPU 节流）：`/` 首内容 0.5s（SSG 直出文案）、load 2.3s；`/studio` 首内容 2.1s、load 2.3s——无白屏死等（截图 r98_slow4g_*）— passed
+- 390px 加载期目测：首页/工坊连拍 3 帧 + 终帧对比，首屏无可见跳动（截图 r98_cls_home_f0-2/final、r98_cls_studio_f0-2/final）— passed（与 Lighthouse CLS 的矛盾见 P2 第一条解释）
+
+**产物**: Lighthouse JSON `/tmp/lh/*.json`（10 份）；截图 `/home/ubuntu/screenshots/r98_slow4g_home_firstcontent.png`、`r98_slow4g_home_loaded.png`、`r98_slow4g_studio_firstcontent.png`、`r98_slow4g_studio_loaded.png`、`r98_cls_home_f0.png`~`f2`/`final`、`r98_cls_studio_f0.png`~`f2`/`final`；计划 `/home/ubuntu/repos/SeatMark/test-plan-round98.md`。
+
+---
+
+# 第 97 轮：线上回归 PR #119（squash 0301d24）——多 sheet 工作表切换
+
+**日期**: 2026-08-09　**环境**: 线上 www.seatmark.cn，等 EdgeOne 部署（bundle 由 `index-BVRp4ipW.js` 更新为 **`index-Y9DXCqri.js`** 后开测），clean state（清 SW/caches/storage），CDP 1280×800 真实 UI 操作；复用 `r95_multisheet.xlsx`（sheet「甲」3 行 /「乙」5 行）与 `r95_big300.xlsx`。未录屏，截图为证。未改任何产品代码。
+**结论**: **四测项全部通过（第 95 轮 P3「多 sheet 静默取第一个」闭环）：多 sheet 出下拉可切换、toast 提示、覆写清除、往返正常、单 sheet 无退化、刷新恢复态正确不出下拉。无新增问题。**
+
+## 断言结果
+
+1. **多 sheet 导入 + 切换 — passed**
+   - 上传 r95_multisheet.xlsx → toast「Excel 导入成功 已读取 3 条数据**；文件含 2 个工作表，可在导入面板切换**」（截图 `r97_1_import_toast.png`）；面板出现 `select[aria-label="切换工作表"]`（选项 甲/乙，当前值 甲）、表 3 行 甲1-甲3。
+   - 先给「甲2」卡设单张覆写「覆写甲2」（toast「单张覆写已保存」，截图 `r97_1b_override_set.png`）→ 切到「乙」：toast「**已切换到工作表「乙」 已读取 5 条数据**」+「**单张覆写已清除**」双 toast 像素可见；表 5 行 乙1-乙5、表头 姓名/部门、下拉值=乙、预览回第 1 页且逐卡显示 乙1-乙5（自动映射生效）、覆写文字无残留（截图 `r97_2_switched_yi.png`）。
+2. **往返切回「甲」— passed**：toast「已切换到工作表「甲」 已读取 3 条数据」、表 3 行 甲1-甲3（截图 `r97_3_back_jia.png`）。
+3. **单 sheet 无退化（r95_big300.xlsx）— passed**：无 select，显示旧样式「工作表「监考名单」」，导入 toast 不含「文件含 N 个工作表」（截图 `r97_4_single_sheet.png`）。
+4. **刷新恢复态不出下拉 — passed**：重新上传 multisheet（有下拉）→ 刷新 /studio：sessionStorage 恢复 3 行 甲1-甲3、文件名 r95_multisheet.xlsx 保留，**无 select**、显示「工作表「甲」」旧样式（原始 File 已失，符合设计）（截图 `r97_5_reload_no_select.png`）。
+
+**诚实注记**: ① select 切换经 `value 赋值 + change 事件` 触发（原生下拉展开无法经 CDP 像素级仿真），与用户在下拉中选择走同一 @change 处理器；选项列表、当前值与切换后全部状态均经 DOM+截图核验。② 首次点预览卡设覆写时被「小技巧」提示浮层与误开的反馈弹窗遮挡两次，关闭后正常——属测试操作插曲，非产品缺陷。
+
+**产物**: 截图 `/home/ubuntu/screenshots/r97_1_import_toast.png`、`r97_1b_override_set.png`、`r97_2_switched_yi.png`、`r97_3_back_jia.png`、`r97_4_single_sheet.png`、`r97_5_reload_no_select.png`；计划 `/home/ubuntu/repos/SeatMark/test-plan-round97.md`。
+
+---
+
+# 第 96 轮：线上回归 PR #118（squash 8b21e9c）——Excel 导入健壮性三修复
+
+**日期**: 2026-08-09　**环境**: 线上 www.seatmark.cn，等 EdgeOne 部署（bundle 由 `index-Bx1XWLOr.js` 更新为 **`index-BVRp4ipW.js`** 后开测），clean state（清 SW/caches/storage），CDP 1280×800 真实 UI 操作；复用第 95 轮测试文件 + 新造 `r96_singlecol.xlsx` 反例。未录屏，截图为证。未改任何产品代码。
+**结论**: **三修复全部线上生效（第 95 轮 P2 + 2 条 P3 闭环），单列长表头反例不误跳，正常 300 行 xlsx 无退化。无新增问题。**
+
+## 断言结果
+
+1. **合并表头补列（r95_merged.xlsx，第 95 轮 P2 闭环）— passed**：表头 =「姓名 / 部门职务 / **列3**」3 列；数据行 甲乙|教务处|**监考员**、|招生办|巡考员、丙丁|人事处|考务员——C 列职务不再丢（旧行为仅 2 列）。截图 `r96_merged.png`。
+2. **前置大标题自动跳过（r95_titlerows.xlsx，第 95 轮 P3 闭环）— passed**：表头 =「姓名 / 部门 / 职务」（真实表头，旧行为是「2026 年监考安排表」），共 2 条 测试一/测试二；自动映射生效——预览卡片显示「测试一」「测试二」（截图 `r96_titlerows.png`、`r96_titlerows_preview.png`）。
+   - **反例不误跳（r96_singlecol.xlsx：首行「参会人员姓名列表」8 字单列 + 2 行名字）— passed**：表头仍为「参会人员姓名列表」、共 2 条 张伟/王芳（multiColumn 守卫生效，未把单列表头当标题跳掉）。截图 `r96_singlecol.png`。
+3. **CSV 口径统一（r95_test.csv，第 95 轮 P3 闭环）— passed**：file input `accept=".xlsx,.xls,.csv"`（DOM 核验）；上传区文案「支持 .xlsx / .xls / .csv」；经文件选择器通道上传 → toast「Excel 导入成功 已读取 2 条数据」、表头 姓名/部门、数据 丙丁|财务处、戊己|科研处。截图 `r96_csv.png`。
+4. **Regression 正常 xlsx 无退化（r95_big300.xlsx）— passed**：toast「已读取 300 条数据」、表头恰好 姓名/部门/职务 3 列（columnCount 按数据最大列数建列未多出「列N」）、「300 个标签 13 页」与第 95 轮一致。截图 `r96_big300_regression.png`。
+
+**产物**: 截图 `/home/ubuntu/screenshots/r96_merged.png`、`r96_titlerows.png`、`r96_titlerows_preview.png`、`r96_singlecol.png`、`r96_csv.png`、`r96_big300_regression.png`；新测试文件 `/home/ubuntu/r96_singlecol.xlsx`；计划 `/home/ubuntu/repos/SeatMark/test-plan-round96.md`。
+
+---
+
+# 第 95 轮：线上走查——Excel 导入健壮性与大名单性能（www.seatmark.cn，无代码改动）
+
+**日期**: 2026-08-09　**环境**: 线上 www.seatmark.cn（bundle `index-Bx1XWLOr.js`），clean state（清 SW/caches/storage），CDP 1280×800 真实 UI 操作；测试文件用 openpyxl/xlwt/csv 现造（`/home/ubuntu/r95_*.xlsx|xls|csv`）。按约定未录屏，关键截图为证。未改任何产品代码。
+**结论**: **大名单性能与多数脏数据场景表现良好；发现 1 条 P2（合并表头静默丢整列数据）+ 3 条 P3（多 sheet 无选择、标题行误当表头无引导、CSV 支持口径不一致）。**
+
+## 问题清单
+
+- **P2 合并表头导致整列数据静默丢弃**：`r95_merged.xlsx` 表头 B1:C1 合并「部门职务」→ 导入后表头仅「姓名/部门职务」2 列，**C 列（职务：监考员/巡考员/考务员）数据整列静默丢失**，无任何警示。复现：xlsx 表头行含合并单元格 → 上传 → 数据表列数变少。根因：sheet_to_json(header:1) 合并区仅左上格有值，headers 只按首行非空格建列。建议：解析时检测表头行合并/空洞并 toast 警示（或展开合并值）。另：数据区 A2:A3 合并 → 第 2 行姓名为空（Excel 语义使然，属可接受，预览显示空）。
+- **P3 多 sheet 无选择交互**：`r95_multisheet.xlsx`（sheet「甲」3 行 +「乙」5 行）→ 固定读第一个 sheet，「乙」静默忽略、无选择/提示（面板显示「工作表「甲」」算部分可发现）。建议：多 sheet 时给一次性选择或提示。
+- **P3 标题行文件被误当表头且无引导**：`r95_titlerows.xlsx`（第 1 行大标题、第 3 行真表头）→ 表头=「2026 年监考安排表」，真表头「姓名/部门/职务」成了数据行，自动映射全失效，无任何「表头看起来不对」引导。建议：检测首行仅 1 个非空格 / 与第二行列数差异大时提示「第一行可能是标题」。
+- **P3 CSV 支持口径不一致**：解析器实际完美支持 CSV（强行送入 `r95_test.csv` → 「Excel 导入成功 已读取 2 条数据」、表头/中文/BOM 全正常），错误文案也写着「请重新选择 .xlsx / .xls / .csv 文件」；但 file input `accept=".xlsx,.xls"` 选择器里看不到 csv、拖拽路径正则拒绝并提示「请拖入 .xlsx 或 .xls 文件」。建议：三处统一（放开 accept+拖拽，或文案删去 .csv）。
+
+## 断言结果
+
+1. **大名单 300 行全链路（standard）— passed**
+   - `r95_big300.xlsx`（姓名/部门/职务 300 行）上传 → toast「Excel 导入成功 已读取 300 条数据」，**导入耗时 0.95s**（截图 `r95_1_big300_toast.png`）；预览「300 个标签 13 页」（=ceil(300/24)）；页码输入 13 → 第 13 页正常渲染不卡死（截图 `r95_1_page13.png`）；图片版 PDF 带水印导出 **19s** 完成，`pdfinfo` Pages=13、1.6MB，第 13 页栅格非空白（mean 249.8/std 21.1）。
+2. **脏数据**
+   - a 合并单元格 — **failed（P2，见上）**：导入不报错但 C 列数据静默丢失（截图 `r95_2_merged.png`）。
+   - b 首行标题 — **failed（P3，见上）**：标题被当表头、无引导（截图 `r95_2_titlerows.png`）。
+   - c 空行夹杂 — passed：3 个全空行全部滤除，3 行数据完整（甲一/乙二/丙三）。
+   - d 纯数字工号 — passed：2301/2026061001/9876543210 全部完整字符串显示，无科学计数。
+   - e 超长字段+emoji — passed：50+ 字姓名与 emoji🎉/®/换行导入成功，预览卡片内截断省略号显示、无溢出（label-field scrollWidth 核验 + 截图 `r95_2_long_emoji_preview.png`）。
+3. **多 sheet — failed（P3，见上）**：只读 sheet「甲」3 行，「乙」静默忽略、无选择交互（截图 `r95_2_multisheet.png`）。
+4. **CSV / .xls**
+   - CSV — 口径不一致（P3，见上，截图 `r95_4_csv.png`）；拖拽拒绝文案「文件类型不支持 请拖入 .xlsx 或 .xls 文件」本身清晰（代码 DataImportPanel.vue L158 核验；真实拖拽事件未仿真，标注 code-verified）。
+   - .xls 老格式（xlwt BIFF）— passed：正常导入 2 行、工作表「老格式」（截图 `r95_4_xls.png`）。
+
+**产物**: 截图 `/home/ubuntu/screenshots/r95_*.png`；测试文件 `/home/ubuntu/r95_big300.xlsx`、`r95_merged.xlsx`、`r95_titlerows.xlsx`、`r95_gaps.xlsx`、`r95_numeric.xlsx`、`r95_long_emoji.xlsx`、`r95_multisheet.xlsx`、`r95_test.csv`、`r95_old.xls`；导出 `/home/ubuntu/Downloads/标准考场版-20260809-2113.pdf`（13 页）；计划 `/home/ubuntu/repos/SeatMark/test-plan-round95.md`。
+
+---
+
+# 第 94 轮：线上回归 PR #116 —— 索引色量化分块局部质量下限（www.seatmark.cn，squash 2db8d84）
+
+**日期**: 2026-08-09　**环境**: 线上 www.seatmark.cn，等待部署（bundle 由 `index-BoDH-XW9.js` 更新为 `index-Bx1XWLOr.js` 后开测），clean state（清 SW/caches/storage），CDP 1280×800 真实 UI 操作；产物用 PIL/NumPy/pdfimages/pdftoppm/unzip 客观核验。按约定未录屏。未改任何产品代码。
+**改动**: indexedPng.ts 量化分支新增 64×64 分块局部质量下限（MIN_QUANTIZE_BLOCK_PSNR=33）——任一块量化 PSNR<33dB 返回 null 交回 JPEG/RGB 回退，修第 93 轮 P3（小面积照片页被整页加权 PSNR 掩盖仍走索引色）。
+**结论**: **修复生效 + 回归不误伤，全部通过。照片页 PDF 现走 `rgb/jpeg`（第 93 轮同流程为 `index`），无照片页仍 index；aurora/standard PNG 与 aurora PDF 体积/编码与第 91 轮完全一致。无新增 P0/P1/P2/P3。**
+
+## 断言结果
+
+1. **修复验证：withPhoto 照片页 PDF 走 JPEG — passed**
+   - 同第 93 轮流程：`/studio?template=withPhoto&demo=1` → 照片匹配列「姓名」→ 上传 3 张伪照片（张伟改为高噪声照片风图，更接近真实照片；王芳/李娜仍为渐变）→「已导入 3 张照片，匹配 3/26 行」（截图 `r94_1_photo_loaded.png`）→ 图片版 PDF 带水印导出（815KB）。
+   - `pdfimages -list`：第 1 页（含 3 张照片行）**`rgb 3comp 8bpc enc=jpeg` 518K**（第 93 轮同页为 `index 8bpc` 162K）；第 2/3 页（无照片行）仍 `index 8bpc` 162K/110K——精确按"有照片的页回退、无照片的页保持索引色压缩"生效。
+   - 240dpi 栅格裁照片区：唯一色 32511、std 60.4，噪声纹理逐像素保留，无量化色阶/色块（截图 `r94_1_pdf_photo_crop.png`；第 93 轮索引色通道下该区唯一色仅 117）。
+2. **Regression aurora 不误伤 — passed**
+   - PNG 逐张带水印 ZIP：18 张全部 IHDR `bitdepth 8 / colortype 3`（mode P 索引色）、2127×1063、35–45KB/张——与第 91 轮（35–45KB）完全一致，分块阈值未误伤平滑单向渐变。
+   - 图片版 PDF：682KB（第 91 轮 666KB 同量级），`pdfimages -list` 6 页全部 `index/Flate 8bpc` 108–112K/页，无一变 jpeg。
+3. **Regression standard 不误伤 — passed**
+   - PNG 逐张带水印 ZIP：26 张全部 `bitdepth 8 / colortype 3`、1000×534、18–24KB/张（第 91 轮 17–24KB 同量级）。
+
+**产物**: 截图 `/home/ubuntu/screenshots/r94_1_photo_loaded.png`、`r94_1_pdf_photo_crop.png`；导出 `/home/ubuntu/Downloads/照片核验版-20260809-2105.pdf`、`会议桌牌·极光渐变-20260809-2106.zip`、`会议桌牌·极光渐变-20260809-2106.pdf`、`标准考场版-20260809-2106.zip`；计划 `/home/ubuntu/repos/SeatMark/test-plan-round94.md`。
+
+---
+
+# 第 93 轮：新角度线上 UX/QA 走查——照片链路 / 单张覆写 / eink / 390px 全流程（www.seatmark.cn，无代码改动）
+
+**日期**: 2026-08-09　**环境**: 线上 www.seatmark.cn（bundle `index-BoDH-XW9.js`，无新代码本轮不等新 bundle），clean state（清 SW/caches/storage），CDP 1280×800（照片/覆写/eink）+ 390×844 mobile（手机全流程）真实 UI 操作；产物用 PIL/NumPy/pdfimages/pdftoppm/unzip 客观核验。按约定未录屏，截图为证。未改任何产品代码。
+**结论**: **四条链路全部走通，无新增 P0/P1/P2。1 条 P3 观察项（照片页 PDF 仍走索引色通道而非 JPEG/rich，但客观核验本例未毁色）+ 2 条诚实注记。**
+
+## 断言结果
+
+1. **照片/图片链路（withPhoto「照片核验版」，1280px）— passed（附 P3 观察）**
+   - `/studio?template=withPhoto&demo=1` → 字段映射区「照片匹配」选匹配列「姓名」→ 上传 3 张伪造彩色渐变照片（张伟/王芳/李娜.jpg，120×160 JPEG）→ 文案「已导入 3 张照片，匹配 3/26 行（覆盖率 12%）」（截图 `r93_1_photo_stats.png`）。
+   - 预览前 3 张卡照片区显示对应彩色渐变图（张伟=红→蓝、王芳=绿→黄、李娜=紫→青），其余行显示「照片」占位（截图 `r93_1_photo_preview.png`）。
+   - PNG 逐张导出：照片卡 1063×591，照片区渐变平滑（左缘竖条带最大跨行色阶 5.3/255，端点色 [238,79,76]→[75,81,236] 与原图一致），未毁色。
+   - 图片版 PDF（带水印，452KB）：`pdfimages -list` 3 页全部 `index 8bpc`（**照片页未走 JPEG/rich 通道**）；pdftoppm 240dpi 栅格裁照片区核验：渐变平滑（最大跨行色阶 8/255）、端点色保持，客观未毁色（截图 `r93_1_pdf_photo_crop.png`）→ 判定通过，但列 P3 观察。
+   - **P3 观察**：照片页 PDF 仍进索引色量化通道，因 #114 的 PSNR≥40dB 门槛是**整页 count 加权**——本例照片仅占页面小面积，页面大部分为白底文字，加权 PSNR 轻松过关。若名单照片覆盖率高/照片面积大（如整页 10 张真人照），局部照片可能在不触发 40dB 门槛的情况下出现可见色阶。建议裁量：含 image 字段且照片有匹配的页直接走 JPEG/rich 通道（或对照片区域单独计 PSNR）。复现：withPhoto + 照片匹配 + 图片版 PDF → pdfimages -list 全 index。
+2. **单张覆写 rowOverrides（1280px）— passed**
+   - 预览点击第 2 张标签（王芳卡）→ 弹「单张覆写：只改这一张标签」→ 姓名改「覆写测试」→「保存覆写」→ toast「单张覆写已保存」（截图 `r93_2_override_saved.png`）；预览中「覆写测试」恰 1 处、「王芳」0 处、名单表仍显示王芳（数据未被改动，符合"只影响这一张"）。
+   - PNG 逐张导出第 2 张栅格显示「覆写测试」（截图 `r93_2_override_png_card2.png`）；照片仍按原行值「王芳」匹配显示王芳照片（覆写只改显示文本，照片匹配用原始行值，属合理行为，注记）。
+   - 清空名单 → 重载演示数据：预览「覆写测试」0 处、「王芳」恢复 1 处，无覆写残留（截图 `r93_2_override_cleared.png`）。
+3. **eink 电子墨水导出（快速回归）— passed**
+   - `/studio?template=eink800&demo=1` → 图片 PNG 对话框默认「精确像素（电子墨水屏 800×480）」+ 预设「800×480（7.5 英寸）」+「纯黑白输出」已勾选（截图 `r93_3_eink_dialog.png`）→ 带水印导出 ZIP 18 张。
+   - PIL/IHDR 核验：每张恰 **800×480**、`bitdepth 1 / colortype 3`（1bit 索引）、唯一色恰 2、单张约 1KB、非空白（mean 248.8，姓名/单位/职务清晰，截图 `r93_3_eink_sample.png`）。
+4. **Regression 390px 手机端全流程 — passed**
+   - 390×844 mobile（innerWidth=390 校验），clean storage 首访 /studio → 点「标准考场版」卡 →「用演示数据先试试」→ 名单 26 条（截图 `r93_4_mobile_demo_390.png`）；无横向溢出（scrollWidth==clientWidth==380）。
+   - 切「预览」标签页 →「图片 PNG」→ 导出对话框正常（截图 `r93_4_mobile_png_dialog_390.png`）→ 带水印导出 ZIP 26 张 1000×534，抽样非空白（mean 241.7/std 47.2，截图 `r93_4_mobile_zip_sample.png`）。
+   - 诚实注记：手机端导出入口在「预览」标签页内（「设置」页无导出按钮），首次寻找导出按钮未果后切换标签即正常——属既有信息架构，非缺陷。
+
+**产物**: 截图 `/home/ubuntu/screenshots/r93_*.png`；导出 `/home/ubuntu/Downloads/照片核验版-20260809-2048.pdf`、`照片核验版-20260809-2050.zip`、`电子座签 800×480-20260809-2052.zip`、`标准考场版-20260809-2055.zip`；伪造照片 `/home/ubuntu/r93_photos/`；计划 `/home/ubuntu/repos/SeatMark/test-plan-round93.md`。
+
+---
+
+# 第 92 轮：线上回归 PR #115 —— 切模板时演示名单跟随场景（www.seatmark.cn，squash b687938）
+
+**日期**: 2026-08-09　**环境**: 线上 www.seatmark.cn，等待部署（bundle 已更新为 `index-BoDH-XW9.js` ≠ `index-CHOzqHip.js`），clean state（清 SW/caches/storage），CDP 1280×800 真实 UI 操作。按约定未录屏，截图为证。
+**改动**: workspace.ts selectTemplate——名单为演示数据且 `demoExcelFor(新模板).sheetName` 不同（跨场景）时自动 applyExcel 换用新场景演示数据 + 精确映射，toast 追加「，演示数据已换为「××」」；同场景不重载；用户导入名单不动。
+**结论**: **三项全部通过：跨场景切换演示名单自动换（婚宴→考场座位，toast/文件名/预览全部同步）；同场景（standard→examNo，同「考场座位」数据集）名单不重载、无换数据提示；用户自制名单跨场景切换保持不变。无新增 P0/P1/P2/P3。**
+
+## 断言结果
+
+1. **跨场景演示名单跟随 — passed**
+   - `/studio?template=weddingPlace&demo=1`（名单=婚宴席卡：张伟/1/同心桌/陈嘉铭♥林晚晴…）→ UI 点「标准考场版」模板卡。
+   - toast「模板已切换 当前模板：标准考场版，演示数据已换为「考场座位」」像素可见（截图 `r92_1_cross_scene_toast.png`）；名单表首行变「张伟 男 第1考场 01 2026061001 高三（1）班…」；导入面板文件名变「考场演示数据.xlsx」、演示数据徽章仍在（=1）；页面无婚宴残留（「桌名/新人/喜宴」全 false）；预览逐卡显示考场数据（准考证号 2026061001…）。
+2. **同场景不重载 — passed**
+   - 接上态点「考号贴」（同 exam 数据集）：toast 仅「模板已切换 当前模板：考号贴」，**不含**「演示数据已换为」；名单前两行切换前后逐字符一致（张伟…2026061001 / 王芳…2026061002）；文件名保持「考场演示数据.xlsx」（截图 `r92_2_same_scene_toast.png`）。
+3. **用户名单不被替换 — passed**
+   - 上传自制 `r92_custom.xlsx`（3 行：测试甲/乙/丙 + 桌号）→ 演示徽章消失（=0）→ 经「浏览全部」搜索切到「婚礼席位卡」（跨场景）→ 名单仍 3 行 测试甲/乙/丙、文件名保持 `r92_custom.xlsx`、无演示徽章、无「演示数据已换为」，预览按婚礼模板渲染 测试甲/桌号1（截图 `r92_3_user_roster_kept.png`）；再切回「标准考场版」（再次跨场景）名单仍不变，仅未提供的考场/准考证号列显示「未映射」占位（截图 `r92_4_user_roster_cross_back.png`，属正常映射行为）。
+
+## 诚实注记
+- 第 2 步截图中「标准考场版/考号贴」两张模板卡瞬时显示红/粉底色——为合成点击 pressed/过渡态的单帧现象，随后帧与计算样式（backgroundColor transparent）均正常，非持久缺陷，未列级。
+
+**截图**: /home/ubuntu/screenshots/r92_1_cross_scene_toast.png、r92_2_same_scene_toast.png、r92_3_user_roster_kept.png、r92_4_user_roster_cross_back.png
+**既知环境**: 生产 `x-seatmark-storage: memory` 不变，与本轮无关。
+
+---
+
+# 第 91 轮：线上回归 PR #114 —— 索引色量化 PSNR≥40dB 质量下限（www.seatmark.cn，squash 64ec78a）
+
+**日期**: 2026-08-09　**环境**: 线上 www.seatmark.cn，等待部署（bundle 由 `index-DaVwUIZw.js` 更新为 `index-CHOzqHip.js` 后开测），clean state（清 SW/caches/storage），CDP 1280×800 真实 UI 操作导出；产物用 unzip/PIL/NumPy + pdfimages 客观核验。无 UI 变化，按约定未录屏。
+**改动**: indexedPng.ts 新增 `MIN_QUANTIZE_PSNR=40`——median-cut 量化分支（唯一色>256）count 加权 PSNR<40dB 时返回 null 交回 JPEG/RGB-PNG 回退。现有模板（aurora 54.8dB）不应受影响，本轮为回归确认无劣化。
+**结论**: **三项全部通过：aurora 逐张 PNG 仍索引色（colortype 3）35–45KB/张、渐变无条带；aurora PDF 页面图仍 index/Flate 8bpc、666KB；standard PNG 仍索引色 KB 级。#114 未误触回退，无劣化。**
+
+## 断言结果
+
+1. **deluxeConfAurora PNG（逐张，带水印）— passed**
+   - `/studio?template=deluxeConfAurora&demo=1` → 图片 PNG → 带水印导出 → `会议桌牌·极光渐变-20260809-2031.zip`（18 张 PNG）。
+   - PIL：全部 `mode=P`（IHDR colortype 3，索引色路径未误触回退）；2127×1063；单张 35–45KB（均值 41KB，数十 KB 量级，无 MB 暴涨）；调色板 255 色；抽样图非空白（mean 231.2/std 57.6），渐变带目视平滑无条带、姓名/水印清晰（`/home/ubuntu/screenshots/r91_aurora_png_sample.png`）。
+2. **deluxeConfAurora PDF（带水印）— passed**
+   - `会议桌牌·极光渐变-20260809-2032.pdf` 666KB（量级正常）；`pdfimages -list`：6 页页面图全部 `type=image, color=index, comp=1, bpc=8, enc=image`（即索引色 Flate，非 jpeg），108–112K/页。
+3. **Regression standard 默认桌牌 PNG — passed（附注记）**
+   - `/studio?template=standard&demo=1` → 带水印 ZIP（26 张，`标准考场版-20260809-2032.zip`）与无水印 ZIP（26 张，`标准考场版-20260809-2033.zip`，用掉当日 1 次配额）均为 `mode=P` colortype 3，1000×534，17–24KB/张。
+   - 诚实注记：计划预期「1/2bit 位深」，实测两版均 bitdepth 8——实际页面因文字抗锯齿灰阶唯一色达 255/256（≤256 走精确调色板分支，位深自适应 8bit 属正确行为，非 #114 引入）；体积仍 KB 级，无劣化，判定通过但按实测修正预期。
+
+**产物**: `/home/ubuntu/Downloads/会议桌牌·极光渐变-20260809-2031.zip`、`会议桌牌·极光渐变-20260809-2032.pdf`、`标准考场版-20260809-2032.zip`、`标准考场版-20260809-2033.zip`；抽样图 `/home/ubuntu/screenshots/r91_aurora_png_sample.png`
+**既知环境**: 生产 `x-seatmark-storage: memory` 不变，与本轮无关。
+
+---
+
+# 第 90 轮：线上抽查 PR #112 —— 设计器移动端侧栏锚定内容区（www.seatmark.cn，squash 207cd93）
+
+**日期**: 2026-08-09　**环境**: 线上 www.seatmark.cn，等待部署（bundle 由 `index-DYQvX8Ty.js` 更新为 `index-DaVwUIZw.js` 后开测），clean profile + 清 SW/caches/storage，CDP 390×844 mobile / 1280×800 仿真真实 UI 操作。按惯例未录屏，截图为证。
+**改动**: TemplateDesigner.vue L1477 内容区容器 `flex min-h-0 flex-1` → `relative flex min-h-0 flex-1`——移动端两个 absolute 侧栏（字段列表/属性面板）改锚定内容区，不再从屏顶铺到底遮挡头部「保存」（第 88 轮注记项闭环）。
+**结论**: **三项全部通过：390px 属性面板/字段列表侧栏均从工具栏之下开始（top=100px > 工具栏 bottom=87.5px），头部「取消/保存」完全可见可点；两种侧栏展开状态下直接点「保存」均成功出「模板已保存」toast；1280px 桌面三栏并排无回归。无新增 P0/P1/P2/P3。**
+
+## 断言结果
+
+1. **390px 属性面板不遮头部 + 面板展开直接保存 — passed**
+   - 新建模板 → 添加「姓名（带标签名）」字段 → 属性面板展开：面板 rect top=100、左=92、宽 288、高 712；头部「保存」rect top=12.5/bottom=42.5（l=322~368）、「取消」同排均在面板之外；`elementFromPoint`（保存按钮中心）命中 `BUTTON:保存`（未被面板覆盖）；工具栏 bottom=87.5 < 面板 top=100（面板顶边在工具栏之下）。截图 `r90_1_property_panel_390.png`（取消/保存像素可见，面板含字段属性表单）。
+   - 面板展开状态直接点「保存」→ toast「模板已保存」（截图 `r90_3_saved_390.png`），设计器关闭返回工坊（第 88 轮此步需先收起面板，现已闭环）。
+2. **390px 字段列表侧栏不遮头部 — passed**
+   - 重开设计器 → 汉堡展开字段列表：侧栏 rect top=100、宽 256；「保存」中心 `elementFromPoint` 命中 `BUTTON:保存`；截图 `r90_2_field_list_390.png`（头部 取消/另存/保存 完整可见，列表顶边在工具栏之下）。
+   - 字段列表展开状态直接点「保存」→ toast「模板已保存」。
+3. **Regression 1280px 桌面三栏 — passed**
+   - 字段列表（left=0，宽 224，非 absolute）| 画布 | 属性面板（left=950，宽 320，非 absolute）三栏并排；头部「取消/另存/保存」正常。截图 `r90_4_desktop_designer_1280.png`。
+
+## 诚实注记
+- 第一次 390px 会话中途 CDP 设备仿真被重置为桌面宽度（既知 clean profile 现象），重新下发 override 并以 `innerWidth=390` 校验后继续，最终证据均为 390px 视口。
+- 生产存储仍 `x-seatmark-storage: memory`（既有开放项，与本轮无关）。
+
+**截图**: /home/ubuntu/screenshots/r90_1_property_panel_390.png、r90_2_field_list_390.png、r90_3_saved_390.png、r90_4_desktop_designer_1280.png
+
+---
+
+# 第 89 轮：768px 平板走查 + 模板详情 SEO 承接（www.seatmark.cn，无新代码改动）
+
+**日期**: 2026-08-09　**环境**: 线上 www.seatmark.cn，clean profile + 清 SW/caches/storage，CDP 768×1024 仿真（innerWidth=768 校验）。按惯例未录屏，截图为证。
+**结论**: **768px 新用户完整漏斗（首页→模板库→详情→工坊双栏→带水印 PNG 导出）与 3 个不同分类模板详情 SEO 承接全部通过，教程页无横向溢出。本轮无新增 P0/P1/P2/P3。**
+
+- **A 768px 漏斗**：首页/模板库/详情/教程全程 `scrollWidth==clientWidth`（758/758，无横向溢出）![home](/home/ubuntu/screenshots/r89_A1_home_768.png) ![templates](/home/ubuntu/screenshots/r89_A2_templates_768.png)；导航「模板」→ 点婚礼席位卡卡片 → 详情 →「用此模板开始」→ `/studio?template=weddingPlace` 且工坊选中婚礼席位卡（勾选徽标）；**工坊 768px 双栏**：grid 计算列 `320px 390px`，左配置右预览并排（#73 双栏线上复查通过）![studio](/home/ubuntu/screenshots/r89_A4_studio_twocol_768.png)；「先用演示数据看看效果」→ toast「已载入「婚宴席卡」演示数据」18 标签 2 页；图片 PNG 带水印导出 → `婚礼席位卡-20260809-2009.zip` 含 18 张 1063×614 PNG，抽样非空白（沈佳宜风格喜宴卡、张伟/桌号1、右下 seatmark.cn 水印）![label](/home/ubuntu/screenshots/r89_A5_zip_label_sample.png)　**passed**
+- **B 模板详情 SEO 承接（weddingPlace / meetingTent / examNo）**：三页均含规格徽标（尺寸/枚每页/纸张）、适用场景、使用步骤、打印建议区（教程中心 + 打印常见问题排查等 guides 链接 5 个）、底部同类推荐 3 款 ![wedding](/home/ubuntu/screenshots/r89_B_wedding_detail_768.png) ![meeting](/home/ubuntu/screenshots/r89_B_meeting_detail_768.png) ![examno](/home/ubuntu/screenshots/r89_B_examno_detail_768.png)；examNo CTA → 工坊选中「考号贴」（勾选徽标 + 预览按该模板重排既有名单）![cta](/home/ubuntu/screenshots/r89_B_examno_cta_studio_768.png)；推荐卡点击（weddingPlace→interviewNo）正确跳详情 ![related](/home/ubuntu/screenshots/r89_B_related_nav_768.png)　**passed**
+- **C 768px 教程页**：/guides 列表（76 篇 + 主题/群体双维筛选）与长文 label-print-troubleshooting 均无横向溢出、排版正常 ![guides](/home/ubuntu/screenshots/r89_C_guides_768.png) ![guide](/home/ubuntu/screenshots/r89_C_guide_detail_768.png)　**passed**
+
+**开放项**：无新增；既有开放项不变（生产 KV 绑定待运维、aurora flat 判定口径、151 个 color-contrast 装饰小字、登录链路待 SES+KV）。
+
+---
+
+# 第 88 轮：线上抽查 #110（www.seatmark.cn，squash 46d853c）+ 补做 390px 设计器链路
+
+**日期**: 2026-08-09　**环境**: 线上 www.seatmark.cn（bundle 由 `index-C5DeoN5I.js` 更新为 `index-DYQvX8Ty.js` 后开测；前置确认线上存储仍 `x-seatmark-storage: memory`），clean profile + 清 SW/caches/storage，CDP 1280×800（分享）/ 390×844 mobile（设计器）。按惯例未录屏，截图为证。
+**结论**: **#110 线上生效：存储 memory 时「微信扫码打开」不再发出必失效的短码二维码，改出「短链服务暂时不可用」失败态（重试 + 长链兜底）；长链二维码解码为 `#tpl=` 链接且清态承接可导入。第 87 轮 P1 的前端侧止血闭环（KV 绑定仍待运维）。补做的 390px 设计器新建→保存→使用链路通过。**
+
+- **1 扫码弹窗失败态**：/studio 婚礼席位卡 →「微信扫码打开」→ 弹窗「短链服务暂时不可用：已自动重试仍未成功…」+「重试」「改用长链接二维码」两按钮，**无短码二维码**（第 87 轮此处直接展示扫不开的 `/?s=` 码）。![failed](/home/ubuntu/screenshots/r88_1_qr_failed_state.png)　**passed**
+- **2 长链二维码兜底 + 承接**：点「改用长链接二维码」→ 出 QR（注明「模板数据全部编码在链接里，不经过任何服务器」），zbarimg 解码 = `https://www.seatmark.cn/studio#tpl=v1.…`（1120 字符，非 `/?s=`）![qr](/home/ubuntu/screenshots/r88_2_longlink_qr.png)；清 storage 导航该 URL → 弹「收到一个分享模板：婚礼席位卡」→「保存并应用」→ toast「已加入我的模板并应用」![landing](/home/ubuntu/screenshots/r88_2_longlink_landing.png)　**passed**
+- **3 390px 设计器链路（补第 87 轮 C）**：「新建模板」→ 设计器打开（390 视口）→「+ 添加字段」菜单可见、点「姓名（带标签名）」画布出新字段 ![menu](/home/ubuntu/screenshots/r88_3_addfield_menu_390.png) ![added](/home/ubuntu/screenshots/r88_3_field_added_390.png)；字段列表点选滑入属性面板、字号 14→30（面板复查确认 30）![props](/home/ubuntu/screenshots/r88_3_props_check.png)；改名「第88轮测试模板」→ 保存 → toast「模板已保存：『第88轮测试模板』已加入我的模板并应用」、卡片带「自定义」徽标置顶选中 ![saved](/home/ubuntu/screenshots/r88_3_saved_390.png)；载入演示数据 → 预览 18 标签 1 页、「姓名 张伟」大字逐卡渲染（字号 30 生效可见）![preview](/home/ubuntu/screenshots/r88_3_preview_custom_390.png)；刷新 /studio → 模板仍在「我的模板」并保持选中（本地持久化）![persist](/home/ubuntu/screenshots/r88_3_reload_persist_390.png)　**passed**
+
+**诚实注记**：① 设计器画布内新字段因 30×10mm 字段框 + 单行截断显示「姓名 张…」，字号生效以属性面板值与预览大字为准；② 保存按钮在属性面板展开时被面板遮挡，需先收起面板（点左上收起箭头）再点保存——移动端交互可用但略绕，未达 P 级问题，供产品参考。
+**开放项**：第 87 轮 P1 的根因（生产 KV 未绑定）仍待运维处理，前端止血已上线；既有开放项不变。
+
+---
+
+# 第 87 轮：新角度线上走查（www.seatmark.cn，无新代码改动）
+
+**日期**: 2026-08-09　**环境**: 线上 www.seatmark.cn，clean profile + 清 SW/caches/storage，CDP 1280×800（/seating 及分享链路）。按约定未录屏，截图为证。按「发现 P0/P1 立即停止扩面」约定，发现 **P1** 后终止了原计划第 C 部分（390px 设计器链路），未执行。
+**结论**: **发现 1 个 P1：微信扫码短码分享链路线上完全不可用——生产环境边缘函数 KV 未生效（响应头 `x-seatmark-storage: memory`），短码写入不持久，扫码落地即「分享模板暂时无法打开」。/seating 全流程与长链 `#tpl=` 分享导入均正常。**
+
+## 问题清单
+
+- **P1 微信扫码短码分享线上不可用（存储降级 memory）**：
+  - 复现 1（UI）：/studio 选婚礼席位卡 →「微信扫码打开」→ 弹窗出二维码（zbarimg 解码为 `https://www.seatmark.cn/?s=a685cfb661`）→ 清 storage 后导航该 URL → 首页 toast「分享模板暂时无法打开：链接可能已过期或网络波动…」，模板未导入。![landing](/home/ubuntu/screenshots/r87_B_shortcode_landing.png)
+  - 复现 2（API 客观证据）：`POST /api/share/tpl` 返回 `{"ok":true,"code":"597381e074"}`（HTTP 200），**紧接着** `GET /api/share/tpl?code=597381e074` 即 404 `{"error":"短码不存在或已过期"}`。三个不同短码（aaf32471d2 / a685cfb661 / 597381e074）全部立即 404。
+  - 根因指向：响应头 `x-seatmark-storage: memory` —— 生产环境 KV/Blob 均未绑定，边缘函数按 `edge-functions/api/[[default]].js` L39-40 注释降级到进程内存（「数据不持久，仅本地联调」），POST 与 GET 落在不同 isolate 导致读不到。**同一存储还承载分享送次数计数、登录验证码、团队预订等，均不持久**（与既有开放项「登录链路待 SES+KV」同根因，但扫码分享是当前已上线且引导用户使用的功能，故定 P1）。
+  - 建议：EdgeOne 生产环境绑定 KV（或 Pages Blob）；在存储为 memory 时前端隐藏/禁用「微信扫码打开」按钮或直接出长链二维码兜底，避免发出必然失效的二维码。
+- 无新增 P0/P2/P3。
+
+## 通过项
+
+- **A /seating 全流程（1280px）**：粘贴 12 人名单（含性别列）→「已输入 12 人 / 座位 12 个」；设 3 排×4 列；「完全随机」排座 12 人全部落座 ![random](/home/ubuntu/screenshots/r87_A_random_seated.png)；点选两个座位（键盘 Enter 选中→交换）王芳↔吴霞 互换成功 ![swap](/home/ubuntu/screenshots/r87_A_swap_after.png)；「一键生成对应桌贴」→ 跳 /studio + toast「座位表名单已带入 共 12 人」，clean 会话默认标准考场版不触发切换（#105 预期），座位号/姓名自动映射 2/4，交换结果（吴霞=1 号）正确带入 ![handoff](/home/ubuntu/screenshots/r87_A_handoff_toast.png)；图片 PNG 带水印导出 → ZIP 含 12 张 1000×534 PNG，抽样非空白、姓名/座位号/水印正确、未映射字段优雅留空 ![label](/home/ubuntu/screenshots/r87_A_zip_label_sample.png)　**passed**
+- **B1/B2 长链分享**：「复制当前模板分享链接」→ toast「链接已复制」，剪贴板 URL 含 `#tpl=v1.`（1120 字符）![copy](/home/ubuntu/screenshots/r87_B_copy_toast.png)；清 storage 导航该 URL → 弹「收到一个分享模板：婚礼席位卡（90×52mm，10 枚/页，3 个字段）」![landing2](/home/ubuntu/screenshots/r87_B_share_landing.png)，点「保存并应用」→ toast「已加入我的模板并应用」　**passed**
+- **B3 扫码弹窗 UI 本身**：二维码渲染正常、短码模式生成成功（前端无感知失败）![qr](/home/ubuntu/screenshots/r87_B_qr_modal.png)　**passed**（但承接失败见 P1）
+- **C 390px 设计器新建→保存→使用**：按 P1 停扩面约定**未执行**　untested
+
+**开放项**：新增 P1（生产 KV 未生效致短码分享不可用）；既有开放项不变。
+
+---
+
+# 第 86 轮：线上抽查 #108（www.seatmark.cn，squash 48e0f62）
+
+**日期**: 2026-08-09　**环境**: 线上 www.seatmark.cn（bundle 由 `index-CHl-Q9Zq.js` 更新为 `index-C5DeoN5I.js`，chunk `excel-_EEUv0gx.js` 含「会议办公」→ #108 已部署），clean profile + 清 SW/caches/storage，CDP 1280×800。按约定未录屏，截图为证。
+**结论**: **meeting 数据集场景名「会议桌牌」→「会议办公」线上生效（toast + 样例 Excel 文件名），会议桌牌模板 demo 链路无回归。第 84 轮 P3 观察项闭环。**
+
+- **1 staffIdCard demo toast**：/studio?template=staffIdCard&demo=1 → toast「已载入「会议办公」演示数据」截图捕获（旧文案「会议桌牌」不再出现），工作证逐卡渲染正常（张伟/技术部/首席技术官…）。![toast](/home/ubuntu/screenshots/r86_1_toast_meeting_office.png)　**passed**
+- **2 下载样例 Excel 文件名**：「导入数据」面板点「下载样例 Excel」→ 下载文件 `会议办公样例.xlsx`，openpyxl 核验 sheet 名「会议办公」、表头 姓名/单位/职务/部门/工号/桌号/座位号、5 行样例。　**passed**
+- **3 Regression 会议大桌牌 demo**：/studio?template=meetingTent&demo=1 → 同 toast「已载入「会议办公」演示数据」，18 个标签 9 页，姓名特大字+单位题头逐卡正常。![tent](/home/ubuntu/screenshots/r86_3_meetingTent_regression.png)　**passed**
+
+**开放项**：无新增；既有开放项不变。
+
+---
+
+# 第 85 轮：线上抽查 #107（www.seatmark.cn，squash eeddd01）
+
+**日期**: 2026-08-09　**环境**: 线上 www.seatmark.cn（bundle 由 `index-BZMgDEn3.js` 更新为 `index-CHl-Q9Zq.js` → #107 已部署），clean profile + 清 SW/caches/storage，CDP 设备仿真 390×844。按约定未录屏，截图为证。
+**结论**: **/papers 无效 slug 改渲染 404（URL 保持）线上生效；有效纸型详情与列表页无回归。第 84 轮 P3 观察项闭环。**
+
+- **1 无效 slug → 404（390px）**：/papers/fake-paper 显示自定义 404 页（「404 NOT FOUND / 页面不存在或已被移动」+ 返回首页/进入标签工坊/模板库/教程/定价入口 + 教程推荐），location.pathname 保持 `/papers/fake-paper` 不再跳列表页。![404](/home/ubuntu/screenshots/r85_1_fake_paper_404_390.png)　**passed**
+- **2 Regression 有效详情（390px）**：/papers/a4-8up 正常渲染面包屑、版式示意（2×4 八格）、标题「A4 8格不干胶（2 列 × 4 行）」、规格表（105 × 74.25 mm、2 列 × 4 行每页 8 枚、直角满切）、「用此纸型开始排版」CTA。![detail](/home/ubuntu/screenshots/r85_2_a4_8up_detail_390.png)　**passed**
+- **3 Regression /papers 列表（390px）**：正常渲染 16 张纸型卡片 + 切角筛选（全部/直角/圆角）。![list](/home/ubuntu/screenshots/r85_3_papers_list_390.png)　**passed**
+
+**开放项**：无新增；既有开放项不变。
+
+---
+
+# 第 84 轮：线上抽查 #106（www.seatmark.cn，squash 269c9bb）+ 新角度走查
+
+**日期**: 2026-08-09　**环境**: 线上 www.seatmark.cn（bundle `index-BZMgDEn3.js`；`StudioView-hE_dv79r.js` 含「已换用适配该纸型的模板」、`PricingView-D1oUnVYq.js` 含「请输入正确的邮箱地址」→ #106 已上线），clean profile + 清 SW/caches/storage，CDP 设备仿真 1280×800 / 390×844。按约定未录屏，全程截图。
+**结论**: **Part 1 #106 两项线上抽查全部通过；Part 2 新角度走查（404/账户页/教程搜索/PDF 导出核验）未发现 P0/P1/P2，仅 2 条 P3 观察项。**
+
+## Part 1-1 纸型深链兜底（1280px）
+- 前置 UI 选课桌姓名贴 → /studio?paper=a4-8up（无 template）：toast「已换用适配该纸型的模板：原模板与『A4 8格不干胶（2 列 × 4 行）』适配度不足，已切换到『驾校学员车贴』并按纸型锁定排版（每页 8 枚）」截图捕获；纸张排版 105×74.25、2 列 × 4 行（DOM 值 105,74.25,2,4），预览「8 枚 / 页」。![toast](/home/ubuntu/screenshots/r84_1_fallback_toast_online.png)　**passed**
+
+## Part 1-2 预订登记中文校验 + 拆段（390px）
+- /pricing 首屏说明拆两段（第二段「专业版 Beta 期间限时免费试用；团队版支付开通前可预订登记。」）。![split](/home/ubuntu/screenshots/r84_2_pricing_split_390_online.png)　**passed**
+- 预订登记空邮箱提交：无原生英文气泡，弹窗内中文红字「请输入正确的邮箱地址」（计算色 red-600）。![cn](/home/ubuntu/screenshots/r84_2_cn_validation_390_online.png)　**passed**
+
+## Part 2 新角度走查
+- **A 404/错误路径（390px）**：/nonexistent-page、/templates/notATemplate、/guides/fake-slug 均为自定义 404 页（「404 NOT FOUND / 页面不存在或已被移动」+ 返回首页/工坊/模板库/教程/定价入口 + 教程推荐）。![404](/home/ubuntu/screenshots/r84_A_404_390_online.png)　**passed**。P3 观察：/papers/fake-paper 不走 404 而是直接展示纸型库列表页（兜底合理但与 templates/guides 的 404 行为不一致）。
+- **B /account 未登录 390px**：布局完整无横向溢出（scrollWidth=clientWidth=380），登录说明、本地处理声明、「今日本设备剩余 1/1 次无水印导出」清晰。![account](/home/ubuntu/screenshots/r84_B_account_390_online.png)　**passed**
+- **C guides 搜索/筛选（390px）**：拼音首字母 `jkz` → 「共 1 篇教程」命中监考照片核验教程；`zzzzz` → 「共 0 篇教程」空态 + 「清除筛选」；`dayin` 命中 40/40（几乎所有教程含「打印」，属数据使然）。![jkz](/home/ubuntu/screenshots/r84_C_guides_jkz_390_online.png) ![empty](/home/ubuntu/screenshots/r84_C_guides_empty_390_online.png)　**passed**
+- **D PDF 导出文件核验（1280px）**：standard+demo（会话纸型沿用 a4-8up，UI 显示 26 标签/4 页）。带水印导出：pdfinfo 4 页 A4，pdftoppm 100dpi 栅格非空白（std 34.3），每枚标签底部「seatmark.cn」徽章式水印+右下角页脚水印可见。![wm](/home/ubuntu/screenshots/r84_D_pdf_p1_bottom2x.png)　**passed**。无水印导出（配额 1 次）：文件同 4 页，同位置无任何水印徽章；导出后 banner「今日无水印次数已用完」、再开弹窗显示「无水印导出（今日剩余 0 次）」并置灰不可选。![nowm](/home/ubuntu/screenshots/r84_D_pdf_nowm_bottom2x.png) ![quota0](/home/ubuntu/screenshots/r84_D_quota_zero_dialog.png)　**passed**。P3 观察：demo 数据末两行（唐瑶/许辉）字段留空为 demoDatasets.ts 有意的边界样例，PDF 渲染优雅留白无「未映射」残字，非缺陷。
+
+**开放项**：无新增 P0/P1/P2；既有开放项不变。
+
+---
+
+# 第 83 轮：本地验证 PR #106（第 82 轮 2 P2 + 1 P3，dev @ localhost:5174）
+
+**日期**: 2026-08-09　**环境**: 本地 dev server http://localhost:5174（分支 `devin/1786301846-round83-p2-paperlink-pricing`，commit 1adb992），CDP 设备仿真 1280×800 / 390×844，清 storage。按约定未录屏，全程截图。
+**结论**: **三项修复（纸型深链兜底换模板、预订表单中文校验、定价页说明拆段）全部通过，无阻断项。**
+
+## 1. 纸型深链兜底（1280px）
+- a) 前置选课桌姓名贴（90×30）→ /studio?paper=a4-8up（无 template）：toast「已换用适配该纸型的模板：原模板与『A4 8格不干胶（2 列 × 4 行）』适配度不足，已切换到『驾校学员车贴』并按纸型锁定排版（每页 8 枚）」；模板选中变「驾校学员车贴」（带「适配」徽标），纸张排版 105×74.25、2 列 × 4 行，demo 48 人 6 页（8 枚/页）不拉伸。![toast](/home/ubuntu/screenshots/r83_1a_toast.png) ![switched](/home/ubuntu/screenshots/r83_1a_switched.png)　**passed**
+- b) 反向（显式 template）：同前置后 /studio?template=staffIdCard&paper=a4-8up&demo=1：仍出「纸型与当前模板适配度不足…已保持模板默认排版」警告，模板保持工作证 54×86、3×3 竖版逐卡正常，不被换。![kept](/home/ubuntu/screenshots/r83_1b_explicit_kept.png)　**passed**
+- c) Regression 适配深链：/studio?template=standard&paper=a4-24up-round&demo=1：toast「已按纸型锁定排版」，纸型 63.5×33.9、3×8（24 枚/页）。![lock](/home/ubuntu/screenshots/r83_1c_lock_regression.png)　**passed**
+
+## 2. 预订表单中文校验（390px）
+- 空邮箱提交：无浏览器原生英文气泡，弹窗内中文红字「请输入正确的邮箱地址」。![cn](/home/ubuntu/screenshots/r83_2_cn_validation_390.png)　**passed**
+- `bad@` 提交：红字保持。![bad](/home/ubuntu/screenshots/r83_2_bad_email_390.png)　**passed**
+- test@example.com 提交：「预订登记成功」弹窗 + toast（回归正常）。![ok](/home/ubuntu/screenshots/r83_2_success_390.png)　**passed**
+
+## 3. 定价页说明拆段（390px）
+- 首屏说明拆为两段：第一段配额（带水印/无水印/分享），第二段「专业版 Beta 期间限时免费试用；团队版支付开通前可预订登记。」，行文较第 82 轮单段更易读。![split](/home/ubuntu/screenshots/r83_3_pricing_split_390.png)　**passed**
+
+---
+
+# 第 82 轮：线上抽查 #105 + 新角度走查（定价页 / 模板详情 / 纸型落地页 / 768px 转化路径，www.seatmark.cn）
+
+**日期**: 2026-08-09　**环境**: 线上（bundle `index-3bRHojcA.js`，`TemplatesView-DOLo1OWN.js` 含「分类下无匹配」、`StudioView-D7eYmTeD.js` 含「已切换到课桌贴模板」，curl 核实即含 #105；清 SW/caches + storage），CDP 设备仿真 390×844 / 768×1024 / 1280×800。按约定未录屏，全程截图。
+**结论**: **Part 1 #105 三项线上抽查全部通过；Part 2 走查发现 2 个 P2 + 1 个 P3，无 P0/P1。**
+
+## Part 1 #105 线上抽查
+1. **搜索×分类回退提示（390px）**：/templates 搜 `hunli` 点「考试」→ 提示「『考试』分类下无匹配，已在全部分类中找到 15 款」，结果为婚礼模板。![f](/home/ubuntu/screenshots/r82_1_fallback_online.png)　**passed**
+2. **座位表带入自动切模板（1280px）**：前置 staffIdCard → /seating 48 人 →「一键生成对应桌贴」：双 toast「座位表名单已带入」+「已切换到课桌贴模板」，模板选中「课桌姓名贴」，大字姓名逐卡。![s](/home/ubuntu/screenshots/r82_2_autoswitch_online.png)　**passed**
+3. **宽表首列 sticky（390px 顺带）**：对比总表横滚到最右（52/52，SeatMark 列完整），「维度」列固定左缘白底不透字。![t](/home/ubuntu/screenshots/r82_3_sticky_online.png)　**passed**
+
+## Part 2 新角度走查（2 P2 + 1 P3）
+- **P2-1 纸型落地页 CTA 遇适配门槛成「死胡同」**：/papers/a4-8up「用此纸型开始排版」→ /studio?paper=a4-8up，当会话当前模板与该纸型宽高比差异大（如课桌姓名贴 90×30）时出「纸型与当前模板适配度不足…已保持模板默认排版」——门槛本身正确（#104 预期），但用户从纸型页进来的意图就是**用这张纸**，被拒后没有下一步指引。建议：该深链被拒时附带推荐适配该纸型的模板（或 CTA「查看适配模板」）。![gate](/home/ubuntu/screenshots/r82_C_paper_gate_390.png)
+- **P2-2 团队版预订表单校验为浏览器原生英文提示**：/pricing 390px「预订登记（免费）」弹窗空邮箱提交出英文原生气泡「Please fill out this field.」，与全站中文文案不一致（受浏览器 locale 影响，中文用户多数场景显示中文，但自定义校验可控性更好）。正常提交 test@example.com 后「预订登记成功」弹窗+toast 正常。![v](/home/ubuntu/screenshots/r82_A_reserve_success_390.png)
+- **P3 定价页顶部说明段信息密度高**：390px 首屏副标题一段话塞了带水印/无水印/登录/分享/专业版/团队版六个概念（截图 r82_A_pricing_390_top.png），可拆行或分点；非阻断。
+- 其余正常：定价页三卡（免费/专业 Beta/团队 ¥99）390px 布局完整、CTA 去向清晰（/account 登录）；weddingPlace 模板详情 390px 无横向溢出、样例卡/适用场景/打印建议/相关模板完整；/papers 列表与 a4-8up 详情参数表完整；768px 首页 hero→「用演示数据先试试」→ 工坊三步引导+26 张预览+「已载入考场座位演示数据」toast 一步到位。![pricing](/home/ubuntu/screenshots/r82_A_pricing_390_top.png) ![wed](/home/ubuntu/screenshots/r82_B_wedding_detail_390.png) ![768](/home/ubuntu/screenshots/r82_D_studio_768_demo.png)
+
+---
+
+# 第 81 轮：本地验证 PR #105（第 80 轮 3 P2 清扫，dev @ localhost:5174）
+
+**日期**: 2026-08-09　**环境**: 本地 dev server http://localhost:5174（分支 `devin/1786298187-round81-p2-sweep`，commit b9922db），CDP 设备仿真 390×844 / 1280×800，清 sessionStorage/localStorage。按约定未录屏，全程截图。
+**结论**: **三项修复（搜索×分类叠加、座位表带入自动切课桌贴、教程宽表首列 sticky）全部通过，无阻断项。**
+
+## 1. 模板库搜索×分类叠加（390px）
+- a) 搜 `hunli` 后点「考试」分类：提示变为「『考试』分类下无匹配，已在全部分类中找到 15 款」，结果为婚礼模板（回退全库有解释，不再与选中态矛盾）。![fallback](/home/ubuntu/screenshots/r81_1a_fallback_note.png)　**passed**
+- b) 「考试」分类下搜 `kaohao`：提示「在『考试』分类中找到 2 款」，结果为考号贴等考试类模板（叠加过滤真实生效）。![inscope](/home/ubuntu/screenshots/r81_1b_inscope_note.png)　**passed**
+- c) Regression：清搜索后「考试 31」分类 + 子分类「考号与证件 7」筛选正常（URL ?cat=exam&sub=exam-id，结果为考号贴/出入证）。![subcat](/home/ubuntu/screenshots/r81_1c_subcat_regression.png)　**passed**
+
+## 2. /seating 一键生成桌贴自动切模板（1280px）
+- a) 前置选 staffIdCard 后走 /seating 48 人示例 →「一键生成对应桌贴」：双 toast「座位表名单已带入」+「已切换到课桌贴模板：原模板字段与座位名单不匹配…」，模板选中变「课桌姓名贴」，卡面大字姓名逐卡正常（仅「学号」一栏未映射——座位名单本无学号列，非大面积破相）。![switch](/home/ubuntu/screenshots/r81_2a_autoswitch_toast.png)　**passed**
+- b) 默认 standard 场景（清 storage）同流程：仅「座位表名单已带入」toast，无「已切换」toast，模板保持「标准考场版」（座位号/姓名 2/4 映射达阈值不触发）。![nosw](/home/ubuntu/screenshots/r81_2b_standard_no_switch.png)　**passed**
+
+## 3. 教程宽表首列 sticky（390px）
+- /guides/online-label-tools-review「对比总表」横滚到最右（scrollLeft 42/42，SeatMark 列完整）：「维度」首列（Excel 批量导入/A4 多枚毫米排版/照片批量匹配…）固定于左缘，td 白底、th 灰底不透字（第 80 轮为首列滚出视口）。![t0](/home/ubuntu/screenshots/r81_3_table_start.png) ![t1](/home/ubuntu/screenshots/r81_3_table_scrolled.png)　**passed**
+
+---
+
+# 第 80 轮：线上抽查 #104 + 新角度走查（/seating 移动端、模板搜索/筛选、教程移动端，www.seatmark.cn）
+
+**日期**: 2026-08-09　**环境**: 线上（bundle `index-m0qzqg4h.js`，StudioView chunk `StudioView-Bjvg1UIQ.js` 已核实含 #104 字符串；清 SW/caches），CDP 设备仿真 390×844 / 1280×800。按约定未录屏，全程截图。
+**结论**: **Part 1 #104 四项线上抽查全部通过；Part 2 走查发现 3 个 P2 新问题，无 P0/P1。**
+
+## Part 1 #104 线上抽查
+1. **390px 添加字段菜单**：/studio?design=new 点「+ 添加字段」菜单在视口内真实可见，点「姓名（带标签名）」画布出现「姓名 张同学」。![menu](/home/ubuntu/screenshots/r80_1_menu_390_online.png) ![added](/home/ubuntu/screenshots/r80_1_field_added_online.png)　**passed**
+2. **390px 属性面板**：字段列表点选字段**自动滑入**属性面板；头部属性按钮切换正常；真实键盘改字号 14→36、HEX 键入 d62828 → 画布「姓名 张」变大变红。![auto](/home/ubuntu/screenshots/r80_2_props_autoslide_online.png) ![red](/home/ubuntu/screenshots/r80_2_canvas_red_online.png)　**passed**
+3. **?paper= 深链门槛**：`staffIdCard&paper=a4-8up&demo=1`（清 storage）出 toast「纸型与当前模板适配度不足…已保持模板默认排版」，卡面保持 54×86 竖版 3×3（18 人 2 页）不拉伸。![toast](/home/ubuntu/screenshots/r80_3_gate_toast_online.png) ![nostretch](/home/ubuntu/screenshots/r80_3_no_stretch_online.png)　**passed**
+4. **ColorField HEX**：并入 #2 —— 390px HEX 框键入 `d62828`（无 #）回车后归一化生效，色块与画布变红。![props](/home/ubuntu/screenshots/r80_2_props_changed_online.png)　**passed**
+
+## Part 2 新角度走查（3 P2）
+- **P2-1 模板库搜索与分类筛选状态冲突（390/概念性与视口无关）**：搜索 `hunli` 时点「考试 31」分类，URL 变 `?q=hunli&cat=exam`、pill 高亮「考试」并展开考试子分类行，但结果仍为跨全部分类的婚礼模板（提示「在全部分类中找到 15 款」）——选中态与结果相互矛盾，易误导（建议：搜索激活时禁用/清空分类 pill，或让分类真正约束搜索范围）。![conflict](/home/ubuntu/screenshots/r80_B_search_cat_conflict_390.png)
+- **P2-2 /seating「一键生成对应桌贴」沿用先前模板致大量未映射**：座位表 48 人带入工坊后沿用会话中上一次选择的「工作证」模板，预览卡面「单位 未映射」「部门/职务 未映射」明显破相，与按钮「选模板即可批量输出课桌贴」的预期有断层（建议：该入口跳转时自动切到桌贴类模板或弹推荐）。注记：需会话先前选过非桌贴模板才触发，全新用户默认 standard 不受影响。![unmapped](/home/ubuntu/screenshots/r80_A_studio_preview_unmapped.png)
+- **P2-3 教程对比表格 390px 横向滚动后首列不固定**：/guides/online-label-tools-review「对比总表」可横向滚动（可达 SeatMark 列），但滚动后首列「维度」跟着滚出视口，行含义丢失（建议首列 sticky）。![t1](/home/ubuntu/screenshots/r80_C_table_390.png) ![t2](/home/ubuntu/screenshots/r80_C_table_390_scrolled.png)
+- 其余正常：/seating 390px 全流程（示例名单 48 人→完全随机/男女混排 toast「已按男女混排」→教师/学生视角→输出区按钮可达，无布局溢出）![seating](/home/ubuntu/screenshots/r80_A_seating_390_output.png)；模板库拼音搜索 `hunli` 命中 15 款婚礼模板、空态文案（「没有匹配…清除搜索条件 / 从空白新建模板」+ 推荐列表）良好 ![empty](/home/ubuntu/screenshots/r80_B_empty_state_390.png)；教程列表/长文 390px 无横向溢出（scrollWidth=clientWidth=380，抽查 label-print-troubleshooting、online-label-tools-review）。
+
+---
+
+# 第 79 轮：本地验证 PR #104（第 78 轮 2 P1 + 2 P2 设计器/纸型修复，dev @ localhost:5174）
+
+**日期**: 2026-08-09　**环境**: 本地 dev server http://localhost:5174（分支 `devin/1786296061-round79-designer-p1s`，commit 5a9a871），CDP 设备仿真 1280×800 / 390×844，clean profile + 清 sessionStorage/localStorage。按约定未录屏，全程截图。
+**结论**: **四项修复（P1-1 添加字段菜单 Teleport、P1-2 390px 属性面板、P2-1 ?paper= 深链门槛、P2-2 ColorField HEX 输入）全部通过，无阻断项。**
+
+## P1-1 「+ 添加字段」菜单（Teleport 到 body）
+- 1280px：点击按钮后菜单真实可见（「常用考务字段」列表），elementFromPoint(菜单中心) 命中菜单内元素；点击预设「姓名（带标签名）」字段 2→3、画布出现新字段；外点关闭、**Esc 关闭**均生效。![menu1280](/home/ubuntu/screenshots/r79_1_menu_1280.png) ![added](/home/ubuntu/screenshots/r79_1_field_added.png) ![esc](/home/ubuntu/screenshots/r79_1_menu_esc_closed.png)
+- 390px：菜单在视口内完整可见，点「姓名（带标签名）」成功添加（卡面出现「姓名 张同学」）。![menu390](/home/ubuntu/screenshots/r79_1_menu_390_visible.png) ![added390](/home/ubuntu/screenshots/r79_1_menu_390_added.png)
+- 第 78 轮 FAIL 行为（箭头翻转但菜单被 overflow 裁切不可见）不再复现。**passed**
+
+## P1-2 390px 属性面板（头部切换按钮）
+- 390px 设计器头部属性按钮始终可见，点击后属性面板滑入视口（「字段属性·座位号」「字号 (pt)」「X (mm)」全部可见）。![panel](/home/ubuntu/screenshots/r79_2_panel_390_open.png)
+- 真实键盘修改：字号 28→36、X 2→10、HEX 键入 d62828 → 画布「12」变大变红并右移，属性面板色块变红显示 #D62828。![canvas](/home/ubuntu/screenshots/r79_2_canvas_390_changed.png)
+- 1280px 回归：双栏布局正常，属性面板常驻右侧。![desktop](/home/ubuntu/screenshots/r79_2_desktop_two_col.png)　**passed**
+
+## P2-1 ?paper= 深链适配门槛
+- a) `/studio?template=staffIdCard&paper=a4-8up&demo=1`（清 storage）：toast「纸型与当前模板适配度不足：『A4 8格不干胶（2 列 × 4 行）』与本模板适配度：勉强，已保持模板默认排版」；卡面保持 54×86 竖版 3×3（18 人 2 页），无第 78 轮的横向拉伸。![gate](/home/ubuntu/screenshots/r79_3a_gate_toast.png)　**passed**
+- b) `/studio?template=standard&paper=a4-24up-round&demo=1`：正常锁定纸型，DOM 核实 63.5×33.9、3 列 × 8 行（24 枚/页），26 人 2 页。![applied](/home/ubuntu/screenshots/r79_3b_fit_applied.png)　**passed**
+- c) 纸型选择器评级抽查：weddingPlace 下拉中「A4 10格不干胶（2 列 × 5 行）」仍标「推荐」，宽高比门槛未造成异常降级。![sel](/home/ubuntu/screenshots/r79_3c_selector_recommended.png)　**passed**
+
+## P2-2 ColorField HEX 文本输入（真实键盘键入）
+- `#D62828` + 回车 → 色块与画布字段变红。![red](/home/ubuntu/screenshots/r79_4_hex_red.png)
+- `0a0` + 回车 → 归一化 #00AA00，字段变绿。![green](/home/ubuntu/screenshots/r79_4_hex_0a0.png)
+- `zzz` + 回车 → 回退显示上一个合法值 #00AA00，颜色不变。![revert](/home/ubuntu/screenshots/r79_4_hex_invalid_revert.png)
+- 原生取色器仍在（`input[type=color]` 覆盖于色块之上，DOM 核实）。**passed**
+
+注记：390px 颜色修改用的即是新 HEX 框（无 # 前缀 6 位输入亦被接受并归一化），与 P2-2 交叉印证。
+
+---
+
+# 第 78 轮：线上抽查 #103 四个 P2 + 新角度走查（纸型库套打 / 自定义模板设计器，www.seatmark.cn）
+
+**日期**: 2026-08-09　**环境**: 线上（bundle `index-Cdn01mzs.js`，含 #103；清 SW/caches 后核实），CDP 设备仿真 390×844 / 1280×800，PDF 用 pdftoppm 150dpi 栅格检查。
+**结论**: **Part 1 四个 P2 线上抽查全部通过；Part 2 走查发现 2 个 P1 + 2 个 P2 新问题。**
+
+## Part 1：#103 四个 P2 线上抽查（全部 passed）
+- **P2-1**：390px weddingPlace 页视图横向滚动两端可达（scrollLeft 0→482=max），第 2 列完整可见 ![left](https://app.devin.ai/attachments/002723b5-2354-4365-b97f-28ca0f8bac1d/r78_1_left_end.png) ![right](https://app.devin.ai/attachments/522c4841-158a-4c6b-a9c3-d3e2c6a0956d/r78_1_right_end.png)
+- **P2-2**：390px「图片 PNG」弹窗底部「登录后无水印导出每天 3 次…」完整可见于视口内 ![dlg](https://app.devin.ai/attachments/e069f615-df1b-4a91-a3f9-974f97e9732c/r78_2_dialog_390.png)
+- **P2-3**：standard / weddingPlace 带水印图片版 PDF 栅格放大，水印与准考证号行 / 桌号徽章均留可见间隙无重叠 ![std](https://app.devin.ai/attachments/247ca994-0f8e-4fd0-b337-85781444de05/r78_3_std_crop.png) ![wed](https://app.devin.ai/attachments/b29aaa1a-5f6e-464a-991b-f93fabcddea9/r78_3_wed_crop.png)
+- **P2-4**：教程 CTA「一键载入『工作证』模板 + 演示数据」→ staffIdCard 竖版工作证，姓名/部门/职务/工号逐卡映射，无「EXAM PASS」 ![staff](https://app.devin.ai/attachments/23a607bb-6614-4ecd-98ff-4a17fc6828e4/r78_4_staffIdCard_online.png)
+
+## Part 2：走查问题清单（P0 无）
+- **P1-1 设计器「+ 添加字段」下拉菜单被工具栏完全裁切（桌面与移动均复现）**：TemplateDesigner 工具栏容器 `overflow-x-auto`（计算样式 overflow-y 也变 auto），下拉菜单（208×320，DOM 中 open、opacity 1）整个被裁切不可见，elementFromPoint 命中底层面板——用户点「+ 添加字段」只见箭头翻转、菜单永远不出现，**无法通过 UI 添加任何字段**（复制 Ctrl+D 是唯一变通）。修复方向：菜单 teleport 到 body 或工具栏去掉 overflow-x-auto。 ![clip](https://app.devin.ai/attachments/bd1e1cfe-ce3a-4892-8b99-6fee41e24c10/r78_B_addfield_clipped_full.png) ![zoom](https://app.devin.ai/attachments/6903670b-701e-4372-b421-e517fdd17dd6/r78_B_addfield_clipped_zoom.png)
+- **P1-2 390px 设计器右侧「字段属性」面板完全不可达**：设计器 fixed 容器内容宽 678 > 视口 390 且 overflow visible、页面 scrollWidth=390——属性面板位于 x=407 之外，无横向滚动、无折叠入口，移动端**无法编辑字号/颜色/位置**。 ![m](https://app.devin.ai/attachments/bebc5265-2ed0-49ee-a053-da6646c613f2/r78_B_designer_390_no_panel.png)
+- **P2-1 /studio?paper= 纸型深链无适配度门槛**：StudioView.vue L122-128 对 URL paper 直接 applyLabelPaper，不做 evaluatePaperFit（第 76 轮 #102 门槛只在模板切换路径）。实测 staffIdCard（54×86 竖版）+ ?paper=a4-8up（105×74.25）被直接应用，卡面横向拉伸变形，仅有 toast「已按纸型锁定排版」，无适配度警告；且该纸型经 localStorage 持久化，后续加载其他模板继续沿用。 ![stretch](https://app.devin.ai/attachments/1213b9da-841f-40f5-9166-7e007c433a52/r78_A_staff_stretched.png)（对照正常竖版工作证见 Part 1 P2-4 图） ![no-warn](https://app.devin.ai/attachments/fcda1c9a-4bea-418d-b7f2-bb83eeb5266b/r78_A_paper_no_warning.png)
+- **P2-2 设计器颜色文本不可直接键入**：颜色控件仅原生 `input[type=color]` 色块 + 只读展示的 HEX 文本，无法粘贴/键入品牌色号；建议加可编辑 HEX 输入框。
+
+## Part 2 正常路径（passed）
+- /papers 列表与 /papers/a4-8up 详情在 1280 与 390 布局正常、CTA「用这款纸开始制作」链路通畅 ![papers](https://app.devin.ai/attachments/43d01444-0674-4a40-9f7c-e33430d12d8b/r78_A_papers_1280.png) ![detail390](https://app.devin.ai/attachments/278369cb-6281-4606-82b3-6907d84c9460/r78_A_paper_detail_390.png)
+- 设计器（1280）：字段选中/属性编辑（字号 26→40pt、颜色 #D62828 生效）、真实拖拽移动（按住中途截图 X/Y 实时更新）、Delete 删除字段、改姓名字段 22pt 后保存——toast「模板已保存，已加入我的模板并应用」，工坊预览按新模板渲染、演示数据逐卡映射 ![red](https://app.devin.ai/attachments/72ddf4c1-5080-4c9c-923a-013ddafb44b4/r78_B_field_40pt_red.png) ![drag](https://app.devin.ai/attachments/c4670e17-3768-4f86-bbe9-40eb512ab8ef/r78_B_drag_mid.png) ![saved](https://app.devin.ai/attachments/15fd1e2c-3a75-426b-afd6-3320d9ed058f/r78_B_saved_applied.png)
+- 注记：P1-1 因菜单 UI 不可见，测试中通过 DOM click 变通添加字段以继续验证后续编辑/保存链路；颜色亦经 JS 设值变通（见 P2-2）。
+
+---
+
+# 第 77 轮：本地验证 PR #103（第 75 轮 4 个 P2 清扫，dev @ localhost:5173）
+
+**日期**: 2026-08-09　**环境**: 本地 dev server（分支 `devin/1786293800-round77-p2-sweep`），CDP 设备仿真（390×844 / 1280×800），真实 UI 操作，PDF 用 pdftoppm 150dpi 栅格放大检查，PNG zip 用 PIL diff-bbox 检查。
+**结论**: **四个 P2 修复全部通过 + 回归通过，无阻断项。**
+
+- **P2-1（预览横向滚动，390px）**：weddingPlace demo 页视图 100% 缩放（scrollWidth 818 > clientWidth 336）：滚动到最左端第 1 列完整、页左缘可见；滚动到最右端（scrollLeft=482=max）第 2 列王芳/刘洋整卡完整可见——两端均可达，无裁死区（第 75 轮右端不可达）— passed ![left](https://app.devin.ai/attachments/5c441184-0b22-439f-b411-28d7752a69c1/r77_1_left_end.png) ![right](https://app.devin.ai/attachments/0d60338f-ee43-4642-b0b7-bf815eaf147c/r77_1_right_end.png)
+- **P2-2（弹窗 dvh 高度，390px）**：「导出图片（PNG）」弹窗底部说明「登录后无水印导出每天 3 次，分享链接每被点开 1 次再得 1 次；同时获得专业版 Beta 限时免费试用。」**完整可见**于视口内，弹窗底缘未超出（第 75 轮被截断）— passed ![dialog](https://app.devin.ai/attachments/1808a3cd-53d3-44f2-be41-ad93f3239d43/r77_2_dialog_390.png)
+- **P2-3（水印避让，150dpi 栅格）**：standard 带水印图片版 PDF——水印位于准考证号 2026061001 下方独立一行，有明显间隙不压字段笔画；weddingPlace——水印与桌号徽章右侧留有可见间隙、无重叠（第 75 轮贴叠）；classDoor 抽查——兜底位按最小重叠面积移至**右上角**（底部被班主任行占用），卡内位置合理、无字段覆盖，属新逻辑的预期跳位 — passed ![std](https://app.devin.ai/attachments/f351083b-6d1e-4cae-ac46-9c3bc411d4b8/r77_3_std_label_crop.png) ![wed](https://app.devin.ai/attachments/5415466b-0ac1-4f1e-a086-407ab9804e1e/r77_3_wed_label_crop.png) ![cd](https://app.devin.ai/attachments/6a2e465e-7c5c-4581-b601-31f4c2e695e1/r77_3_classDoor_crop.png)
+- **P2-4（教程 CTA→工作证）**：/guides/badge-visitor-card-batch CTA 文案「一键载入『工作证』模板 + 演示数据」→ 落地 /studio?template=staffIdCard&demo=1，卡面为竖版工作证（单位顶条/照片位/姓名/部门/职务/工号逐卡映射：张伟·技术部·首席技术官·HZ1001…），无「考试出入证 EXAM PASS」字样 — passed ![cta](https://app.devin.ai/attachments/90fb92e5-3a1c-42bc-b13a-c8cfb67a5225/r77_4_guide_cta.png) ![staff](https://app.devin.ai/attachments/35c5a437-195c-41bc-92c0-5fb20a209375/r77_4_staffIdCard.png)
+- **Regression**：390px weddingPlace 逐张带水印 PNG 18 张全部 1063×614 零空白、首张水印与徽章有间隙 — passed ![png](https://app.devin.ai/attachments/02526775-a2fd-4cc5-9caa-2785de8a8c65/r77_5_png_first.png)；1280 桌面预览仍居中、导出弹窗高度正常 — passed ![center](https://app.devin.ai/attachments/24260792-2a46-46ea-bdbe-45915ed9c72e/r77_reg_desktop_center.png)
+
+---
+
+# 第 76 轮：本地验证 PR #102（第 75 轮三个 P1 修复，dev @ localhost:5173）
+
+**日期**: 2026-08-09　**环境**: 本地 dev server（分支 `devin/1786292508-round76-walkthrough-p1s`），CDP 设备仿真（1280×800 / 390×844），真实 UI 操作，PNG zip / PDF 产物离线像素级检查（PIL diff-bbox）。
+**结论**: **A/B/C/D 四组全部通过，无阻断项，三个 P1 均验证闭环。**
+
+- **A（P1-2 纸型残留）**：badge demo 选「A4 4格不干胶（2列×2行）」→ UI 更换模板到婚礼席位卡：toast「已选纸型与新模板适配度不足：…适配度：勉强，已恢复模板默认排版」出现，预览恢复 90×52、2 列 × 5 行 10 枚/页，**无**「勉强」黄色警告残留；随后逐张带水印 PNG 导出 26 张全部 **1063×614（90:52 设计尺寸）**、零空白，非第 75 轮的 1240×1754 拉伸 — passed ![toast](https://app.devin.ai/attachments/483a69b2-7436-4a58-a9a2-7e4d22a50da6/r76_a_fit_toast.png) ![png](https://app.devin.ai/attachments/f22c7bcf-261a-413a-9278-618823e31d2a/r76_a_png1.png)
+- **B（P1-1 逐张 PNG 空白/偏移）**：390px 视口婚礼席位卡 18 条演示数据带水印逐张导出 **连跑 3 次**：3 个 zip 各 18 张全部 1063×614、PIL 判定零空白，首张内容居中、seatmark.cn 水印完整不被左缘裁切 — passed ![first](https://app.devin.ai/attachments/a1e30aed-293a-49c0-a934-e04d7865d752/r76_b_run1_first.png)
+- **C1（P1-3 演示名单替换）**：session 内先有婚宴演示数据（18 条），再访问 /studio?template=badge&demo=1：名单**替换**为「考场演示数据.xlsx 26 条」，字段映射 4/4，卡面无「未映射」（第 75 轮为保留婚宴数据、映射 1/4）— passed ![replaced](https://app.devin.ai/attachments/35c4ea16-838e-4a50-9bbd-a0819d141a21/r76_c1_demo_replaced.png)
+- **C2（自导入名单保护）**：手动上传餐饮门店样例.xlsx（5 条自导入名单）后再访问 demo=1 URL：名单保留（张先生/王先生…5 个标签）+ toast「已保留你当前的名单」出现 — passed ![kept](https://app.devin.ai/attachments/5af4786f-0909-4f3a-89ed-ed567848784c/r76_c2_keep_toast.png)
+- **D1 Regression（适配纸型仍沿用）**：weddingPlace 选推荐纸型「A4 10格不干胶（2列×5行）」→ 切到同 90×52 的面试候场号牌：toast「模板已切换…已保留纸型『A4 10格不干胶（2 列 × 5 行）』」— passed ![carried](https://app.devin.ai/attachments/fb063db1-ae87-4846-8d44-19e5b5b623a1/r76_d1_paper_kept.png)
+- **D2 Regression（整页导出）**：weddingPlace 带水印图片版 PDF 2 页，页 1 十枚逐卡姓名/桌号正常、每格水印可见、无空白格 — passed ![pdf](https://app.devin.ai/attachments/85bc4f9b-1369-4ca4-8d6f-c5cbc0cfd1de/r76d2-1.png)
+
+注记：P1-1 为间歇性缺陷，3 次复跑通过证明常规路径稳定；renderAndCutPage 的「空白即重渲/报错」防线属竞态兜底，未能在本地人工触发原始空白竞态（第 75 轮线上仅出现过一次），该防线逻辑以单测（292 tests）与代码路径为准。
+
+---
+
+# 第 75 轮：线上体验走查（无特定 PR，www.seatmark.cn）
+
+**日期**: 2026-08-09　**环境**: 线上 https://www.seatmark.cn ，CDP 设备仿真三视口（390×844 mobile / 1280×800 desktop / 768×1024 tablet），全程真实 UI 操作，导出产物（PNG zip / PDF）离线像素级检查。
+**结论**: 三条路径均走通，但发现 **3 个 P1、4 个 P2** 新问题；无 P0。
+
+## 问题清单
+
+### P1
+- **P1-1 逐张 PNG 导出出现空白图片与内容偏移（间歇性）**：390px 首次「婚礼席位卡 demo=18 条 → 带水印图片 PNG」导出的 zip（1606，18 张 1063×614）中 **002/004/006/008/010 共 5 张纯白空图**，且第 1 张内容整体左移、桌号徽章与 seatmark.cn 水印被左边缘裁切。随后两次复测（换纸型前后）均 18 张正常，未能再现——间歇性但产物损坏用户难以察觉，建议排查逐张 canvas 渲染竞态。![blank/offset](https://app.devin.ai/attachments/eede1674-3b33-4b50-a988-79dde172ca64/r75_m_png_full.png) 正常对照：![ok](https://app.devin.ai/attachments/b8be4754-7f91-423b-a2ef-3fb388ff795e/r75_m_png3_full.png)
+- **P1-2 纸型设置跨模板残留 + 逐张 PNG 按纸型单格成图**：在出入证模板改过纸型（A4 4格）后，即使清 sessionStorage 重新进入 `?template=weddingPlace&demo=1`，仍沿用 A4 4格，入口即弹「适配度：勉强」长警告（390px 下挤成窄列、可读性差）；且此时逐张 PNG 尺寸=纸型单格 105×148.5mm（1240×1754 竖版）而非模板设计尺寸 90×52mm，成图严重拉伸留白。建议：切换模板时纸型跟随模板推荐值，逐张 PNG 恒按设计尺寸成图。![warning](https://app.devin.ai/attachments/581987ba-dd68-413d-a5bf-b34b203dd059/r75_m_paper_warning.png) ![stretched](https://app.devin.ai/attachments/6ef10ce6-0fd1-4026-b6c9-079bd1067a89/r75_m_png2_full.png)
+- **P1-3 教程 quickStart CTA 不替换已有名单**：先体验过婚礼 demo 的会话中，点教程《出入证胸卡批量制作》的「一键载入出入证胸卡版 + 演示数据」，落地 studio 后名单仍是**婚宴数据**（姓名/桌号/新人/日期），字段映射仅 1/4、卡面大量「未映射」，与 CTA 承诺的「先看成品效果」断层。清空会话后同 URL 则正常载入考场数据 4/4。建议：CTA demo=1 且已有数据时提示「替换为演示数据？」。🔴![dirty](https://app.devin.ai/attachments/e82b1774-5611-448a-89a6-1b854e1ad0b7/r75_d_badge_mapping_dirty.png) 🟢![clean](https://app.devin.ai/attachments/bdea8dd1-877d-4991-a46c-929c74f03152/r75_d_badge_clean.png)
+
+### P2
+- **P2-1** 390px 预览切「页」视图时页面右侧第二列标签被裁切，需横向拖动才可见，无缩放提示。![clip](https://app.devin.ai/attachments/82c9f46a-27ad-4515-b063-1e311a614175/r75_m_preview_clipped.png)
+- **P2-2** 390px PNG 导出弹窗底部「登录后无水印导出每天 3 次…」说明文字在折行中被视口截断，需滚动才能读完整。![dialog](https://app.devin.ai/attachments/8bf7aafb-53e7-453e-9ab7-d6f0aca2ebe2/r75_m_png_dialog2.png)
+- **P2-3** 带水印打印/PDF 中，页脚 seatmark.cn 水印与标签底部内容（准考证号行、婚礼卡桌号徽章）视觉贴近甚至部分重叠。![pdf](https://app.devin.ai/attachments/dfe4151c-2b08-48a8-8022-726bd26bd0a7/r75_d_pdf_watermark_crop.png)
+- **P2-4** 教程《出入证胸卡批量制作》主题为员工/访客胸卡，但 CTA 载入的「出入证胸卡版」卡面为「考试出入证 · EXAM PASS」考试字样与考场字段，与教程场景有措辞落差。
+
+## 三条路径结果
+- 路径 1（390px 手机）首页→模板库搜「婚礼」→详情→一键开始→演示数据→带水印 PNG：整体走通，首页/详情/三步引导在 390px 布局良好，caption 前缀可读；配额文案（无水印今日剩余 N 次/带水印不限次）清晰 — passed（除 P1-1/P2-1/P2-2）![detail](https://app.devin.ai/attachments/194ab36f-11de-4c29-8bc9-8189185cddd6/r75_m_wedding_detail.png)
+- 路径 2（1280px 桌面）教程 badge-visitor-card-batch→quickStart→单张覆写改名「测试改名」→换纸型（纸型库 A4 4格）→打印/矢量 PDF（带水印）：PDF 产物核实含改名、caption、页脚水印 — passed（除 P1-3/P2-3/P2-4）
+- 路径 3（768px 平板）/seating 载入示例 48 人→随机排座→打印座位表：布局无溢出，打印 toast 提示可见，PDF 座位表 48 人 6×8 完整、讲台/页脚信息正常 — passed ![seatpdf](https://app.devin.ai/attachments/252f8112-212b-49ee-86c4-a9d959495faa/r75_t_seating_pdf.png) ![preview](https://app.devin.ai/attachments/d8a71248-8ecb-4598-95dc-69efc3bbfb0d/r75_t_print_preview.png)
+
+---
+
+# 第 74 轮：线上回归 PR #97（caption 迁移，www.seatmark.cn）
+
+**日期**: 2026-08-09　**环境**: 线上 https://www.seatmark.cn ；清 SW/caches（1 SW + 1 cache）后核实实际加载**新 bundle `index-19L6DgAq.js`**；方法同第 72 轮（未导入样例看 /templates/<id> 详情页整卡，映射后 demo=1 清 sessionStorage，`.label-field__caption` + 截图双判据）；全程录屏。
+**结论**: **四组抽查全部通过，无阻断项**，与第 72 轮本地结果一致。注：#98/#100 同义词自动映射尚未上线，wardBed demo 开箱自动匹配仍命中合成常量列（全「程医生/苏护士」）属**预期**，手动改映射后验证通过。
+
+- wardBed：详情页样例「主管医生 程医生」「责任护士 苏护士」；demo=1 手动改映射 医生/护士 列后前缀保留、姓名逐卡变化（王医生/李医生/赵医生…；刘护士/陈护士/杨护士…）— passed ![ws](https://app.devin.ai/attachments/52ee276f-4c51-4de4-9da5-15d56a95a839/r74_wardBed_sample_online.png) ![wm](https://app.devin.ai/attachments/239004a1-074a-4007-8f31-f1dae5e0909b/r74_wardBed_mapped_online.png)
+- esportsSeat demo=1：「战队 夜枭电子竞技俱乐部 / 赤霄战队 / 星轨电竞」轮转，DOM 断言无「战队 战队：」双前缀（double=false）— passed ![es](https://app.devin.ai/attachments/c8ca362b-fdb9-4507-85a5-5abc69a79f55/r74_esportsSeat_online.png)
+- morningCheck：详情页样例「接送人 安爸爸」caption 前缀正常 — passed ![mc](https://app.devin.ai/attachments/30337ac8-539b-4553-a8b0-d92274a378d0/r74_morningCheck_sample_online.png)
+- Regression standard demo=1（26 张逐卡）/ deluxeClassChalk demo=1（「班主任 王老师/李老师/张老师」逐卡）均正常 — passed ![sr](https://app.devin.ai/attachments/f89493dc-eb2c-49e9-865e-37e0116743d6/r74_standard_regression_online.png) ![cr](https://app.devin.ai/attachments/ccae2b0e-0811-4729-ac88-7547cbd6be06/r74_classChalk_regression_online.png)
+
+**录屏**: rec-7efeb8a7-9bbd-43a0-b569-51564d7cd038-edited.mp4
+
+## 74b：#100/#101 合入部署后最终口径复测（同日）
+
+清 SW/caches 后核实实际加载**再新 bundle `index-jWA_hbim.js`**（excel chunk `excel-sPrZk6dQ.js` 含「主治医生」同义词，curl 核实）。**开箱（不手动改映射）**：
+
+- wardBed demo=1 开箱：映射面板 **主管医生→医生、责任护士→护士**（5/5 自动匹配）；卡面「主管医生 王医生/李医生/赵医生…」「责任护士 刘护士/陈护士/杨护士…」逐卡变化——不再是常量列 — passed ![wb](https://app.devin.ai/attachments/f9e20041-4fa1-47be-a512-a822a8d3b9c0/r74b_wardBed_outofbox_online.png)
+- morningCheck demo=1 开箱：映射面板 **接送人→家长**（3/3）；「接送人 张伟/王芳/李娜…」逐卡变化 — passed ![mc](https://app.devin.ai/attachments/f8ec2897-0a38-4bcd-a14c-7f7dd0e56b37/r74b_morningCheck_outofbox_online.png)
+- esportsSeat demo=1（新 bundle 复测）：「战队 夜枭/赤霄/星轨」轮转、无双前缀（double=false）— passed ![es](https://app.devin.ai/attachments/0c470006-e619-490c-85ae-f85b8c1395a3/r74b_esportsSeat_online.png)
+- Regression standard / deluxeClassChalk（新 bundle 复测）均正常 — passed ![sr](https://app.devin.ai/attachments/6758d170-22c1-43e6-ad8a-e6a88b4aa7c5/r74b_standard_regression_online.png) ![cr](https://app.devin.ai/attachments/93276a25-1d32-41cd-aee6-4f98c6351f89/r74b_classChalk_regression_online.png)
+
+**录屏（最终口径）**: rec-c81c5107-98cd-4b13-a31e-630e93105bb4-edited.mp4
+
+---
+
+# 第 73 轮：本地验证 PR #98（autoMap 同义词补充，demo 开箱逐卡变化）
+
+**日期**: 2026-08-09　**环境**: 分支 devin/1786284943-round73-automap-synonyms（堆叠于 #97，共享工作树），本地 dev server http://localhost:5173；demo=1 开箱、不手动改映射，清 sessionStorage 后 clean 加载，映射面板 + `.label-field__caption` + 截图判据；全程录屏。代码依据：autoMap.ts L22-26（新增 teacher/doctor/nurse/guardian/phone 同义词组）。
+**结论**: **四组验证全部通过，无阻断项**。第 72 轮机制性观察（合成常量列被自动匹配命中）至此闭环。
+
+- wardBed demo=1 开箱：字段映射面板显示 **主管医生→医生、责任护士→护士**（真实列，5/5 自动匹配）；卡面「主管医生 王医生/李医生/赵医生…」「责任护士 刘护士/陈护士/杨护士…」逐卡变化（第 72 轮开箱为全「程医生/苏护士」）— passed ![wb](https://app.devin.ai/attachments/02e7c894-30fb-4378-b72c-9411d34c23f2/r73_wardBed_outofbox.png)
+- morningCheck demo=1 开箱：映射面板 **接送人→家长**（3/3 自动匹配）；卡面「接送人 张伟/王芳/李娜…」逐卡变化（第 72 轮开箱为全「安爸爸」）— passed ![mc](https://app.devin.ai/attachments/2c9e152a-e141-4ed7-baf7-a5b515b8b7b4/r73_morningCheck_outofbox.png) ![mp](https://app.devin.ai/attachments/3e4a622d-1777-4eb7-a93e-75a0ec9e7145/r73_morningCheck_mapping.png)
+- Regression standard demo=1：26 张逐卡（张伟/2026061001/第1考场…）正常 — passed ![sr](https://app.devin.ai/attachments/7e9a39c9-cc0f-4530-b065-389f37843958/r73_standard_regression.png)
+- Regression deluxeClassChalk demo=1：「班主任 王老师/李老师/张老师」前缀逐卡正常 — passed ![cr](https://app.devin.ai/attachments/4b76b5c2-81ae-4031-bebe-38cad209d773/r73_classChalk_regression.png)
+
+**录屏**: rec-0612ad92-386a-404e-be88-498ded299a8e-edited.mp4
+
+---
+
+# 第 72 轮：本地抽查 PR #97（55+ 个「前缀：内容」字段统一迁移 caption 机制）
+
+**日期**: 2026-08-09　**环境**: 分支 devin/1786283579-round72-caption-migration（共享工作树），本地 dev server http://localhost:5173；未导入样例看 /templates/<id> 详情页整卡，映射后 demo=1（清 sessionStorage），DOM `.label-field__caption` + 截图双判据；全程录屏。代码依据：defaultTemplatesLife.ts L69-80、defaultTemplatesCampus.ts L1151-1174、defaultTemplatesRound4.ts L669、demoDatasets.ts L308、LabelCard.vue L352。
+**结论**: **五组抽查全部通过，无阻断项**。一条机制性观察（非本 PR 缺陷）见下。
+
+- wardBed：详情页样例「主管医生 程医生」「责任护士 苏护士」；demo 自动匹配命中 sampleData 合成常量列（逐卡同名），手动改映射到数据集「医生/护士」列后**前缀保留、姓名逐卡变化**（王医生/李医生/赵医生…）— passed ![ws](https://app.devin.ai/attachments/cb50c17b-ed16-4e23-a5f1-3acca6625707/r72_wardBed_sample.png) ![wm](https://app.devin.ai/attachments/d78e50f8-dae4-443e-a553-7361430bc0bb/r72_wardBed_mapped.png)
+- esportsSeat demo=1：卡面「战队 夜枭电子竞技俱乐部 / 赤霄战队 / 星轨电竞」——caption 前缀 + 4 队轮转，**无「战队 战队：xxx」双前缀**（数据集硬编码前缀已去）— passed ![es](https://app.devin.ai/attachments/62b59f57-3695-401c-ac6c-5d21821ecb06/r72_esportsSeat.png)
+- Regression techEsportsSeat demo=1：「战队位次」夜枭·上单 / 赤霄·打野 / 星轨·中单 逐卡正常 — passed ![tes](https://app.devin.ai/attachments/aed54b38-56e5-4162-9920-d23e848738a7/r72_techEsportsSeat.png)
+- morningCheck（晨检提示卡，接送人 caption）：详情页样例「接送人 安爸爸」；demo 改映射「家长」列后 接送人 张伟/王芳/李娜 逐卡变化、前缀保留 — passed ![ms](https://app.devin.ai/attachments/ee36a1fb-66e6-4c01-a053-cf03f1eca0f1/r72_morningCheck_sample.png) ![mm](https://app.devin.ai/attachments/3fa802bc-938b-452d-bbf3-c5307d274fa2/r72_morningCheck_mapped.png)
+- Regression standard / deluxeClassChalk（#96 已合入）demo=1：26 张逐卡数据正常；「班主任 王老师/李老师」前缀逐卡正常 — passed ![sr](https://app.devin.ai/attachments/8425c118-4462-4f71-b9d2-e8402439fd87/r72_standard_regression.png) ![cr](https://app.devin.ai/attachments/fcfc1744-2ff4-48ef-80a9-97438c3604e1/r72_classChalk_regression.png)
+
+**机制性观察（既有行为，非本 PR 缺陷）**：demo 数据表会把模板 sampleData 中数据集缺失的字段合成为**常量列**（如 wardBed 的「主管医生=程医生」、morningCheck 的「接送人=安爸爸」），自动匹配优先命中同名合成列导致逐卡同值；改映射到真实列（医生/护士/家长）即逐卡变化。若希望 demo 开箱即逐卡不同，可考虑给医院/幼儿园数据集补真实的主管医生/责任护士/接送人列。
+
+**录屏**: rec-8f2d7cb4-8b9e-4c66-af64-c71de2bd064c-edited.mp4
+
+---
+
 # SeatMark PNG 导出功能测试报告
 
 **分支**: `devin/1786023428-png-field-naming-eink-presets`
