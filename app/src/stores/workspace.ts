@@ -58,6 +58,9 @@ interface PersistedRoster {
   rows: DataRow[]
   mapping: FieldMapping
   isDemoData: boolean
+  /** 刷新前已加载照片：照片仅存内存，恢复时据此提醒重新上传 */
+  hadPhotos: boolean
+  photoColumn: string
 }
 
 function loadInitialRoster(): PersistedRoster | null {
@@ -76,6 +79,8 @@ function loadInitialRoster(): PersistedRoster | null {
       mapping:
         parsed.mapping && typeof parsed.mapping === 'object' ? (parsed.mapping as FieldMapping) : {},
       isDemoData: parsed.isDemoData === true,
+      hadPhotos: parsed.hadPhotos === true,
+      photoColumn: typeof parsed.photoColumn === 'string' ? parsed.photoColumn : '',
     }
   } catch {
     return null
@@ -136,11 +141,21 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const isDemoData = ref(restoredRoster?.isDemoData ?? false)
   const mapping = reactive<FieldMapping>(restoredRoster?.mapping ?? {})
 
+  // ---------- 照片 ----------
+  const photoColumn = ref(restoredRoster?.photoColumn ?? '')
+  const photos = ref(new Map<string, string>())
+  const photoErrors = ref<string[]>([])
+
+  // 照片仅存内存（数据不出浏览器）：刷新后名单已恢复但照片需重新上传，明确提醒而非静默清空
+  if (restoredRoster?.hadPhotos) {
+    toast.info('照片需重新上传', '为保护隐私，照片仅保存在浏览器内存中；名单与匹配列已恢复，重新上传照片即可')
+  }
+
   // 名单会话内持久化（防抖）：经 URL / 落地页整页跳转进 /studio 时不丢已导入名单；
   // 仅存本页签的 sessionStorage，关闭页签即清除，符合「数据不出浏览器」承诺
   let rosterTimer: number | undefined
   watch(
-    [() => excel.rows, () => excel.headers, mapping, isDemoData],
+    [() => excel.rows, () => excel.headers, mapping, isDemoData, photos, photoColumn],
     () => {
       window.clearTimeout(rosterTimer)
       rosterTimer = window.setTimeout(() => {
@@ -158,6 +173,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
               rows: excel.rows,
               mapping,
               isDemoData: isDemoData.value,
+              hadPhotos: photos.value.size > 0,
+              photoColumn: photoColumn.value,
             }),
           )
         } catch {
@@ -201,11 +218,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       toast.info('单张覆写已清除', `名单已更新，原有 ${count} 张标签的单独改字已一并清除`)
     }
   }
-
-  // ---------- 照片 ----------
-  const photoColumn = ref('')
-  const photos = ref(new Map<string, string>())
-  const photoErrors = ref<string[]>([])
 
   // ---------- 数据视图：列筛选与排序（Excel 风格，决定排版顺序） ----------
   const sort = reactive({ column: '', direction: 'asc' as 'asc' | 'desc' })

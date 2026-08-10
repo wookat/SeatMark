@@ -6,6 +6,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
+import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 const ROSTER_KEY = 'seatmark.workspace-roster.v1'
@@ -50,6 +51,43 @@ describe('workspace 名单会话持久化', () => {
     expect(workspace.excel.headers).toEqual(['姓名'])
     expect(workspace.mapping['name']).toBe('姓名')
     expect(workspace.isDemoData).toBe(false)
+  })
+
+  it('刷新前已加载照片时恢复匹配列并提醒重新上传', () => {
+    sessionStorage.setItem(
+      ROSTER_KEY,
+      JSON.stringify({
+        fileName: '名单.xlsx',
+        sheetName: 'Sheet1',
+        headers: ['姓名'],
+        rows: [{ 姓名: '李四' }],
+        mapping: { name: '姓名' },
+        isDemoData: false,
+        hadPhotos: true,
+        photoColumn: '姓名',
+      }),
+    )
+    const workspace = useWorkspaceStore()
+    expect(workspace.photoColumn).toBe('姓名')
+    const toast = useToastStore()
+    expect(toast.toasts.some((t) => t.title.includes('照片需重新上传'))).toBe(true)
+  })
+
+  it('未加载过照片时刷新恢复不出现照片提醒', () => {
+    sessionStorage.setItem(
+      ROSTER_KEY,
+      JSON.stringify({
+        fileName: '名单.xlsx',
+        sheetName: 'Sheet1',
+        headers: ['姓名'],
+        rows: [{ 姓名: '李四' }],
+        mapping: { name: '姓名' },
+        isDemoData: false,
+      }),
+    )
+    useWorkspaceStore()
+    const toast = useToastStore()
+    expect(toast.toasts.some((t) => t.title.includes('照片'))).toBe(false)
   })
 
   it('损坏的持久化数据回落为空名单', () => {
