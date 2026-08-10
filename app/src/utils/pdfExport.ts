@@ -1,4 +1,5 @@
 import type { PrintCalibration } from '@/utils/calibration'
+import { loadRareGlyphFonts } from '@/utils/glyphSupport'
 import { encodeIndexedPng } from '@/utils/indexedPng'
 
 export interface PdfExportOptions {
@@ -146,6 +147,9 @@ export const IMAGES_READY_WAIT_MS = 5_000
  */
 export async function waitForElementReady(el: HTMLElement): Promise<void> {
   if (typeof document !== 'undefined' && 'fonts' in document) {
+    // 生僻字扩展字库按 unicode-range 分包懒加载：宿主刚挂载时分包可能尚未
+    // 开始下载，fonts.ready 已是落定态兜不住，需显式按文本触发并等待
+    await settleWithin(loadRareGlyphFonts(el.textContent ?? ''), FONTS_READY_WAIT_MS)
     await settleWithin(document.fonts.ready.then(() => undefined), FONTS_READY_WAIT_MS)
   }
   const images = Array.from(el.querySelectorAll('img'))
