@@ -61,6 +61,10 @@ export function setPrintPageSize(
   let css = `@page { size: ${widthMm}mm ${heightMm}mm; margin: 0; }`
   if (calibration && isCalibrationActive(calibration)) {
     const { offsetX, offsetY, scaleX, scaleY } = calibration
+    // 宿主约束到纸宽并裁剪溢出：正向偏移会把页面变换到纸边之外，
+    // 溢出会触发 Chromium 打印布局的 shrink-to-fit 整体缩水（约 0.8%），
+    // 使校准平移失真；transform 不影响块布局，裁剪不会改变分页
+    css += `\n@media print { .offscreen-host { width: ${widthMm}mm; overflow: hidden !important; } }`
     css += `\n@media print { .offscreen-host .sheet-page { transform: translate(${offsetX}mm, ${offsetY}mm) scale(${scaleX}, ${scaleY}); transform-origin: top left; } }`
   }
   style.textContent = css
