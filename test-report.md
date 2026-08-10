@@ -1,3 +1,27 @@
+# 第 157 轮（2026-08-10）：#165 CSV 编码修复线上复测 ✅（第 156 轮 P3-1「无 BOM UTF-8 CSV 乱码」闭环）
+
+**背景**：#165 / commit 274cf00（app/src/utils/excel.ts 新增 decodeCsvText：.csv 先 TextDecoder('utf-8',{fatal:true}) 严格解码剥 BOM，非法字节回退 gb18030，type:'string' 交 SheetJS；.xlsx/.xls 与 #159 PK 校验不变）。
+
+**方法**：轮询确认 EdgeOne 部署新 bundle（index-BB02NSJB.js → index-DTLWjJ7n.js，两次采样一致后开测）→ 生产 www.seatmark.cn，headless Chromium 29229 单前台 tab 真实 UI 文件注入，第 156/147/150 轮同素材 + 新造 GB18030 CSV。计划：test-plan-round157.md。
+
+## 结果
+
+| 复测点 | 结果 |
+|---|---|
+| 无 BOM UTF-8 CSV（r156_fix.csv，10 行含王𫖯）：导入成功、表头「姓名/考场/座位号」全中文、无 mojibake、姓名字段映射、预览 10 枚含「王𫖯」正常渲染（第 156 轮乱码现象消失） | ✅（P3-1 闭环） |
+| 带 BOM UTF-8 CSV：同判据通过；首表头字符码 [22995,21517]=「姓名」，无 \ufeff 残留 | ✅ |
+| GB18030 CSV（gb18030 写入 8 行，张三丰/赵𫖯）：导入成功、表头/数据全中文、预览 8 枚（含扩展区汉字𫖯）正常 | ✅ |
+| 回归：正常 .xlsx（12 行）「已读取 12 条数据」 | ✅ |
+| 回归：改名垃圾 .xlsx 仍报「文件内容不是有效的 .xlsx 工作簿…」（#159 判据，未走 CSV 兜底） | ✅ |
+| 回归：多 sheet xlsx「已读取 1 条数据；文件含 2 个工作表，可在导入面板切换」，导入面板 select 名单A→名单B 切换后重新导入渲染正常 | ✅ |
+| 全程 pageerrors 空 | ✅ |
+
+**注记**：多 sheet 切换 UI 为导入面板内的 `<select>` 下拉（非弹窗按钮），取证脚本注意。测试时工作区沿用课桌姓名贴模板（班级/学号字段对 3 列 CSV 显示「未映射」为预期行为，非编码问题）。
+
+**截图**：/home/ubuntu/screenshots/r157_nobom.png（关键：无 BOM 中文表头+预览正常）、r157_bom.png、r157_gbk.png（关键：GB18030 张三丰/赵𫖯）、r157_xlsx.png、r157_fake_rejected.png、r157_2sheet_panel.png、r157_2sheet_imported.png。素材：/home/ubuntu/r156_fix.csv、r156_fix_bom.csv、r157_gbk.csv、r150_fix.xlsx、r147_fix/fake_text.xlsx、r147_fix/r149_2sheet.xlsx。脚本：/home/ubuntu/r157_run.py。
+
+---
+
 # 第 156 轮（2026-08-10）：PWA 离线全流程走查 ✅（无新增 P0–P2；1 项 P3 观察项：无 BOM 的 UTF-8 CSV 中文表头乱码；1 项覆盖注记：生僻字离线降级警告未触发）
 
 **背景**：无代码变更纯 QA 轮。此前仅测过弱网壳页兜底与 SW 接管（#125–#127），本轮首次完整离线链路验收。代码依据：vite.config.ts VitePWA（precache js/css/html/svg/png/woff2、plangothic 字库不预缓存、导航 NetworkFirst 4s + precacheFallback 壳页、skipWaiting+clientsClaim）、main.ts:38 注册 /sw.js、glyphSupport.ts:115-122 字库下载失败降级警告、quota.ts 匿名配额纯 localStorage。
