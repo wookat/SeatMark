@@ -53,6 +53,9 @@ export default defineConfig(({ isSsrBuild }) => ({
         // 导航请求不吃预缓存的 index.html：否则服务端响应头（安全头等）更新后，
         // 老访客仍被 SW 用旧响应应答，新头长期不生效
         navigateFallback: undefined,
+        // 禁用目录索引映射：precache 路由默认把「/」映射到预缓存的 index.html，
+        // 会抢在 NetworkFirst 之前应答根路径导航；置空后 index.html 仅作离线壳页
+        directoryIndex: '',
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === 'navigate',
