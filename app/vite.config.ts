@@ -18,6 +18,7 @@ export default defineConfig(({ isSsrBuild }) => ({
       injectRegister: false,
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
+        lang: 'zh-CN',
         name: 'SeatMark 座签 - 座位标签·考场桌贴·桌牌在线生成',
         short_name: 'SeatMark',
         description: '上传 Excel，批量生成可打印的座位标签、考场桌贴、考号贴、桌牌、学生证 / 工作证等。数据全程本地处理。',
