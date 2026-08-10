@@ -1,3 +1,33 @@
+# 第 156 轮（2026-08-10）：PWA 离线全流程走查 ✅（无新增 P0–P2；1 项 P3 观察项：无 BOM 的 UTF-8 CSV 中文表头乱码；1 项覆盖注记：生僻字离线降级警告未触发）
+
+**背景**：无代码变更纯 QA 轮。此前仅测过弱网壳页兜底与 SW 接管（#125–#127），本轮首次完整离线链路验收。代码依据：vite.config.ts VitePWA（precache js/css/html/svg/png/woff2、plangothic 字库不预缓存、导航 NetworkFirst 4s + precacheFallback 壳页、skipWaiting+clientsClaim）、main.ts:38 注册 /sw.js、glyphSupport.ts:115-122 字库下载失败降级警告、quota.ts 匿名配额纯 localStorage。
+
+**方法**：生产 www.seatmark.cn（bundle index-BB02NSJB.js），headless Chromium 29229 单前台 tab，CDP Network.emulateNetworkConditions 切换离线；导出错分钟避免重名覆盖；产物 PIL/zipfile/pypdfium2 核验。计划：test-plan-round156.md。
+
+## 结果
+
+| 验收点 | 结果 |
+|---|---|
+| SW activate（ready.active.state=activated、controller 生效、scope=/） | ✅ |
+| precache：workbox-precache-v2 57 条（48 js、2 css、含 index.html/图标），plangothic 分包 0 条（按设计不预缓存）；pages 运行时缓存 32 条 | ✅ |
+| manifest.webmanifest：name/short_name/icons(192+512+maskable)/display=standalone/start_url=//theme_color=#4f46e5 全合规；`lang:"en"`（中文站）如实记录不定级 | ✅（附注记） |
+| 完全离线重开 /（Hero 正常）与 /studio（选择模板+工具栏完整渲染） | ✅ |
+| 离线打开未访问过的路由 /guides/desk-card-font-size：壳页兜底 + SPA 客户端渲染出完整教程正文（正文 2029 字符），不白屏、无 pageerror | ✅ |
+| 离线导入 CSV（UTF-8 BOM，10 行含生僻字「王𫖯」）：「Excel 导入成功｜已读取 10 条数据」，预览 10 枚、表头自动匹配 | ✅ |
+| 离线切模板（标准考场版→课桌姓名贴）：toast「模板已切换」、演示数据换为「班级教学」、24 标签 2 页正常渲染 | ✅ |
+| 离线导出：逐张 PNG zip（10 张 1000×534）+ 整页 PNG（2481×3509，10 枚 1 页时直接落单 PNG 非 zip）+ 图片版 PDF（1 页可渲染）全部成功；配额徽标走本地 localStorage（{"date":"2026-08-10","used":1}，剩余 0 如实显示），带水印导出不受离线影响不阻塞 | ✅ |
+| 全程统计/API 请求失败无用户可见报错、pageerrors 全空 | ✅ |
+| 恢复在线刷新：roster（563B）/预览 10 枚/custom-templates 全部无丢失；SW 仍 activated、bundle 一致（本轮无新部署，#126 一刷接管无法真部署复测，按现状断言） | ✅ |
+| 390×844 离线重开 /studio：完整渲染、scrollWidth=clientWidth=390 无横向溢出 | ✅ |
+
+**P3-1（观察项）**：不带 BOM 的 UTF-8 CSV 中文表头/内容全部乱码（Ã¥Â§â€¦ 型 mojibake）——「导入成功 10 条」但字段全部「未映射」，无编码错误提示；加 BOM 后完全正常。与离线无关（在线同现）。裁量项：CSV 解析可尝试 UTF-8 优先或检测失败提示编码问题。
+
+**覆盖注记**：生僻字扩展字库离线降级警告未能触发——测试字符 𫖯（U+2B5AF）被 headless 环境系统字体（Noto CJK）直接覆盖并在导出 PNG 中正常渲染，未走扩展字库下载路径，警告链路本轮 untested（非缺陷）。
+
+**截图**：/home/ubuntu/screenshots/r156_home_online.png、r156_offline_home.png、r156_offline_studio.png、r156_offline_unvisited.png、r156_offline_import_bom.png、r156_offline_import.png（P3-1 乱码证据）、r156_offline_switch_template.png、r156_offline_export1.png、r156_offline_390.png、r156_online_restored.png、r156_label10_rare.png。导出物：/home/ubuntu/r156_dl/（逐张 zip、整页 PNG×2、图片版 PDF）。脚本：/home/ubuntu/r156_t1/t2/t3/t4/t4b/t4c/t5.py。
+
+---
+
 # 第 155 轮（2026-08-10）：#160 SEO 新页面线上验收 ✅（/vs 矩阵 5 页 + 2 长尾落地页全部通过，无新增 P 级问题）
 
 **背景**：SEO 子会话 #160（commit 5c1b44a）已合入 main 并部署到生产。新增 /vs 对比索引 + /vs/chuangkit、/vs/wps-mail-merge、/vs/placecard-us、/vs/canva 与 /desk-card-generator、/name-card-batch。本轮直接线上验收（部署已稳定，未见边缘传播窗口现象）。
