@@ -113,12 +113,14 @@ const HERO_PAD_X = 16
 const HERO_PAD_TOP = 16
 const HERO_PAD_BOTTOM = 44
 
+/** 面板实测宽度就绪前的估算值：max-w-md（448px）与视口余量取小，
+ * 使首帧高度即接近终值，Hero 不产生布局偏移（CLS） */
+const estimatedPanelWidth =
+  typeof window === 'undefined' ? 448 : Math.min(448, window.innerWidth - 32)
+
 const heroScale = computed(() => {
-  if (!heroPanelWidth.value) return 0.4
-  return Math.min(
-    (heroPanelWidth.value - HERO_PAD_X * 2) / (heroTemplate.page.paperWidth * MM_TO_PX),
-    0.62,
-  )
+  const width = heroPanelWidth.value || estimatedPanelWidth
+  return Math.min((width - HERO_PAD_X * 2) / (heroTemplate.page.paperWidth * MM_TO_PX), 0.62)
 })
 const heroHeight = computed(
   () => heroTemplate.page.paperHeight * MM_TO_PX * heroScale.value + HERO_PAD_TOP + HERO_PAD_BOTTOM,

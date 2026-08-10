@@ -66,6 +66,8 @@ Local attacker page at `/tmp/r103web/frame.html` + `frame2.html`, served by `pyt
 - Toasts are short-lived — poll the toast container every ≤0.3s from the moment of the triggering action (draining events first, then reading, misses them). When asserting glyph/font behavior, first probe the test browser's own font coverage with the same canvas method as the product; beware that one astral char in a text run can make the entire line render as tofu on font-poor Linux/headless environments.
 - Export-dialog dropdowns (e.g. `#png-unit`) are custom SelectField components (button + option list), not native `<select>` — setting `.value` via JS is a silent no-op; click the trigger then the option text. Transient loading-overlay phases can last <0.5s; sample/screenshot at ≤50ms intervals to capture the final phase pixels.
 
+- Lighthouse audits: the first `npx lighthouse` run in a session can be a cold-start outlier (Perf 15+ points low) — always take ≥3 mobile runs of key pages and use the median. Historical baseline JSONs live in `/home/ubuntu/r99_lighthouse/`, `/home/ubuntu/r100_lighthouse/`, and `/home/ubuntu/r117_lighthouse/`.
+
 ## Analytics & console checks
 Analytics are injected after `load` via `requestIdleCallback`. Collect `Network.requestWillBeSent` for ≥12 s and assert hits for `gtag/js`, `hm.baidu.com/hm.js`, `zz.bdstatic.com`, `clarity.ms`. Ignore Chrome's `Blocked third-party cookie` warnings — they are pre-existing noise.
 
