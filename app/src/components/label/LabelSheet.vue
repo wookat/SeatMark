@@ -49,9 +49,19 @@ const pageStyle = computed<CSSProperties>(() => ({
 
 function lineStyle(line: (typeof lines.value)[number]): CSSProperties {
   if (line.orientation === 'v') {
-    return { left: `${line.left}mm`, top: `${line.top}mm`, height: `${line.length}mm`, width: '0' }
+    return {
+      left: `${line.left}mm`,
+      top: `${line.top}mm`,
+      height: `${line.length}mm`,
+      width: '0.35mm',
+    }
   }
-  return { left: `${line.left}mm`, top: `${line.top}mm`, width: `${line.length}mm`, height: '0' }
+  return {
+    left: `${line.left}mm`,
+    top: `${line.top}mm`,
+    width: `${line.length}mm`,
+    height: '0.35mm',
+  }
 }
 
 function boxStyle(idx: number): CSSProperties {
