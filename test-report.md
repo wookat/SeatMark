@@ -1,3 +1,23 @@
+# 第 191 轮（2026-08-10）：#198 例行依赖收敛（仅 package-lock.json）线上冒烟回归 ✅（部署翻转后：demo 整页 PNG md5 与 r170 基线逐位一致——依赖升级渲染零变化；demo 逐张 zip 24 张与「共 24 条数据」一致；首页 /templates 加载正常；GA/百度统计通道正常注入且命中、clarity 0；pageerror 0）
+
+**部署**：entry `index-DDHydYPE.js`→`index-BmwKWsHK.js`（15s 二次采样一致）；css `index-n4PFQFvb.css`（随构建翻转）；sw md5 `a8116cd3…`。
+
+**结果**：
+- T1 核心：demo 整页 PNG（带水印口径）md5=`3e8fdf3e0c8530297998d8ad25623f21` = r170 基线逐位一致（html2canvas-pro 2.0.4 未动，vue/vite/@sentry in-range 升级渲染零变化实证）。
+- T2 冒烟：demo 逐张 zip 24 张 =「共 24 条数据」；首页与 /templates 正常渲染（截图）、pageerror 0。取证注记：图片 PNG 弹窗的导出模式跨导出记忆——上一次选「按整页」后下一次默认仍整页（本轮首跑逐张误得 2 张整页 zip，切回「按标签逐张」复跑即 24 张；产品行为，非缺陷）。
+- T3 统计通道：gtag/js×1、hm.js×1、zz.bdstatic×1 注入且实际命中（GA collect×1、hm.gif×2）；clarity 0；Sentry 无异常请求/无 console error。
+- 全程 pageerror 0（4 tab）；清 storage + 关闭全部测试 tab。
+
+**产物**：/home/ubuntu/r191_dl/（demo 整页 zip、整页双页 zip、逐张 24 张 zip）；截图 /home/ubuntu/screenshots/r191_home.png、r191_templates.png；脚本 /home/ubuntu/r191_t1.py、r191_t1b.py、r191_t23.py。
+
+# 第 189 轮（2026-08-10）：多文种/生僻字名单浏览器打印通道验证 ✅（无代码变更走查轮；重建注记：本节原稿曾因工作树被更新至新 main 而丢失，此为依据第 189 轮产物/截图重建。打印 PDF 中维文原生 shaping 连写正常、𱁬 完整不碎裂且王/明 仍粗体——#193 font-synthesis:none 在打印 DOM 路径生效实证；藏/传统蒙/彝/朝/西里尔与预览一致无豆腐；demo 打印冒烟正常；pageerror 0）
+
+**测法**：生产 /studio?template=deskName（entry index-DDHydYPE.js）导入 r180 名单，点「打印 / 矢量 PDF」→「带水印导出」，预先覆写 window.print 抛异常使打印宿主保持挂载（headless 取证手法：window.print 为 no-op 且 1.5s afterprint 兜底会卸载宿主，直接 printToPDF 抓到 995 字节空白 PDF；覆写后 doPrint 无 finally、宿主长驻），Page.printToPDF（A4、printBackground）→ pdftoppm 300dpi 栅格化逐字段裁片。副作用：quota 不消耗、无「已调起打印」toast、无 pageerror。
+
+**结果**：打印 PDF 1 页 A4（595.92×841.92pt）10 标签全渲染、水印徽章正常；维文连写正常无堆叠（原生 shaping，html2canvas 缺陷不涉打印）；𱁬 完整不碎裂、王/明 仍粗体；藏文叠字完整、彝/传统蒙/朝/西里尔与预览一致、无豆腐；demo 打印 2 页、16 标签/页、角标/裁切线正常；传统蒙文长名同预览以省略号截断（r180 既知观察）；蒙/彝/藏为本机 Unifont 位图风格（环境字体，与预览一致）。全程 pageerror 0；清 storage + 关闭全部测试 tab。
+
+**产物**：/home/ubuntu/r189_dl/（names_print.pdf、demo_print.pdf 及栅格）；截图 /home/ubuntu/screenshots/r189_print_biang.png、r189_names_print_full.png、r189_print_uy.png、r189_print_tibetan.png、r189_print_yi.png、r189_print_yi_mn.png、r189_demo_print_p1.png；脚本 /home/ubuntu/r189_t1b.py。
+
 # 第 188 轮（2026-08-10）：#194 导出前中和合成加粗线上复测 ✅（**#193 导出路径闭环**：逐张 009.png md5 由失败基线 d241c042… 翻转为 eb4eb7bd…，𱁬 在逐张与整页产物中均为常规字重完整字形、无重影碎裂，王/明 仍粗体；预览与导出形态一致，所见即所得恢复；demo 整页 md5 与 r170 基线逐位一致（rare 区间外 DOM 零触碰）；维文 RTL 无回归；pageerror 0）
 
 **部署**：entry `index-BSD8AYv1.js`→`index-DDHydYPE.js`（15s 二次采样一致）；css 不变 `index-D3VMV82H.css`；sw md5 `52f6b960…`。
