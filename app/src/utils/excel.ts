@@ -32,7 +32,8 @@ export async function parseExcelFile(file: File, targetSheet?: string): Promise<
   if (!sheetName) throw new Error('Excel 文件中没有可用的工作表')
 
   const sheet = workbook.Sheets[sheetName]!
-  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 })
+  // raw:false 读取格式化文本（cell.w），日期/时间/前导零/百分比等按 Excel 中所见呈现
+  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: false })
 
   const cellTexts = (row: unknown[] | undefined) =>
     (row ?? [])
