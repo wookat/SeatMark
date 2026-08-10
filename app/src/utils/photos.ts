@@ -14,6 +14,31 @@ function readAsDataURL(file: File): Promise<string> {
   })
 }
 
+/** 根据文件头魔数判断是否为浏览器可渲染的图片格式（JPEG/PNG/GIF/WebP/BMP/HEIC系/SVG） */
+async function isRenderableImage(file: File): Promise<boolean> {
+  const head = new Uint8Array(await file.slice(0, 16).arrayBuffer())
+  if (head.length < 4) return false
+  if (head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) return true // JPEG
+  if (head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47) return true // PNG
+  if (head[0] === 0x47 && head[1] === 0x49 && head[2] === 0x46 && head[3] === 0x38) return true // GIF8
+  if (head[0] === 0x42 && head[1] === 0x4d) return true // BMP
+  if (
+    head[0] === 0x52 &&
+    head[1] === 0x49 &&
+    head[2] === 0x46 &&
+    head[3] === 0x46 &&
+    head[8] === 0x57 &&
+    head[9] === 0x45 &&
+    head[10] === 0x42 &&
+    head[11] === 0x50
+  )
+    return true // RIFF....WEBP
+  if (head[4] === 0x66 && head[5] === 0x74 && head[6] === 0x79 && head[7] === 0x70) return true // ftyp（HEIC/AVIF 等）
+  // SVG：文本开头为 "<"（允许 BOM/空白前缀）
+  const text = new TextDecoder().decode(head).replace(/^\ufeff/, '').trimStart()
+  return text.startsWith('<')
+}
+
 /** 包含匹配时要求值至少 2 个字符，避免「1」「A」这类短值大面积误命中 */
 const MIN_FUZZY_LENGTH = 2
 
@@ -63,6 +88,11 @@ export async function loadPhotoFiles(
       return
     }
     try {
+      if (!(await isRenderableImage(file))) {
+        result.unmatched++
+        result.errors.push(`${file.name} - 不是有效的图片文件（内容无法识别，可能是改名或损坏的文件）`)
+        return
+      }
       result.photos.set(match.key, await readAsDataURL(file))
       if (match.exact) exactKeys.add(match.key)
       result.matched++

@@ -100,6 +100,11 @@ describe('parseExcelFile', () => {
     expect(parsed.rows).toHaveLength(2)
   })
 
+  it('改名为 .xlsx 的非 ZIP 内容被拒绝，不走 CSV 回退', async () => {
+    const file = new File(['姓名,座位号\n张三,1\n'], 'fake.xlsx')
+    await expect(parseExcelFile(file)).rejects.toThrow('不是有效的 .xlsx 工作簿')
+  })
+
   it('csv 文件可正常解析', async () => {
     const csv = '姓名,座位号\n张三,1\n李四,2\n'
     const file = new File(['\ufeff' + csv], 'roster.csv')

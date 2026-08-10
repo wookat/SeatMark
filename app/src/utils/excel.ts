@@ -19,9 +19,18 @@ export async function parseExcelFile(file: File, targetSheet?: string): Promise<
     throw new Error('无法读取文件：文件可能已被移动、重命名或删除，请重新选择文件')
   }
 
+  const bytes = new Uint8Array(buffer)
+  // .xlsx 必为 ZIP 容器（PK 魔数）；否则 SheetJS 会回退成 CSV/文本解析，把改名的非表格文件误报为导入成功
+  const isZip = bytes[0] === 0x50 && bytes[1] === 0x4b
+  if (/\.xlsx$/i.test(file.name) && !isZip) {
+    throw new Error(
+      '文件内容不是有效的 .xlsx 工作簿（可能是改名或损坏的文件）；若是 CSV 名单请将扩展名改回 .csv 后重试',
+    )
+  }
+
   let workbook: ReturnType<typeof XLSX.read>
   try {
-    workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' })
+    workbook = XLSX.read(bytes, { type: 'array' })
   } catch {
     throw new Error('文件解析失败：文件可能已损坏或格式不受支持，请重新选择 .xlsx / .xls / .csv 文件')
   }
