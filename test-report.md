@@ -1,3 +1,18 @@
+# 第 189 轮（2026-08-10）：多文种/生僻字名单浏览器打印通道验证 ✅（走查轮，无代码变更：打印 PDF 中维文原生 shaping 连写正常、𱁬 完整不碎裂且王/明 仍粗体——#193 font-synthesis:none 在打印 DOM 生效实证；藏/传统蒙/彝/朝/西里尔与预览一致无豆腐；demo 打印冒烟正常；pageerror 0）
+
+**测法**：真实点击「打印 / 矢量 PDF」入口（经导出选择弹窗「带水印导出」），预先覆写 `window.print` 抛异常使打印宿主保持挂载（doPrint 无 finally，unmountHost 不执行——headless 无打印对话框的取证手法），`Page.printToPDF`（A4、printBackground）抓取 @media print 排版，pdftoppm 300dpi 栅格化逐字段裁片。entry `index-DDHydYPE.js`（r188 后无部署变化）。
+
+**结果**：
+- T1 多文种打印 PDF（1 页 A4 595.92×841.92pt，10 标签全渲染）：
+  - 维文 ئابدۇللا ئابلىز 连写正常、无堆叠（浏览器原生 shaping，html2canvas 缺陷不涉打印，与预览一致）；
+  - **𱁬 完整单一字形、无重影碎裂，王/明 仍粗体**——#193 `font-synthesis: none` 在打印 DOM 路径生效的直接实证（#194 neutralize 不涉打印）；
+  - 藏文叠字完整、彝文/传统蒙文（Unifont 位图风格、蒙文含既知「…」截断观察项）/朝鲜文/西里尔均与预览一致、无 U+FFFD/豆腐；
+  - 水印徽章 seatmark.cn 正常出现在各标签（带水印口径）。
+- T2 Regression demo 打印：2 页、16 标签/页全渲染，文字/角标/裁切线正常。
+- 两 tab pageerror 均 0（覆写抛异常未产生页面级错误）；清 storage + 关闭全部测试 tab。
+
+**产物**：PDF /home/ubuntu/r189_dl/names_print.pdf、demo_print.pdf（含栅格 png）；截图 /home/ubuntu/screenshots/r189_names_print_full.png（整页）、r189_print_biang.png（关键：打印 𱁬 完整）、r189_print_uy.png、r189_print_tibetan.png、r189_print_yi.png、r189_print_yi_mn.png（传统蒙文）、r189_demo_print_p1.png；脚本 /home/ubuntu/r189_t1b.py。
+
 # 第 188 轮（2026-08-10）：#194 导出前中和合成加粗线上复测 ✅（**#193 导出路径闭环**：逐张 009.png md5 由失败基线 d241c042… 翻转为 eb4eb7bd…，𱁬 在逐张与整页产物中均为常规字重完整字形、无重影碎裂，王/明 仍粗体；预览与导出形态一致，所见即所得恢复；demo 整页 md5 与 r170 基线逐位一致（rare 区间外 DOM 零触碰）；维文 RTL 无回归；pageerror 0）
 
 **部署**：entry `index-BSD8AYv1.js`→`index-DDHydYPE.js`（15s 二次采样一致）；css 不变 `index-D3VMV82H.css`；sw md5 `52f6b960…`。
