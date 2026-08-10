@@ -105,6 +105,33 @@ describe('parseExcelFile', () => {
     await expect(parseExcelFile(file)).rejects.toThrow('不是有效的 .xlsx 工作簿')
   })
 
+  it('无 BOM 的 UTF-8 CSV 中文表头正常解析（不乱码）', async () => {
+    const csv = '姓名,座位号\n张三,1\n李四,2\n'
+    const file = new File([new TextEncoder().encode(csv)], 'roster.csv')
+    const parsed = await parseExcelFile(file)
+    expect(parsed.headers).toEqual(['姓名', '座位号'])
+    expect(parsed.rows[0]!['姓名']).toBe('张三')
+  })
+
+  it('带 BOM 的 UTF-8 CSV 正常解析且表头不带 BOM 字符', async () => {
+    const csv = '\ufeff姓名,座位号\n张三,1\n'
+    const file = new File([new TextEncoder().encode(csv)], 'roster.csv')
+    const parsed = await parseExcelFile(file)
+    expect(parsed.headers).toEqual(['姓名', '座位号'])
+  })
+
+  it('GB18030 编码的 CSV 中文表头正常解析', async () => {
+    // 「姓名,座位号\n张三,1\n」的 GBK/GB18030 字节
+    const gbk = new Uint8Array([
+      0xd0, 0xd5, 0xc3, 0xfb, 0x2c, 0xd7, 0xf9, 0xce, 0xbb, 0xba, 0xc5, 0x0a,
+      0xd5, 0xc5, 0xc8, 0xfd, 0x2c, 0x31, 0x0a,
+    ])
+    const file = new File([gbk], 'roster.csv')
+    const parsed = await parseExcelFile(file)
+    expect(parsed.headers).toEqual(['姓名', '座位号'])
+    expect(parsed.rows[0]!['姓名']).toBe('张三')
+  })
+
   it('csv 文件可正常解析', async () => {
     const csv = '姓名,座位号\n张三,1\n李四,2\n'
     const file = new File(['\ufeff' + csv], 'roster.csv')
