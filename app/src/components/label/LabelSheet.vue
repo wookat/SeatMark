@@ -47,23 +47,6 @@ const pageStyle = computed<CSSProperties>(() => ({
   height: `${props.template.page.paperHeight}mm`,
 }))
 
-function lineStyle(line: (typeof lines.value)[number]): CSSProperties {
-  if (line.orientation === 'v') {
-    return {
-      left: `${line.left}mm`,
-      top: `${line.top}mm`,
-      height: `${line.length}mm`,
-      width: '0.35mm',
-    }
-  }
-  return {
-    left: `${line.left}mm`,
-    top: `${line.top}mm`,
-    width: `${line.length}mm`,
-    height: '0.35mm',
-  }
-}
-
 function boxStyle(idx: number): CSSProperties {
   const pos = labelPosition(props.template, idx)
   // --i 供外部交错动画使用（如首页 Hero 的逐枚落版进场）
@@ -81,15 +64,28 @@ function textsFor(row: DataRow): Record<string, string> {
 
 <template>
   <div class="sheet-page" :class="{ 'sheet-page--screen': screen }" :style="pageStyle">
-    <div v-if="showCutLines" class="cut-layer">
-      <div
+    <!-- 裁切线用内联 SVG 绘制：html2canvas-pro 不栅格化虚线边框与重复渐变背景，但能正确渲染内联 SVG（同模板装饰层机制） -->
+    <svg
+      v-if="showCutLines"
+      class="cut-layer"
+      :viewBox="`0 0 ${template.page.paperWidth} ${template.page.paperHeight}`"
+      width="100%"
+      height="100%"
+      aria-hidden="true"
+    >
+      <line
         v-for="line in lines"
         :key="line.key"
         class="cut-line"
-        :class="line.orientation === 'v' ? 'cut-line--v' : 'cut-line--h'"
-        :style="lineStyle(line)"
-      ></div>
-    </div>
+        :x1="line.left"
+        :y1="line.top"
+        :x2="line.orientation === 'v' ? line.left : line.left + line.length"
+        :y2="line.orientation === 'v' ? line.top + line.length : line.top"
+        stroke="rgba(120, 130, 150, 0.65)"
+        stroke-width="0.35"
+        stroke-dasharray="1.2 1.2"
+      />
+    </svg>
     <div v-if="watermark" class="sheet-watermark" aria-hidden="true">SeatMark 座签 · seatmark.cn</div>
     <div
       v-for="(row, idx) in rows"
