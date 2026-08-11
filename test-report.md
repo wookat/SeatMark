@@ -1,3 +1,19 @@
+# 第 218 轮（2026-08-11）：隐私承诺全站网络外发审计 ✅ 名单数据零外发（106 条全量 CDP 网络取证敏感串 0 命中）；分享长链纯前端 hash、短码 POST 仅含模板 JSON（解码验证无名单）；存储清后确实清空；pageerror 0
+
+**环境**：生产真实 UI，entry `index-m3vMPIl7.js`。CDP `Network.requestWillBeSent` 全量捕获（URL+POST body，含 GA4/百度统计/beacon），headless 1024×768。夹具：`r218_roster.xlsx`（姓名「隐私审计张三218/李四218/王五218」+ 手机号列 13800218001-003）+ 照片 `隐私审计张三218_PRIVAUDIT218.jpg`。敏感串匹配含原文 + URL 编码 + base64/base64url 变体。
+
+**链路**：/studio?template=withPhoto（照片核验版）→ 导入 xlsx（3 行读取成功）→ 照片匹配列=姓名 → 上传照片（已导入 1 张，匹配 1/3 行，预览 data:URL 内联渲染，OCR 证实三个姓名可见）→ PNG 带水印导出（zip 3 张，含照片版复跑一次也零外发）→ 图片版 PDF 带水印导出 → /seating → 分享长链复制 + 微信扫码短码。
+
+**结果**：
+- ① 名单零外发：全程 106 条请求（另含带照片导出复跑 26 条）URL/body 对 6 个敏感串 × 5 种编码变体命中 **0**；无大 body 上传请求（照片 data:URL 仅存内存 Map，workspace.ts:150/153）— passed
+- ② 分享机制：长链「复制当前模板分享链接」点击后**零网络请求**（纯前端 `#tpl=v1.<deflate+base64url>`，share.ts:59-67）；扫码短码有服务端 POST `/api/share/tpl`（body 1481B）——解码 payload 为模板 JSON（id=withPhoto，2937 字符），**不含任何名单行/姓名/手机号**，随后 GET 回读校验（生产 memory 存储下短码本轮回读成功返回 978f4af257）— passed
+- ③ 存储清理：导入后名单仅存 sessionStorage `seatmark.workspace-roster.v1`（会话级，workspace.ts:171——localStorage `seatmark.workspace-template.v1` 只存模板不含名单，实测 localStorage 全键无敏感串）；clear 后 localStorage/sessionStorage 均 0 键、IndexedDB 仅 workbox-expiration（SW 缓存计时，无名单）、刷新后名单消失 — passed
+- ④ pageerror=0（全部 tab）— passed
+- ⑤ 合法遥测清单（如实记录实际外发字段）：GA4 `/g/collect`（tid/cid/sid/dl=页面完整 URL/dt=标题/en=page_view|user_engagement/sr/ul/UA client hints）；百度 `hm.gif`（si/hca/u=页面完整 URL/tt=标题/分辨率/语言/时间戳）+ `sp0.baidu.com/s.gif?l=站点URL`；无任何自定义维度携带用户数据 — passed
+- 诚实注记：a) /seating 页不共享 /studio 名单（页面无敏感串渲染），排座为独立数据流，本轮仅验证其**无任何网络调用**（SeatingView.vue 0 fetch/beacon，运行时 27 条请求均为静态资源/遥测）；b) 长链剪贴板内容因 headless 焦点限制未直接读出，以「点击后零网络请求 + 已复制 toast + share.ts 纯前端实现」联合判定；c) 首轮照片匹配列点选失误致导出期照片未匹配，已复跑带照片导出补证（结果同零外发）。
+
+**产物**：`/home/ubuntu/r218_all_requests.json`（106 条全量取证）、`r218_telemetry.json`、截图 `r218_preview_photo.png`/`r218_share_qr.png`/`r218_seating.png`/`r218_after_clear.png`、脚本 `r218_t1.py`~`t4.py`。收尾：storage 清理 + 全部测试 tab 关闭。
+
 # 第 217 轮（2026-08-11）：#218 反馈默认企微 webhook 上线后单条回归 ✅ UI 侧全部 PASS（200 {"ok":true} + 成功 toast + payload 口径不变 + pageerror 0）；webhook 实际送达 untested-externally（企微群由老板确认）
 
 **环境**：生产真实 UI，entry 仍 `index-m3vMPIl7.js`（#218 仅边缘函数改动）。代码依据：#218 diff edge-functions/api/feedback.js:21 `FEEDBACK_WEBHOOK_DEFAULT`（企微机器人，与 ai-design 告警同一常量）、:94 `env.FEEDBACK_WEBHOOK || FEEDBACK_WEBHOOK_DEFAULT`；前端 FeedbackButton.vue 不变。
