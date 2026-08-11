@@ -158,6 +158,22 @@ function scheduleAnchorCorrection(hash: string) {
   }
 }
 
+/** 分析上报前剥离搜索词等用户输入参数，搜索内容不随页面路径外发到第三方 */
+export function telemetryPath(fullPath: string): string {
+  const qs = fullPath.indexOf('?')
+  if (qs === -1) return fullPath
+  const hashIdx = fullPath.indexOf('#', qs)
+  const query = fullPath.slice(qs + 1, hashIdx === -1 ? undefined : hashIdx)
+  const params = new URLSearchParams(query)
+  params.delete('q')
+  const rest = params.toString()
+  return (
+    fullPath.slice(0, qs) +
+    (rest ? `?${rest}` : '') +
+    (hashIdx === -1 ? '' : fullPath.slice(hashIdx))
+  )
+}
+
 export const router = createAppRouter()
 
 /**
@@ -190,7 +206,7 @@ router.afterEach(async (to) => {
     // ignore: 下次导航会重试
   }
 
-  const path = to.fullPath
+  const path = telemetryPath(to.fullPath)
 
   // GA4 pageview
   const w = window as any
