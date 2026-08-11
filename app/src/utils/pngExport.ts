@@ -140,7 +140,8 @@ export function presetAspectMismatch(
 export function defaultPngExportName(prefix = '考场座位标签'): string {
   const now = new Date()
   const pad = (n: number) => String(n).padStart(2, '0')
-  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`
+  // 时间戳精确到秒：同一分钟内重复导出同名文件会被浏览器静默去重不落盘
+  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
   return `${prefix}-${stamp}`
 }
 

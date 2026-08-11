@@ -322,7 +322,7 @@ describe('pdfExport 参数选取', () => {
   })
 
   it('文件名含日期戳与前缀', () => {
-    expect(defaultPdfFileName()).toMatch(/^考场座位标签-\d{8}-\d{4}\.pdf$/)
+    expect(defaultPdfFileName()).toMatch(/^考场座位标签-\d{8}-\d{6}\.pdf$/)
     expect(defaultPdfFileName('桌牌')).toMatch(/^桌牌-/)
   })
 

@@ -107,14 +107,14 @@ describe('文件命名', () => {
   })
 
   it('默认导出名含日期戳与前缀', () => {
-    expect(defaultPngExportName()).toMatch(/^考场座位标签-\d{8}-\d{4}$/)
+    expect(defaultPngExportName()).toMatch(/^考场座位标签-\d{8}-\d{6}$/)
     expect(defaultPngExportName('桌牌')).toMatch(/^桌牌-/)
   })
 
   it('精确像素前缀追加实际分辨率，模板名自带规格时以实际输出为准', () => {
     expect(exactPixelNamePrefix('电子座签 800×480', 296, 128)).toBe('电子座签 800×480-296x128')
     expect(defaultPngExportName(exactPixelNamePrefix('座签', 640, 384))).toMatch(
-      /^座签-640x384-\d{8}-\d{4}$/,
+      /^座签-640x384-\d{8}-\d{6}$/,
     )
   })
 })
