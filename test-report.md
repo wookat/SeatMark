@@ -1,3 +1,25 @@
+# 第 253 轮（2026-08-11）：弱网与网络中断稳健性专项（生产）✅ 全部判据 PASS——Slow 3G 首访 10s 可用、弱网/全断网/导出中途断网下导入导出全成功、断网路由切换 SW 缓存命中非白屏、恢复后名单持久化在、遥测挂起不阻塞 UI
+
+**环境**：生产 `index-DNF7Ft0O.js`，常驻 Chromium CDP 29229 全新 incognito context；弱网 = 页级 CDP session `Network.emulateNetworkConditions`（50000 B/s ≈400kbps、RTT 400ms）；断网 = `context.set_offline(True)`；遥测挂起 = context.route 对 googletagmanager.com/hm.baidu.com/zz.bdstatic.com 永不应答。夹具 good40.xlsx（张伟250）、ff240.xlsx（𱁬田240/RTL）、big300.xlsx（张伟247）。脚本 `/home/ubuntu/r253_a.py`、`r253_b.py`；产物 `~/r253_dl/`。代码依据：main.ts:32-44（router.isReady 后挂载+SW 注册）、vite.config.ts:48-75（workbox 导航 NetworkFirst 4s + 离线壳回落）、index.html:68-95（统计 idle 注入带缓冲队列）、workspace.ts:55-72（名单 sessionStorage 会话级持久化）。
+
+**T1 Slow 3G 首访 /studio**：可用耗时 10.0s（Excel input attached + load；正常网络基线 1.1s）；完成态截图无错乱、scrollWidth≤innerWidth、body 文本 1430 字符 — passed。注记：3s 时刻截图为纯背景色（HTML 主文档在 400kbps 下仍在下载），白屏窗口短暂非永久，10s 即全可用。截图 r253_t1_loading.png / r253_t1_loaded.png。
+
+**T2 弱网导入+逐张导出**：导入 40 行 0.56s（基线 0.19s）、逐张 PNG 导出 2.7s（基线 2.6s），zip 40 张 1000×534 md5 全互异 0 空白——纯本地链路弱网同量级（<3×）— passed。截图 r253_t2_slow_imported.png。
+
+**T3 完全断网**：正常加载+导入后 set_offline(True)：断网下再导入 ff240（40 条成功）+ 逐张 PNG 导出成功（zip 40 张完整非空白）——「数据不出浏览器」强验证 — passed；断网点导航 /studio→/templates：完整模板库页渲染（body 19299 字符，SW NetworkFirst 回落缓存命中，非白屏非死路），go_back 回 /studio 仍非空 — passed。断网期间 pageerror=0（无未捕获应用异常）。截图 r253_t3_offline_export.png / r253_t3_offline_templates.png。
+
+**T4 导出中途断网**：300 行逐张导出，进度「正在渲染第 N/13 页」出现后立即断网——导出仍成功，zip 恰 300 张 1000×534 md5 300/300 互异 0 空白 — passed。截图 r253_t4_midoffline_done.png。
+
+**T5 断网恢复**：set_offline(False) 后重进 /studio：页面正常、「共 40 条」在、预览渲染 ff240 名单（𱁬田240/张伟240/RTL 均在版）— passed（名单持久化为 sessionStorage 会话级，workspace.ts:55 设计；localStorage 无 roster key 属预期）。300 行 context reload 后「共 300 条」亦在 — passed。截图 r253_t5_recovered.png。
+
+**T6 遥测挂起**：三个统计脚本请求（gtag/js、hm.js、push.js）全部挂起不应答，页面交互不卡：导入 1.06s、开导出弹窗 0.30s、evaluate 0.003s — passed。截图 r253_t6_telemetry_hang.png。
+
+**T7 常规**：pageerror 全程=0（含断网场景）；两脚本合计 677 请求，标记串（张伟250/隐私学校250/𱁬田240/张伟247）命中 0（r253_reqs_a/b.json）；storage 清理、自建 context 全关、常驻 Chrome 存活未动 — passed。
+
+**结论**：弱网/断网下核心工作流全链路稳健：本地导入导出不依赖网络，SW 离线路由回落有效，遥测不阻塞，恢复后会话级持久化符合设计。无 P1–P4 新发现。
+
+---
+
 # 第 252 轮（2026-08-11）：#255 密码保护 xlsx 专门提示线上验证（生产）✅ 全部判据 PASS——阳性新文案逐字命中、两条阴性分支文案不变、失败后恢复正常；r250 P4 闭环
 
 **部署确认**：生产 entry 已翻转 `index-DL6SyG-8.js` → `index-DNF7Ft0O.js`（页面 resource entries 实证）。环境：CDP 29229 全新 incognito context 单会话串行（r250 方法），夹具复用 `~/r250_fixtures/`（encrypted.xlsx=CFB D0CF11E0、truncated.xlsx=PK 残缺、新增 fake_csv.xlsx=纯 CSV 文本改名 .xlsx 非 ZIP 非 CFB、good40.xlsx）。脚本 `/home/ubuntu/r252_run.py`。
