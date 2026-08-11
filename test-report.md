@@ -1,3 +1,26 @@
+# 第 273 轮（2026-08-11）：#276 分析上报剥离搜索词 线上复测（生产）🔴 主判据 FAIL——修复只覆盖「手动 pageview 的路径参数」，标记词仍经 5 条通道外发：① GA 事件自动附带的 dl/dr=location.href（page_path 只改 dp，dl/dr 不受控）；② GA 增强测量 `view_search_results` 直接以 `ep.search_term=考场273标记词` 明文上报；③ 百度 hm.gif 的 su 参数；④ 百度主动推送 push.js（sp0.baidu.com s.gif?l=完整 URL）；⑤ Sentry navigation 面包屑（to:"/templates?q=…"）。已生效部分：GA 初始 config dl/dp 干净、百度手动 _trackPageview u 参数干净、cat=exam 保留、回归全过
+
+**部署确认**：entry 翻转 `index-lywsFKJ6.js`→`index-B5y8Q7W3.js`，生产 HTML 含 `_setAutoPageview`（轮询第 2 分钟命中）。环境：CDP 29229 全新 incognito context，标记词「考场273标记词」，三阶段请求全量落盘 `/home/ubuntu/r273_reqs.json`。脚本 `/home/ubuntu/r273_run.py`。
+
+**T1 主判据（SPA 内搜索零外发）— FAILED**
+- 地址栏正常带 ?q=（功能未变）✅；但第三方请求命中标记词 7 处：
+  - GA `en=page_view` 的 **dl**=`https://www.seatmark.cn/templates?q=%E8%80%83%E5%9C%BA273…`（含 `?cat=exam&q=…` 组合）与后续请求的 **dr**（referrer）同样带 q——gtag 的 `page_path` 只覆盖 dp 参数，dl/dr 由 gtag.js 自动取 location.href/前一 URL，未被剥离；
+  - **Sentry** envelope body 的 navigation 面包屑：`{"category":"navigation","data":{"from":"/templates","to":"/templates?q=%E8%80%83%E5%9C%BA273%E6%A0%87%E8%AE%B0%E8%AF%8D"}}`。
+- 非敏感保留判据：上报中仍见 cat=exam ✅（telemetryPath 只删 q 的意图达成，但达成面不完整）。
+
+**T2 首屏直开 ?q=（初始 pageview）— FAILED（部分生效）**
+- 已生效 ✅：GA 首个请求 dl=`https://www.seatmark.cn/templates`、dp=`/templates`（config 剥离生效）；百度 hm.gif **u**=`https://www.seatmark.cn/templates`（手动 _trackPageview 生效）。
+- 仍泄漏 🔴：GA 增强测量自动事件 **`en=view_search_results`，`ep.search_term=考场273标记词` 明文**（GA4 站内搜索自动检测 URL 的 q 参数——比整 URL 更直接的外发）；百度 hm.gif **su**=`…?q=%E8%80%83%E5%9C%BA273…`；**百度主动推送** `sp0.baidu.com/...s.gif?l=https://www.seatmark.cn/templates?q=考场273标记词`（push.js 取 location.href 提交 SEO 收录——搜索词甚至进入百度收录队列）。
+- 功能不受影响 ✅：搜索框带入标记词、无结果态正常渲染。
+
+**T3 回归（Regression）— passed**：标记词无结果态+清除恢复 222+「考试」×「考号」叠加「在「考试」分类中找到 2 款」不变；GA page_view 10 次、路径对应各页（含 /templates?cat=exam——cat 保留）、百度 hm.gif 仍在发（防矫枉过正 ✅）；pageerror=0；storage 清理。
+
+**修复建议（供裁量）**：① GA：`gtag('set','page_location',clean)` 不够——需在 config 关掉增强测量站内搜索（`site_search_query_parameter` 置空/`enhanced_measurement` 关闭）并考虑用 Measurement Protocol 层面 dl 不可控的现实，或索性在 history.replaceState 层把 q 从 URL 剥离（搜索状态改存内存/sessionStorage）；② 百度：su 与 push.js 均取 location.href，同样只有「URL 不含 q」才能根治；③ Sentry：`beforeBreadcrumb` 过滤 navigation 面包屑 query。**根治方案**是不把搜索词放进地址栏 query（代价：r79 的返回保状态需换实现），否则每个第三方 SDK 都要逐一拦截。
+
+**结论**：#276 未闭环 r271 P4 观察①——搜索词仍外发（且新发现 GA `ep.search_term` 明文与百度收录推送两条更直接的通道，建议升级为 P3 处理）。计划：`test-plan-round273.md`。证据：`/home/ubuntu/r273_reqs.json`；截图 `/home/ubuntu/screenshots/r273_t1_search.png`、`r273_t2_direct.png`、`r273_t3_overlay.png`、`r273_t3_studio.png`。
+
+---
+
 # 第 271 轮（2026-08-11）：模板发现链路质量专项（/templates 搜索·筛选·详情·进工坊，生产，无代码变更轮）✅ 全部判据 PASS——中文/全拼/简拼搜索命中正确（历史开放项闭环：简拼支持，jkz 命中监考证）、无结果态+清空恢复、特殊字符/超长输入健壮；分类/子分类计数与卡片数一致、搜索×分类叠加与跨类回退提示正确（r81 回归过）；3 款详情规格与源数据逐字一致、「用此模板开始」进工坊模板+场景演示数据正确带入（r115 回归过）；预渲染直开 200、无效 slug HTTP 404+404 视图（r85 回归过）；移动端 390px 无横溢。2 个 P4 观察：搜索词经 URL ?q= 同步被 GA/百度统计以页面 URL 参数外发；简拼子串匹配跨字段偶有松散误命中
 
 **环境**：生产 https://www.seatmark.cn/templates ，CDP 29229 全新 incognito context（桌面 1280×900 + 移动 390×844）。代码依据：`TemplatesView.vue:79-117/213-252`、`pinyin.ts:59-63/73-97`、`TemplateDetailView.vue:49-77/196`、`StudioView.vue:108`。脚本 `/home/ubuntu/r271_run.py`。
