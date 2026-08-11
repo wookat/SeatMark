@@ -1,3 +1,17 @@
+# 第 257 轮（2026-08-11）：#261 /seating 移动端横滑提示线上复测（生产）✅ 全部判据 PASS——390px 提示可见且位于视角切换行与网格容器之间、≥640px sm:hidden 生效、换座冒烟正常
+
+**部署确认**：SeatingView 为懒加载 chunk（页面 HTML 不含其哈希），以浏览器 DOM 出现提示文案为准——首次打开即已部署（无需轮询）。环境：CDP 29229 全新 incognito context，移动口径 CDP 390×844 视口、桌面 1280×800。脚本 `/home/ubuntu/r257_run.py`。代码依据：#261（eefd229）`SeatingView.vue:638`——视角/选中提示行后、previewContainer（overflow-auto）前插入 `<p class="mb-1 text-[11px] leading-5 text-slate-400 sm:hidden">← 座位表超宽时可左右滑动查看 →</p>`。
+
+**T1 390px 移动端**：提示截图像素可见（r257_t1_hint_grid.png：提示位于「教师视角/学生视角」行与网格之间）；DOM 佐证：hint.previousElementSibling 文本=「教师视角 学生视角（镜像）」、nextElementSibling 为 overflow-auto 网格容器（含 .seating-seat）——位置与 spec 一致；display=block、offsetParent 非 null；文档无横向溢出（scrollWidth 380≤390）；网格容器自身可横滚（529>346）— passed。换座冒烟（Regression）：张伟257⇄李四257 下标 9↔0 互换成功 — passed。
+
+**T2 ≥640px 桌面（1280px）**：提示元素在 DOM 但 display=none、offsetParent=null（sm:hidden 生效），截图 r257_t2_desktop.png 中无该文案 — passed。
+
+**T3 常规**：pageerror=0；47 请求标记串（张伟257 等 10 名单名）命中 0（r257_reqs.json）；storage 清理、context 全关、常驻 Chrome 未动 — passed。
+
+**结论**：#261 行为与 spec 完全一致，r246 P4 裁量项（移动端无横滑提示）闭环。无新发现。
+
+---
+
 # 第 255 轮（2026-08-11）：#259 SPA 壳页内联启动骨架线上复测（生产）✅ 全部判据 PASS——Slow 3G 空窗被骨架填补（spinner+加载中文案像素可见）、挂载后零残留、内容页/404 预渲染未回归、/account 壳页正常
 
 **部署确认**：/studio HTML 由 boot-splash=0 翻转为 6 处命中（entry 哈希不变 `index-DNF7Ft0O.js` 属预期——#259 仅改 index.html 与 prerender.mjs，不动 JS bundle）。环境：CDP 29229 全新 incognito context，弱网沿用 r253 页级 CDP `Network.emulateNetworkConditions`（50000 B/s、RTT 400ms）。脚本 `/home/ubuntu/r255_run.py`。代码依据：index.html:106-116（.boot-splash 内联样式+role=status）、prerender.mjs:84-90（replaceAppMount 正则整体替换，仅 /studio 与 shellPaths 保留骨架）。
