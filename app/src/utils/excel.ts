@@ -191,9 +191,10 @@ export interface PastedRoster {
 /**
  * 解析粘贴的名单文本（来自 Excel/WPS 复制、微信/文档整理的名单）。
  * 分列规则整段统一：优先制表符（表格软件复制即 TSV），其次中英文逗号/顿号，最后连续空白。
- * 首行含常见列名关键词时作为表头，否则自动生成表头（首列「姓名」，其余「列N」）。
+ * 首行含常见列名关键词时作为表头，否则自动生成表头（首列「姓名」，其余「列N」）；
+ * firstRowHeader 显式传入时以其为准（用户手动指定），不再走关键词启发式。
  */
-export function parsePastedRoster(text: string): PastedRoster {
+export function parsePastedRoster(text: string, firstRowHeader?: boolean): PastedRoster {
   const lines = text
     .replace(/\r\n?/g, '\n')
     .split('\n')
@@ -209,7 +210,8 @@ export function parsePastedRoster(text: string): PastedRoster {
   const table = lines.map((line) => line.split(splitter).map((cell) => cell.trim()))
 
   const columnCount = Math.max(...table.map((row) => row.length))
-  const headerDetected = table[0]!.some((cell) => HEADER_KEYWORDS.test(cell))
+  const headerDetected =
+    firstRowHeader ?? table[0]!.some((cell) => HEADER_KEYWORDS.test(cell))
 
   const used = new Set<string>()
   const headers = Array.from({ length: columnCount }, (_, i) => {

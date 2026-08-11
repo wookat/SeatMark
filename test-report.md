@@ -1,3 +1,29 @@
+# 第 261 轮（2026-08-11）：#265 /studio 粘贴名单导入线上复测（生产）✅ 主链路全部判据 PASS——TSV 表头识别/自动映射/逐张导出、无表头纯姓名、顿号缺列补空、空文本禁用、清空后回归、移动端 390px 弹窗全过；1 个 P4 观察项（表头关键词误伤首行数据）
+
+**部署确认**：lazy chunk，以浏览器 DOM 出现「没有文件？粘贴名单」为准——首次打开即已部署。环境：CDP 29229 全新 incognito context，桌面 1280×800 + 移动 390×844。脚本 `/home/ubuntu/r261_run.py`。代码依据：`excel.ts:196` parsePastedRoster（\t > [,，、] > \s+，`excel.ts:181` HEADER_KEYWORDS 判表头）、`DataImportPanel.vue:224/336/350/360/176/181`。本轮姓名标记 张伟261-*。
+
+**T1 TSV 带表头全链路（核心）**：弹窗实时提示逐字=「识别到 6 条数据、3 列（首行为表头：姓名、班级、座位号）」；导入 toast「已导入 6 条数据 首行已识别为表头」；面板「粘贴的名单」+「共 6 条」；预览标签渲染 张伟261-1…-6、字段映射自动命中（姓名/座位号 2/4，考场/准考证号本就无此列属未映射合理）；逐张 PNG 导出 zip 恰 6 张 1000×534、md5 互异、0 空白（r261_dl/paste6.zip）— passed
+
+**T2 纯姓名（无表头分支）**：5 行姓名夹 2 空行 → 提示「识别到 5 条数据、1 列（未检测到表头，首列将按「姓名」处理）」、toast 副文=「未检测到表头，首列已按「姓名」处理」、「共 5 条」— passed
+
+**T3 顿号分隔+缺列**：`姓名、座位号`+3 行（1 行缺座位号）→「识别到 3 条数据、2 列（首行为表头：姓名、座位号）」、导入成功、数据查看器缺列单元格为空串（[张伟261B, ""]）、无报错 — passed
+
+**T4 空文本/纯空白**：textarea 空与纯空白（空格+空行）下均无提示行、「导入名单」disabled=true — passed
+
+**T5 回归（Regression）**：粘贴导入后点「清空」→ 空数据态复现（粘贴按钮回来）→ good40.xlsx 文件导入「共 40 条」正常，文件链路不受影响 — passed
+
+**T6 移动端 390px**：空数据态两按钮并排可见（粘贴按钮 149×30 在视口内）；弹窗无横向溢出（380≤390）、textarea 可填、「导入名单」按钮在视口内可点、导入 2 条成功 toast+「共 2 条」（r261_t6_dialog.png / r261_t6_imported.png）— passed
+
+**T7 常规**：pageerror 全程=0 — passed；118+ 请求标记串（张伟261）命中 0 — passed；storage 清理、context 全关、常驻 Chrome 未动 — passed
+
+**发现问题**：**P4（表头启发式误伤）**：HEADER_KEYWORDS（excel.ts:181，含 手机/学号/座位/序号/号码 等）对首行做**子串**匹配——若首行是数据但姓名/内容里恰含关键词（如「张伟手机甲」含「手机」），首行被误判为表头而**静默丢弃第一条记录**。最小复现：粘贴弹窗输入两行「张伟261手机甲\n张伟261手机乙」→ 提示「识别到 1 条数据、1 列（首行为表头：张伟261手机甲）」、导入仅 1 条（截图 r261_t6_dialog 前次运行留档）。缓解因素：实时提示行与成功 toast 均如实展示表头识别结果，用户可发现；真实姓名含关键词概率低。可裁量改进：仅当首行**恰等于**关键词（或短词全字匹配）才判表头，或提供「首行是表头」手动开关。
+
+**测试侧注记**：①「重新上传」按钮是打开文件选择器而非清空（DataImportPanel.vue:271 fileInput.click()），清态要点「清空」（:274 workspace.clearData()，无确认弹窗）——首版脚本误点导致断言波动，修正后重跑；② T6 首次用「张伟261手机甲」命名夹具触发上述 P4 才发现该问题（因祸得福），改无关键词姓名后移动端导入判据通过。
+
+**证据**：截图 `/home/ubuntu/screenshots/r261_t1_dialog.png`（TSV+实时提示）、`r261_t1_imported.png`（预览+映射+toast）、`r261_t2_noheader.png`、`r261_t3_viewer.png`（缺列空串）、`r261_t4_disabled.png`、`r261_t5_regression.png`、`r261_t6_dialog.png`、`r261_t6_imported.png`；产物 `/home/ubuntu/r261_dl/paste6.zip`；请求 `/home/ubuntu/r261_reqs.json`；计划 `test-plan-round261.md`。
+
+---
+
 # 第 259 轮（2026-08-11）：系统外观偏好稳健性专项（生产）✅ 全部判据 PASS——dark 偏好下四页仍按设计浅色渲染（截图像素 diff=0.0%）、原生控件/导出弹窗无深色 UA 混搭、dark 下导出与 light 基线 40/40 字节全同、reduced-motion 降级生效（reveal 全量立即显现）、contrast:more 无破版、forced-colors 冒烟正常、pageerror=0、隐私零外发
 
 **口径**：Playwright `page.emulate_media(color_scheme=…/reduced_motion=…)`；`prefers-contrast: more` 因本机 Playwright 版本无 contrast 参数，改用 CDP `Emulation.setEmulatedMedia features:[{name:'prefers-contrast',value:'more'}]`（每例均以页内 matchMedia 命中=true 证明模拟生效）；forced-colors 用 `emulate_media(forced_colors='active')`。代码依据：src 无任何 `dark:` 变体、index.html/CSS 未声明 `color-scheme`（UA normal）；reduced-motion 降级在 `main.css:233`（.reveal-init 立即显现）+ `HomeView.vue:18`（matchMedia 命中直接加 reveal-in）。脚本 `/home/ubuntu/r259_run.py`。
