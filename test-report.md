@@ -1,3 +1,21 @@
+# 第 242 轮（2026-08-11）：#244 Firefox eink 逐标签导出 P2 修复 生产复测（r240 口径）✅ 全部判据 PASS——**r240 P2 闭环**：Firefox eink 精确像素「按标签逐张导出」从 0/10 全失败变为全部成功（3 行×3 次复跑 + 40 行 + 4096 自定义全过）；eink 整页/标准模板三链路/长名截断/Chromium 同口径回归均无回归；隐私零外发、pageerror 0
+
+**环境**：Playwright firefox-1438 headless + Chromium headless（CDP 29229）对照；生产 bundle **`index-B7iIsDpm.js`**（从 r240 的 `index-j8zuZYS6.js` 翻转确认，页面 resource entries 实证）；夹具 r231 `eink234.xlsx`（3 行）、r240 `ff240.xlsx`（40 行含 𱁬田240/维文）、新建 `/home/ubuntu/r240_fixtures/long242.xlsx`（60 字超长姓名 + 张伟242）；判据 toast（MutationObserver）+ download.save_as 落盘 + 产物像素/pypdfium2。
+
+**T1 P2 闭环核心（Firefox eink 逐标签 800×480）**：3 行夹具连续 3 次导出**3/3 成功**（r240 为确定性 0/10 失败），toast「PNG 图片已生成（3 张标签打包为 zip）」1.3-3.3s；40 行夹具成功（15.7s，40 张）。产物逐张核验：IHDR 恰 800×480、恰 2 色 (0,0,0)/(255,255,255)、无 pHYs、不同姓名 md5 互异、非空白（ink 0.75-3.8%）— **passed（P2 闭环）**
+
+**T2 4096 自定义宽度逐标签（Firefox）**：40 行 45.8s 成功 toast，zip 40 张全部 4096×2458、纯二值、无 pHYs、md5 互异 — passed
+
+**T3 eink 整页回归（Firefox）**：3 行 1.8s 成功，逐张 800×480、恰 2 色、无 pHYs（整页链路截断防护保持，未受 skipTruncationCheck 影响）— passed
+
+**T4 标准模板 Firefox 回归**：40 行整页 PNG（2 页 2481×3509，非空白 5.8/4.3%）、逐张 PNG（40 张 1000×534，非空白 7.3-7.9%）、图片版 PDF（2 页，pypdfium2 p1 非空白 10.6%）全部成功落盘，文件名秒级 — passed。**真溢出仍截断**：60 字超长姓名导出成功且导出宿主 `.label-field__content` 实时捕获到截断文本「超超超超超超超超超超…」（省略号截断仍生效，判据未因半行余量放松而失效）；产物标签姓名区单一文本带（行 84-125）、与边框/相邻字段无叠压 — passed
+
+**T5 Chromium 同口径回归**：eink 逐张（3 张 800×480 纯二值无 pHYs md5 互异）、eink 整页、标准 40 行逐张/整页、长名夹具整页均成功；Chromium 侧同样捕获「超超超超超超超超超超…」截断文本（#207/#208 整页截断防护路径未被 skip——代码位 pdfExport.ts:638 仅逐标签链路传 skipTruncationCheck）；pageerror=0 — passed（截断防护为行为抽测：生产无法人工注入真截断形态，以代码路径 + 导出正常佐证）
+
+**T6 隐私与收尾**：Firefox 全程 4479 请求，𱁬田240/维文串/张伟240/超长名/张伟242/eink234 标记串命中 **0**（`/home/ubuntu/r242_reqs.json`）；pageerror=0（FF+CR 全部会话）；storage 清理、Firefox 进程全退、CDP 侧无遗留 SeatMark tab。
+
+产物：`/home/ubuntu/r242_dl/`（FF eink 9 zip+1 pdf）、`/home/ubuntu/r242_dl_std/`（FF 标准 5 件）、`/home/ubuntu/r242_dl_cr/`（CR 对照 5 件）、截图 `/home/ubuntu/screenshots/r242_t1_eink3.png`、`r242_t2_4096.png`、`r242_t4b_std_preview.png`、`r242_t4b_label1/2.png`、`r242_t4b_montage.png`、脚本 `/home/ubuntu/r242_ff.py`、`r242_ff2.py`、`r242_ff3.py`、`r242_cr.py`。headless 不录屏。
+
 # 第 240 轮（2026-08-11）：Firefox 跨浏览器专项回归（生产，无代码变更）⚠️ 发现 P2×1——**eink 精确像素「按标签逐张导出」在 Firefox 下 100% 确定性失败**（0/10，800 预设与 4096 自定义、3 行与 1 行夹具全失败，每次 ~1.3s 弹「PNG 生成失败 第 1/N 页渲染失败：页面渲染不完整（右侧内容未绘出）」），已即时上报；对照组均正常：eink**按整页导出**成功（800×480 精确、纯二值、无 pHYs）、标准模板整页/逐张/图片版 PDF 全部成功；核心链路冒烟、字体（𱁬/维文 RTL）、隐私零外发、pageerror 0 均过
 
 **环境**：Playwright firefox-1438 headless（viewport 1500×1000），生产 `index-j8zuZYS6.js`；夹具 `/home/ubuntu/r240_fixtures/ff240.xlsx`（40 行：𱁬田240 / 维文 ئابدۇللا مۇھەممەت / 张伟240 / 考生04-40）+ r231 eink 夹具；判据 toast（MutationObserver）+ page.on('download') 落盘 + 产物像素。
