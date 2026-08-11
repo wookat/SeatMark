@@ -1,3 +1,17 @@
+# 第 245 轮（2026-08-11）：打印链路 headed Firefox 实证（生产，无代码变更）✅ 全部判据 PASS——window.print 在 Firefox 实调起且 print-to-file 落盘矢量 PDF：/studio demo 2 页（文字在版可选中）、/seating 排座 1 页（张伟245 等名单文字在 PDF 文本层）；与 Chromium printToPDF 基线页数一致、墨量同量级；WebKit window.print 亦被调起但无 print-to-file 通道（产物 blocked，如实标注）
+
+**环境注记（重要）**：用户所述 DISPLAY=:0 可视桌面**实际不存在**（无 X socket、无 Xorg/Xvfb 进程；常驻 Chrome 29229 是 headless，其环境变量里的 DISPLAY=:0 指向不存在的显示）。改为自建 `Xvfb :99`（1600×1000）承载 headed Firefox（firefox-1438，headless=False）；常驻 Chrome 全程未动（收尾核验仍存活）。Firefox 静默打印落盘配方：`print.always_print_silent=true` + `print_printer='Mozilla Save to PDF'` + `print.printer_Mozilla_Save_to_PDF.print_to_file=true/print_to_filename=<path>`（Playwright firefox_user_prefs 注入），先以探针页验证可行后再打生产。脚本 `/home/ubuntu/r245_ff.py`。
+
+**T1 /studio demo 打印**：载入演示数据 → 点「打印 / 矢量 PDF」→ 导出方式弹窗选带水印 → toast「正在准备 2 页打印内容...」「已调起浏览器打印」；hook 计数 window.print=1；落盘 `r245_ff_studio.pdf` 96KB：**2 页** 596×842pt（A4），p1 墨量 4.88% / p2 0.86% 无空白页，pypdfium2 文本层含「座位号 SEAT / 张伟 / 第1考场 / 2026061001…」（矢量文字可选中）— passed
+
+**T2 /seating 排座打印**：粘贴 10 行（含 张伟245）→ 完全随机 → 点「打印」→ toast「即将调起浏览器打印 请选 A4 横向…」；window.print=1；落盘 `r245_ff_seating.pdf`：1 页、墨量 1.47% 非空白，文本层含「高三（2）班 期末考试 / 讲台 / 张伟245 / 李四245…」全名单在版 — passed
+
+**T3 与 Chromium 基线粗比对（r128 方法族）**：常驻 CDP 29229 同素材 stub window.print + Page.printToPDF 出基线 `r245_cr_studio.pdf`：页数 **2=2 一致**；p1 墨量 FF 4.88% vs CR 7.10%（比值 0.69 ∈ [0.3,3] 同量级，CR 侧 printToPDF 含更重背景渲染）— passed（粗比对判据）
+
+**T4 WebKit 打印**：headed WebKit（Xvfb :99）同路径点「打印 / 矢量 PDF」→ hook 证实 **window.print 被调起（计数 2，重入为 hook 侧现象）、无 JS 异常、页面不崩**；但 WPE WebKit 无 Mozilla Save to PDF 式 print-to-file 机制、无打印对话框 UI，打印产物无法落盘核验 — window.print 调起 passed / 产物 **blocked（引擎无 print-to-file 通道，如实标注）**。首轮 WK 探针的 1 条 pageerror 为测试脚本自身 init-script 语法错误，重跑干净口径 pageerror=0。
+
+**T5 隐私与收尾**：FF 55 请求，张伟245 命中 **0**（`/home/ubuntu/r245_reqs_ff.json`）；FF/WK pageerror=0（干净口径）；storage 清理；headed Firefox/WebKit 窗口全关、Xvfb :99 已杀、常驻 Chrome 29229 存活未动。r240 以来反复标 untested 的「打印实际调起」至此在 Firefox 闭环（含产物核验），WebKit 闭环到 window.print 调起层。
+
 # 第 244 轮（2026-08-11）：次级链路 Firefox + WebKit 跨引擎回归（生产，无代码变更）✅ 全部判据 PASS——/seating 排座（粘贴/换座/持久化/桌贴联动）、长链分享（生成/还原/篡改容错）、模板设计器（加字段/改字号颜色/保存/刷新保留/导出 PNG）、#228 弹窗返回哨兵，在两引擎全过；隐私零外发；诚实注记：WebKit 全程 3 条良性 ResizeObserver pageerror（见 T5）
 
 **环境**：Playwright firefox-1438 与 webkit-1967（`PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1`）headless 打生产 `index-B7iIsDpm.js`；判据沿用 r240–r243（toast MutationObserver 改为 context init-script 安装，防导航后丢观察器；WebKit/Firefox 下载均用 `expect_download`；每大项全新 context 防 localStorage 模板残留）。脚本 `/home/ubuntu/r244_run.py`。
