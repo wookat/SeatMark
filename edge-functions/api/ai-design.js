@@ -157,6 +157,7 @@ async function handleRequest(context) {
 
   // 无密钥兜底：服务端代理 Pollinations 匿名接口
   // （浏览器直连会因来源限制返回 402，服务端出口不受影响）
+  const attempts = []
   for (const model of POLLINATIONS_MODELS) {
     try {
       const upstream = await fetch(POLLINATIONS_URL, {
@@ -178,10 +179,12 @@ async function handleRequest(context) {
           headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
         })
       }
-    } catch {
-      /* 换下一个模型 */
+      const errBody = await upstream.text().catch(() => '')
+      attempts.push(`${model}: HTTP ${upstream.status} ${errBody.slice(0, 120)}`)
+    } catch (e) {
+      attempts.push(`${model}: ${e instanceof Error ? e.message : String(e)}`)
     }
   }
 
-  return json({ error: 'AI 服务暂时不可用，请稍后再试' }, 502)
+  return json({ error: `AI 服务暂时不可用，请稍后再试（${attempts.join('；').slice(0, 300)}）` }, 502)
 }
