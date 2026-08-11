@@ -1,3 +1,23 @@
+# 第 205 轮（2026-08-11）：「分享送次数」链路 + 配额边界走查 ✅ 匿名侧全链路通过；⚠️ P4×1（used 负值未 clamp，角标可显「今日剩余 6 次」）；服务端赠送/IP 去重因登录不可用+storage=memory 维持 untested
+
+**环境**：entry 仍 `index-DOR0it5-.js`（#209 纯文档，无部署变化）。代码依据：quota.ts（QUOTA_ANON_DAILY=1、key `seatmark.clean-export-usage.v1`）、PreviewArea.vue:452-501（chooseClean 统一闸门、consumeQuotaAfterSuccess 成功后计次）、App.vue:32-49（?ref= 上报+横幅+清参）、edge-functions [[default]].js:710-746（sharevisit IP+日去重）。
+
+**结果**：
+- T1.1 匿名配额消耗：新 tab 角标「今日剩余 1 次」→ 无水印整页 PNG 导出成功 → localStorage `{date:今日,used:1}`、角标变「带水印免费」— PASS
+- T1.2 耗尽后再点无水印：零下载，QuotaLimitDialog 打开，OCR 证实标题「今日无水印导出次数已用完」+ 价值阶梯（登录每天 3 次 / 分享被点开 1 次再 +1 次（每日最多 10 次）/ 带水印永远免费）+ 未登录 CTA「登录后可分享送次数」（无复制链接按钮，符合代码）— PASS
+- T1.3 被分享落地（?ref=abcdef12 合法格式）：POST /api/share/visit 发出 ×1；欢迎横幅可见（OCR「同事向你推荐了 SeatMark 座签…一键开始（含演示数据）」）；URL ref 参数被清除（location=https://www.seatmark.cn/）；非法格式（10 位 hex）0 请求、无横幅 — PASS
+- T1.4 API 表面：POST /api/share/visit code=abcdef12 → 400 `{"error":"分享码无效"}`（响应头 `x-seatmark-storage: memory`）；二次同响应。**服务端赠送生效、IP+日去重、配额角标回升 — untested**（需登录用户产生真实分享码：SES 未配置无法登录；且生产 KV 为 memory，码不持久）
+- T2.1 耗尽态通道一致性：PNG（逐张模式）、图片版 PDF、打印/矢量 PDF 三通道点「无水印」均只弹 QuotaLimitDialog、零下载零打印（三份截图逐字节一致）；带水印 PNG 照常成功 — PASS
+- T2.2 取消不扣次（#74 回归）：无水印导出中点「取消导出」→ toast「已取消导出 本次未扣除无水印次数」、无下载、used 仍 0、角标仍「今日剩余 1 次」；随后正常无水印导出成功扣至 used=1 — PASS
+- T2.3 localStorage 篡改容错（改后刷新）：used=999 → 角标「带水印免费」不白屏；垃圾串/删除键 → 按当日 0 次（剩余 1）；**used=-5 → 角标「今日剩余 6 次」（OCR 证实）**——Math.max(0, 1-(-5))=6，负值未 clamp 到 QUOTA_ANON_DAILY，本地可刷出 6 次无水印。**P4**（仅影响自改 storage 的用户，服务端登录口径不受影响；如要修可在 loadLocalUsage 增加 used=Math.max(0,used)）— 记录
+- T2.4 日重置：date=昨天+used=1 → 刷新后角标回「今日剩余 1 次」— PASS
+- T3 文案一致：角标「今日剩余 1 次」= 导出弹窗「无水印导出（今日剩余 1 次）」+「取消不扣次数」说明 = QuotaLimitDialog 阶梯 = /pricing（每日 1 次/登录 3 次/分享+1 均在）— PASS
+- 全程 pageerror 0（10+ tab）；storage 清理 + 全部测试 tab 关闭 — PASS
+
+**产物**：截图 `/home/ubuntu/screenshots/r205_quota_dialog.png`、`r205_share_welcome.png`、`r205_channel_png_blocked.png`、`r205_channel_print_blocked.png`、`r205_cancel_no_deduct.png`、`r205_tamper_neg5.png`、`r205_export_choice.png`、`r205_pricing.png`、`r205_badge_exhausted.png`；脚本 `/home/ubuntu/r205_t1.py`、`r205_t1b.py`、`r205_t1c.py`、`r205_t2.py`、`r205_t2b.py`、`r205_t2c.py`、`r205_t3.py`；计划 `test-plan-round205.md`。
+
+---
+
 # 第 204 轮（2026-08-11）：#208 持续性截断补修线上回归 ✅ 全部 PASS（正常链路零回归、稀疏尾页零误杀、10 次新 tab 首次导出零坏页零拦截）
 
 **部署**：entry `index-5Z5OXi4o.js`→`index-DOR0it5-.js`（15s 二次采样一致）。代码依据 commit 50f6f65：`renderOnce(mode:'strict'|'final')`；final 检出截断形态时 `domExpectsRightInk(el)`（非空 `.label-box`/`.sheet-watermark` 右缘越 70% 宽）→ 抛「页面渲染不完整（右侧内容未绘出），请重新导出」终止；DOM 右侧本无内容 → 放行。

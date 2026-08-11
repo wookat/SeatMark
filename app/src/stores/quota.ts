@@ -24,8 +24,9 @@ function loadLocalUsage(): LocalUsage {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<LocalUsage>
-      if (parsed.date === todayStr() && typeof parsed.used === 'number') {
-        return { date: parsed.date, used: parsed.used }
+      if (parsed.date === todayStr() && Number.isFinite(parsed.used)) {
+        // 非法负值/NaN 按 0 计，防止篡改后配额溢出
+        return { date: parsed.date, used: Math.max(0, Number(parsed.used)) }
       }
     }
   } catch {

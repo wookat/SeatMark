@@ -65,6 +65,23 @@ describe('quota store（每日无水印导出配额）', () => {
     expect(fresh.anonRemaining).toBe(QUOTA_ANON_DAILY)
   })
 
+  it('未登录：篡改为负数/NaN 的 used 按 0 计，剩余不超过每日上限', () => {
+    localStorage.setItem(
+      'seatmark.clean-export-usage.v1',
+      JSON.stringify({ date: new Date().toISOString().slice(0, 10), used: -5 }),
+    )
+    const quota = useQuotaStore()
+    expect(quota.anonRemaining).toBe(QUOTA_ANON_DAILY)
+
+    localStorage.setItem(
+      'seatmark.clean-export-usage.v1',
+      JSON.stringify({ date: new Date().toISOString().slice(0, 10), used: NaN }),
+    )
+    setActivePinia(createPinia())
+    const fresh = useQuotaStore()
+    expect(fresh.anonRemaining).toBe(QUOTA_ANON_DAILY)
+  })
+
   it('已登录：走服务端计数，429 时打开引导弹窗', async () => {
     const auth = useAuthStore()
     auth.user = mockUser({ used: 3, remaining: 0 })
