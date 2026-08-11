@@ -105,5 +105,11 @@ export default defineConfig(({ isSsrBuild }) => ({
   },
   test: {
     environment: 'jsdom',
+    alias: {
+      // SDK 仅存在于 EdgeOne 运行时，测试替换为抛错替身走降级分支
+      '@edgeone/pages-blob': fileURLToPath(
+        new URL('./src/__tests__/stubs/edgeone-pages-blob.ts', import.meta.url),
+      ),
+    },
   },
 }))
