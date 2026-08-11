@@ -1,3 +1,20 @@
+# 第 268 轮（2026-08-11）：#271 xlsx 加载失败刷新引导 + 离线 seo 导入静默 线上复测（生产）✅ 两处修复判据全 PASS——预取失败后导入 toast 为中文刷新引导（不再露英文模块错误）、刷新后恢复；离线导航 pageerror=0（seo 裸错误消失）；回归全过。1 个 P4 附带观察（离线点击导航后该路由在恢复网络后仍无法进入，需刷新——路由 chunk 动态 import 失败同样被浏览器缓存，非 #271 引入）
+
+**部署确认**：entry hash 翻转 `index-BC7trUVn.js`（r266）→ `index-BVh4bXov.js`（轮询第 2 分钟命中）。环境：CDP 29229 全新 incognito context。代码依据：`excel.ts:15-21` `loadXlsx()` 失败抛「表格组件加载失败（可能是网络异常），请刷新页面后重试」（`:34/:153` 两调用点）；`router/index.ts:168-172` seo 动态导入 try/catch。脚本 `/home/ubuntu/r268_run.py`、`r268_t2b.py`。
+
+**T1 P3 修复（主判据）**：r266 同法 route abort `vendor-xlsx*` 覆盖预取窗口（预取失败静默 pageerror=0）→ 解除阻断导入 → toast 逐字=「Excel 导入失败 表格组件加载失败（可能是网络异常），请刷新页面后重试」，**不含**「Failed to fetch dynamically imported module」（r266 旧行为对照）；p.reload() 后重导「已读取 40 条数据」+「共 40 条」——刷新引导路径成立（r268_t1_cn_toast.png / r268_t1_reload_ok.png）— passed
+
+**T2 P4 修复**：/studio 打开后 CDP offline，离线窗口内点击导航「模板」→ 等 5s：pageerror=**0**（r266 旧行为有「…seo-*.js」裸错误——可区分）、console 仅资源级 ERR_INTERNET_DISCONNECTED — passed
+- **附带观察（P4，非 #271 引入）**：离线时点过「模板」后，恢复网络再点仍停留 /studio（无任何用户反馈）——TemplatesView 路由 chunk 的动态 import 失败同样被浏览器按 URL 缓存，重试导航静默失败；刷新页面后导航正常到 /templates。最小复现：/studio 断网点「模板」→ 恢复网络 → 再点「模板」无反应。与 r266 P3 同根因（模块级失败缓存），可裁量是否在 router.onError 做兜底提示/重载。
+
+**T3 回归（Regression）**：正常路径预取仍生效（load 后 0.89s 拉取 vendor-xlsx）、首导 40 行 **0.107s**（≤0.2s）；粘贴 3 行（张伟268-*）「共 3 条」；逐张 PNG zip 3 张 0 空白 — passed
+
+**T4 常规**：正常路径会话 pageerror=0；159 请求标记串（张伟268）命中 0；storage 清理、context 全关、常驻 Chrome 未动 — passed
+
+**结论**：r266 P3 与 P4 至此闭环。新增 P4 观察项（离线导航失败缓存）供裁量。计划：`test-plan-round268.md`。产物：`/home/ubuntu/r268_dl/`、`/home/ubuntu/r268_reqs.json`；截图 `/home/ubuntu/screenshots/r268_t1_cn_toast.png`、`r268_t1_reload_ok.png`、`r268_t2_offline_nav.png`、`r268_t2b_final.png`、`r268_t3_regression.png`。
+
+---
+
 # 第 266 轮（2026-08-11）：#270 导入面板空闲预取 xlsx 分包线上复测（生产）⚠️ 主判据 PASS（空闲预取 0.36s 即拉取、首导 0.132s 热量级、竞态导入正常、回归全过），但发现 **1 个 P3**：预取网络失败后（失败本身静默）后续导入被浏览器模块缓存钉死——恢复网络重试 0 次网络请求、toast 直露英文错误「Failed to fetch dynamically imported module…」，需刷新页面才能导入
 
 **部署确认**：entry hash 翻转 `index-C2ENcB-P.js`（r264）→ `index-BC7trUVn.js`（轮询第 2 分钟命中）。环境：CDP 29229 全新 incognito context。代码依据：`DataImportPanel.vue:134-144`（onMounted 后 `requestIdleCallback(()=>import('xlsx').catch(()=>{}),{timeout:3000})`，Safari 兜底 setTimeout 1500ms）。脚本 `/home/ubuntu/r266_run.py`、`r266_t3b.py`、`r266_t3c.py`。
