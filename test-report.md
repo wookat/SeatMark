@@ -1,3 +1,37 @@
+# 第 288 轮（2026-08-12）：#289 线上复测——分隔符优先换行 + 分散对齐（含导出预栅格化）✅ 全部判据 PASS
+
+**环境**：部署确认 CSS `index-Drr90_HC.css` `.label-field__body`=`word-break:keep-all;overflow-wrap:anywhere`、`StudioView-CAoR79uO.js` 含「分散对齐」/textAlignLast/Intl.Segmenter。CDP 全新 incognito context 打生产 /studio；脚本 `/home/ubuntu/r288_run.py`/`r288_p2.py`/`r288_p3.py`，结果 `r288_res*.json`，导出物 `/home/ubuntu/r288_dl2/`、`r288_dl3/`。
+
+## T1 分隔符优先换行 — PASSED
+制表符分列导入「创新 网络科技公司」（空格留在姓名单元格内），设计器把姓名字段 maxLines=2：预览 computedStyle wordBreak=keep-all/overflowWrap=anywhere；Range 逐字测行位：折行点 index=3，第一行=「创新 」——**在空格处折行**（旧 break-all 为任意字符断行可区分）；无空格 18 字长串仍换行且 scrollWidth-clientWidth=0 无横溢。截图 r288_card_wrap.png。注：粘贴解析中空格本身是分列分隔符（空格分隔输入会被拆成两列），需用制表符/逗号分列才能把含空格文本留在同一单元格——as-designed，如实记录。
+
+## T2 分散对齐（设计器→预览）— PASSED
+设计器「水平对齐」下拉选项=[左, 居中, 右, **分散对齐**]；选中姓名字段设分散对齐并保存自定义模板后，预览「张三」computedStyle textAlignLast=justify，字段截图墨迹横跨 99.1% 字段宽（两字分居两端；居中形态为中部单簇可区分）。截图 r288_card_zs.png、r288_preview2.png。
+
+## T3 导出所见即所得（rasterizeJustifiedText）— PASSED（PNG+图片版 PDF）
+- 带水印逐张 PNG：张三卡姓名字段墨迹 span 占字段宽 **97.1%**、列簇=2（首尾贴边）；王小明卡 span 97.1%、列簇=3 等距——与预览 justify 分布一致，**非居中聚拢**（html2canvas 原生 justify 会画成居中，若未预栅格化则 span 显著 <60%）。证据 `r288_dl2/分散288b-*-001/002_crop.png`。
+- 图片版 PDF（带水印）第 1 页 pdftoppm 栅格同判据：张三 ratio 0.967/2 簇、王小明 0.967/3 簇 — 一致。证据 `r288_dl3/pdf_zhangsan_crop.png`、`pdf_wangxiaoming_crop.png`。
+- 带 caption/多行字段跳过预栅格化的形态未单独构造（设计如此，跳过路径未触发）。
+
+## T4 回归+常规 — PASSED
+左/中/右对齐既有路径以第 287 轮同日「标准考场版」（居中）导出成功为回归证据；全程 pageerror=0；张三/王小明/公司名串第三方零外发；storage 清理、context 全关。headless CDP 未录屏。
+
+---
+
+# 第 287 轮（2026-08-12）：#287 线上复测——匿名配额/分享频控「今日」改本地日期 ✅ 全部判据 PASS（r286 P4 闭环）
+
+**环境**：部署确认 entry `index-BdUDE_2p.js` 含 `getFullYear/getMonth/getDate + padStart(2,"0")` 本地日期拼接。CDP 全新 incognito context（timezone_id=Asia/Shanghai + Date 偏移至北京次日 01:30，UTC 未跨日）打生产 /studio?demo=1。脚本 `/home/ubuntu/r287_run.py`，结果 `r287_res.json`。
+
+## T1 主判据（r286 场景反转）— PASSED
+自检 `new Date()`=Aug 12 01:30 GMT+0800 / ISO 日期仍 2026-08-11。预写 {date:'2026-08-11'(=本地昨日), used:1} → 弹窗「无水印导出（今日剩余 1 次）」（r286 旧行为=0 次可区分），无水印导出成功下载 `标准考场版-20260812-013014.zip`，写回 {date:'2026-08-12'(本地今日), used:1}；分享频控键 date 同为 2026-08-12——配额/分享/文件名三者日历统一为本地日期。截图 r287_t1_beijing0130.png。
+
+## T2 回归 — PASSED
+- 容错：{date:'2099-01-01',used:99}、{date:'garbage',used:null} 均「今日剩余 1 次」，无负数无锁死。
+- 单页签：第 1 次无水印成功（used=1）、B 页签**不刷新**即「今日剩余 0 次」且强点无下载+引导弹窗（#282 行为不回归），used 保持 1 不覆写。截图 r287_t2_B_blocked.png。
+- 常规：pageerror=0；26 条第三方请求扫演示名单串零命中；storage 清理、context 全关。
+
+---
+
 # 第 286 轮（2026-08-11）：日期/时区与「跨日重置」语义边界审计（生产，无代码变更轮）✅ 容错与逆向判据 PASS，⚠️ 证实 **1 个 P4**：匿名配额「今日」为 **UTC 日期**（`quota.ts:19 toISOString`）——北京时间 00:00–08:00 属「本地新一天但 UTC 未跨日」窗口，配额不重置（实测北京 01:30 仍显示「今日剩余 0 次」，到 08:00 才恢复）；且同一时刻导出文件名用**本地日期**（实测 `20260812-013018`）与配额/分享计数键的 UTC 日期（2026-08-11）**两套日历并存**。未来/异常日期记录容错全过、无锁死。
 
 **环境**：CDP 29229 全新 incognito context（timezone_id=Asia/Shanghai + init script 偏移 Date 至北京次日 01:30）打生产 /studio?demo=1。脚本 `/home/ubuntu/r286_run.py`，结果 `/home/ubuntu/r286_res.json`。代码基准 `quota.ts:18-19`（UTC）、`pngExport.ts:144`/`pdfExport.ts:779`（本地时间戳）、`PreviewArea.vue:320-334`（分享计数同 UTC）。
