@@ -1,3 +1,23 @@
+# 第 281 轮（2026-08-11）：#282 匿名配额多页签同步线上复测 ✅ 全部判据 PASS——r279 P4 闭环：A 页签消耗后 B 页签**不刷新**即显示「今日剩余 0 次」并拦截（引导弹窗），used 保持 1 不覆写；反向同样拦截；单页签/跨日重置/带水印不计数回归全过；pageerror=0。
+
+**环境**：部署确认 entry `index-BY-oO6Ou.js`→`index-DQXCHqb-.js`（新 entry 含 `addEventListener("storage",…clean-export-usage…)` 特征）。CDP 29229 全新 incognito context 双 page 打生产 /studio?demo=1。脚本 `/home/ubuntu/r281_run.py`，结果 `/home/ubuntu/r281_res.json`。
+
+## T1 主判据：A 消耗 → B 不刷新同步 + 拦截 — PASSED
+A 无水印导出成功（下载 1 个），localStorage `seatmark.clean-export-usage.v1`={"date":"2026-08-11","used":1}；B **不刷新**打开导出弹窗：文案已变「今日 0 次 无水印导出（今日剩余 0 次） 今日已用完，登录后每天 3 次，还可分享送次数」（r279 旧行为=「剩余 1 次」，可区分）；B 强行点击无水印 → **无下载**、引导弹窗出现（含「登录后每天」文案）；used 保持 1 不被覆写。截图 r281_t1_B_norefresh.png / r281_t1_B_blocked.png。
+
+## T2 反向：B 先消耗、A 后拦截 — PASSED
+新 context，B 无水印导出成功；A 不刷新尝试 → 文案「今日剩余 0 次」、无下载、引导弹窗、used=1。（截图渲染超时未取到，判据以文案/下载/storage 实值取证。）
+
+## T3 回归 — PASSED
+- 单页签：第 1 次无水印导出成功（「今日剩余 1 次」→下载），第 2 次拦截（「剩余 0 次」+引导弹窗，无下载），used=1。截图 r281_t3_second_blocked.png。
+- 跨日重置：预写 {date:昨日,used:1} 后新页签显示「今日剩余 1 次」且导出成功，写回 {date:今日,used:1}。
+- 带水印导出不计数：下载成功后 used 仍=1。
+
+## T4 常规 — PASSED
+全程 pageerror=0；storage 清理、context 全关、常驻 Chrome 未动。headless CDP 未录屏。
+
+---
+
 # 第 279 轮（2026-08-11）：多页签/多实例并发一致性专项（生产，无代码变更轮）✅ 主体判据 PASS（名单页签隔离、#153 写竞争防护、seating/studio 互不干扰、双击导出防重、pageerror=0、隐私零外发），⚠️ 发现 **1 个 P4**：匿名无水印配额跨页签不同步——A 页签消耗当日 1 次后，B 页签（未刷新）仍显示「今日剩余 1 次」且可再次无水印导出，且写回为覆写（used 仍=1 而非 2）——每多开一个页签实际可多得 1 次无水印导出；刷新后口径恢复正确（「今日剩余 0 次」并拦截）。
 
 **环境**：CDP 29229 全新 incognito context 内开双 page（同源共享 localStorage、独立 sessionStorage）打生产。脚本 `/home/ubuntu/r279_p2.py`（T2/T3/T4/T5）与 inline T1 重跑；请求 `/home/ubuntu/r279_reqs.json`（106 条第三方扫描）。
