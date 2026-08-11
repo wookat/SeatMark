@@ -134,6 +134,13 @@ function onDocKeydown(event: KeyboardEvent) {
 onMounted(() => {
   document.addEventListener('pointerdown', onDocPointerDown)
   document.addEventListener('keydown', onDocKeydown)
+  // 导入面板可见即空闲预取解析库分包，首次导入不再等待网络拉取
+  const prefetch = () => void import('xlsx').catch(() => {})
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(prefetch, { timeout: 3000 })
+  } else {
+    setTimeout(prefetch, 1500)
+  }
 })
 onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', onDocPointerDown)
