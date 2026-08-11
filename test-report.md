@@ -1,3 +1,21 @@
+# 第 243 轮（2026-08-11）：WebKit/Safari 跨引擎专项回归（生产，无代码变更）✅ 全部判据 PASS——主链路首次在 WebKit 引擎验证：导入/标准三导出链路/eink 精确像素（整页+逐标签 800 与 4096）/字体（𱁬+维文）/长名截断/隐私零外发/pageerror 0 全过，未见 Firefox 式误截或引擎级失败
+
+**环境**：Playwright webkit-1967 headless（WPE WebKit 2.43.1，UA Safari/605.1.15）。注意两个环境坑：① playwright host 校验对 bundled libjxl 误报缺依赖，需 `PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1` 启动（libjxl.so.0.8 实际在 webkit 目录 sys/lib 内，运行正常）；② WebKit 下 `page.on('download')` 回调里的 save_as 若与 ctx.close() 竞态会 TargetClosedError 丢文件——PDF 等大文件用 `page.expect_download()` 同步等待再 save_as。生产 bundle `index-B7iIsDpm.js`（与 r242 相同，无部署变化）。夹具同 r242。
+
+**T1 冒烟**：首页 title 正常、/templates 5 个模板入口、40 行导入 toast +「共 40 条」+ 预览截图留档 — passed
+
+**T2 标准模板三链路**：整页 PNG（2 页 2481×3509，非空白 6.6/4.8%）、逐张 PNG（40 张 1000×534，md5 互异非空白 6.5-7.4%）、图片版 PDF（2 页，pypdfium2 p1 非空白 11.2%）全部成功落盘、文件名秒级 — passed
+
+**T3 eink 精确像素（#244 截断判据 WebKit 首验）**：逐标签 800×480 3 行（3.6s）与 40 行（19.5s）、4096 自定义（32.5s，40 张 4096×2458）、整页 800×480 全部成功；逐张恰 800×480/4096×2458、恰 2 色 (0,0,0)/(255,255,255)、无 pHYs、md5 互异——**无 Firefox 式「页面渲染不完整」失败**。误截观察：导出宿主轮询仅捕获 21 字长名行「欧阳娜娜穆罕默德阿卜杜拉希莫夫斯…」（真溢出，合法截断），单行短名（张伟234/𫔭𨱏234）未被误截 — passed
+
+**T4 字体（𱁬+维文 RTL，vs r242 Chromium 产物）**：𱁬田240 列分段 WK/CR 均 5 段、逐段位置几乎一致（[(443,80),(539,74)…] vs [(442,80),(539,75)…]）、墨量 2.03 vs 1.98%；维文 9 vs 8 段、墨量 1.22 vs 1.52%（引擎级差异，与 r240 FF 观察同型，非缺字）；张伟240 5v5 段。无 tofu/顶部平切；蒙太奇 `r243_t4_wk_vs_cr.png`（左 WK 右 CR）留档人工终判 — passed（带人工判读注记）
+
+**T5 超长姓名**：60 字名逐张导出成功，导出宿主捕获「超超超超超超超超超超…」（省略号截断生效）；产物姓名区单一文本带（行 100-143）无叠压 — passed
+
+**T6 隐私与收尾**：全程 2370 请求，姓名/生僻字/维文/夹具标记串命中 **0**（`/home/ubuntu/r243_reqs.json`）；pageerror=0 全部会话；storage 清理、WebKit context/进程全退、CDP 无遗留 SeatMark tab。诚实注记：首轮脚本 T2 的 PDF 因上述 save_as 竞态未落盘，已用 expect_download 口径重跑并核验（`标准考场版-20260811-105205.pdf`）。
+
+产物：`/home/ubuntu/r243_dl/`（6 zip+1 pdf）、截图 `/home/ubuntu/screenshots/r243_t1_home.png`、`r243_t1_templates.png`、`r243_t1_imported.png`、`r243_t3_eink.png`、`r243_t3_4096.png`、`r243_t4_wk_vs_cr.png`、`r243_t5_label1.png`、请求 `/home/ubuntu/r243_reqs.json`、脚本 `/home/ubuntu/r243_wk.py`、`r243_pdf.py`。headless 不录屏。
+
 # 第 242 轮（2026-08-11）：#244 Firefox eink 逐标签导出 P2 修复 生产复测（r240 口径）✅ 全部判据 PASS——**r240 P2 闭环**：Firefox eink 精确像素「按标签逐张导出」从 0/10 全失败变为全部成功（3 行×3 次复跑 + 40 行 + 4096 自定义全过）；eink 整页/标准模板三链路/长名截断/Chromium 同口径回归均无回归；隐私零外发、pageerror 0
 
 **环境**：Playwright firefox-1438 headless + Chromium headless（CDP 29229）对照；生产 bundle **`index-B7iIsDpm.js`**（从 r240 的 `index-j8zuZYS6.js` 翻转确认，页面 resource entries 实证）；夹具 r231 `eink234.xlsx`（3 行）、r240 `ff240.xlsx`（40 行含 𱁬田240/维文）、新建 `/home/ubuntu/r240_fixtures/long242.xlsx`（60 字超长姓名 + 张伟242）；判据 toast（MutationObserver）+ download.save_as 落盘 + 产物像素/pypdfium2。
