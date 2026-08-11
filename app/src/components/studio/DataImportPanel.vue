@@ -6,7 +6,7 @@ import ModalDialog from '@/components/ui/ModalDialog.vue'
 import { useDragScroll } from '@/composables/useDragScroll'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { compareCellText, downloadSampleExcel } from '@/utils/excel'
+import { compareCellText, downloadSampleExcel, parsePastedRoster } from '@/utils/excel'
 
 const workspace = useWorkspaceStore()
 const toast = useToastStore()
@@ -159,6 +159,31 @@ function onDrop(event: DragEvent) {
   }
 }
 
+// ---------- 粘贴名单导入 ----------
+const pasteOpen = ref(false)
+const pasteText = ref('')
+
+const pasteParsed = computed(() => parsePastedRoster(pasteText.value))
+
+function openPasteDialog() {
+  pasteText.value = ''
+  pasteOpen.value = true
+}
+
+function confirmPaste() {
+  const parsed = pasteParsed.value
+  if (!parsed.rows.length) {
+    toast.warning('名单为空', '请粘贴名单内容，每行一条数据')
+    return
+  }
+  workspace.applyDataset('粘贴的名单', parsed.headers, parsed.rows)
+  pasteOpen.value = false
+  toast.success(
+    `已导入 ${parsed.rows.length} 条数据`,
+    parsed.headerDetected ? '首行已识别为表头' : '未检测到表头，首列已按「姓名」处理',
+  )
+}
+
 async function onDownloadSample() {
   const sample = await downloadSampleExcel(workspace.template)
   toast.success(`「${sample.sheetName}」样例已下载`, '按样例表头整理名单后上传即可直接导入')
@@ -195,9 +220,14 @@ async function onDownloadSample() {
         </p>
         <p class="text-xs text-slate-600">第一行默认作为表头，支持 .xlsx / .xls / .csv；不确定格式可先下载样例 Excel</p>
       </div>
-      <button type="button" class="btn btn-ghost btn-sm mt-3 w-full" @click="workspace.useDemoData()">
-        没有现成文件？先用演示数据体验
-      </button>
+      <div class="mt-3 grid grid-cols-2 gap-2">
+        <button type="button" class="btn btn-ghost btn-sm" @click="openPasteDialog">
+          没有文件？粘贴名单
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm" @click="workspace.useDemoData()">
+          先用演示数据体验
+        </button>
+      </div>
     </template>
 
     <template v-else>
@@ -302,6 +332,38 @@ async function onDownloadSample() {
         </p>
       </div>
     </template>
+
+    <ModalDialog :open="pasteOpen" title="粘贴名单导入" size="md" @close="pasteOpen = false">
+      <p class="text-xs text-slate-600">
+        从 Excel/WPS 直接复制区域粘贴（自动分列），或粘贴微信、文档里整理的名单（每行一条，多列可用逗号、顿号或空格分隔）。数据不出浏览器。
+      </p>
+      <textarea
+        v-model="pasteText"
+        rows="10"
+        class="input-field mt-2 w-full resize-y font-mono text-xs"
+        placeholder="例如：
+姓名	班级	座位号
+张伟	高三（1）班	01
+王芳	高三（1）班	02"
+        aria-label="粘贴名单内容"
+      ></textarea>
+      <p v-if="pasteText.trim()" class="mt-1.5 text-[11px] text-slate-600">
+        识别到 <strong class="text-brand-600">{{ pasteParsed.rows.length }}</strong> 条数据、{{ pasteParsed.headers.length }} 列（{{ pasteParsed.headerDetected ? `首行为表头：${pasteParsed.headers.join('、')}` : '未检测到表头，首列将按「姓名」处理' }}）
+      </p>
+      <template #actions>
+        <button type="button" class="btn btn-secondary btn-md" @click="pasteOpen = false">
+          取消
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary btn-md"
+          :disabled="!pasteParsed.rows.length"
+          @click="confirmPaste"
+        >
+          导入名单
+        </button>
+      </template>
+    </ModalDialog>
 
     <ModalDialog
       :open="dataViewerOpen"

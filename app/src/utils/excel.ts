@@ -177,6 +177,67 @@ const DEMO_HEADERS = [
 const DEMO_SCHOOL = '市第一中学'
 const DEMO_DEPARTMENTS = ['教务处', '招生办', '信息中心', '后勤保障部']
 
+/** 判断粘贴首行是否为表头的常见列名关键词 */
+const HEADER_KEYWORDS =
+  /姓名|名字|name|性别|班级|学号|座位|考场|准考证|部门|职务|工号|单位|学校|编号|号码|电话|手机|宿舍|桌号|组别|序号/i
+
+export interface PastedRoster {
+  headers: string[]
+  rows: DataRow[]
+  /** 首行是否被识别为表头 */
+  headerDetected: boolean
+}
+
+/**
+ * 解析粘贴的名单文本（来自 Excel/WPS 复制、微信/文档整理的名单）。
+ * 分列规则整段统一：优先制表符（表格软件复制即 TSV），其次中英文逗号/顿号，最后连续空白。
+ * 首行含常见列名关键词时作为表头，否则自动生成表头（首列「姓名」，其余「列N」）。
+ */
+export function parsePastedRoster(text: string): PastedRoster {
+  const lines = text
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => line.replace(/[\u00a0\u3000]/g, ' ').trim())
+    .filter((line) => line !== '')
+  if (!lines.length) return { headers: [], rows: [], headerDetected: false }
+
+  const splitter = lines.some((l) => l.includes('\t'))
+    ? /\t/
+    : lines.some((l) => /[,，、]/.test(l))
+      ? /[,，、]/
+      : /\s+/
+  const table = lines.map((line) => line.split(splitter).map((cell) => cell.trim()))
+
+  const columnCount = Math.max(...table.map((row) => row.length))
+  const headerDetected = table[0]!.some((cell) => HEADER_KEYWORDS.test(cell))
+
+  const used = new Set<string>()
+  const headers = Array.from({ length: columnCount }, (_, i) => {
+    const text = headerDetected
+      ? String(table[0]![i] ?? '').trim() || `列${i + 1}`
+      : i === 0
+        ? '姓名'
+        : `列${i + 1}`
+    let name = text
+    for (let n = 2; used.has(name); n++) name = `${text}${n}`
+    used.add(name)
+    return name
+  })
+
+  const rows: DataRow[] = table
+    .slice(headerDetected ? 1 : 0)
+    .filter((row) => row.some((cell) => cell !== ''))
+    .map((row) => {
+      const record: DataRow = {}
+      headers.forEach((header, i) => {
+        record[header] = row[i] ?? ''
+      })
+      return record
+    })
+
+  return { headers, rows, headerDetected }
+}
+
 /** 生成一批演示数据，便于用户上传前先体验完整流程 */
 export function makeDemoRows(count = 30): { headers: string[]; rows: DataRow[] } {
   const rows: DataRow[] = []
