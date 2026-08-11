@@ -1,3 +1,31 @@
+# 第 278 轮（2026-08-11）：/papers 纸型库全链路专项（生产，无代码变更轮）✅ 全部判据 PASS：列表 17 款与源数据/页首宣称三方一致、抽 5 款规格逐字一致、详情/深链/404、纸型→工坊锁定与不适配自动换模板（r83）、自由排版解锁（r133）、21 格整页导出切缝像素级命中、跨模板纸型携带与不适配重置（r76）、隐私零外发、pageerror=0。
+
+**环境**：CDP 29229 全新 incognito context 打生产。脚本 `/home/ubuntu/r278_run.py`、`r278_t5b.py`、`r278_t5c.py`（inline）；请求 `/home/ubuntu/r278_reqs.json`、`r278_reqs_t45.json`；导出物 `/home/ubuntu/r278_dl/标准考场版-*.zip`。
+
+## T1 /papers 列表 — PASSED
+卡片 17=页首宣称「17 种」=labelPapers.ts 源数据 17 款；抽 5 款（a4-1up/2up/8up/21up/8up-round）卡片规格行与源数据逐字一致（尺寸/列行/枚数/切角，含 74.25、42.4、99.1×67.7 等小数）；「圆角」筛选=5 款（源数据 rounded 5 款）、「全部」恢复 17；移动端 390×844 scrollWidth=380 无横溢。截图 r278_t1_list.png、r278_t1_round.png、r278_t1_mobile.png。
+
+## T2 详情与深链 — PASSED
+/papers/a4-8up 规格表：整张 A4 210×297、单枚 105×74.25、2 列×4 行每页 8 枚、间距 0、直角满切——与源数据一致；适配模板推荐 3 个 /templates/ 链接（=recommendedTemplates 3 项）；curl 直开 HTTP 200 且静态源含「8格不干胶」×6（预渲染）；/papers/no-such-paper-xyz HTTP **404**。截图 r278_t2_detail.png。
+
+## T3 纸型→工坊 — PASSED
+- 详情页点「用此纸型开始排版」→ /studio?paper=a4-8up，toast「已按纸型锁定排版」。截图 r278_t3a_studio.png。
+- 不适配自动换模板（Regression r83）：先以 fullPage（整页名牌版）进入再直开 ?paper=a4-21up → toast「已换用适配该纸型的模板…已切换到『幼儿姓名贴·奶油云朵』并按纸型锁定排版（每页 21 枚）」。截图 r278_t3b_autoswitch.png。
+- 自由排版解锁（Regression r133）：锁定态选「不使用纸型（自由排版）」→ toast「已取消纸型锁定」，模板恢复默认 3×8、60×32（锁定值 3×7、70×42.4 可区分）。截图 r278_t5_unlock.png。
+
+## T4 纸型约束下整页导出 — PASSED
+/studio?paper=a4-21up&demo=1（标准考场版适配直接锁定 3×7、70×42.4；演示 26 条）→ 开裁切线 → 「按整页导出（每页纸张一张 PNG）」带水印导出 → zip 2 页 PNG 2481×3509（比例=210:297 误差<0.01%）；PIL 沿 labelPaperGeometry 推导切缝抽验：x=70/140mm 两条列缝、y=42.4k（k=1..6）六条行缝在 ±2px 内均检出暗线（缝上灰度 ~64 vs 背景 ~254）。截图 r278_t4_studio.png、r278_t4_page1.png（导出首页）。
+
+## T5 跨模板切换不残留（Regression r76）— PASSED
+锁定 a4-21up 下切「大字远视版」（适配）→ toast 含「已保留纸型」且标签仍 70×42.4、3×7（携带）；再切「整页名牌版」（不兼容多格纸型）→ toast「适配度不足…已恢复模板默认排版」且模板变 1×1、190×277（纸型不残留）。截图 r278_t5_carry.png、r278_t5_reset.png。
+
+## T6 隐私与常规 — PASSED
+演示名单字段串扫 25 条第三方请求零命中；全程 pageerror=0（各 context 均 0）；storage 清理、context 全关、常驻 Chrome 未动。
+
+测试侧注记：工坊侧栏面板标题（「页面与版式」等）非按钮，Playwright click 会超时——用 scroll_into_view + 面板内 `button[aria-haspopup=listbox]` 遍历选纸型；模板切换用「浏览全部 N 款模板」弹窗内按名称点选最稳。
+
+---
+
 # 第 277 轮（2026-08-11）：#278 Sentry 上报前剥离 q（beforeSendTransaction/beforeBreadcrumb）线上复测（生产）✅ 全部判据 PASS——r275 P4 残留闭环：直开 ?q= 时 Sentry pageload 事务 envelope 全文零命中标记词，browser.metrics span description 已剥为 `https://www.seatmark.cn/templates`，Sentry 上报本身未被破坏。
 
 **部署确认**：entry 翻转 `index-B2OZ6Rre.js`→`index-BY-oO6Ou.js`（轮询第 2 分钟命中）。环境：CDP 29229 全新 incognito context，标记词「考场277标记词」，Sentry envelope 全量落盘 `/home/ubuntu/r277_reqs.json`、命中采样事务全文 `/home/ubuntu/r277_tx_envelope.txt`，脚本 `/home/ubuntu/r277_run.py`。
