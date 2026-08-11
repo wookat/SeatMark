@@ -1,40 +1,58 @@
 <script lang="ts">
-import type { Router } from 'vue-router'
-
 /** 全局打开栈（模块级共享）：多层弹窗叠加时 Esc 只关最顶层 */
 const openStack: symbol[] = []
-/** 各弹窗实例的关闭回调：供返回键拦截关闭顶层弹窗 */
+/** 各弹窗实例的关闭回调：供返回键关闭顶层弹窗 */
 const closeHandlers = new Map<symbol, () => void>()
+/** 各弹窗实例哨兵条目的深度：用于判断关闭时是否需要回收哨兵 */
+const sentinelDepths = new Map<symbol, number>()
 
-/** 最近一次 popstate 时间戳：用于区分返回键导航与站内链接导航 */
-let lastPopstateAt = 0
-let guardInstalled = false
+const SENTINEL_KEY = 'seatmarkModalDepth'
+let popListenerInstalled = false
+
+function currentSentinelDepth(): number {
+  const state = window.history.state as Record<string, unknown> | null
+  const depth = state?.[SENTINEL_KEY]
+  return typeof depth === 'number' ? depth : 0
+}
 
 /**
- * 返回键拦截：弹窗打开时按浏览器返回（popstate 驱动的路由离开）
- * 只关闭顶层弹窗、取消本次导航，而不是整页跳走。
- * 站内链接/编程式导航不受影响。
+ * 返回键拦截（哨兵方案）：弹窗打开时 pushState 一条同 URL 哨兵历史条目；
+ * 按返回时 popstate 回到哨兵之前的条目，只关顶层弹窗而不离开页面。
+ * 哨兵复制当前路由 state（含 position），vue-router 视为原地不动，不触发导航。
  */
-function installBackGuard(router: Router) {
-  if (guardInstalled || typeof window === 'undefined') return
-  guardInstalled = true
-  window.addEventListener('popstate', () => {
-    lastPopstateAt = Date.now()
-  })
-  router.beforeEach(() => {
-    if (!openStack.length) return true
-    if (Date.now() - lastPopstateAt > 300) return true
+function installPopListener() {
+  if (popListenerInstalled || typeof window === 'undefined') return
+  popListenerInstalled = true
+  window.addEventListener('popstate', (event) => {
+    if (!openStack.length) return
+    const state = event.state as Record<string, unknown> | null
+    const depth = typeof state?.[SENTINEL_KEY] === 'number' ? (state[SENTINEL_KEY] as number) : 0
+    if (depth >= openStack.length) return
     const top = openStack[openStack.length - 1]
-    if (!top) return true
-    closeHandlers.get(top)?.()
-    return false
+    if (top) closeHandlers.get(top)?.()
   })
+}
+
+function pushSentinel(id: symbol) {
+  if (typeof window === 'undefined') return
+  installPopListener()
+  const depth = openStack.length
+  sentinelDepths.set(id, depth)
+  const base = (window.history.state as Record<string, unknown> | null) ?? {}
+  window.history.pushState({ ...base, [SENTINEL_KEY]: depth }, '', window.location.href)
+}
+
+/** 弹窗以非返回键方式关闭（Esc/遮罩/程序）时回收未消耗的哨兵条目 */
+function consumeSentinel(id: symbol) {
+  const depth = sentinelDepths.get(id)
+  sentinelDepths.delete(id)
+  if (typeof window === 'undefined' || depth === undefined) return
+  if (currentSentinelDepth() === depth) window.history.back()
 }
 </script>
 
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 
 const props = withDefaults(
   defineProps<{
@@ -55,9 +73,6 @@ const SIZE_CLASSES: Record<string, string> = {
 }
 
 const instanceId = Symbol('modal')
-
-const router = useRouter()
-if (router) installBackGuard(router)
 
 const panelRef = ref<HTMLElement | null>(null)
 /** 打开前的焦点元素：关闭后归还焦点 */
@@ -110,6 +125,7 @@ watch(
     if (open) {
       openStack.push(instanceId)
       closeHandlers.set(instanceId, () => emit('close'))
+      pushSentinel(instanceId)
       previouslyFocused = document.activeElement as HTMLElement | null
       await nextTick()
       panelRef.value?.focus()
@@ -117,6 +133,7 @@ watch(
       const idx = openStack.indexOf(instanceId)
       if (idx >= 0) openStack.splice(idx, 1)
       closeHandlers.delete(instanceId)
+      consumeSentinel(instanceId)
       previouslyFocused?.focus?.()
       previouslyFocused = null
     }
@@ -130,6 +147,7 @@ onBeforeUnmount(() => {
   const idx = openStack.indexOf(instanceId)
   if (idx >= 0) openStack.splice(idx, 1)
   closeHandlers.delete(instanceId)
+  sentinelDepths.delete(instanceId)
 })
 </script>
 
