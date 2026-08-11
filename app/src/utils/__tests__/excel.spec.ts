@@ -39,6 +39,23 @@ describe('parsePastedRoster', () => {
     expect(dup.headers).toEqual(['姓名', '姓名2'])
   })
 
+  it('firstRowHeader 显式指定时覆盖关键词启发式', () => {
+    // 首行数据含「手机」子串会被误判为表头（r261 P4），手动指定 false 修正
+    const auto = parsePastedRoster('张伟手机甲\n张伟手机乙\n')
+    expect(auto.headerDetected).toBe(true)
+    expect(auto.rows).toHaveLength(1)
+
+    const fixed = parsePastedRoster('张伟手机甲\n张伟手机乙\n', false)
+    expect(fixed.headerDetected).toBe(false)
+    expect(fixed.headers).toEqual(['姓名'])
+    expect(fixed.rows.map((r) => r['姓名'])).toEqual(['张伟手机甲', '张伟手机乙'])
+
+    const forced = parsePastedRoster('张伟\t男\n王芳\t女\n', true)
+    expect(forced.headerDetected).toBe(true)
+    expect(forced.headers).toEqual(['张伟', '男'])
+    expect(forced.rows).toHaveLength(1)
+  })
+
   it('空文本返回空结果', () => {
     expect(parsePastedRoster('  \n \n')).toEqual({ headers: [], rows: [], headerDetected: false })
   })

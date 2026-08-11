@@ -162,11 +162,20 @@ function onDrop(event: DragEvent) {
 // ---------- 粘贴名单导入 ----------
 const pasteOpen = ref(false)
 const pasteText = ref('')
+/** 用户手动指定首行是否为表头；null 表示跟随关键词自动识别 */
+const pasteHeaderOverride = ref<boolean | null>(null)
 
-const pasteParsed = computed(() => parsePastedRoster(pasteText.value))
+const pasteParsed = computed(() =>
+  parsePastedRoster(pasteText.value, pasteHeaderOverride.value ?? undefined),
+)
+
+function togglePasteHeader(value: boolean) {
+  pasteHeaderOverride.value = value
+}
 
 function openPasteDialog() {
   pasteText.value = ''
+  pasteHeaderOverride.value = null
   pasteOpen.value = true
 }
 
@@ -347,9 +356,21 @@ async function onDownloadSample() {
 王芳	高三（1）班	02"
         aria-label="粘贴名单内容"
       ></textarea>
-      <p v-if="pasteText.trim()" class="mt-1.5 text-[11px] text-slate-600">
-        识别到 <strong class="text-brand-600">{{ pasteParsed.rows.length }}</strong> 条数据、{{ pasteParsed.headers.length }} 列（{{ pasteParsed.headerDetected ? `首行为表头：${pasteParsed.headers.join('、')}` : '未检测到表头，首列将按「姓名」处理' }}）
-      </p>
+      <div
+        v-if="pasteText.trim()"
+        class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600"
+      >
+        <span class="min-w-0">
+          识别到 <strong class="text-brand-600">{{ pasteParsed.rows.length }}</strong> 条数据、{{ pasteParsed.headers.length }} 列（{{ pasteParsed.headerDetected ? `首行为表头：${pasteParsed.headers.join('、')}` : '未检测到表头，首列将按「姓名」处理' }}）
+        </span>
+        <CheckboxField
+          class="shrink-0"
+          :model-value="pasteParsed.headerDetected"
+          @update:model-value="togglePasteHeader"
+        >
+          首行是表头
+        </CheckboxField>
+      </div>
       <template #actions>
         <button type="button" class="btn btn-secondary btn-md" @click="pasteOpen = false">
           取消
