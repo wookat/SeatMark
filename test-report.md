@@ -1,3 +1,20 @@
+# 第 219 轮（2026-08-11）：带真实名单的 /seating 排座全数据流隐私+功能取证 ✅ 名单零外发（34 条全量 CDP 取证 0 命中）；点选/键盘/拖拽换座全过；打印宿主与 PDF 含全部姓名；排座→桌贴联动名单一致且 handoff 键读后即删；清 storage 后确实清空；pageerror 0
+
+**环境**：生产真实 UI，entry `index-m3vMPIl7.js`（main d6a84f0）。CDP `Network.requestWillBeSent` 全量捕获（Tab._ev 覆盖法，同 r218）。夹具：12 行「姓名 性别」名单（排座审计赵六219/钱七219…卫己219 + 一行假手机号 13900219001）+ 标题「排座审计219班」。敏感串 {排座审计, 赵六219, 13900219} × 5 种编码变体。
+
+**链路**：/seating 粘贴名单（textarea 入口，产品无 Excel 导入）→ 预览网格渲染 12 人 → 点选换座（座1↔座12）→ 键盘 Enter 换座（座2↔座5）→ 真实鼠标事件拖拽换座（座3→座10，拖拽中 drop-target 高亮截图）→ 打印（toast + window.print 调起 + 打印宿主 48 座含全部姓名 + Page.printToPDF 取证）→「一键生成对应桌贴」→ /studio?from=seating。
+
+**结果**：
+- ① 名单零外发：全程 34 条请求 URL/body 敏感串（含编码变体）命中 **0**；/seating 本身零 API 调用（仅静态资源+遥测）— passed
+- ② 换座功能：点选互换（排座审计赵六219↔13900219001，「已选中座位」提示可见）、键盘 Enter 互换（钱七219↔吴十219）、拖拽互换（孙八219↔褚戊219，拖拽中 `.seating-seat--drop-target` 高亮=1）三通道全部姓名级断言互换成功 — passed
+- ③ 打印：toast「即将调起浏览器打印」可见、window.print 被调起（stub 取证）、打印宿主 `.offscreen-host` 48 座含全部 12 个姓名、Page.printToPDF 产出 A4 横向 PDF（pdftotext 证实 11 个审计姓名+手机号行+标题全部在版）— passed
+- ④ 排座→桌贴联动：跳转 /studio?from=seating、数据表含「排座审计赵六219」且 座位号/排/列/班级 列齐全、`seatmark.seating-handoff.v1` 读后即删（=null）— passed
+- ⑤ 持久化与清理：排座后 localStorage 仅 `seatmark.seating-state.v1`（含 namesText+arranged，1095B）；刷新后排座结果保留（座3=褚戊219 恢复）；clear 后 ls/ss 0 键、IndexedDB 仅 workbox-expiration、刷新后名单消失 — passed
+- ⑥ pageerror=0（全程两次会话）— passed
+- 诚实注记：a) 排数/列数经 JS input 事件注入**未生效**（NumberField 自有事件处理），网格保持默认 6×8=48 座——12 人排前 12 座，所有功能断言不受影响，但「4×3 满座」形态未覆盖（测试脚本注入方式问题，非产品缺陷）；b) 首次 printToPDF 取证晚于 afterprint 1.5s 兜底（printing.ts:23）致宿主已卸载 PDF 为空，按代码时序在 1.35s 窗口内复跑成功；c) headless 下 window.print 用 stub 取证「被调起」，真实打印对话框行为不可观测；d) 名单行含手机号时 parse 将其拆为独立座位名（parseSeatingRoster 设计行为，如实记录）。
+
+**产物**：`/home/ubuntu/r219_all_requests.json`、`/home/ubuntu/r219_print.pdf`、截图 `r219_grid.png`/`r219_selected.png`/`r219_click_swapped.png`/`r219_drag_mid.png`/`r219_drag_swapped.png`/`r219_studio_handoff.png`/`r219_print_page.png`/`r219_after_clear.png`、脚本 `r219_t1.py`/`r219_t2.py`。收尾：storage 清理 + 全部测试 tab 关闭。
+
 # 第 218 轮（2026-08-11）：隐私承诺全站网络外发审计 ✅ 名单数据零外发（106 条全量 CDP 网络取证敏感串 0 命中）；分享长链纯前端 hash、短码 POST 仅含模板 JSON（解码验证无名单）；存储清后确实清空；pageerror 0
 
 **环境**：生产真实 UI，entry `index-m3vMPIl7.js`。CDP `Network.requestWillBeSent` 全量捕获（URL+POST body，含 GA4/百度统计/beacon），headless 1024×768。夹具：`r218_roster.xlsx`（姓名「隐私审计张三218/李四218/王五218」+ 手机号列 13800218001-003）+ 照片 `隐私审计张三218_PRIVAUDIT218.jpg`。敏感串匹配含原文 + URL 编码 + base64/base64url 变体。
