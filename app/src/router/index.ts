@@ -160,8 +160,27 @@ function scheduleAnchorCorrection(hash: string) {
 
 export const router = createAppRouter()
 
+/**
+ * 懒加载路由分包一旦网络失败会被浏览器按 URL 缓存为永久 reject，
+ * 之后 SPA 内重试导航静默失败；整页跳转到目标地址即可恢复。
+ * sessionStorage 防重入：同一路径连续失败（真离线）不做刷新循环。
+ */
+router.onError((error, to) => {
+  if (typeof window === 'undefined') return
+  if (!/Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed/i.test(String(error?.message ?? error))) {
+    return
+  }
+  const key = `chunk-reload:${to.fullPath}`
+  if (sessionStorage.getItem(key)) return
+  sessionStorage.setItem(key, '1')
+  window.location.assign(to.fullPath)
+})
+
 router.afterEach(async (to) => {
   if (typeof window === 'undefined') return
+
+  // SPA 内导航成功即清除该路径的分包刷新防重入标记，之后再失败仍可自动恢复
+  sessionStorage.removeItem(`chunk-reload:${to.fullPath}`)
 
   // 离线等网络异常时 SEO 模块加载失败不应产生裸 pageerror，跳过本次更新即可
   try {
