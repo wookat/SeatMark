@@ -1,3 +1,19 @@
+# 第 252 轮（2026-08-11）：#255 密码保护 xlsx 专门提示线上验证（生产）✅ 全部判据 PASS——阳性新文案逐字命中、两条阴性分支文案不变、失败后恢复正常；r250 P4 闭环
+
+**部署确认**：生产 entry 已翻转 `index-DL6SyG-8.js` → `index-DNF7Ft0O.js`（页面 resource entries 实证）。环境：CDP 29229 全新 incognito context 单会话串行（r250 方法），夹具复用 `~/r250_fixtures/`（encrypted.xlsx=CFB D0CF11E0、truncated.xlsx=PK 残缺、新增 fake_csv.xlsx=纯 CSV 文本改名 .xlsx 非 ZIP 非 CFB、good40.xlsx）。脚本 `/home/ubuntu/r252_run.py`。
+
+**T1 阳性（encrypted.xlsx）**：toast「Excel 导入失败 文件可能被密码保护（加密），请在 Excel/WPS 中解除密码后另存为 .xlsx 再导入」——新文案逐字命中、旧「不是有效的 .xlsx 工作簿」不再出现（r250 时同文件走旧文案，可区分）；pageerror=0 — passed。截图 r252_t1_encrypted_newtoast.png。
+
+**T2 阴性回归**：fake_csv.xlsx → 仍逐字「文件内容不是有效的 .xlsx 工作簿（可能是改名或损坏的文件）；若是 CSV 名单请将扩展名改回 .csv 后重试」且不含「密码保护」— passed（截图 r252_t2_fakecsv.png）；truncated.xlsx → 仍「文件解析失败：文件可能已损坏或格式不受支持…」且不含「密码保护」— passed（截图 r252_t2_truncated.png）。
+
+**T3 恢复**：三次失败后各导入 good40.xlsx 均「已读取 40 条数据」+「共 40 条」— passed。
+
+**T4 常规**：31 请求，张伟250/隐私学校250 命中 0 — passed；pageerror 全程=0 — passed；storage 清理、context 关闭、常驻 Chrome 未动 — passed。
+
+**结论**：#255 行为与 spec 完全一致，CFB 识别未误伤非 CFB 分支，r250 P4 观察项闭环。
+
+---
+
 # 第 250 轮（2026-08-11）：导入文件容错边界专项（生产 /studio，无代码变更）✅ 全部判据 PASS——8 类损坏/极端文件全部明确 toast、零 pageerror、无白屏卡死、失败后状态无污染；无 P1/P2
 
 **环境**：CDP 29229 全新 incognito context 单会话串行跑全部场景（故意同 context 验证状态污染），toast observer + pageerror/request 监听。夹具 `~/r250_fixtures/`（openpyxl/msoffcrypto-tool/xlwt 自造，标记串 张伟250/隐私学校250）。脚本 `/home/ubuntu/r250_run.py`。
