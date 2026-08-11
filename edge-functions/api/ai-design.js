@@ -6,6 +6,7 @@
  *
  * 主模型：DeepSeek v4 Flash（通过环境变量 DEEPSEEK_API_KEY 配置）
  * 兜底模型：智谱 glm-4-flash（通过环境变量 AI_API_KEY 配置，永久免费）
+ * 无密钥兜底：服务端代理 Pollinations 匿名接口（浏览器直连受来源限制 402，服务端出口可用）
  *
  * 环境变量（EdgeOne Pages 控制台配置）：
  * - DEEPSEEK_API_KEY  主模型密钥（DeepSeek 开放平台）
@@ -22,6 +23,9 @@ const DEEPSEEK_MODEL = 'deepseek-v4-flash'
 
 const FALLBACK_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4'
 const FALLBACK_MODEL = 'glm-4-flash'
+
+const POLLINATIONS_URL = 'https://text.pollinations.ai/openai'
+const POLLINATIONS_MODELS = ['openai', 'openai-fast']
 
 const ALERT_WEBHOOK_DEFAULT = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=f987cae8-5740-41a8-9492-f11325d894e1'
 
@@ -134,24 +138,50 @@ async function handleRequest(context) {
 
   // 兜底：智谱 glm-4-flash
   const fallbackKey = env && env.AI_API_KEY
-  if (!fallbackKey) {
-    const msg = deepseekKey
-      ? 'DeepSeek 主模型暂不可用，已告警；请稍后重试或切换「自定义 API」'
-      : 'AI proxy not configured'
-    return json({ error: msg }, 501)
+  if (fallbackKey) {
+    const fallbackBaseUrl = String((env && env.AI_BASE_URL) || FALLBACK_BASE_URL)
+    const fallbackModel = (env && env.AI_MODEL) || FALLBACK_MODEL
+    try {
+      const upstream = await callUpstream(fallbackBaseUrl, fallbackKey, fallbackModel)
+      if (upstream.ok) {
+        const text = await upstream.text()
+        return new Response(text, {
+          status: upstream.status,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+        })
+      }
+    } catch {
+      /* 落到无密钥兜底 */
+    }
   }
 
-  const fallbackBaseUrl = String((env && env.AI_BASE_URL) || FALLBACK_BASE_URL)
-  const fallbackModel = (env && env.AI_MODEL) || FALLBACK_MODEL
-
-  try {
-    const upstream = await callUpstream(fallbackBaseUrl, fallbackKey, fallbackModel)
-    const text = await upstream.text()
-    return new Response(text, {
-      status: upstream.status,
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-    })
-  } catch {
-    return json({ error: 'AI 服务暂时不可用，请稍后再试' }, 502)
+  // 无密钥兜底：服务端代理 Pollinations 匿名接口
+  // （浏览器直连会因来源限制返回 402，服务端出口不受影响）
+  for (const model of POLLINATIONS_MODELS) {
+    try {
+      const upstream = await fetch(POLLINATIONS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, messages, temperature: 0.6 }),
+        eo: {
+          timeoutSetting: {
+            connectTimeout: 30_000,
+            readTimeout: 120_000,
+            writeTimeout: 30_000,
+          },
+        },
+      })
+      if (upstream.ok) {
+        const text = await upstream.text()
+        return new Response(text, {
+          status: upstream.status,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+        })
+      }
+    } catch {
+      /* 换下一个模型 */
+    }
   }
+
+  return json({ error: 'AI 服务暂时不可用，请稍后再试' }, 502)
 }
