@@ -1,3 +1,18 @@
+# 第 226 轮（2026-08-11）：#228（哨兵三修）生产四测 ✅ **全部判据 PASS**——r225 P2（配额弹窗 /account 链接不跳）与 P3（孤儿哨兵占用一次返回）均已修复；单层弹窗 back 双通道、Esc/遮罩延迟回收、forward、快速切换 back、回归全过；pageerror 0
+
+**环境**：生产真实 UI，entry 翻转 `index-BYArTfAJ.js` → `index-BRn1Rj39.js`（main 11889c7，#228 已部署；bundle grep 证实含 `seatmarkModalSentinel`）。
+
+**结果**：
+- T1 单层弹窗后退（双通道回归）：开「图片 PNG」弹窗（history.state.seatmarkModalSentinel=1）→ back：弹窗关、URL 仍 /studio、「共 3 条」在、哨兵清除；再 back 才离开到 /，forward 回来名单在。CDP `Page.navigateToHistoryEntry` 原生通道同过 — passed
+- T2 配额弹窗 /account 链接（r225 P2 复测）：配额弹窗打开时**有哨兵**（sentinel=2，r225 时为 None）→ 点 /account 链接，URL 100ms 采样立即全程 /account、最终 pathname=/account — **passed（P2 已修复）**；从 /account 一次 back 直落 /studio（无孤儿死条目）、再 back 到会话起点，历史干净
+- T3 Esc/遮罩关闭延迟回收（50ms）：两种关法后 history.state 均无哨兵号，一次 back 即离开 /studio、无多跳 — passed
+- T4 弹窗态直接站内链接（r225 P3 复测）：导出弹窗开着点 /templates → 跳转成功；从 /templates back **一次**即透明跳过孤儿哨兵直落 /studio（sentinel=None、名单在），再 back 到 / — **passed（P3 已修复）**
+- T5 back 关弹窗后 forward：80ms 采样全程 /studio、弹窗不重开、最终 state 无哨兵号、无 pageerror（孤儿哨兵被自动弹回原地，用户无感）— passed
+- T6 快速切换（导出框关→配额框开）→ back 一次：配额弹窗关、URL 仍 /studio、哨兵清除；再 back 直接离开（无死条目）— passed
+- T7 回归：/templates `?cat=event&q=桌牌` 返回保搜索词/分类/scrollY=500；无弹窗导航照常 — passed
+- 叠层两层 ModalDialog 路径依旧不存在（与 r223/225 结论一致，本轮未列判据）。
+- 全程 pageerror=0；storage 清理 + 全部测试 tab 关闭。
+- 产物：`/home/ubuntu/r226_t1.py`、`r226_t2.py`；截图 `/home/ubuntu/screenshots/r226_dialog_open.png`、`r226_after_back1.png`、`r226_native_back.png`、`r226_quota_dialog.png`、`r226_account.png`、`r226_t6_back1.png`。
 # 第 225 轮（2026-08-11）：#226 哨兵方案生产三测 ✅ 核心返回键拦截**生效**（单层弹窗 back 只关弹窗、URL 保持、名单在，双通道 2/2；Esc/遮罩关闭哨兵正确回收）❌ **新增 P2 回归**：配额引导弹窗内 /account 登录链接点击后不再跳转（2/2 复现，r223 该项 passed）；另有哨兵残留 P3；pageerror 0
 
 **环境**：生产真实 UI，entry 翻转 `index-DvH8Q9XM.js` → `index-BYArTfAJ.js`（main cb7a17f，#226 已部署；bundle grep 证实含 `seatmarkModalDepth`）。
