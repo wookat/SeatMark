@@ -3,7 +3,7 @@ import { createApp } from 'vue'
 import * as Sentry from '@sentry/vue'
 
 import App from '@/App.vue'
-import { router } from '@/router'
+import { router, telemetryPath } from '@/router'
 
 import '@/assets/main.css'
 import '@/assets/fonts-plangothic.css'
@@ -18,6 +18,33 @@ if (SENTRY_DSN) {
       Sentry.browserTracingIntegration({ router }),
     ],
     tracesSampleRate: 0.2,
+    // 性能事务的浏览器指标 span 取自 PerformanceNavigationTiming（初始文档 URL），
+    // history.replaceState 改写不了它——上报前统一剥离搜索词等用户输入参数
+    beforeSendTransaction(event) {
+      if (event.request?.url) {
+        event.request.url = telemetryPath(event.request.url)
+      }
+      if (event.transaction) {
+        event.transaction = telemetryPath(event.transaction)
+      }
+      for (const span of event.spans ?? []) {
+        if (span.description) {
+          span.description = telemetryPath(span.description)
+        }
+      }
+      return event
+    },
+    beforeBreadcrumb(breadcrumb) {
+      const data = breadcrumb.data
+      if (data) {
+        for (const key of ['from', 'to', 'url'] as const) {
+          if (typeof data[key] === 'string') {
+            data[key] = telemetryPath(data[key])
+          }
+        }
+      }
+      return breadcrumb
+    },
   })
 }
 

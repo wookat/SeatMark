@@ -1,3 +1,26 @@
+# 第 275 轮（2026-08-11）：#277 搜索词不进地址栏（sessionStorage 根治）线上复测（生产）✅ 主判据基本达成，⚠️ 残留 1 条 P4：直开旧链接 `?q=` 时 Sentry pageload 性能事务的 browser.metrics span description 仍含原始完整 URL（Performance API `PerformanceNavigationTiming.name` 记录的是文档初始请求 URL，history.replaceState 无法改写）。SPA 内搜索（主路径）已彻底零外发——r273 的 5 条通道全部消失。
+
+**部署确认**：entry 翻转 `index-B5y8Q7W3.js`→`index-B2OZ6Rre.js`，生产 HTML 含 `seatmark.templates-search.v1`（轮询第 2 分钟命中）。环境：CDP 29229 全新 incognito context，标记词「考场275标记词」，请求全量落盘 `/home/ubuntu/r275_reqs.json`，脚本 `/home/ubuntu/r275_run.py`。
+
+## T1 SPA 内搜索零外发（主判据）— PASSED
+- 搜索期间地址栏始终 `https://www.seatmark.cn/templates`（无 ?q=，r273 旧行为有）；`sessionStorage['seatmark.templates-search.v1']`=「考场275标记词」，清词后键被 remove。
+- 第三方请求 31 条（GA 16、百度 hm.gif 5 等）URL+body 扫描：标记词原文/百分号编码 **0 命中**（r273 同口径为 GA dl/dr×5+Sentry×1）；GA `view_search_results` 事件不再出现。
+- 非敏感保留：`cat=exam` 仍出现在 7 条 GA/百度上报中 ✅。截图 r275_t1_search.png。
+
+## T2 直开 `?q=标记词` 旧链接兼容 — PASSED（功能）/ 1 条 Sentry 残留（隐私）
+- 地址栏被剥离为 `/templates` ✅；搜索框带入标记词、结果为搜索后状态 ✅；sessionStorage 已转存 ✅。
+- GA 首个 `dl=https://www.seatmark.cn/templates`、百度 `u`/`su` 均干净、sp0.baidu.com `l` 干净、无 `ep.search_term` ✅（r273 泄漏的 GA/百度 4 条通道全部关闭）。
+- 🔴 残留（P4）：Sentry pageload 事务 envelope body 中 `origin:"auto.ui.browser.metrics"` 的 browser.domContentLoadedEvent/loadEvent/connect/TLS/DNS/request/response 等 span 的 `description` 均=原始 `…/templates?q=%E8%80%83%E5%9C%BA275…`——来源是浏览器 Performance API 导航条目（记录初始文档 URL，replaceState 改不了）。仅影响「直开旧 ?q= 链接」场景、仅 Sentry 一方；修复方向：Sentry `beforeSendTransaction`/`beforeSend` 里正则剥离 q，或关闭 browser.metrics span。
+- 截图 r275_t2_direct.png。
+
+## T3 保状态回归（r79）— PASSED
+搜「桌牌」25 款 → 进 /templates/signage 详情 → 浏览器返回：搜索框仍「桌牌」、25 款恢复、地址栏无 ?q=；reload 后搜索框仍「桌牌」。截图 r275_t3_back.png、r275_t3_reload.png。
+
+## T4 常规回归 — PASSED
+cat 仍走 URL（点「考试」→ ?cat=exam；直开 ?cat=exam 卡片=31）；叠加「在「考试」分类中找到 2 款」；无结果态「清除搜索条件」恢复 222 且 sessionStorage 键清除；pageerror=0（两 context 均 0）；storage 清理、context 全关、常驻 Chrome 未动。截图 r275_t4_overlay.png、r275_t4_catdirect.png。
+
+---
+
 # 第 273 轮（2026-08-11）：#276 分析上报剥离搜索词 线上复测（生产）🔴 主判据 FAIL——修复只覆盖「手动 pageview 的路径参数」，标记词仍经 5 条通道外发：① GA 事件自动附带的 dl/dr=location.href（page_path 只改 dp，dl/dr 不受控）；② GA 增强测量 `view_search_results` 直接以 `ep.search_term=考场273标记词` 明文上报；③ 百度 hm.gif 的 su 参数；④ 百度主动推送 push.js（sp0.baidu.com s.gif?l=完整 URL）；⑤ Sentry navigation 面包屑（to:"/templates?q=…"）。已生效部分：GA 初始 config dl/dp 干净、百度手动 _trackPageview u 参数干净、cat=exam 保留、回归全过
 
 **部署确认**：entry 翻转 `index-lywsFKJ6.js`→`index-B5y8Q7W3.js`，生产 HTML 含 `_setAutoPageview`（轮询第 2 分钟命中）。环境：CDP 29229 全新 incognito context，标记词「考场273标记词」，三阶段请求全量落盘 `/home/ubuntu/r273_reqs.json`。脚本 `/home/ubuntu/r273_run.py`。
