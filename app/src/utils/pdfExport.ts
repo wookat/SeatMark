@@ -245,7 +245,14 @@ export async function waitForElementReady(el: HTMLElement): Promise<void> {
  * 只截断确实溢出的字段；宿主每次导出都会重新挂载，改动不会泄漏到预览。
  */
 export function truncateClampedText(root: HTMLElement): void {
-  const overflows = (body: HTMLElement) => body.scrollHeight > body.clientHeight + 1
+  // 溢出判据留半行余量：真溢出至少多出一整行；而 Firefox 的 scrollHeight
+  // 会把字形 ascent/descent 溢出行盒的几像素也计入，紧阀值会把单行未溢出
+  // 字段误判为溢出并截断成省略号
+  const overflows = (body: HTMLElement) => {
+    const lineHeight = Number.parseFloat(getComputedStyle(body).lineHeight)
+    const slack = Math.max(2, Number.isFinite(lineHeight) ? lineHeight * 0.5 : 0)
+    return body.scrollHeight > body.clientHeight + slack
+  }
   for (const body of Array.from(root.querySelectorAll<HTMLElement>('.label-field__body'))) {
     if (overflows(body)) {
       const content = body.querySelector<HTMLElement>('.label-field__content')
@@ -584,6 +591,12 @@ export interface PageRendererOptions {
   signal?: AbortSignal
   pageTimeoutMs?: number
   rebuildHost?: () => Promise<void> | void
+  /**
+   * 跳过整页右侧空白截断检测：逐标签导出等自带逐张空白校验的链路使用。
+   * 整页口径的截断判据假定页面右侧应有内容（多枚满版），对每页单枚、
+   * 文字居中的模板（如电子座签）会把合法的右侧留白误判为截断。
+   */
+  skipTruncationCheck?: boolean
 }
 
 /**
@@ -622,7 +635,7 @@ export function createPageRenderer(
           logging: false,
         })
         if (isCanvasBlank(canvas)) throw new Error('页面渲染为空白')
-        if (isCanvasTruncated(canvas)) {
+        if (!options.skipTruncationCheck && isCanvasTruncated(canvas)) {
           // strict 渲染：出现截断形态即重渲（真截断重渲即恢复，合法稀疏页只多花一次重渲）
           if (mode === 'strict') throw new Error('页面疑似渲染不完整（右侧大片空白）')
           // 最后一次渲染：用 DOM 侧预期区分真截断与合法稀疏页——

@@ -87,6 +87,43 @@ describe('truncateClampedText 导出前物理截断', () => {
     expect(body.style.getPropertyValue('-webkit-line-clamp')).toBe('unset')
   })
 
+  it('字形 ascent/descent 溢出行盒的几像素不算溢出（Firefox 单行字段不被截成省略号）', () => {
+    // Firefox 下 scrollHeight 含字形墨迹溢出：单行 44px 行盒报 47，紧阀值会把
+    // 未溢出的姓名截成「…」；半行余量内应视为未溢出
+    const body = document.createElement('span')
+    body.className = 'label-field__body'
+    body.style.lineHeight = '44px'
+    const content = document.createElement('span')
+    content.className = 'label-field__content'
+    content.textContent = '张伟234'
+    body.appendChild(content)
+    Object.defineProperty(body, 'clientHeight', { get: () => 44 })
+    Object.defineProperty(body, 'scrollHeight', { get: () => 47 })
+    const root = document.createElement('div')
+    root.appendChild(body)
+    truncateClampedText(root)
+    expect(content.textContent).toBe('张伟234')
+  })
+
+  it('真溢出（多出一整行以上）仍被截断', () => {
+    const body = document.createElement('span')
+    body.className = 'label-field__body'
+    body.style.lineHeight = '20px'
+    const content = document.createElement('span')
+    content.className = 'label-field__content'
+    content.textContent = '欧阳先生'.repeat(6)
+    body.appendChild(content)
+    Object.defineProperty(body, 'clientHeight', { get: () => 20 })
+    Object.defineProperty(body, 'scrollHeight', {
+      get: () => Math.max(1, Math.ceil(Array.from(content.textContent ?? '').length / 10)) * 20,
+    })
+    const root = document.createElement('div')
+    root.appendChild(body)
+    truncateClampedText(root)
+    expect(content.textContent!.endsWith('…')).toBe(true)
+    expect(Array.from(content.textContent!).length).toBeLessThanOrEqual(10)
+  })
+
   it('不溢出的字段也解除裁切样式（Firefox Range 度量下单行 ascent 也会被平切）', () => {
     const { root, content } = makeBody('张同学')
     truncateClampedText(root)
