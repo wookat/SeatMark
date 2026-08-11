@@ -317,8 +317,10 @@ const sharePromptVisible = ref(false)
 /** 本次提示对应的导出是否带水印（决定文案侧重：去水印 vs 分享送次数） */
 const sharePromptWatermarked = ref(false)
 
+/** 本地时区的当天日期（分享引导频控按用户本地 0 点重置） */
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function maybeShowSharePrompt() {
