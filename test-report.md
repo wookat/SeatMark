@@ -1,3 +1,19 @@
+# 第 249 轮（2026-08-11）：#253 图片版 PDF dpi 降档提示线上验证（生产）✅ 全部判据 PASS——阳性 300 行提示出现且文案/颜色逐字符合、阴性 40 行不出现、三宽度无溢出、导出回归正常
+
+**部署确认**：生产 entry 已翻转 `index-B7iIsDpm.js` → `index-DL6SyG-8.js`（页面 resource entries 实证）。环境：CDP 29229 全新 incognito context，方法同前（toast observer + expect_download）。脚本 `/home/ubuntu/r249_run.py`。
+
+**T1 阳性（300 行=13 页 192dpi）**：导入 big300.xlsx →「共 300 条」→ 图片版 PDF 弹窗预估行「共 13 页 · 每页约 192dpi · 预估体积约 2.2 MB（按页数自适应清晰度与压缩）」；琥珀提示可见、文案逐字=「页数较多时清晰度自动降档以控制体积；追求最高打印清晰度请改用「打印 / 矢量 PDF」。」、computed color `oklch(0.555 0.163 48.998)`（=Tailwind amber-700 #b45309），弹窗截图像素级验证含 814 个琥珀色像素 — passed。三宽度 390/768/1280：文档与弹窗均无横向溢出（doc 380≤390 / 758≤768 / 1270≤1280；dialog scrollWidth==clientWidth），提示三档均可见 — passed。截图 r249_t1_hint_1280.png、r249_t1_w390/768/1280.png。
+
+**T2 阴性（40 行=2 页 300dpi）**：全新 context 导入 ff240.xlsx → 同弹窗预估行「共 2 页 · 每页约 300dpi · 预估体积约 850 KB」，「页数较多时」出现次数=0，弹窗截图琥珀色像素=0 — passed。截图 r249_t2_nohint.png。
+
+**T3 回归**：T1 弹窗选带水印 → toast「图片版 PDF 已生成 每页为 192dpi…」、落盘 `标准考场版-20260811-120727.pdf`，pypdfium2 13 页、p1 非空白 25.43%、文件名秒级 — passed。
+
+**T4 常规**：344 请求，张伟247/隐私学校247/𱁬田240 命中 0 — passed；pageerror=0 — passed；storage 清理、自建 context 全关、常驻 Chrome 未动 — passed。
+
+**结论**：#253 提示行为与 spec 完全一致（阈值 dpi<240 生效于 192dpi、阴性 300dpi 不出现），无回归，无 P1–P4 新发现。产物 `/home/ubuntu/r249_dl/`。
+
+---
+
 # 第 246 轮（2026-08-11）：移动端 WebKit（iPhone 13 设备描述）黄金链路专项（生产，无代码变更）✅ 全部判据 PASS——移动 Safari 引擎口径下布局、导入、四导出链路、触摸交互、/seating 点选换座首次实证
 
 **环境**：Playwright webkit-1967 + `devices['iPhone 13']`（视口 390×664、DPR 3、has_touch、iOS Safari UA；用户所述 390×844 与本机 profile 664 高度略异，如实注记），`PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1`，方法沿用 r243/r244（add_init_script toast observer、expect_download、每大项全新 context）。脚本 `/home/ubuntu/r246_run.py`、`/home/ubuntu/r246_b.py`。
