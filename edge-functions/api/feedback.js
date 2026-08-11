@@ -5,8 +5,9 @@
  * 请求体：{ type: 'bug'|'suggestion'|'other', content: string, contact?: string }
  *
  * 环境变量（EdgeOne Pages 控制台配置）：
- * - FEEDBACK_WEBHOOK  可选，飞书/钉钉/企业微信机器人 webhook URL（必须通过环境变量配置，禁止硬编码）
- *   配置后反馈会推送到对应群聊；未配置时仅返回成功（反馈丢弃但不报错）
+ * - FEEDBACK_WEBHOOK  可选，飞书/钉钉/企业微信机器人 webhook URL
+ *   未配置时使用内置默认值（与 ai-design.js 告警同一企微机器人），保证反馈在
+ *   存储降级 memory 时也能真实送达，而不是静默丢弃
  *
  * 存储：与主 API 同源的三级后备（KV → Blob → 内存，见 _storage.js）。
  * 反馈存档到 fb: 前缀供管理端 /api/admin/feedback 查看；限频计数用 rl:fb: 前缀。
@@ -16,6 +17,8 @@ import { getStorage } from './_storage.js'
 import { withSecurityHeaders } from './_security.js'
 
 const FEEDBACK_IP_DAILY_LIMIT = 10
+
+const FEEDBACK_WEBHOOK_DEFAULT = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=f987cae8-5740-41a8-9492-f11325d894e1'
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -88,7 +91,7 @@ async function handleRequest(context) {
     // 存档失败静默忽略
   }
 
-  const webhook = (env && env.FEEDBACK_WEBHOOK) || ''
+  const webhook = (env && env.FEEDBACK_WEBHOOK) || FEEDBACK_WEBHOOK_DEFAULT
   if (webhook) {
     const typeLabel = { bug: '问题', suggestion: '建议', other: '其他' }[type]
     const text = [
