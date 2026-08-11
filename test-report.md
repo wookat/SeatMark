@@ -1,3 +1,20 @@
+# 第 233 轮（2026-08-11）：Lighthouse 与性能周期回归（无代码变更轮）✅ 无 >15% 劣化——移动中值 home 91（-7%，观察项）/ studio 79（持平微升）/ templates 96（改善）；/seating 99、/account 84 建立首测移动基线；CLS 五页全 0；BP=58 既定代价不变；40 行导入 0.080/0.087s 优于基线；统计脚本 idle 注入保持；pageerror 0
+
+**环境**：生产（bundle `index-EbJxTvBJ.js`，含弹窗哨兵 #228 与照片提示 #236 等 r179 后 50+ 轮变更），lighthouse@13.4.1 SKILL 标准口径（mobile 模拟节流，每页 3 跑取中值），原始 JSON 存 `/home/ubuntu/r233_lighthouse/`（19 份）。
+
+**结果（移动中值 Perf/A11y/BP/SEO · LCP/TBT/CLS）**：
+- `/`：**91**（83/91/91）/100/58/100 · 2.73s/120ms/**0** —— 对 r179 基线 98 为 **-7.1%**（≤15%，观察项：三跑最高 91，与 r161 中值 91 持平，r179 的 98 疑为偏乐观样本）
+- `/studio`：**79**（72/82/79）/96/58/100 · 4.20s/204ms/**0** —— 对基线 78 持平微升，TBT 204ms（r179 未劣化）→ 哨兵/照片提示新代码无可感劣化
+- `/templates`：**96**（80/97/96）/96/58/100 · 1.90s/153ms/**0** —— 对基线 93 改善
+- `/seating`（首测新基线）：**99**（98/99/100）/93/58/100 · 1.54s/65ms/**0** —— 健康
+- `/account`（首测新基线）：**84**（77/84/85）/98/58/**66** · 4.18s/71ms/**0** —— SEO 66 仅因 `is-crawlable`（账号页设计性 noindex,nofollow，seo.ts:183），非缺陷；Perf 健康线以上
+- 桌面抽查：`/` **100/100** · LCP 0.48s · CLS 0（=r161 基线）；`/studio` 88/98 · CLS 0
+- 趣闻注记：studio_r3 单跑 BP=100（该跑百度 cookie 未种上），佐证 BP=58 完全由百度统计钉死。
+
+**T4 40 行导入耗时（r161 口径）**：`r113_40.xlsx` 两次真实 UI 导入 toast「已读取 40 条数据」**0.080s / 0.087s**（r161 0.107s、基线 0.12–0.13s）— 无退化且更优。
+**T5 统计脚本 idle 注入（#122 回归）**：全新 tab 冷加载 `/`，分析类请求 load 事件**前 0 个**，load 后 +0.13s 起注入（gtag/hm.js/push.js → hm.gif ×2 → sentry +1.72s）— passed。
+- 全程 CDP 会话 pageerror=0；storage 清理 + tabs left: []；lighthouse 临时 Chrome 已随进程退出。
+- 产物：`/home/ubuntu/r233_lighthouse/`、`/home/ubuntu/r233_lh.sh`、`r233_lh.log`、`r233_t45.py`；截图 `/home/ubuntu/screenshots/r233_import_run1.png`。
 # 第 232 轮（2026-08-11）：#236（照片清除明确提示）生产复测 ✅ 全部判据 PASS——带照片重导/切 sheet 均出现 toast「照片已清除 数据源已更换，照片需重新上传并匹配」（与导入成功/切换 toast 并存不冲突）；无照片导入零打扰（负向隔离复验）；刷新提醒不回归；「清空」按钮仍走「数据已清空」；照片链路冒烟无回归；pageerror 0
 
 **环境**：生产真实 UI，entry 翻转 `index-6teszdpy.js` → `index-EbJxTvBJ.js`（main f86fab2，#236 已部署），复用 r231 夹具与「照片核验版」模板（`/studio?template=withPhoto`）。
