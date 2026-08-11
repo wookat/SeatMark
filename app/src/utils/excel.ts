@@ -210,7 +210,12 @@ export function parsePastedRoster(text: string, firstRowHeader?: boolean): Paste
   const lines = text
     .replace(/\r\n?/g, '\n')
     .split('\n')
-    .map((line) => line.replace(/[\u00a0\u3000]/g, ' ').trim())
+    .map((line) =>
+      line
+        .replace(/[\u200b\ufeff]/g, '')
+        .replace(/[\u00a0\u3000]/g, ' ')
+        .trim(),
+    )
     .filter((line) => line !== '')
   if (!lines.length) return { headers: [], rows: [], headerDetected: false }
 
