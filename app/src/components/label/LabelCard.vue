@@ -31,6 +31,25 @@ function autofitEl(el: HTMLElement): void {
   if (overflows()) el.style.fontSize = `${Math.max(AUTOFIT_MIN_PT, base * AUTOFIT_MIN_RATIO)}pt`
 }
 
+/**
+ * 分散对齐仅对单行内容生效：折成多行时（如长公司名在窄字段换行）
+ * 回退居中，避免短行被拉满字段宽度出现大片字间空白；
+ * 导出预栅格化（rasterizeJustifiedText）同样只处理单行，两端口径一致。
+ */
+export function adjustJustify(el: HTMLElement): void {
+  if (el.dataset.justify !== '1') return
+  const body = el.querySelector<HTMLElement>('.label-field__body')
+  if (!body) return
+  el.style.textAlign = 'justify'
+  el.style.textAlignLast = 'justify'
+  const cs = getComputedStyle(body)
+  const lineHeight = parseFloat(cs.lineHeight) || (parseFloat(cs.fontSize) || 0) * 1.15
+  if (lineHeight > 0 && body.scrollHeight > lineHeight * 1.5) {
+    el.style.textAlign = 'center'
+    el.style.textAlignLast = 'center'
+  }
+}
+
 /** 已挂载的自适应字段：在线字体就绪后统一重排（字形宽度可能变化） */
 const autofitRegistry = new Set<HTMLElement>()
 let fontsListenerBound = false
@@ -39,7 +58,10 @@ function bindFontsListener(): void {
   if (fontsListenerBound || typeof document === 'undefined' || !('fonts' in document)) return
   fontsListenerBound = true
   document.fonts.addEventListener('loadingdone', () => {
-    for (const el of autofitRegistry) autofitEl(el)
+    for (const el of autofitRegistry) {
+      autofitEl(el)
+      adjustJustify(el)
+    }
   })
 }
 
@@ -74,10 +96,12 @@ const vAutofit: Directive<HTMLElement, number> = {
     autofitRegistry.add(el)
     bindFontsListener()
     autofitEl(el)
+    adjustJustify(el)
   },
   updated(el, binding) {
     el.dataset.autofitBase = String(binding.value)
     autofitEl(el)
+    adjustJustify(el)
   },
   unmounted(el) {
     autofitRegistry.delete(el)
@@ -367,6 +391,7 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
       <div
         v-if="field.type === 'text'"
         v-autofit="field.fontSize ?? 12"
+        :data-justify="field.align === 'justify' ? '1' : undefined"
         class="label-field label-field--text"
         :class="fieldClasses(field)"
         :style="fieldStyle(field)"
