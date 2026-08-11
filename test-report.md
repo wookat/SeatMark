@@ -1,3 +1,18 @@
+# 第 285 轮（2026-08-11）：#285 粘贴名单剥离零宽字符线上复测 ✅ 全部判据 PASS——r283 P4 闭环：`\ufeff`/`\u200b` 导入后不残留（codepoint 级断言），emoji ZWJ 序列（👨‍👩‍👧‍👦）完整保留不拆散；TSV/纯姓名/逗号顿号/「首行是表头」开关回归全过；pageerror=0、隐私零外发。
+
+**环境**：部署确认 entry `index-DQXCHqb-.js`→`index-DHZCT1Xa.js`，excel chunk `excel-DN-BUKnq.js` 含 `replace(/[\u200b\ufeff]/g,"")`。CDP 29229 全新 incognito context 打生产 /studio。脚本 `/home/ubuntu/r285_run.py`，结果 `/home/ubuntu/r285_res.json`。
+
+## T1 主判据 — PASSED
+粘贴 `\ufeff姓名\n\u200b张三285\u200b\n👨‍👩‍👧‍👦`：识别行=「识别到 2 条数据、1 列（首行为表头：姓名）」（BOM 剥离后表头正常识别）；导入后 headers=["姓名"] 无 \ufeff/\u200b；行 1 姓名 === "张三285"（前后零宽全剥，r283 旧行为为 \u200b 残留，可区分）；行 2 姓名逐 codepoint = U+1F468 ZWJ U+1F469 ZWJ U+1F467 ZWJ U+1F466（UTF-16 长度 11）——3 个 \u200d 完整保留，家庭 emoji 不被拆散。截图 r285_t1.png。
+
+## T2 回归（Regression）— PASSED
+TSV：1 条 2 列表头「姓名/班级」；纯姓名 3 行：3 条、首列「姓名」；逗号/顿号混用：2 条 2 列（张三285/一班）；「首行是表头」开关：勾选→「首行为表头：张三285」且 3→2 条，取消→恢复自动识别。
+
+## T3 常规 — PASSED
+pageerror=0；19 条第三方请求扫「张三285/李四285」零命中；storage 清理、context 全关、常驻 Chrome 未动。headless CDP 未录屏。
+
+---
+
 # 第 283 轮（2026-08-11）：剪贴板与文本输入边界稳健性审计（生产，无代码变更轮）✅ 主体判据 PASS（CRLF/CR/全角空格/制表符混排/超长单元格/10000 行大粘贴/emoji 导出/表单边界/IME 冒烟全过、pageerror=0、隐私零外发），⚠️ 1 个 P4 观察：零宽字符（\u200b/BOM）粘贴后不被过滤、随姓名进入数据与导出（打印不可见但占位）；另 1 处未覆盖：HTML 富文本真实剪贴板粘贴未执行（headless 限制，textarea 语义上取 text/plain）。
 
 **环境**：生产 /studio、/seating，CDP 29229 全新 incognito context。脚本 `/home/ubuntu/r283_p3.py`（T1 主体+T3+反馈）、`r283_p2.py`（大粘贴/seating/字段边界）、`r283_p4.py`、`r283_p5.py`；结果 r283_res*.json；导出物 `/home/ubuntu/r283_dl/`。代码基准 `utils/excel.ts:210-253` parsePastedRoster。
