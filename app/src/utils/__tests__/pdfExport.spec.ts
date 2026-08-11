@@ -15,6 +15,7 @@ import {
   isCanvasBlank,
   isPixelDataBlank,
   isProbeTruncated,
+  domExpectsRightInk,
   JPEG_QUALITY,
   jpegQualityFor,
   neutralizeSyntheticBoldRareGlyphs,
@@ -396,6 +397,56 @@ describe('导出稳定性防线', () => {
     const data = new Array(width * height * 4).fill(255)
     expect(isProbeTruncated(data, width, height)).toBe(false)
     expect(isProbeTruncated([], 0, 0)).toBe(false)
+  })
+
+  it('domExpectsRightInk：右侧有带内容的标签格 → 预期右侧有墨', () => {
+    const page = document.createElement('div')
+    Object.defineProperty(page, 'getBoundingClientRect', {
+      value: () => ({ left: 0, right: 1000, width: 1000, top: 0, bottom: 100, height: 100 }),
+    })
+    const box = document.createElement('div')
+    box.className = 'label-box'
+    box.appendChild(document.createElement('span'))
+    Object.defineProperty(box, 'getBoundingClientRect', {
+      value: () => ({ left: 750, right: 950, width: 200, top: 0, bottom: 50, height: 50 }),
+    })
+    page.appendChild(box)
+    expect(domExpectsRightInk(page)).toBe(true)
+  })
+
+  it('domExpectsRightInk：仅左上角一枚标签（稀疏尾页）→ 不预期右侧有墨', () => {
+    const page = document.createElement('div')
+    Object.defineProperty(page, 'getBoundingClientRect', {
+      value: () => ({ left: 0, right: 1000, width: 1000, top: 0, bottom: 100, height: 100 }),
+    })
+    const box = document.createElement('div')
+    box.className = 'label-box'
+    box.appendChild(document.createElement('span'))
+    Object.defineProperty(box, 'getBoundingClientRect', {
+      value: () => ({ left: 0, right: 200, width: 200, top: 0, bottom: 50, height: 50 }),
+    })
+    // 右侧空槽（无子元素）不算内容预期
+    const empty = document.createElement('div')
+    empty.className = 'label-box'
+    Object.defineProperty(empty, 'getBoundingClientRect', {
+      value: () => ({ left: 800, right: 1000, width: 200, top: 0, bottom: 50, height: 50 }),
+    })
+    page.append(box, empty)
+    expect(domExpectsRightInk(page)).toBe(false)
+  })
+
+  it('domExpectsRightInk：水印层横贯整页 → 预期右侧有墨', () => {
+    const page = document.createElement('div')
+    Object.defineProperty(page, 'getBoundingClientRect', {
+      value: () => ({ left: 0, right: 1000, width: 1000, top: 0, bottom: 100, height: 100 }),
+    })
+    const wm = document.createElement('div')
+    wm.className = 'sheet-watermark'
+    Object.defineProperty(wm, 'getBoundingClientRect', {
+      value: () => ({ left: 0, right: 1000, width: 1000, top: 0, bottom: 100, height: 100 }),
+    })
+    page.appendChild(wm)
+    expect(domExpectsRightInk(page)).toBe(true)
   })
 
   it('isCanvasBlank：零尺寸画布视为空白', () => {

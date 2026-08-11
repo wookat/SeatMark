@@ -175,6 +175,25 @@ export function isCanvasTruncated(canvas: HTMLCanvasElement): boolean {
   }
 }
 
+/**
+ * DOM 侧右区内容预期：页内是否存在延伸进右侧区域的可见内容（标签格/水印层）。
+ * 用于区分真截断（DOM 有右侧内容但画布右侧纯白）与合法稀疏页（末页仅左上角一枚标签）。
+ */
+export function domExpectsRightInk(el: HTMLElement): boolean {
+  const rect = el.getBoundingClientRect()
+  if (!rect.width) return false
+  const threshold = rect.left + rect.width * 0.7
+  for (const node of Array.from(
+    el.querySelectorAll<HTMLElement>('.label-box, .sheet-watermark'),
+  )) {
+    // 空槽 label-box 不渲染内容，不作为右侧内容预期
+    if (node.classList.contains('label-box') && !node.childElementCount) continue
+    const r = node.getBoundingClientRect()
+    if (r.width > 0 && r.right > threshold) return true
+  }
+  return false
+}
+
 /** 就绪等待属于尽力而为：给 Promise 加“到时即放行”的兜底，防止其永不落定拖死导出 */
 export function settleWithin<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
   return Promise.race([
@@ -583,7 +602,7 @@ export function createPageRenderer(
   }
 
   /** 渲染单页一次：等节点完全就绪后再截图，并做空白/截断页检测 */
-  function renderOnce(i: number, strict = true): Promise<HTMLCanvasElement> {
+  function renderOnce(i: number, mode: 'strict' | 'final' = 'strict'): Promise<HTMLCanvasElement> {
     // 看门狗覆盖整条单页链路（挂载节点 + 就绪等待 + 栅格化），
     // 任一环节挂起都会在超时后报错，杜绝“无提示、无产物”的静默失败
     return withTimeout(
@@ -603,9 +622,14 @@ export function createPageRenderer(
           logging: false,
         })
         if (isCanvasBlank(canvas)) throw new Error('页面渲染为空白')
-        // 截断判据只在 strict 渲染中生效：真截断重渲即恢复，
-        // 稀疏尾页误中则由最后一次宽松渲染放行，不会把合法页变成报错
-        if (strict && isCanvasTruncated(canvas)) throw new Error('页面疑似渲染不完整（右侧大片空白）')
+        if (isCanvasTruncated(canvas)) {
+          // strict 渲染：出现截断形态即重渲（真截断重渲即恢复，合法稀疏页只多花一次重渲）
+          if (mode === 'strict') throw new Error('页面疑似渲染不完整（右侧大片空白）')
+          // 最后一次渲染：用 DOM 侧预期区分真截断与合法稀疏页——
+          // DOM 右侧本就没内容才放行；有内容却未绘出则报错终止，绝不静默交付坏页
+          if (domExpectsRightInk(el))
+            throw new Error('页面渲染不完整（右侧内容未绘出），请重新导出')
+        }
         return canvas
       })(),
       pageTimeoutMs,
@@ -624,13 +648,13 @@ export function createPageRenderer(
         // 超时或空白自动重试一次；用户取消不重试
         if (isCancelError(firstErr)) throw firstErr
         try {
-          // 无重建兜底时本次就是最后一次渲染，截断判据改宽松
-          return await renderOnce(i, Boolean(options.rebuildHost))
+          // 无重建兜底时本次就是最后一次渲染，截断判据改用 DOM 预期口径
+          return await renderOnce(i, options.rebuildHost ? 'strict' : 'final')
         } catch (secondErr) {
           // 重试仍失败：重建离屏容器后做最后一次重渲（长会话容器劣化的兜底）
           if (isCancelError(secondErr) || !options.rebuildHost) throw secondErr
           await options.rebuildHost()
-          return await renderOnce(i, false)
+          return await renderOnce(i, 'final')
         }
       }
     } catch (err) {
