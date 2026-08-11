@@ -75,6 +75,28 @@ describe('LabelCard', () => {
     expect(wrapper.find('.label-field--empty').exists()).toBe(false)
   })
 
+  it('分散对齐：单行保持 justify，折成多行回退居中', async () => {
+    const { adjustJustify } = await import('@/components/label/LabelCard.vue')
+    const el = document.createElement('div')
+    el.dataset.justify = '1'
+    el.style.fontSize = '12pt'
+    const body = document.createElement('span')
+    body.className = 'label-field__body'
+    el.appendChild(body)
+    document.body.appendChild(el)
+
+    adjustJustify(el)
+    expect(el.style.textAlign).toBe('justify')
+    expect(el.style.textAlignLast).toBe('justify')
+
+    // 模拟内容折成两行（scrollHeight 超过 1.5 倍行高）
+    Object.defineProperty(body, 'scrollHeight', { value: 999, configurable: true })
+    adjustJustify(el)
+    expect(el.style.textAlign).toBe('center')
+    expect(el.style.textAlignLast).toBe('center')
+    el.remove()
+  })
+
   it('字段背景色生效（黑白对比版座位号色块）', () => {
     const wrapper = mount(LabelCard, { props: { template: contrast, sampleMode: true } })
     const hero = wrapper.find('.label-field--hero')
