@@ -1,3 +1,21 @@
+# 第 240 轮（2026-08-11）：Firefox 跨浏览器专项回归（生产，无代码变更）⚠️ 发现 P2×1——**eink 精确像素「按标签逐张导出」在 Firefox 下 100% 确定性失败**（0/10，800 预设与 4096 自定义、3 行与 1 行夹具全失败，每次 ~1.3s 弹「PNG 生成失败 第 1/N 页渲染失败：页面渲染不完整（右侧内容未绘出）」），已即时上报；对照组均正常：eink**按整页导出**成功（800×480 精确、纯二值、无 pHYs）、标准模板整页/逐张/图片版 PDF 全部成功；核心链路冒烟、字体（𱁬/维文 RTL）、隐私零外发、pageerror 0 均过
+
+**环境**：Playwright firefox-1438 headless（viewport 1500×1000），生产 `index-j8zuZYS6.js`；夹具 `/home/ubuntu/r240_fixtures/ff240.xlsx`（40 行：𱁬田240 / 维文 ئابدۇللا مۇھەممەت / 张伟240 / 考生04-40）+ r231 eink 夹具；判据 toast（MutationObserver）+ page.on('download') 落盘 + 产物像素。
+
+**T1 核心链路冒烟**：首页 title 正常、/templates 5 个模板入口、/studio 导入 40 行 toast「Excel 导入成功 已读取 40 条数据」+「共 40 条」+ 映射面板 姓名/学号/班级 齐全 — passed
+
+**T2 导出三链路（标准考场版）**：整页 PNG 3.5s 落盘 zip（2 页，2481×3509，非空白 5.67%）；逐张 PNG 3.7s zip 40 张（1000×534，前 3 张 md5 互异、非空白 7.1-7.8%）；图片版 PDF 4.8s 落盘（2 页，pypdfium2 渲染 p1 非空白 9.83%）；文件名均 `-\d{8}-\d{6}` 秒级 — passed
+
+**T3 字体渲染（𱁬 + 维文 RTL）**：𱁬田240 标签 FF/CR 列分段（blob）结构几乎逐段一致（[(450,81),(546,69),(635,36),(681,41),(731,38)] vs CR 同构）→ 𱁬 无缺字/无 tofu；维文行 FF 13 段 vs CR 8 段、墨量 FF≈CR 的 80%——维文本身含天然断笔字母（ا/د/ۇ），FF 预览与 FF 导出分段结构一致（导出与预览自洽），判读为引擎级字体/粗细差异而非缺字或平切；三张 bbox 完整贴边一致、首行墨迹行=0（边框）无顶部平切。人工终判请看并排蒙太奇 `r240_t3_ff_vs_cr.png`（左 FF 右 CR）— passed（带人工判读注记）
+
+**T4 eink 精确像素**：整页导出成功——落盘 PNG 恰 800×480、恰 2 色 (0,0,0)/(255,255,255)、无 pHYs — passed；**逐张导出 P2**：800 预设与 4096 自定义、3 行与 1 行夹具共 10 次全部 ~1.3s 失败 toast「页面渲染不完整（右侧内容未绘出）」（截断检测 domExpectsRightInk 拦下 html2canvas 在 Firefox 对 eink 逐张 cropRect/精确像素路径的右侧未绘出）——有失败 toast 兜底非静默，但 **Firefox 用户完全无法使用 eink 逐张导出**；Chromium 同夹具同路径正常（r236/r239）— **failed（P2，已上报）**；4096 大宽度耗时判据因此 blocked
+
+**T5 打印链路冒烟**：「打印 / 矢量 PDF」对话框可打开（含彩色打印检查清单文案）；window.print 实际调起在 headless firefox 不可验证 — untested（如实标注）
+
+**T6 隐私与收尾**：全程 214 请求，𱁬田240/维文串/张伟240/文件名标记串命中 **0**；pageerror=0（Firefox 全部会话）；storage 清理、Firefox context 全关、CDP 侧无遗留 SeatMark tab。
+
+产物：`/home/ubuntu/r240_dl/`（FF：2 zip+1 pdf+1 png）、`/home/ubuntu/r240_dl_cr/`（CR 对照 zip）、`/home/ubuntu/r240_extract/`（ff/cr_label1-3.png）、截图 `r240_t3_ff_vs_cr.png`、`r240_t4_fail1.png`、`r240_t1_*.png`、脚本 `/home/ubuntu/r240_t1.py`–`r240_t7.py`、`r240_cr.py`、请求 `/home/ubuntu/r240_reqs.json`、夹具 `/home/ubuntu/r240_fixtures/ff240.xlsx`。headless 不录屏。
+
 # 第 239 轮（2026-08-11）：#241 导出文件名时间戳秒级 生产复测 ✅ 全部判据 PASS——同一分钟内连续两次相同 PNG 导出**两个 zip 均落盘**（`…-094227.zip` / `…-094233.zip`，秒位互异，r237 的同名去重丢文件问题闭环）；图片版 PDF 落盘 `电子座签 800×480-20260811-094738.pdf`（`-\d{8}-\d{6}\.pdf`）；整页导出与按字段命名无回归；pageerror 0
 
 **环境**：生产新 bundle `index-j8zuZYS6.js`（09:39 翻转确认，main a539193 含 #241 pngExport.ts:144 / pdfExport.ts:766 stamp 加 `pad(getSeconds())`），headless CDP，夹具 `/home/ubuntu/r231_fixtures/eink234.xlsx`，toast 判据用页内 MutationObserver（r237 口径）。
