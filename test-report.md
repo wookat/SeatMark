@@ -1,3 +1,19 @@
+# 第 221 轮（2026-08-11）：浏览器历史导航与状态完整性走查 ✅ 全部判据 PASS——/studio 后退/前进名单+模板保持、/templates 返回保搜索词+分类+滚动位（#79 回归）、导出弹窗后退为路由级后退但名单不丢、/seating 排座后退前进保持、分享长链页后退正常、刷新中断导出无残留可复导；pageerror 0
+
+**环境**：生产真实 UI，entry `index-m3vMPIl7.js`（main df59d33）。SPA 历史由页内真实链接点击建立，后退/前进用 history.back()/forward()。夹具：`r221_roster.xlsx`（历史审计孙一/钱二/李三221，3 行）与 60 行版（中断导出用）。
+
+**结果**：
+- T1 /studio 导入+切模板→后退→前进：/→/studio 导入「共 3 条」→ 切「考号贴」（localStorage template id=examNo）→ back 回 /（正文 3244 字非白屏）→ forward 回 /studio，「共 3 条」+预览含孙一221+模板仍 examNo — passed
+- T2 /templates 深度状态（#79 回归）：分类「会议活动」+搜索「桌牌」→ URL `?cat=event&q=桌牌` → 滚动 500 → 进详情 /templates/signage → back：URL 参数保持、搜索框值=桌牌、分类高亮（bg-brand-600）、scrollY 恢复 500（分毫不差）— passed
+- T3 导出弹窗开着按后退：PNG 导出对话框打开态 back → 路由级后退回 /（弹窗随视图卸载，无 popstate 集成属预期）→ forward 回 /studio 名单仍「共 3 条」——**未丢名单，不定级**（如实记录：后退是整页路由跳走而非只关弹窗，属产品当前设计）— passed
+- T4 /seating 排座后退→前进：12 人「完全随机」→ back 回 / → forward 回 /seating 网格与随机后逐座一致、localStorage arranged 保持 — passed
+- T5 分享长链页后退：真实「复制当前模板分享链接」产出 `/studio#tpl=v1.…`（1209 字符，clipboard 钩子取证）→ 直开落地 /studio+hash+「导入名单」确认流程 → back 无卡死/无循环重定向、pageerror 0 — passed
+- T6 刷新中断导出：60 行名单带水印逐张 PNG 导出至「已完成 2/60 张标签」进度态（截图）→ 立即 reload → 恢复后名单「共 60 条」完整（sessionStorage）、无残留 loading/弹窗、按钮可用 → 重新导出成功（toast「PNG 图片已生成」+ zip 落盘）— passed
+- 全程 pageerror=0（6 个场景全部会话）；storage 清理 + 全部测试 tab 关闭 — passed
+- 诚实注记：① 弹窗无 history/popstate 集成（全库 grep 0 命中），移动端用户在弹窗态按返回键会整页离开 /studio——名单不丢（sessionStorage+pinia），但体验上可考虑弹窗拦截后退（产品裁量，非缺陷定级）；② T2 首两次尝试因分类按钮文本含计数后缀（如「会议活动 54」）精确匹配失败，改 startsWith 后成功（测试脚本问题）；③ 导出实际由「带水印导出/无水印导出」按钮触发（「点击即开始导出」），模式行仅为选项——首次 T6 误点模式行未真正开始导出，已用 60 行名单+进度态截图复跑证实真中断。
+
+**产物**：截图 `r221_studio_before_back.png`/`r221_back_home.png`/`r221_fwd_studio.png`/`r221_templates_back.png`/`r221_dialog_back.png`/`r221_share_landing.png`/`r221_mid_export.png`/`r221_after_reload.png`/`r221_reexport_done.png`；脚本 `/home/ubuntu/r221_t1b.py` 等；导出样本 `/home/ubuntu/r221_dl/`。收尾：storage 清理 + 全部测试 tab 关闭。
+
 # 第 220 轮（2026-08-11）：/seating 行列边界形态走查 ✅ 全部判据 PASS——5×10 满座、溢出提示可见（非静默）、缩格后打印/桌贴与网格一致（40 人，溢出人被丢但有 amber 提示）、行列 clamp 1-20/1-16 生效、过道开关正常；pageerror 0
 
 **环境**：生产真实 UI，entry `index-m3vMPIl7.js`（main a1644ec）。行列由真实键入（focus→select→逐字符键事件→Tab 触发 change，NumberField.vue:28-38）与 hover 加减按钮（aria-label=增大/减小，nudge:23-25）驱动，补上 r219 未覆盖的 NumberField 交互。夹具：50 人名单「边界审计001-050号220」。
