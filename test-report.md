@@ -1,3 +1,30 @@
+# 第 264 轮（2026-08-11）：Lighthouse 与性能周期回归（无代码变更轮，上次 r233）✅ 无 >15% 劣化——移动中值 home 97（回升）/ studio 80 / templates 96 / seating 99 / account 83，CLS 五页全 0；桌面 home 100·studio 99（较 r233 88 改善）；主 chunk gzip 106.3KB（≈基线 107KB，未增长）；40 行导入热 0.046s；粘贴 100 行解析 81ms/导入 92ms 无卡顿；逐张 PNG 100 张 5.9s；pageerror 0
+
+**环境**：生产 entry 已翻转 `index-EbJxTvBJ.js`（r233）→ `index-C2ENcB-P.js`（含 #259 启动骨架、#261 横滑提示、#265/#267 粘贴导入）。口径与 r233 一致：lighthouse@13.4.1 npx、mobile 模拟节流每页 3 跑取中值、桌面 preset 2 跑；原始 JSON `/home/ubuntu/r264_lighthouse/`（19 份），脚本 `/home/ubuntu/r264_lh.sh`、`r264_t3.py`、`r264_cold.py`。
+
+**T1 移动五页中值（Perf/A11y/BP/SEO · LCP/TBT/CLS，vs r233）**：
+- `/`：**97**（88/97/97）/100/58/100 · 1.92s/112ms/**0** —— vs r233 91 回升 +6.6%（落回 r179 98 一侧，佐证 home 91–98 波动带）
+- `/studio`：**80**（74/84/80）/96/58/100 · 4.78s/202ms/**0** —— vs 79 持平（LCP 抖动带内）
+- `/templates`：**96**（83/96/96）/96/58/100 · 1.88s/154ms/**0** —— 持平
+- `/seating`：**99**（99/100/99）/93/58/100 · 1.53s/61ms/**0** —— 持平（#261 提示无代价）
+- `/account`：**83**（82/83/86）/98/58/66 · 4.42s/112ms/**0** —— vs 84 -1.2%（噪声带内；SEO 66 设计性 noindex 不报）
+- BP 五页均 58（百度统计既定代价，不报）。CLS 全 0 — passed
+
+**T2 桌面抽查**：`/` **100**（100/99）· LCP 0.48s · CLS 0（=基线）；`/studio` **99**（99/99）· LCP 0.81–0.90s · CLS 0（r233 为 88，改善）— passed
+
+**T3 交互性能（真实 UI）**：
+- 40 行文件导入：首跑 1.477s / 热跑 **0.046s**——首跑含懒加载 `vendor-xlsx-CKwrMZHi.js` 网络拉取（隔离复验 3 次全新 context 冷导入 0.169/0.170/0.713s，均见该 chunk 在导入时才加载）；热路径优于基线 0.08–0.13s，冷路径系网络抖动非解析退化，如实注记 — passed
+- 粘贴 100 行（#265/#267 新路径）：fill→提示「识别到 100 条数据、2 列（首行为表头：姓名、座位号）」**80.8ms**；导入→toast「已导入 100 条数据」**92.3ms**+「共 100 条」——无可感知卡顿 — passed
+- 逐张 PNG 导出 100 张：**5.9s**、zip 恰 100 张 0 空白（r261 6 张秒级，线性合理 ≪120s）— passed
+
+**T4 主包体积**：`index-C2ENcB-P.js` 304,875 B → gzip -9 = **108,825 B（106.3KB）**，vs 历史基线约 107KB 未增长（粘贴解析等新增被摇树/压缩吸收）— passed
+
+**T5 常规**：交互会话 pageerror=0；136 请求标记串（张伟264）命中 0；storage 清理、context 全关、常驻 Chrome 未动、lighthouse 临时 Chrome 随进程退出 — passed
+
+**结论**：自 r233 以来合入的 #259/#261/#265/#267 无性能代价；home 中值回升至 97 佐证 91–98 波动带。无 P 级发现。计划：`test-plan-round264.md`。产物：`/home/ubuntu/r264_lighthouse/`、`/home/ubuntu/r264_dl/paste100.zip`、`/home/ubuntu/r264_reqs.json`；截图 `/home/ubuntu/screenshots/r264_import40.png`、`r264_paste100_hint.png`、`r264_paste100_imported.png`。
+
+---
+
 # 第 263 轮（2026-08-11）：#267 粘贴名单「首行是表头」手动开关线上复测（生产）✅ 全部判据 PASS——r261 P4 闭环：误判可手动取消（2 条完整导入）、反向手动指定表头、重开弹窗重置为自动、TSV 回归+逐张导出、移动端 390px 含复选框不破版；无新发现
 
 **部署确认**：lazy chunk，浏览器打开粘贴弹窗输入文本后 DOM 即含「首行是表头」复选框——首次打开即已部署。环境：CDP 29229 全新 incognito context，桌面 1280×800 + 移动 390×844。脚本 `/home/ubuntu/r263_run.py`。代码依据：`excel.ts:197` `parsePastedRoster(text, firstRowHeader?)`（`:214` `firstRowHeader ?? 启发式`）、`DataImportPanel.vue:166/172/178/366-372`（CheckboxField 绑定 headerDetected、toggle 设 override、开弹窗重置 null）。姓名标记 张伟263/王芳263。测试侧注记：CheckboxField 原生 input 为 sr-only（`CheckboxField.vue:18`），Playwright check/uncheck 会因不可见超时——需点击 label 切换。
