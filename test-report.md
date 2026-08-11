@@ -1,3 +1,25 @@
+# 第 271 轮（2026-08-11）：模板发现链路质量专项（/templates 搜索·筛选·详情·进工坊，生产，无代码变更轮）✅ 全部判据 PASS——中文/全拼/简拼搜索命中正确（历史开放项闭环：简拼支持，jkz 命中监考证）、无结果态+清空恢复、特殊字符/超长输入健壮；分类/子分类计数与卡片数一致、搜索×分类叠加与跨类回退提示正确（r81 回归过）；3 款详情规格与源数据逐字一致、「用此模板开始」进工坊模板+场景演示数据正确带入（r115 回归过）；预渲染直开 200、无效 slug HTTP 404+404 视图（r85 回归过）；移动端 390px 无横溢。2 个 P4 观察：搜索词经 URL ?q= 同步被 GA/百度统计以页面 URL 参数外发；简拼子串匹配跨字段偶有松散误命中
+
+**环境**：生产 https://www.seatmark.cn/templates ，CDP 29229 全新 incognito context（桌面 1280×900 + 移动 390×844）。代码依据：`TemplatesView.vue:79-117/213-252`、`pinyin.ts:59-63/73-97`、`TemplateDetailView.vue:49-77/196`、`StudioView.vue:108`。脚本 `/home/ubuntu/r271_run.py`。
+
+**T1 搜索质量**：库总量 222（页首宣称=卡片数=「全部 222」chip 三方一致）。「考场」10 款、「婚礼」15 款、「桌牌」25 款——首 3 卡名称/场景均含关键词；全拼 hunli=15 款且与「婚礼」结果一致（pinyin-pro 懒加载 ~2s 后自动重算）；**简拼 jkz 命中 3 款，前 2 为监考证/巡考证（历史开放项闭环：简拼受支持）**；无结果态「没有匹配“zzzzzz不存在”…」+「清除搜索条件」+3 款推荐，点清除恢复 222；`<script>alert(1)</script>`/1000 字符/`%%%'"` 均无 pageerror、无结果态原文安全展示（XSS 不执行）— passed
+- P4 观察①：简拼是对「名称+场景+描述」拼接串的**子串**匹配，jkz 第 3 命中为不相关的手写风姓名贴（描述串首字母偶合），松散误命中量小、排序无权重，供裁量。
+
+**T2 筛选与叠加（r81 回归）**：分类 chips 考试31/教学43/幼儿教育19/会议活动54/婚庆喜宴23/生活办公52——点「考试」卡片=31=chip 计数；子分类「考场布置 17」卡片=17；叠加类内命中：「考试」+「考号」→提示「在「考试」分类中找到 2 款」=卡片数且均为考号类；跨类回退：「考试」+「婚礼」→「「考试」分类下无匹配，已在全部分类中找到 15 款」=卡片数 — passed
+
+**T3 详情与进工坊（standard/weddingPlace/signage 三场景抽样）**：预览渲染非空白；规格徽章与 defaultTemplates 源数据逐字一致（standard 60×32mm·3×8·24枚·210×297；weddingPlace 90×52·2×5·10枚；signage 90×54·2×5·10枚）；「用此模板开始」→ /studio?template=slug，工坊带入对应模板且演示数据跟随场景（weddingPlace 工坊含喜宴/桌号宾客类文案，standard/signage 无婚礼词——可区分，r115 回归过）— passed
+
+**T4 深链与 404（r85 回归）**：curl /templates/standard HTTP 200 且静态源含「标准考场版」×6（预渲染直出）、浏览器渲染正常；/templates/no-such-slug-xyz HTTP **404** + 页面渲染「404 NOT FOUND 页面不存在或已被移动」— passed
+
+**T5 移动端 390×844**：列表/详情 scrollWidth=390 无横溢；搜索「考场」10 款正常；CTA「用此模板开始」视口内可见（358×50@y716）— passed
+
+**T6 常规**：全程 pageerror=0；storage 清理、context 全关、常驻 Chrome 未动 — passed
+- P4 观察②（隐私面，如实记录）：搜索词经 r79 的「筛选状态同步 route.query」进入页面 URL（?q=考场），GA（dl/dr 参数）与百度统计（su/u 参数）按整 URL 上报——**用户搜索词被外发到第三方分析**（名单姓名不走 URL 不受影响；BP=58 百度统计为既定代价）。可裁量：分析上报前剥离 q 参数。
+
+**结论**：模板发现链路整体健康，简拼历史开放项闭环；2 个 P4 观察供裁量。计划：`test-plan-round271.md`。证据：`/home/ubuntu/r271_reqs.json`；截图 `/home/ubuntu/screenshots/r271_*`（t1 五组/t2 三组/t3 六组/t4 两组/t5 两组）。
+
+---
+
 # 第 270 轮（2026-08-11）：#273 懒路由分包失败自动整页跳转恢复 线上复测（生产）✅ 主判据 PASS——r268 P4 闭环：离线导航失败后恢复网络可自动到达 /templates（无需手动刷新）；防循环生效（离线仅 1 次跳转尝试、无无限刷新）；成功进入后 chunk-reload 标记清除；在线 SPA 行为不变。2 个如实注记：离线跳转落在浏览器错误页（全新会话无 SW 壳页兜底）、chunk 失败时仍有 1 条裸 pageerror（onError 处理导航但错误照常冒泡）
 
 **部署确认**：entry hash 翻转 `index-BVh4bXov.js`（r268）→ `index-lywsFKJ6.js`（首查即已翻转）。环境：CDP 29229 全新 incognito context。代码依据：`router/index.ts:168-177` onError 正则命中 chunk 错误→置 `chunk-reload:<path>` 标记→`location.assign`，同路径有标记则 return；`:179-183` afterEach 成功清标记。脚本 `/home/ubuntu/r270_run.py`、`r270_t2b.py`、`r270_t2c.py`。
