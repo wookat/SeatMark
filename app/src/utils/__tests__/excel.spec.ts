@@ -1,6 +1,48 @@
 import { describe, expect, it } from 'vitest'
 
-import { makeDemoRows, parseExcelFile } from '@/utils/excel'
+import { makeDemoRows, parseExcelFile, parsePastedRoster } from '@/utils/excel'
+
+describe('parsePastedRoster', () => {
+  it('Excel 复制的 TSV：首行含列名关键词时作为表头', () => {
+    const parsed = parsePastedRoster('姓名\t班级\t座位号\n张伟\t高三（1）班\t01\n王芳\t高三（1）班\t02\n')
+    expect(parsed.headerDetected).toBe(true)
+    expect(parsed.headers).toEqual(['姓名', '班级', '座位号'])
+    expect(parsed.rows).toEqual([
+      { 姓名: '张伟', 班级: '高三（1）班', 座位号: '01' },
+      { 姓名: '王芳', 班级: '高三（1）班', 座位号: '02' },
+    ])
+  })
+
+  it('纯姓名列表：无表头时首列自动命名「姓名」，空行忽略', () => {
+    const parsed = parsePastedRoster('张伟\n\n王芳\n李娜\n')
+    expect(parsed.headerDetected).toBe(false)
+    expect(parsed.headers).toEqual(['姓名'])
+    expect(parsed.rows.map((r) => r['姓名'])).toEqual(['张伟', '王芳', '李娜'])
+  })
+
+  it('逗号/顿号分隔与 CRLF：整段统一分列，缺列补空', () => {
+    const parsed = parsePastedRoster('张伟，男\r\n王芳、女\r\n李娜\r\n')
+    expect(parsed.headers).toEqual(['姓名', '列2'])
+    expect(parsed.rows).toEqual([
+      { 姓名: '张伟', 列2: '男' },
+      { 姓名: '王芳', 列2: '女' },
+      { 姓名: '李娜', 列2: '' },
+    ])
+  })
+
+  it('空格分隔与全角空格归一化；重名表头加序号', () => {
+    const spaced = parsePastedRoster('张伟　男\n王芳 女\n')
+    expect(spaced.headers).toEqual(['姓名', '列2'])
+    expect(spaced.rows[0]).toEqual({ 姓名: '张伟', 列2: '男' })
+
+    const dup = parsePastedRoster('姓名\t姓名\n张伟\t备用\n')
+    expect(dup.headers).toEqual(['姓名', '姓名2'])
+  })
+
+  it('空文本返回空结果', () => {
+    expect(parsePastedRoster('  \n \n')).toEqual({ headers: [], rows: [], headerDetected: false })
+  })
+})
 
 describe('makeDemoRows', () => {
   it('生成指定数量的演示数据，座位号补零', () => {
