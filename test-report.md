@@ -1,3 +1,22 @@
+# 第 212 轮（2026-08-11）：AI 设计免费通道复测（#214/#215 上线后）❌ **免费通道仍全链路不可用**——/api/ai-design 502（服务端代理 Pollinations 亦被 402 拒）+ 浏览器直连 Pollinations 两档 402；#215 错误码透出生效；前端降级行为正常、可重试、pageerror 0
+
+**环境**：生产真实 UI，/studio?design=new，entry 仍 `index-zn4iqgIG.js`（#214/#215 仅边缘函数改动）。测前已清 localStorage `seatmark.ai-config`（r209 发现的通道路由陷阱）。代码依据：edge-functions/api/ai-design.js:27-28/161-189（无密钥服务端代理 Pollinations openai/openai-fast，全败 502 并透出上游错误）；前端回退链 aiDesign.ts:240-258 不变。
+
+**结果**：
+- T1 免费通道真实 UI 重测（分支 B——仍不可用）：点「生成设计」→ 加载态「正在生成…」→ 64s 后报「免费通道暂时繁忙（HTTP 402：…deprecation_notice…）」。请求序列：
+  1. POST /api/ai-design → **502**，响应体 `AI 服务暂时不可用，请稍后再试（openai: HTTP 402 …；openai-fast: HTTP 402 …）`——**#215 上游错误码透出生效**（对比 r209 的裸 501）；
+  2. 浏览器直连 text.pollinations.ai/openai（openai）→ **402**；
+  3. 同 URL（openai-fast）→ **402**。
+- 402 响应体全文关键信息（浏览器与本机 curl 一致）：`deprecation_notice: The Pollinations legacy text API is being deprecated for authenticated users… Anonymous requests to text.pollinations.ai are NOT affected` + `details.error.message: "API key budget too low. This request costs ~0.0001 pollen, but this key has 0.0000"`——即 Pollinations 把该来源请求归到某个**余额为 0 的 key/租户**（非单纯匿名放行），且本机 curl（带/不带浏览器 UA+Origin）同样 402——lead 早前观测到的直连 200 未能复现，判定为间歇性/额度瞬时恢复，**不可依赖**。
+- 前端降级体验：错误面板红字完整展示、不白屏、按钮恢复「生成设计」可重试 — PASS
+- pageerror 0；storage 清理 + 测试 tab 关闭 — PASS
+
+**结论**：#214 服务端代理与 #215 错误透出均按设计工作，但 Pollinations 匿名/legacy 通道当前对本 VM 与 EdgeOne 出口均 402（"key budget 0"），免费通道端到端仍不可用，维持 r209 P2。建议按预案做文案降级（「免费开箱即用」→ 如实提示可能繁忙/需自定义 API），或配置真实 AI key。
+
+**产物**：截图 `/home/ubuntu/screenshots/r212_result.png`（最终错误态）、`r212_error_crop.png`；请求取证 `/home/ubuntu/r212_requests.json`；脚本 `/home/ubuntu/r212_t1.py`；计划 `test-plan-round212.md`。
+
+---
+
 # 第 208 轮（2026-08-11）：键盘-only 全流程可用性走查 ✅ 全部 PASS（skip-link/Hero CTA/模板搜索与卡片/SelectField 方向键/导出对话框 focus trap/耗尽弹窗/全键盘导出）
 
 **环境**：生产 entry `index-zn4iqgIG.js`，CDP 1280×900 + Input.dispatchKeyEvent 真实键事件（rawKeyDown/keyUp），焦点可见性用聚焦/失焦裁片像素差与截图取证。代码依据：App.vue skip-link、HomeView.vue:252-271（CTA「开始生成标签」）、TemplatesView.vue:163/235、SelectField.vue:62-82、ModalDialog.vue:36-85。
