@@ -439,6 +439,9 @@ async function exportPerLabelPng(
       signal: options.signal,
       pageTimeoutMs: options.pageTimeoutMs,
       rebuildHost: options.rebuildHost,
+      // 逐标签链路自带逐张空白校验（renderAndCutPage），整页右侧留白判据
+      // 对每页单枚、文字居中的模板（如电子座签）会把合法留白误判为截断
+      skipTruncationCheck: true,
     },
     html2canvas,
   )
