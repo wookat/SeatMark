@@ -1,3 +1,30 @@
+# 第 258 轮（2026-08-11）：浏览器缩放与大字号可用性专项（生产）✅ 全部判据 PASS——四页 150%/200% 无横向溢出破版、关键按钮可达、200% 下导入+逐张 PNG 导出产物与 100% 基线一致（24/40 字节全同、其余 16 张仅字体抗锯齿亚像素差、像素级布局/文字完全一致）、导出弹窗 200% 下滚动可达按钮不裁出、pageerror=0、隐私零外发
+
+**缩放口径（如实注明）**：浏览器 Ctrl+/- 缩放在 Chromium 中等效于「布局视口按倍率缩小 + devicePixelRatio 按倍率放大」。实现：Playwright `browser.new_context(viewport={w:round(1280/z), h:round(800/z)}, device_scale_factor=z)`，z∈{1.5, 2.0}，基准物理窗口 1280×800——即 200% 时 CSS 视口 640×400、DPR=2，与真实 Ctrl+/- 缩放同口径；CDP `Emulation.setDeviceMetricsOverride` 直调被弃用（见测试侧坑注记）。**大字号口径（近似，如实注明）**：Chromium 浏览器「最小字号/字体大小」设置无 CDP 接口，用 `document.documentElement.style.fontSize='20px'`（=16px 的 125%）近似评估 rem 布局稳健性，非真实系统大字号。脚本 `/home/ubuntu/r258_v2.py`（首版 `/home/ubuntu/r258_run.py` 因 CDP 覆盖被 Playwright 重置而作废）。
+
+**T1 四页 × 150%/200%**（每格判据 scrollWidth≤innerWidth + 关键按钮 rect 非零可滚动到达 + 截图）：
+- `/` 150%/200%：843≤853、630≤640，「开始制作」CTA 可见 — passed（r258v2_t1_home_150/200.png）
+- `/studio` 150%：843≤853，「图片 PNG」可见 — passed；200%：630≤640 无溢出 — passed；「图片 PNG」在默认「设置」页签下 rect=0×0——**非 bug**：200% 时 CSS 视口 640px 触发 /studio 移动双页签布局（设置/预览），切「预览」页签后按钮可见可点（T2 全链路实证），属设计内响应式降级 — passed（注记）
+- `/templates` 150%/200%：无溢出，搜索框可见（448px 宽）— passed
+- `/seating` 150%/200%：无溢出，「完全随机」可见 — passed
+- 文字重叠：8 张截图人工核查未见重叠 — passed（截图判据）
+
+**T2 /studio 200% 全链路（核心）**：CSS 视口 640×400 DPR2 下导入 good40.xlsx →「Excel 导入成功 已读取 40 条数据」+「共 40 条」；切「预览」页签开「图片 PNG」弹窗选逐张导出 → zip 40 张、全部 1000×534、0 空白 — passed。**与 100% 基线一致性**：按序号逐张对比——24/40 PNG 字节完全相同；16 张字节不同但逐像素 diff 仅字形边缘抗锯齿亚像素差（最大差异张 1.8% 像素、diff 图只有字形轮廓，布局/文字/尺寸完全一致，见 r258_diff26.png 三联图）；两次 100% 运行（本轮基线 vs r255 产物）40/40 字节全同证明管线本身确定——差异来源是导出渲染读取了页面 DPR 的字体光栅化，**非布局/内容差异**，判「产物一致（尺寸/内容/非空白）」成立、字节级 md5 严格全同不成立 — passed（如实降级注记）
+
+**T3 大字号近似（fontSize 125%→20px）**：/studio 无横向溢出（1270≤1280）、「共 40 条」名单在、「图片 PNG」可点、布局无错乱（r258_t3_bigfont.png）— passed（近似口径）
+
+**T4 200% 弹窗可达性**：导出弹窗（含配额区「今日剩余 1 次」）打开于 640×400 视口——「带水印导出」初始 y=526 超出 400 高视口，但弹窗体 overflowY 可滚动（scrollable=true），scrollIntoView 后按钮完整在视口内（y=184, h=116, 全边界内）并实际点击触发下载成功；无水印配额按钮同屏可见（r258v2_t4_wm_reachable.png）；Esc 关弹窗 dialog=0 — passed
+
+**T5 常规**：pageerror 全程=0 — passed；286 请求标记串（张伟250/隐私学校250）命中 0（r258_reqs_v2.json）— passed；storage 清理、自建 context 全关、常驻 Chrome 未动 — passed
+
+**发现问题**：无 P1–P3。P4 观察项（可裁量）：200%（=640px CSS 视口）下 /studio 落入移动双页签布局，老花用户放大后需先点「预览」才能见导出按钮——属既有响应式设计而非破版，如认为放大场景应保留桌面单栏可评估将 /studio 断点阈值与缩放场景解耦（最小复现：1280 宽窗口 Ctrl+ 放大到 200% 打开 /studio）。
+
+**测试侧坑（已写入 SKILL 建议）**：对 Playwright 管理的 page 直接用 CDP `Emulation.setDeviceMetricsOverride` 会被 Playwright 后续动作静默重置（截图/下载等操作后 innerWidth 弹回原视口），导致首版 T2「200%」实际大半在 100% 下跑；必须用 context 级 `device_scale_factor`+缩小 viewport 实现缩放口径。
+
+**证据**：截图 `/home/ubuntu/screenshots/r258v2_t1_{home,studio,templates,seating}_{150,200}.png`、`r258v2_t2_imported_200.png`、`r258v2_t4_dialog_200.png`、`r258v2_t4_wm_reachable.png`、`r258_t3_bigfont.png`、`r258_diff26.png`；产物 `/home/ubuntu/r258_dl/{base100_perlabel.zip,v2_zoom200_perlabel.zip}`；请求 `/home/ubuntu/r258_reqs_v2.json`；计划 `test-plan-round258.md`。
+
+---
+
 # 第 257 轮（2026-08-11）：#261 /seating 移动端横滑提示线上复测（生产）✅ 全部判据 PASS——390px 提示可见且位于视角切换行与网格容器之间、≥640px sm:hidden 生效、换座冒烟正常
 
 **部署确认**：SeatingView 为懒加载 chunk（页面 HTML 不含其哈希），以浏览器 DOM 出现提示文案为准——首次打开即已部署（无需轮询）。环境：CDP 29229 全新 incognito context，移动口径 CDP 390×844 视口、桌面 1280×800。脚本 `/home/ubuntu/r257_run.py`。代码依据：#261（eefd229）`SeatingView.vue:638`——视角/选中提示行后、previewContainer（overflow-auto）前插入 `<p class="mb-1 text-[11px] leading-5 text-slate-400 sm:hidden">← 座位表超宽时可左右滑动查看 →</p>`。
