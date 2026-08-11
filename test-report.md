@@ -1,3 +1,22 @@
+# 第 215 轮（2026-08-11）：用户反馈通道全链路走查 ⚠️ 前端表单/XSS/提交链路全 PASS；两条注记：① IP 日限 10 次在生产**实测未生效**（15 次连续提交全部 200，memory 存储限频计数不持久）② 存档/webhook 不可持久或未配置时仍回「感谢反馈！已收到您的意见」——反馈可能实际丢失（诚实性注记，webhook 配置状态外部不可判定）
+
+**环境**：生产真实 UI，entry `index-m3vMPIl7.js`。入口：全局右下浮动按钮（App.vue:85 挂载 FeedbackButton，aria-label=反馈）。代码依据：FeedbackButton.vue:49-79（POST /api/feedback，body={type,content,contact,page}）；edge-functions/api/feedback.js（校验/IP 日限 10/存档 fb: 前缀/可选 FEEDBACK_WEBHOOK/恒回 {ok:true}）。
+
+**结果**：
+- T1 正常提交：浮动按钮 → 弹窗「意见反馈」→ 选「问题反馈」填内容+联系方式 → 提交 → POST /api/feedback 200 `{"ok":true}`、toast「感谢反馈！已收到您的意见」（截图）、弹窗关闭表单重置 — PASS
+- T1 payload 检查：keys 恰为 {type,content,contact,page}，page=当前路径，type=bug；无名单/localStorage 等意外数据 — PASS
+- T2 空内容：提交按钮 disabled、点按零网络请求 — PASS
+- T2 超长：JS 绕过 maxlength 注入 2001 字 → 前端 toast「反馈内容不能超过 2000 字」、零请求 — PASS
+- T2 XSS：内容含 `<img onerror>`+`<script>` 提交 → 无 alert（JS dialog 0）、页面无注入节点、正常 200 提交、pageerror 0 — PASS（前端 v-model 纯文本无回显面；管理端 AdminView 渲染面需登录，本轮无法覆盖）
+- T3 限频：连续 **15 次**成功提交（间隔 2.5s+，同 IP 同日）全部 200 `{"ok":true}`、无一次 429「今日反馈次数已达上限」——**限频在生产未生效**，与 `x-seatmark-storage: memory` 一致（rl:fb: 计数每个 isolate 独立/不持久）。另注：前端对非 200 一律显示「提交失败 请稍后重试」，429 具体文案不会透出给用户（UX 弱点，非缺陷级）
+- 全程 pageerror 0；storage 清理 + 全部测试 tab 关闭 — PASS
+
+**诚实性结论**：feedback.js 存档失败静默忽略 + 未配置 webhook 时仍回 {ok:true} → 生产 memory 存储下反馈**很可能实际丢失但用户看到成功**。是否构成虚假承诺取决于 FEEDBACK_WEBHOOK 是否已在 EdgeOne 配置（外部不可观测）；若未配置，建议列入运维项（与 KV/Blob 绑定同源）。
+
+**产物**：截图 `/home/ubuntu/screenshots/r215_dialog.png`、`r215_submit_success.png`、`r215_overlong_warn.png`、`r215_xss_submit.png`；脚本 `/home/ubuntu/r215_t1.py`、`r215_t3.py`、`r215_t3b.py`；计划 `test-plan-round215.md`。
+
+---
+
 # 第 214 轮（2026-08-11）：#216 AI 设计文案降级验收 ✅ 全部 PASS（三处新文案上线、旧「开箱即用/无需配置/无需注册」0 残留、390px 不破版、demo 整页导出 md5 = r170 基线零回归）
 
 **环境**：部署翻转确认 entry `index-zn4iqgIG.js` → `index-m3vMPIl7.js`（15s 二次采样一致）。生产真实 UI /studio?design=new → 「AI 自动设计」弹窗。代码依据：#216 diff AiDesignDialog.vue :102-105/:157/:173-176 三处文案。
