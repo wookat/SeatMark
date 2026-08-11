@@ -1,3 +1,29 @@
+# 第 259 轮（2026-08-11）：系统外观偏好稳健性专项（生产）✅ 全部判据 PASS——dark 偏好下四页仍按设计浅色渲染（截图像素 diff=0.0%）、原生控件/导出弹窗无深色 UA 混搭、dark 下导出与 light 基线 40/40 字节全同、reduced-motion 降级生效（reveal 全量立即显现）、contrast:more 无破版、forced-colors 冒烟正常、pageerror=0、隐私零外发
+
+**口径**：Playwright `page.emulate_media(color_scheme=…/reduced_motion=…)`；`prefers-contrast: more` 因本机 Playwright 版本无 contrast 参数，改用 CDP `Emulation.setEmulatedMedia features:[{name:'prefers-contrast',value:'more'}]`（每例均以页内 matchMedia 命中=true 证明模拟生效）；forced-colors 用 `emulate_media(forced_colors='active')`。代码依据：src 无任何 `dark:` 变体、index.html/CSS 未声明 `color-scheme`（UA normal）；reduced-motion 降级在 `main.css:233`（.reveal-init 立即显现）+ `HomeView.vue:18`（matchMedia 命中直接加 reveal-in）。脚本 `/home/ubuntu/r259_run.py`。
+
+**T1 prefers-color-scheme: dark（核心）**：
+- 四页 `/`、`/studio`、`/templates`、`/seating`：dark 下 matchMedia=true 而 body 背景不变（oklch(0.984…) 浅色）、documentElement colorScheme=normal、整页截图与 light 基线逐像素 diff 全部 **0.0%**、平均亮度逐页相同（243.3/242.4/244.1/247.8）— passed
+- /studio 导入区原生控件（裁切线/高亮缺失 checkbox、SelectField、file 上传区）与导出弹窗：dark vs light 截图 diff 均 0.0%（无深色 UA 控件混搭；截图 r259_t1_controls_dark.png、r259_t1_dialog_dark.png 人眼核对全浅色）— passed
+- dark 下全链路：导入 40 条成功 + 逐张 PNG 导出 zip 40 张 1000×534、0 空白、与 r258 light 100% 基线 **40/40 字节全同** — passed
+
+**T2 prefers-reduced-motion: reduce**：
+- 阳性/阴性对照：no-preference 下首屏未显现 reveal 元素 28/30（动画机制在跑）；reduce 下 0/30——全部立即带 reveal-in、页底元素滚动前 opacity=1（main.css:233+HomeView.vue:18 双路径降级均生效）— passed
+- 全站扫描：reduce 下四页残留动画仅 /studio 8 个 `animate-pulse` 骨架占位（loading 类轻量脉冲，判据内可接受）+ home 4 个（同类）；无 transition-duration>0.3s 的可见元素；不定级 — passed（注记）
+- 功能回归：reduce 下导入 40 条 + 导出弹窗打开正常 — passed
+
+**T3 prefers-contrast: more**：四页 matchMedia=true、scrollWidth≤innerWidth、关键按钮可见、截图 vs light 基线 diff 全部 0.0%（无 contrast 特化样式，符合预期无破版）— passed
+
+**T4 forced-colors 冒烟**（r172-175 已闭环不重复全量）：matchMedia=true、「用演示数据先试试」可点、演示数据载入（26 标签渲染）、强制配色下页面可交互、pageerror=0（r259_t4_forcedcolors.png）— passed
+
+**T5 常规**：pageerror 全程=0 — passed；642 请求标记串（张伟250/隐私学校250）命中 0（r259_reqs.json）— passed；storage 清理、自建 context 全关、常驻 Chrome 未动 — passed
+
+**发现问题**：无 P1–P4。
+
+**证据**：截图 `/home/ubuntu/screenshots/r259_t1_{home,studio,templates,seating}_{light,dark}.png`、`r259_t1_controls_{light,dark}.png`、`r259_t1_dialog_{light,dark}.png`、`r259_t3_*_contrast.png`、`r259_t4_forcedcolors.png`；产物 `/home/ubuntu/r259_dl/dark_perlabel.zip`；请求 `/home/ubuntu/r259_reqs.json`；计划 `test-plan-round259.md`。
+
+---
+
 # 第 258 轮（2026-08-11）：浏览器缩放与大字号可用性专项（生产）✅ 全部判据 PASS——四页 150%/200% 无横向溢出破版、关键按钮可达、200% 下导入+逐张 PNG 导出产物与 100% 基线一致（24/40 字节全同、其余 16 张仅字体抗锯齿亚像素差、像素级布局/文字完全一致）、导出弹窗 200% 下滚动可达按钮不裁出、pageerror=0、隐私零外发
 
 **缩放口径（如实注明）**：浏览器 Ctrl+/- 缩放在 Chromium 中等效于「布局视口按倍率缩小 + devicePixelRatio 按倍率放大」。实现：Playwright `browser.new_context(viewport={w:round(1280/z), h:round(800/z)}, device_scale_factor=z)`，z∈{1.5, 2.0}，基准物理窗口 1280×800——即 200% 时 CSS 视口 640×400、DPR=2，与真实 Ctrl+/- 缩放同口径；CDP `Emulation.setDeviceMetricsOverride` 直调被弃用（见测试侧坑注记）。**大字号口径（近似，如实注明）**：Chromium 浏览器「最小字号/字体大小」设置无 CDP 接口，用 `document.documentElement.style.fontSize='20px'`（=16px 的 125%）近似评估 rem 布局稳健性，非真实系统大字号。脚本 `/home/ubuntu/r258_v2.py`（首版 `/home/ubuntu/r258_run.py` 因 CDP 覆盖被 Playwright 重置而作废）。
