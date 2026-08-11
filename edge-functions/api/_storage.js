@@ -74,10 +74,18 @@ function blobKv(store) {
  * - env.seatmark_blob：测试/本地联调注入的模拟 Store（与 @edgeone/pages-blob Store 同接口）
  * - 生产：动态 import SDK；本地未安装依赖或凭证缺失时返回 null（降级内存）
  */
+let blobStorePromise = null
+
 async function getBlobStore(env) {
   if (env && env.seatmark_blob && typeof env.seatmark_blob.get === 'function') {
     return env.seatmark_blob
   }
+  if (blobStorePromise) return blobStorePromise
+  blobStorePromise = loadBlobStore()
+  return blobStorePromise
+}
+
+async function loadBlobStore() {
   try {
     // 字面量说明符让 EdgeOne 构建器能静态收集依赖并打包进函数产物
     // （变量说明符会被打包器跳过，线上运行时解析失败而静默降级内存）；
