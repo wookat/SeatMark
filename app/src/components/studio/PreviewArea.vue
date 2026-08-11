@@ -1304,6 +1304,9 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
       >
         共 {{ exportEstimate.pageCount }} 页 · 每页约 {{ exportEstimate.dpi }}dpi ·
         预估体积约 <span class="font-bold text-slate-700">{{ exportEstimate.size }}</span>（按页数自适应清晰度与压缩）
+        <span v-if="exportEstimate.dpi < 240" class="mt-0.5 block text-amber-700">
+          页数较多时清晰度自动降档以控制体积；追求最高打印清晰度请改用「打印 / 矢量 PDF」。
+        </span>
       </p>
       <div class="mt-3 grid gap-3">
         <button
