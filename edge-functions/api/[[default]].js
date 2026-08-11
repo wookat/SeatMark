@@ -573,7 +573,6 @@ async function handleRequest(context) {
       await kv.put(codeKey, JSON.stringify(record))
       return json({ error: '验证码不正确' }, 400, storageHeader)
     }
-    await kv.delete(codeKey)
 
     let user = await getUser(kv, email)
     const now = new Date().toISOString()
@@ -587,6 +586,8 @@ async function handleRequest(context) {
 
     const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
     const token = await signJwt({ sub: email, exp }, getSecret(env))
+    // 会话签发成功后才消费验证码：中途实例异常时码仍有效，用户重试同一码即可
+    await kv.delete(codeKey)
     return json(
       { ok: true, user: await publicUser(kv, email, env) },
       200,

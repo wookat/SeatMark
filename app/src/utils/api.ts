@@ -31,7 +31,10 @@ export async function apiFetch<T>(
     // 非 JSON 响应按空对象处理
   }
   if (!res.ok) {
-    const message = typeof data.error === 'string' ? data.error : `请求失败（${res.status}）`
+    // 网关级错误（如边缘实例 5xx）返回非 JSON，给用户可理解的重试提示而非裸状态码
+    const fallback =
+      res.status >= 500 ? '服务暂时不可用，请重试' : `请求失败（${res.status}）`
+    const message = typeof data.error === 'string' ? data.error : fallback
     throw new ApiError(res.status, message, data)
   }
   return data as T
