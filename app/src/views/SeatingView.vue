@@ -635,6 +635,7 @@ function toDeskLabels() {
             {{ selectedRow != null ? `已选中第 ${selectedRow + 1} 排，点另一排把手交换` : '已选中座位，点另一个座位交换' }}
           </p>
         </div>
+        <p class="mb-1 text-[11px] leading-5 text-slate-400 sm:hidden">← 座位表超宽时可左右滑动查看 →</p>
         <div
           ref="previewContainer"
           class="overflow-auto rounded-lg border border-slate-200/80 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-slate-100/70 bg-[size:16px_16px] p-3 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)]"
