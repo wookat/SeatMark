@@ -1,10 +1,40 @@
 <script lang="ts">
+import type { Router } from 'vue-router'
+
 /** 全局打开栈（模块级共享）：多层弹窗叠加时 Esc 只关最顶层 */
 const openStack: symbol[] = []
+/** 各弹窗实例的关闭回调：供返回键拦截关闭顶层弹窗 */
+const closeHandlers = new Map<symbol, () => void>()
+
+/** 最近一次 popstate 时间戳：用于区分返回键导航与站内链接导航 */
+let lastPopstateAt = 0
+let guardInstalled = false
+
+/**
+ * 返回键拦截：弹窗打开时按浏览器返回（popstate 驱动的路由离开）
+ * 只关闭顶层弹窗、取消本次导航，而不是整页跳走。
+ * 站内链接/编程式导航不受影响。
+ */
+function installBackGuard(router: Router) {
+  if (guardInstalled || typeof window === 'undefined') return
+  guardInstalled = true
+  window.addEventListener('popstate', () => {
+    lastPopstateAt = Date.now()
+  })
+  router.beforeEach(() => {
+    if (!openStack.length) return true
+    if (Date.now() - lastPopstateAt > 300) return true
+    const top = openStack[openStack.length - 1]
+    if (!top) return true
+    closeHandlers.get(top)?.()
+    return false
+  })
+}
 </script>
 
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 const props = withDefaults(
   defineProps<{
@@ -25,6 +55,9 @@ const SIZE_CLASSES: Record<string, string> = {
 }
 
 const instanceId = Symbol('modal')
+
+const router = useRouter()
+if (router) installBackGuard(router)
 
 const panelRef = ref<HTMLElement | null>(null)
 /** 打开前的焦点元素：关闭后归还焦点 */
@@ -76,12 +109,14 @@ watch(
   async (open) => {
     if (open) {
       openStack.push(instanceId)
+      closeHandlers.set(instanceId, () => emit('close'))
       previouslyFocused = document.activeElement as HTMLElement | null
       await nextTick()
       panelRef.value?.focus()
     } else {
       const idx = openStack.indexOf(instanceId)
       if (idx >= 0) openStack.splice(idx, 1)
+      closeHandlers.delete(instanceId)
       previouslyFocused?.focus?.()
       previouslyFocused = null
     }
@@ -94,6 +129,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
   const idx = openStack.indexOf(instanceId)
   if (idx >= 0) openStack.splice(idx, 1)
+  closeHandlers.delete(instanceId)
 })
 </script>
 
