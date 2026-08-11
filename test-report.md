@@ -1,3 +1,27 @@
+# 第 246 轮（2026-08-11）：移动端 WebKit（iPhone 13 设备描述）黄金链路专项（生产，无代码变更）✅ 全部判据 PASS——移动 Safari 引擎口径下布局、导入、四导出链路、触摸交互、/seating 点选换座首次实证
+
+**环境**：Playwright webkit-1967 + `devices['iPhone 13']`（视口 390×664、DPR 3、has_touch、iOS Safari UA；用户所述 390×844 与本机 profile 664 高度略异，如实注记），`PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1`，方法沿用 r243/r244（add_init_script toast observer、expect_download、每大项全新 context）。脚本 `/home/ubuntu/r246_run.py`、`/home/ubuntu/r246_b.py`。
+
+**T1 布局黄金链路**：首页 → tap 模板入口 → /templates → tap 模板卡 → /studio，三页均 `scrollWidth=390 <= innerWidth=390` 无横向溢出；/studio 移动端为「设置/预览」双 Tab 单栏布局（ASIDE 与 SECTION 纵向堆叠 x=16 宽 358），顶部 header 与主要 CTA 视口内可 tap — passed。截图 r246_t1_home/templates/studio.png。
+
+**T2 移动端导入 40 行 xlsx**：`input[type=file]` 有两个（JSON 与 Excel），须选 `accept*=xlsx` 的第二个（首轮脚本误选 JSON input 导致导入静默失败——测试侧问题非产品缺陷）。set_input_files(ff240.xlsx) → toast「Excel 导入成功 已读取 40 条数据」+「共 40 条」+ 映射面板（姓名）齐全，无横向溢出 — passed。
+
+**T3 移动端导出四链路**（预览 Tab 内 tap，toast + expect_download 落盘 + 产物核验，文件名均秒级 `-YYYYMMDD-HHMMSS`）：
+- 逐张 PNG（移动端 PNG 弹窗默认成图单位）：40 张 1000×534、md5 全互异、非空白 5.8–6.9% — passed
+- 整页 PNG（弹窗内「成图单位」listbox 切「整页」）：2 页 2481×3509、非空白 5.98/4.39% — passed
+- 图片版 PDF：toast「图片版 PDF 已生成」、pypdfium2 p1 非空白 12.15% — passed
+- eink 800×480 逐标签（全新 context + eink234.xlsx 3 行）：3 张恰 800×480、恰 2 色 (0,0,0)/(255,255,255)、无 pHYs、md5 互异 — passed
+
+**T4 触摸交互 + #228**：缩放档 SelectField（非原生 select，`aria-haspopup=listbox` 按钮）tap 切「适应单枚→适应宽度」预览宽 1050→300 — passed；「显示选项」折叠组 tap 展开（裁切线可见）/收起（不可见）— passed；导出弹窗 tap 开（dialog=1）/关（dialog=0）— passed；#228 返回哨兵：开弹窗 → history.back → dialog=0 且 pathname 仍 /studio — passed。
+
+**T5 /seating 移动端**：粘贴 10 行（含 张伟246）→ tap「完全随机」10 座位全部出名 — passed；点选换座 张伟246⇄李四246 座位下标 1↔7 互换 — passed；文档无横向溢出（390/390），排座网格祖先容器自身可横滚（scrollWidth 517 > clientWidth 356，overflow-x 滚动可用）— passed；**「横滑提示」文案在 seating 代码中不存在**（仅 VsDetailView 有「左右滑动查看完整对照表」），如实注记非缺陷。
+
+**T6 隐私与收尾**：r246_b 全程 139 请求，张伟246/𱁬田240/维文/张伟240/234 标记串命中 0 — passed；pageerror 仅 1 条良性「ResizeObserver loop completed with undelivered notifications.」（白名单内），真实 pageerror=0 — passed；storage 清理、context/进程全退。诚实注记：首轮脚本（r246_run.py，覆盖 T1/T2/前三导出）在 T4 处因 SelectField 非原生 select 抛错中止，其请求清单未落盘；补测脚本 r246_b 覆盖了同一导入+导出+seating 路径的隐私审计（命中 0）。
+
+**结论**：移动 WebKit（iPhone UA/触摸/DPR3）黄金链路全部判据 PASS，无 P1–P3 新发现。产物 `/home/ubuntu/r246_dl/`，请求 `/home/ubuntu/r246_reqs_b.json`。
+
+---
+
 # 第 245 轮（2026-08-11）：打印链路 headed Firefox 实证（生产，无代码变更）✅ 全部判据 PASS——window.print 在 Firefox 实调起且 print-to-file 落盘矢量 PDF：/studio demo 2 页（文字在版可选中）、/seating 排座 1 页（张伟245 等名单文字在 PDF 文本层）；与 Chromium printToPDF 基线页数一致、墨量同量级；WebKit window.print 亦被调起但无 print-to-file 通道（产物 blocked，如实标注）
 
 **环境注记（重要）**：用户所述 DISPLAY=:0 可视桌面**实际不存在**（无 X socket、无 Xorg/Xvfb 进程；常驻 Chrome 29229 是 headless，其环境变量里的 DISPLAY=:0 指向不存在的显示）。改为自建 `Xvfb :99`（1600×1000）承载 headed Firefox（firefox-1438，headless=False）；常驻 Chrome 全程未动（收尾核验仍存活）。Firefox 静默打印落盘配方：`print.always_print_silent=true` + `print_printer='Mozilla Save to PDF'` + `print.printer_Mozilla_Save_to_PDF.print_to_file=true/print_to_filename=<path>`（Playwright firefox_user_prefs 注入），先以探针页验证可行后再打生产。脚本 `/home/ubuntu/r245_ff.py`。
