@@ -89,9 +89,14 @@ export async function parseExcelFile(file: File, targetSheet?: string): Promise<
   const body = matrix.slice(headerRowIdx)
   const columnCount = body.reduce((max, row) => Math.max(max, row.length), 0)
   const headerRow = body[0] ?? []
+  // 重名列自动加序号后缀（如「姓名2」），避免同名列互相覆盖丢数据
+  const used = new Set<string>()
   const headers = Array.from({ length: columnCount }, (_, i) => {
-    const text = String(headerRow[i] ?? '').trim()
-    return text || `列${i + 1}`
+    const text = String(headerRow[i] ?? '').trim() || `列${i + 1}`
+    let name = text
+    for (let n = 2; used.has(name); n++) name = `${text}${n}`
+    used.add(name)
+    return name
   })
 
   const rows: DataRow[] = body

@@ -92,7 +92,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="root" class="relative" @keydown="onRootKeydown">
+  <div ref="root" class="relative min-w-0" @keydown="onRootKeydown">
     <button
       ref="trigger"
       type="button"
@@ -102,7 +102,7 @@ onBeforeUnmount(() => {
       :aria-expanded="open"
       @click="open = !open"
     >
-      <span class="truncate">{{ current?.label ?? placeholder }}</span>
+      <span class="min-w-0 flex-1 truncate">{{ current?.label ?? placeholder }}</span>
       <svg
         class="size-3.5 shrink-0 text-slate-600 transition-transform"
         :class="{ 'rotate-180': open }"

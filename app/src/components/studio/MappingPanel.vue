@@ -155,7 +155,7 @@ function onPhotoFiles(event: Event) {
               v-for="header in workspace.excel.headers"
               :key="header"
               type="button"
-              class="rounded-full border border-brand-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-brand-700 hover:bg-brand-50"
+              class="max-w-full truncate rounded-full border border-brand-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-brand-700 hover:bg-brand-50"
               @click="insertColumn(header)"
             >
               + {{ header }}
