@@ -1,3 +1,21 @@
+# 第 208 轮（2026-08-11）：键盘-only 全流程可用性走查 ✅ 全部 PASS（skip-link/Hero CTA/模板搜索与卡片/SelectField 方向键/导出对话框 focus trap/耗尽弹窗/全键盘导出）
+
+**环境**：生产 entry `index-zn4iqgIG.js`，CDP 1280×900 + Input.dispatchKeyEvent 真实键事件（rawKeyDown/keyUp），焦点可见性用聚焦/失焦裁片像素差与截图取证。代码依据：App.vue skip-link、HomeView.vue:252-271（CTA「开始生成标签」）、TemplatesView.vue:163/235、SelectField.vue:62-82、ModalDialog.vue:36-85。
+
+**结果**：
+- T1 首页：首个 Tab = skip-link「跳到主内容」且**可见**（裁片 1081 蓝底像素，非 sr-only 隐藏态）；Enter 后 activeElement=#main-content；第 13 个 Tab 到 Hero CTA「开始生成标签」（focus ring 像素差 934px），Enter → 路由 /studio — PASS
+- T2 /templates：第 9 个 Tab 达搜索框，键入「桌牌」实时过滤（模板链接 224→27）；Tab 达首个模板卡（focus ring 截图），Enter → 进入 /templates/signage 详情 — PASS
+- T3 /studio SelectField：trigger 上 ↓ 展开（aria-expanded=true）；↓ 在选项间移动焦点（未映射→姓名→班级，↑ 回姓名）；Enter 选中并关闭、焦点归还 trigger；Esc 关闭归还 trigger — PASS
+- T3 导出对话框 focus trap：Enter 打开后连续 Tab 20 次 activeElement 20/20 始终在 [role=dialog] 内；Shift+Tab 从首元素回绕到最后一个（带水印导出按钮）；Esc 关闭且焦点归还到打开前的「图片 PNG」按钮 — PASS
+- T3 全键盘带水印导出：Tab×7 达「带水印导出」→ Enter → 渲染 → toast「PNG 图片已生成（24 张标签打包为 zip）」+ 下载完成事件 — PASS（首次尝试 60s 内未见下载事件，重试即成功——判定为脚本下载监听时序问题，非产品问题，如实记录）
+- T4 耗尽弹窗（used=1）：键盘打开导出框 → Tab×6 达「无水印导出（今日剩余 0 次）」→ Enter → QuotaLimitDialog 打开；Tab×10 全困于弹窗；Esc 关闭且焦点归还「图片 PNG」按钮 — PASS
+- T5 无键盘陷阱：首页 40×Tab 39 个独立停靠零卡死；/studio 40×Tab 命中 40 个**互不相同**的 DOM 元素（signature 重复为同类连续 input，元素级验证无重复）；焦点 ring 全程可见（含 input-field 裁片）— PASS
+- 全程 pageerror 0（所有 tab）；storage 清理 + 全部测试 tab 关闭 — PASS
+
+**产物**：截图 `/home/ubuntu/screenshots/r208_skiplink_crop.png`、`r208_cta_focus_crop.png`（对照 `r208_cta_blur.png`）、`r208_templates_search.png`、`r208_template_card_focus.png`、`r208_select_open_option.png`、`r208_dialog_trap_focus.png`、`r208_watermark_btn_focus.png`、`r208_quota_dialog_focus.png`、`r208_studio_input_focus.png`；脚本 `/home/ubuntu/r208_kb.py`、`r208_t1.py`、`r208_t1b.py`、`r208_t3.py`、`r208_t3c.py`、`r208_t5.py`；下载样本 `/home/ubuntu/r208_dl/`；计划 `test-plan-round208.md`。
+
+---
+
 # 第 207 轮（2026-08-11）：#211 匿名配额 used 负值/NaN clamp 复测 ✅ 全部 PASS（r205 P4 闭环）；⚠️ 口径勘误：QUOTA_ANON_DAILY 仍=1，非任务描述的 3
 
 **部署**：entry `index-DOR0it5-.js`→`index-zn4iqgIG.js`（15s 二次采样一致）。代码依据 origin/main eb7b390（quota.ts:22-36）：loadLocalUsage 增加 `Number.isFinite(parsed.used)` + `Math.max(0, Number(parsed.used))` clamp。**勘误**：任务描述称「应显示今日剩余 3 次（QUOTA_ANON_DAILY=3）」，但源码 quota.ts:8 与 edge [[default]].js:48 均仍为 1——本轮按 1 判定（used=-5 → 剩余 1；修复前 r205 实测显示 6）。
