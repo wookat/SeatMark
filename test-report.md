@@ -1,3 +1,24 @@
+# 第 270 轮（2026-08-11）：#273 懒路由分包失败自动整页跳转恢复 线上复测（生产）✅ 主判据 PASS——r268 P4 闭环：离线导航失败后恢复网络可自动到达 /templates（无需手动刷新）；防循环生效（离线仅 1 次跳转尝试、无无限刷新）；成功进入后 chunk-reload 标记清除；在线 SPA 行为不变。2 个如实注记：离线跳转落在浏览器错误页（全新会话无 SW 壳页兜底）、chunk 失败时仍有 1 条裸 pageerror（onError 处理导航但错误照常冒泡）
+
+**部署确认**：entry hash 翻转 `index-BVh4bXov.js`（r268）→ `index-lywsFKJ6.js`（首查即已翻转）。环境：CDP 29229 全新 incognito context。代码依据：`router/index.ts:168-177` onError 正则命中 chunk 错误→置 `chunk-reload:<path>` 标记→`location.assign`，同路径有标记则 return；`:179-183` afterEach 成功清标记。脚本 `/home/ubuntu/r270_run.py`、`r270_t2b.py`、`r270_t2c.py`。
+
+**T1 主判据（r268 P4 闭环）**：全新 context /studio → CDP offline → 点「模板」→ onError 触发整页跳转，离线下落在 `chrome-error://`（浏览器断网错误页，**无 SW 壳页兜底**——全新会话 SW 未就绪，如实记录）→ 恢复网络 → 自动重载到 `https://www.seatmark.cn/templates` 并渲染模板列表（`window.__alive` 消失证明发生整页导航；r268 旧行为：停留 /studio 静默无反应需手动刷新——可区分）— passed
+
+**T2 防循环**：
+- 真离线：点「模板」后共 **1** 次整页跳转尝试，二次点击无新增导航（页面已是错误页）、观察窗口内无刷新循环 — passed
+- 确定性复现（在线 route abort `TemplatesView*`）：点「模板」→ onError 置标记 `chunk-reload:/templates`='1' + 1 次 location.assign；整页落到预渲染 /templates（静态 HTML 有正文，用户不白屏）；标记存在期间无第二次自动 assign — passed
+- 注记①：chunk 失败场景仍产生 1 条裸 pageerror「Failed to fetch dynamically imported module: …TemplatesView-*.js」（onError 兜底导航但错误照常冒泡，不影响恢复，供裁量）；注记②：已缓存过资源的会话离线点击可直接从 HTTP 缓存完成整页加载并成功渲染（t2b 实证），风险面仅限「chunk 未缓存」首访场景。
+
+**T3 标记清理**：T1 恢复成功后与 T2c 解除阻断 goto /templates 成功后，`sessionStorage.getItem('chunk-reload:/templates')` 均=**null**（afterEach removeItem 生效）— passed
+
+**T4 回归（Regression）**：在线导航 /studio→/templates→/ 全程 `window.__alive`=1（SPA 无整页刷新）；xlsx 预取仍生效、40 行导入「共 40 条」；正常路径 pageerror=0；chunk-reload 键零残留 — passed
+
+**T5 常规**：176 请求标记串命中 0；storage 清理、context 全关、常驻 Chrome 未动 — passed
+
+**结论**：r268 P4 至此闭环（恢复网络后可自动到达目标路由）。两注记供裁量：① 全新会话离线点击的中间态是浏览器错误页（Chrome 联网后自动重试可恢复；若期望应用内滞留提示需 SW 离线壳页配合）；② chunk 失败时 1 条裸 pageerror。计划：`test-plan-round270.md`。产物：`/home/ubuntu/r270_reqs.json`；截图 `/home/ubuntu/screenshots/r270_t1_offline.png`、`r270_t1_recovered.png`、`r270_t2c_antiloop.png`、`r270_t2c_recovered.png`、`r270_t2b_shell.png`、`r270_t4_import.png`。
+
+---
+
 # 第 268 轮（2026-08-11）：#271 xlsx 加载失败刷新引导 + 离线 seo 导入静默 线上复测（生产）✅ 两处修复判据全 PASS——预取失败后导入 toast 为中文刷新引导（不再露英文模块错误）、刷新后恢复；离线导航 pageerror=0（seo 裸错误消失）；回归全过。1 个 P4 附带观察（离线点击导航后该路由在恢复网络后仍无法进入，需刷新——路由 chunk 动态 import 失败同样被浏览器缓存，非 #271 引入）
 
 **部署确认**：entry hash 翻转 `index-BC7trUVn.js`（r266）→ `index-BVh4bXov.js`（轮询第 2 分钟命中）。环境：CDP 29229 全新 incognito context。代码依据：`excel.ts:15-21` `loadXlsx()` 失败抛「表格组件加载失败（可能是网络异常），请刷新页面后重试」（`:34/:153` 两调用点）；`router/index.ts:168-172` seo 动态导入 try/catch。脚本 `/home/ubuntu/r268_run.py`、`r268_t2b.py`。
