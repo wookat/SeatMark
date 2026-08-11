@@ -20,6 +20,9 @@ The final render now throws 「页面渲染不完整（右侧内容未绘出）�
 ## Anonymous quota tamper clamp (#211/r207)
 The negative-`used` clamp is live — loadLocalUsage now applies Number.isFinite + Math.max(0, used), so tampered `used=-5` in `seatmark.clean-export-usage.v1` shows 今日剩余 1 次, not 6; null/"abc"/garbage/missing keys all fall back to 0 without pageerror. Remember QUOTA_ANON_DAILY=1 (anonymous) vs QUOTA_USER_DAILY=3 (logged-in) — task descriptions sometimes conflate them. Cancel-export never deducts (toast 本次未扣除无水印次数); a stale `{date:昨日,used:99}` record resets to today's full quota on load.
 
+## Keyboard-only testing (r208)
+Drive real key events via CDP Input.dispatchKeyEvent (rawKeyDown + char '\r' for Enter + keyUp; Shift = modifiers:8) — element.click()/focus() shortcuts don't exercise ModalDialog's Tab-trap (ModalDialog.vue:36-85) or SelectField arrow nav (SelectField.vue:62-82). Prove focus visibility with focused-vs-blurred crop pixel diffs, not activeElement alone (skip-link is sr-only until :focus). Tab-trap check: 20×Tab asserting dialog.contains(document.activeElement); Esc must return focus to the opener button. Hero CTA text is 开始生成标签 (not 开始制作). When a download event seems missed, drain the Browser websocket and retry once before calling it a product failure.
+
 ## Export-mode memory gotcha (r191)
 The 图片 PNG dialog remembers the last export mode (整页 vs 逐张) across exports in the same tab — always read the mode field before clicking 带水印导出, or a per-label export silently yields a whole-page zip. Also: uncommitted test-report.md sections can be lost if the working tree is updated to a newer main between rounds — commit report sections before pulling.
 
