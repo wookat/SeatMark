@@ -1,3 +1,27 @@
+# 第 282 轮（2026-08-11）：全站 SEO 元数据与结构化数据一致性审计（生产，无代码变更轮）✅ 全部判据 PASS，零发现——13 页抽样 title 唯一/canonical 规范/OG 卡片齐全、JSON-LD 全部合法且字段完整（pricing FAQ 6 条=源数据）、sitemap 331 条抽 15 全 200 非软 404、/account /admin noindex、无效 slug 真 404、SPA 导航 head 同步正常。
+
+**环境**：以当前线上为基线（entry index-DQXCHqb-.js）。curl 静态源审计脚本 `/home/ubuntu/r282_audit.py`（结果 `/home/ubuntu/r282_audit.json`）+ 浏览器 SPA head 同步 `/home/ubuntu/r282_t6.py`。代码基准：`data/seo.ts`（单一数据源）、`scripts/prerender.mjs`（同清单生成预渲染页与 sitemap）。
+
+## T1 预渲染内容页抽样（13 页）— PASSED
+/、/templates、/papers、/pricing、/seating、/vs、/guides、2 篇 guides 详情、/vs/chuangkit、/desk-card-generator、/name-card-batch、/terms：title 全部唯一且与 seo.ts 一致；description 非空无乱码；canonical=https://www.seatmark.cn+规范路径（根「/」结尾、其余无尾斜杠无参数）；og:url=canonical。issues=0。
+
+## T2 OG/Twitter 卡片 — PASSED
+13 页 og:title/og:description/og:image/twitter:* 全存在且 og:title=title；og-image.png HTTP 200、image/png、121KB。
+
+## T3 JSON-LD — PASSED
+全部 script JSON.parse 通过；首页 SoftwareApplication（offers.price=0）；/pricing SoftwareApplication+FAQPage（mainEntity=6=PRICING_FAQS）+BreadcrumbList；guides 详情 Article+BreadcrumbList+HowTo（4-5 步）+FAQPage（3 条）；topic 页 SoftwareApplication+HowTo+FAQ+Breadcrumb；必填字段（@context/@type、FAQ name+text、Breadcrumb position/item）零缺失。
+
+## T4 sitemap 与 robots — PASSED
+sitemap 331 条抽 15（首页/studio/privacy/guides×3/templates×3/papers×2/vs×2/topic×2）全部 HTTP 200 且非软 404（title 正确、无「页面不存在」）；robots.txt Sitemap 行一致；现状记录：/studio 在 sitemap 且 robots=index,follow（设计如此），/account /admin 不在 sitemap、预渲染源 robots=noindex, nofollow。
+
+## T5 无效 slug 真 404 — PASSED
+/guides/no-such-guide-xyz 与 /templates/no-such-tpl-xyz 均 HTTP **404**、title「页面不存在 - SeatMark 座签」、robots=noindex, follow。
+
+## T6 基础属性 + SPA head 同步 — PASSED
+13 页均 lang=zh-CN、charset=utf-8、viewport；浏览器 / → 点击导航 /pricing → /templates：title/canonical/og:url/JSON-LD 类型全部跟随路由更新；pageerror=0；storage 清理、context 关闭、常驻 Chrome 未动。截图 r282_t6_home/pricing/templates.png。
+
+---
+
 # 第 281 轮（2026-08-11）：#282 匿名配额多页签同步线上复测 ✅ 全部判据 PASS——r279 P4 闭环：A 页签消耗后 B 页签**不刷新**即显示「今日剩余 0 次」并拦截（引导弹窗），used 保持 1 不覆写；反向同样拦截；单页签/跨日重置/带水印不计数回归全过；pageerror=0。
 
 **环境**：部署确认 entry `index-BY-oO6Ou.js`→`index-DQXCHqb-.js`（新 entry 含 `addEventListener("storage",…clean-export-usage…)` 特征）。CDP 29229 全新 incognito context 双 page 打生产 /studio?demo=1。脚本 `/home/ubuntu/r281_run.py`，结果 `/home/ubuntu/r281_res.json`。
