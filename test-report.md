@@ -1,3 +1,23 @@
+# 第 250 轮（2026-08-11）：导入文件容错边界专项（生产 /studio，无代码变更）✅ 全部判据 PASS——8 类损坏/极端文件全部明确 toast、零 pageerror、无白屏卡死、失败后状态无污染；无 P1/P2
+
+**环境**：CDP 29229 全新 incognito context 单会话串行跑全部场景（故意同 context 验证状态污染），toast observer + pageerror/request 监听。夹具 `~/r250_fixtures/`（openpyxl/msoffcrypto-tool/xlwt 自造，标记串 张伟250/隐私学校250）。脚本 `/home/ubuntu/r250_run.py`。
+
+**逐场景结果**（每场景判据：明确 toast + pageerror 增量=0 + evaluate 响应 <0.01s 不卡死 + 失败后 good40.xlsx 恢复「已读取 40 条数据」+「共 40 条」）：
+1. **截断 xlsx**（60% 字节，PK 魔数在）：0.4s toast「Excel 导入失败 文件解析失败：文件可能已损坏或格式不受支持…」，恢复 OK — passed
+2. **加密 xlsx**（msoffcrypto AES，CFB 容器 D0CF11E0）：toast「Excel 导入失败 文件内容不是有效的 .xlsx 工作簿（可能是改名或损坏的文件）…」，恢复 OK — passed。注记（P4 观察）：加密文件走魔数分支，提示语义「改名或损坏」对「密码保护」欠精确，用户可裁量是否补专门文案（CFB 魔数可识别为加密/老 xls 容器）
+3. **仅表头 / 完全空**：均 toast「Excel 导入失败 Excel 至少需要包含表头行和一行数据」，恢复 OK — passed
+4. **50 列×100 行宽表**：0.2s 成功「已读取 100 条数据」+「共 100 条」，映射下拉打开 52 个 option 不卡死 — passed
+5. **异常单元格**（5000 字长名/Tab+换行/emoji ZWJ+旗帜）：成功「已读取 4 条数据」，逐张 PNG 导出落盘 4 张 1000×534 全非空白（10.6–12.7%）md5 互异 — passed（成功 toast 因采样窗口未捕获，以产物核验为准，方法注记）；控制字符注记：openpyxl 本身拒写 \x0b 类 XML 非法字符，实测用 Tab/换行（XML 合法控制字符）
+6. **9.9MB 多 sheet**（5 sheet×6000 行）：2.6s 成功「已读取 6000 条数据；文件含 5 个工作表，可在导入面板切换」，sheet 切换控件在，页面可交互 — passed
+7. **.xls 老格式**（xlwt/BIFF）：成功「已读取 20 条数据」+「共 20 条」（SheetJS 原生支持）— passed
+8. **状态无污染**：4 个失败场景后 + 最终各一次 good40 导入全部恢复正常 — passed
+
+**常规**：全程 56 请求，张伟250/隐私学校250 命中 0 — passed；pageerror 全程=0（含所有失败场景，全部为应用主动 toast 无未捕获异常）— passed；storage 清理、context 关闭、常驻 Chrome 未动 — passed。
+
+**结论**：导入容错边界全绿，唯一观察项为加密 xlsx 提示文案不够精确（P4）。产物 `/home/ubuntu/r250_dl/`，请求 `/home/ubuntu/r250_reqs.json`，截图 r250_s1–s8。
+
+---
+
 # 第 249 轮（2026-08-11）：#253 图片版 PDF dpi 降档提示线上验证（生产）✅ 全部判据 PASS——阳性 300 行提示出现且文案/颜色逐字符合、阴性 40 行不出现、三宽度无溢出、导出回归正常
 
 **部署确认**：生产 entry 已翻转 `index-B7iIsDpm.js` → `index-DL6SyG-8.js`（页面 resource entries 实证）。环境：CDP 29229 全新 incognito context，方法同前（toast observer + expect_download）。脚本 `/home/ubuntu/r249_run.py`。

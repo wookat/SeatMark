@@ -31,7 +31,13 @@ export async function parseExcelFile(file: File, targetSheet?: string): Promise<
   const bytes = new Uint8Array(buffer)
   // .xlsx 必为 ZIP 容器（PK 魔数）；否则 SheetJS 会回退成 CSV/文本解析，把改名的非表格文件误报为导入成功
   const isZip = bytes[0] === 0x50 && bytes[1] === 0x4b
+  // 密码保护的 Office 文件是 CFB 复合文档容器（D0 CF 11 E0）
+  const isCfb =
+    bytes[0] === 0xd0 && bytes[1] === 0xcf && bytes[2] === 0x11 && bytes[3] === 0xe0
   if (/\.xlsx$/i.test(file.name) && !isZip) {
+    if (isCfb) {
+      throw new Error('文件可能被密码保护（加密），请在 Excel/WPS 中解除密码后另存为 .xlsx 再导入')
+    }
     throw new Error(
       '文件内容不是有效的 .xlsx 工作簿（可能是改名或损坏的文件）；若是 CSV 名单请将扩展名改回 .csv 后重试',
     )

@@ -115,6 +115,12 @@ describe('parseExcelFile', () => {
     await expect(parseExcelFile(file)).rejects.toThrow('不是有效的 .xlsx 工作簿')
   })
 
+  it('CFB 容器（密码保护的 Office 文件）给出解除密码的专门提示', async () => {
+    const cfb = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])
+    const file = new File([cfb], 'protected.xlsx')
+    await expect(parseExcelFile(file)).rejects.toThrow('可能被密码保护')
+  })
+
   it('无 BOM 的 UTF-8 CSV 中文表头正常解析（不乱码）', async () => {
     const csv = '姓名,座位号\n张三,1\n李四,2\n'
     const file = new File([new TextEncoder().encode(csv)], 'roster.csv')
