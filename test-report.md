@@ -1,3 +1,18 @@
+# 第 214 轮（2026-08-11）：#216 AI 设计文案降级验收 ✅ 全部 PASS（三处新文案上线、旧「开箱即用/无需配置/无需注册」0 残留、390px 不破版、demo 整页导出 md5 = r170 基线零回归）
+
+**环境**：部署翻转确认 entry `index-zn4iqgIG.js` → `index-m3vMPIl7.js`（15s 二次采样一致）。生产真实 UI /studio?design=new → 「AI 自动设计」弹窗。代码依据：#216 diff AiDesignDialog.vue :102-105/:157/:173-176 三处文案。
+
+**结果**：
+- T1 三处新文案（DOM 精确子串 + 截图 OCR 证实可见）：①「免费通道依赖公共模型服务，繁忙时可能失败；有自己的 API 密钥时推荐「自定义 API」更稳定。」②按钮「免费通道 · 繁忙时限量」③「公共服务限量且不保证可用，失败时请稍后重试，或切换「自定义 API」用自己的密钥更稳定」— PASS
+- T1 旧字样 0 残留：页面全文「开箱即用」「无需配置」「无需注册」计数均 0；bundle `index-m3vMPIl7.js` grep「开箱即用」= 0 — PASS
+- T2 390×844 窄屏：弹窗正常打开（rect 宽 358 居中）、`scrollWidth=390=innerWidth` 无横向溢出、弹窗内 p/button 无逐元素溢出、截图文案完整 — PASS
+- T3 demo 整页带水印导出（Regression）：page1 md5 `3e8fdf3e0c8530297998d8ad25623f21` = r170 基线逐位一致、page2 `1cede32f30…` = 既有基线 — PASS（注：首次导出 180s 内未捕获下载事件，重跑即成功——与 r208 同类监听时序问题，判定非产品缺陷，如实记录）
+- 全程 pageerror 0；storage 清理 + 全部测试 tab 关闭 — PASS
+
+**产物**：截图 `/home/ubuntu/screenshots/r214_dialog_new_copy.png`（1500px 弹窗新文案）、`r214_dialog_390.png`（390px 窄屏）；脚本 `/home/ubuntu/r214_t1.py`、`r214_t3.py`；导出样本 `/home/ubuntu/r214_dl/`；计划 `test-plan-round214.md`。
+
+---
+
 # 第 212 轮（2026-08-11）：AI 设计免费通道复测（#214/#215 上线后）❌ **免费通道仍全链路不可用**——/api/ai-design 502（服务端代理 Pollinations 亦被 402 拒）+ 浏览器直连 Pollinations 两档 402；#215 错误码透出生效；前端降级行为正常、可重试、pageerror 0
 
 **环境**：生产真实 UI，/studio?design=new，entry 仍 `index-zn4iqgIG.js`（#214/#215 仅边缘函数改动）。测前已清 localStorage `seatmark.ai-config`（r209 发现的通道路由陷阱）。代码依据：edge-functions/api/ai-design.js:27-28/161-189（无密钥服务端代理 Pollinations openai/openai-fast，全败 502 并透出上游错误）；前端回退链 aiDesign.ts:240-258 不变。
