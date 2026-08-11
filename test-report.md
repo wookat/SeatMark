@@ -1,3 +1,23 @@
+# 第 263 轮（2026-08-11）：#267 粘贴名单「首行是表头」手动开关线上复测（生产）✅ 全部判据 PASS——r261 P4 闭环：误判可手动取消（2 条完整导入）、反向手动指定表头、重开弹窗重置为自动、TSV 回归+逐张导出、移动端 390px 含复选框不破版；无新发现
+
+**部署确认**：lazy chunk，浏览器打开粘贴弹窗输入文本后 DOM 即含「首行是表头」复选框——首次打开即已部署。环境：CDP 29229 全新 incognito context，桌面 1280×800 + 移动 390×844。脚本 `/home/ubuntu/r263_run.py`。代码依据：`excel.ts:197` `parsePastedRoster(text, firstRowHeader?)`（`:214` `firstRowHeader ?? 启发式`）、`DataImportPanel.vue:166/172/178/366-372`（CheckboxField 绑定 headerDetected、toggle 设 override、开弹窗重置 null）。姓名标记 张伟263/王芳263。测试侧注记：CheckboxField 原生 input 为 sr-only（`CheckboxField.vue:18`），Playwright check/uncheck 会因不可见超时——需点击 label 切换。
+
+**T1 P4 修复主判据**：粘贴「张伟263手机甲\n张伟263手机乙」→ 默认提示逐字=「识别到 1 条数据、1 列（首行为表头：张伟263手机甲）」且复选框 checked=true（自动误判如实呈现）；点掉勾选 → 提示实时变「识别到 2 条数据、1 列（未检测到表头，首列将按「姓名」处理）」、checked=false；导入 → toast「已导入 2 条数据 未检测到表头，首列已按「姓名」处理」+「共 2 条」+ 页面含 张伟263手机甲（首条不再静默丢失）（r263_t1_misdetect/fixed/imported.png）— passed
+
+**T2 反向手动指定表头**：粘贴「张伟263甲\t男 / 王芳263\t女」（无关键词）→ 默认 checked=false、「识别到 2 条数据、2 列（未检测到…）」；勾选 → 「识别到 1 条数据、2 列（首行为表头：张伟263甲、男）」（表头如实取首行）、checked=true；导入 toast「已导入 1 条数据 首行已识别为表头」、数据查看器仅 1 行 [王芳263, 女]（r263_t2_manual_header.png）— passed
+
+**T3 重开弹窗重置为自动**：T2 手动勾选导入后清空、重开弹窗粘贴 T1 含「手机」文本 → 提示回到自动误判态「识别到 1 条…首行为表头」、checked=true——前次手动状态不残留（若残留应显示 2 条）（r263_t3_reset.png）— passed
+
+**T4 回归（Regression）TSV 带表头**：`姓名\t座位号`+4 行 → 自动「识别到 4 条数据、2 列（首行为表头：姓名、座位号）」checked=true（未动手）；导入「共 4 条」；逐张 PNG zip 恰 4 张 1000×534、md5 互异、0 空白（r263_dl/tsv4.zip）— passed
+
+**T5 移动端 390px**：弹窗粘贴 T1 文本无横向溢出（380≤390）、「首行是表头」复选框 bounding box 完整在视口内（36,533,77×16）、默认误判态一致；取消勾选 → 2 条、导入成功「共 2 条」（r263_t5_mobile.png / r263_t5_mobile_imported.png）— passed
+
+**T6 常规**：pageerror=0；87 请求标记串（张伟263/王芳263）命中 0；localStorage/sessionStorage 清理、context 全关、常驻 Chrome 未动 — passed
+
+**结论**：r261 P4（HEADER_KEYWORDS 子串误伤首行数据）至此闭环——自动识别保留、手动开关可双向覆盖、重开重置为自动，行为与 spec 完全一致。无 P1–P4 新发现。计划：`test-plan-round263.md`。
+
+---
+
 # 第 261 轮（2026-08-11）：#265 /studio 粘贴名单导入线上复测（生产）✅ 主链路全部判据 PASS——TSV 表头识别/自动映射/逐张导出、无表头纯姓名、顿号缺列补空、空文本禁用、清空后回归、移动端 390px 弹窗全过；1 个 P4 观察项（表头关键词误伤首行数据）
 
 **部署确认**：lazy chunk，以浏览器 DOM 出现「没有文件？粘贴名单」为准——首次打开即已部署。环境：CDP 29229 全新 incognito context，桌面 1280×800 + 移动 390×844。脚本 `/home/ubuntu/r261_run.py`。代码依据：`excel.ts:196` parsePastedRoster（\t > [,，、] > \s+，`excel.ts:181` HEADER_KEYWORDS 判表头）、`DataImportPanel.vue:224/336/350/360/176/181`。本轮姓名标记 张伟261-*。
