@@ -9,6 +9,19 @@
 - T4 回归：空表头补名「列2」值正确；公式缓存值读出「丁一228三班」；100 列×20 行「共 20 条」不卡死；混合类型 42/纯文本228/2024-01-05/007/50%；表头-only 与 1×1 均报「Excel 至少需要包含表头行和一行数据」— passed
 - 全程 pageerror=0；storage 清理 + 全部测试 tab 关闭。
 - 产物：`/home/ubuntu/r229_t1.py`、`r229_t3b.py`、夹具 `/home/ubuntu/r228_fixtures/t2_conflict229.xlsx`；截图 `/home/ubuntu/screenshots/r229_t1_dup_mapped.png`、`r229_t3_1280.png`、`r229_t3_768.png`、`r229_t3_390.png`、`r229_t3_export_done.png`；导出物 `/home/ubuntu/r229_dl/标准考场版-20260811-0423.zip`。
+# 第 230 轮（2026-08-11）：导入入口与重复导入状态一致性专项（无代码变更轮）✅ 全部判据 PASS——拖拽上传与点击上传行为一致（含非法扩展名拦截）；重复导入/换文件导入均整体重置映射+autoMap 重建，无残留脏状态；组合映射引用消失列被面板校验拦截（应用按钮禁用）；多 sheet 来回切换一致；清空后重导入配额/预览/导出正常；pageerror 0；名单隐私零外发
+
+**环境**：生产真实 UI（entry `index-6teszdpy.js`，无新部署），headless CDP + Network 全量捕获；夹具新增 `/home/ubuntu/r228_fixtures/t230_multisheet.xlsx`（S1 姓名/班级 2 行、S2 学号/年级 3 行）、`t230_B.xlsx`（甲列/乙列）、`t230_bad.txt`。
+
+**结果**：
+- T1 拖拽上传：/studio 空态导入区确有 drop zone（DataImportPanel.vue onDrop，仅空态渲染）。页内构造真实 File+DataTransfer dispatch dragover+drop：t1_dup.xlsx 拖入 toast「Excel 导入成功 已读取 2 条数据」、headers=[姓名,姓名2,班级]，与点击上传（DOM.setFileInputFiles）结果一致；.txt 拖入 toast「文件类型不支持 请拖入 .xlsx / .xls / .csv 文件」且数据不变 — passed。注记：导入后 drop zone 消失（面板改显示文件信息），换文件需走「重新上传/清空」，属产品形态如实记录。
+- T2 重复导入同名文件：导入 A → 手动把座位号映射改为「姓名2」（mapping={name:姓名, seatNo:姓名2}）→ 再次导入同一文件：mapping **整体重置**为 autoMap 结果（{name:姓名}，手动项丢弃），照片/overrides/筛选随 applyExcel 一并清空（workspace.ts:505-523 设计行为），预览「共 2 条」正常，无脏状态 — passed（重置语义一致合理；手动映射不保留，如实记录供产品裁量）。
+- T3 换文件导入：A 上设组合映射 `{姓名}-{班级}`（预览显示「多表甲230-一班」）→ 导入 B（甲列/乙列）：mapping 全清 {}，旧值（甲一228 等）页面零残留、B 值正常上卡，无静默用旧列名渲染空卡 — passed。组合映射引用消失列：B 下手输 `{姓名}-{班级}` 时面板红字「模板需至少引用一个 {列名}，且引用的列必须存在于当前表头」且「应用组合」按钮 DISABLED（templateColumnsValid 校验）— passed。
+- T4 多 sheet 来回切换：导入 toast「文件含 2 个工作表，可在导入面板切换」；切 S2：headers=[学号,年级]、「共 3 条」、mapping 重置；切回 S1：headers/rows 与首次完全一致（共 2 条，rows[0]={姓名:多表甲230,班级:一班}），无串数据；带组合映射切 sheet 亦整体清空无残留渲染 — passed。
+- T5 清空后重导入：「清空」按钮 toast「数据已清空」、sessionStorage roster 清空、空态 drop zone 恢复；重导入 A「共 2 条」，PNG 带水印导出成功（toast「PNG 图片已生成（2 张标签打包为 zip）」+ zip 落盘）— passed。
+- T6 隐私：全程 31 个网络请求（seatmark.cn + baidu/GA 统计域）URL/postData 中名单标识串（甲一228/乙一228/多表甲230/B甲一230 等）命中 0 — passed。
+- 全程 pageerror=0；storage 清理 + 全部测试 tab 关闭。
+- 产物：`/home/ubuntu/r230_t1.py`、`r230_t3.py`、`/home/ubuntu/r230_reqs.json`、`/home/ubuntu/r230_dl/标准考场版-20260811-0431.zip`；截图 `/home/ubuntu/screenshots/r230_t1_drop.png`、`r230_t2_reimport.png`、`r230_t3_composite_A.png`、`r230_t3_fileB.png`、`r230_t3_invalid_composite.png`、`r230_t4_sheets.png`、`r230_t5_export.png`。
 # 第 228 轮（2026-08-11）：Excel 导入字段映射边界形态走查（无代码变更轮）⚠️ 发现 **P3×2**（重复列名静默丢列；超长表头映射后撑破布局），其余边界形态（空表头/公式列/宽表/混合类型/最小表报错）全部 PASS；pageerror 0
 
 **环境**：生产真实 UI（entry `index-BRn1Rj39.js`，无新部署），headless CDP；夹具 python3+openpyxl/xlsxwriter 现场生成于 `/home/ubuntu/r228_fixtures/`（8 个）。
