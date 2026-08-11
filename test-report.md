@@ -1,3 +1,16 @@
+# 第 232 轮（2026-08-11）：#236（照片清除明确提示）生产复测 ✅ 全部判据 PASS——带照片重导/切 sheet 均出现 toast「照片已清除 数据源已更换，照片需重新上传并匹配」（与导入成功/切换 toast 并存不冲突）；无照片导入零打扰（负向隔离复验）；刷新提醒不回归；「清空」按钮仍走「数据已清空」；照片链路冒烟无回归；pageerror 0
+
+**环境**：生产真实 UI，entry 翻转 `index-6teszdpy.js` → `index-EbJxTvBJ.js`（main f86fab2，#236 已部署），复用 r231 夹具与「照片核验版」模板（`/studio?template=withPhoto`）。
+
+**结果**：
+- T1 带照片重导同一文件：toast 栈同时出现「照片已清除 数据源已更换，照片需重新上传并匹配」+「Excel 导入成功 已读取 3 条数据…」，照片 img=0、覆盖率行消失（r231 静默注记闭环）— passed
+- T2 带照片切 sheet：toast「照片已清除」+「已切换到工作表「S2」」并存，照片清空 — passed
+- T3 无照片导入零打扰（负向）：首跑受 T2 残留 toast 污染（如实记录），已隔离复验——全新会话无照片状态下重导同文件与换文件 B 各一次，toasts 均只有「Excel 导入成功」、**不含**「照片已清除」— passed
+- T4 刷新提醒不回归：照片态刷新后 400ms 轮询捕获 toast「照片需重新上传 为保护隐私…」，名单「共 3 条」+匹配列=姓名 恢复、照片按设计清空 — passed
+- T5 「清空」按钮路径：带照片态点「清空」→ toast「数据已清空 可以重新导入新的 Excel 与照片」，未额外弹「照片已清除」（clearData 不经 applyExcel，符合预期）— passed
+- T6 冒烟回归：重导+匹配列+张伟.jpg → toast「照片已加载 本次匹配 1 张，当前覆盖率 33%」、卡片照片像素=纯红 [254,0,0] — passed
+- 全程 pageerror=0；storage 清理 + tabs left: []。
+- 产物：`/home/ubuntu/r232_t1.py`；截图 `/home/ubuntu/screenshots/r232_t1_toast.png`、`r232_t2_sheet_toast.png`、`r232_t3_negative.png`、`r232_t4_reload.png`、`r232_t5_clear.png`、`r232_t6_smoke.png`。
 # 第 231 轮（2026-08-11）：照片链路专项（无代码变更轮）✅ 全部判据 PASS——真实照片导入/覆盖率/卡片渲染正确；带照片重导/切 sheet 均静默清照片（UI 无提示，注记）；刷新有「照片需重新上传」明确提醒；匹配边界（同批完全一致优先、.JPG、空格括号名、双值文件名、未匹配/伪图错误明细）全过；导出 PNG 像素级验到照片真实渲染；照片文件名与二进制零外发；pageerror 0
 
 **环境**：生产真实 UI（entry `index-6teszdpy.js`，无新部署），headless CDP + Network 全量捕获；模板「照片核验版」（`/studio?template=withPhoto` 直达）；夹具 `/home/ubuntu/r231_fixtures/`（3 行名单双 sheet + 纯色 JPEG/PNG 可做像素断言 + 伪图片）。
