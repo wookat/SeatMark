@@ -1,3 +1,18 @@
+# 第 227 轮（2026-08-11）：/account 账号页与登录链路容错走查（无代码变更轮）✅ 全部判据 PASS——SES 未认证下登录不可用但体验诚实：/api/auth/code 返回 502 `{"error":"验证码发送失败，请稍后再试"}`，UI 原文透出、**无假成功**、可重试；前端邮箱校验零请求拦截；payload 仅 {email} 无名单外发；pageerror 0
+
+**环境**：生产真实 UI（entry `index-BRn1Rj39.js`，main 11889c7），headless CDP + Network 全量捕获 + 页内 fetch 钩子取响应体；测试邮箱 devin-r227-test@example.com（假邮箱）。
+
+**结果**：
+- T1 未登录态 UI：/account 直链 1280 与 390×844 视口均完整渲染（「邮箱验证码登录」表单+「获取验证码」按钮+每日 3 次说明），390 下 scrollWidth=390 无横向溢出 — passed
+- T2 前端邮箱校验：空值与 `abc` 提交均红字「请输入正确的邮箱地址」、期间 /api/auth/code 请求数 0、验证码框不出现 — passed
+- T3 真实发送容错（核心）：POST /api/auth/code {email} → **502** `{"error":"验证码发送失败，请稍后再试"}`；UI formError 原文透出、无「已发送」toast、codeSent 不置真（验证码框不出现）——错误路径诚实，与 [[default]].js:540 一致；线上未回显 devCode — passed
+- T4 可重试性：失败后「获取验证码」按钮 disabled=false，再点仍真实发出请求（同样 502 透出，未触发限频拦截）— passed
+- T5 payload 隐私：先在 /studio 导入 3 行名单再发送，body keys 恰 {email}，全部捕获请求中名单姓名串命中 0 — passed
+- T6 配额文案一致性：未登录导出弹窗文案「登录后无水印导出每天 3 次，分享链接每被点开 1 次再得 1 次…」与 /account 页说明（QUOTA_USER_DAILY=3）一致 — passed
+- T7 /account 直链刷新正常；/studio→/account→back→forward URL 与渲染正常 — passed
+- 全程 pageerror=0；storage 清理 + 全部测试 tab 关闭。
+- 注记：登录成功路径（验证码送达+verify）依赖 SES 认证修复，本轮按预期不可用，未覆盖登录后（云端同步/注销/分享送次数）功能面。
+- 产物：`/home/ubuntu/r227_t1.py`、`r227_t3b.py`；截图 `/home/ubuntu/screenshots/r227_account_1280.png`、`r227_account_390.png`、`r227_invalid_email.png`、`r227_send_result.png`、`r227_retry.png`、`r227_quota_copy.png`。
 # 第 226 轮（2026-08-11）：#228（哨兵三修）生产四测 ✅ **全部判据 PASS**——r225 P2（配额弹窗 /account 链接不跳）与 P3（孤儿哨兵占用一次返回）均已修复；单层弹窗 back 双通道、Esc/遮罩延迟回收、forward、快速切换 back、回归全过；pageerror 0
 
 **环境**：生产真实 UI，entry 翻转 `index-BYArTfAJ.js` → `index-BRn1Rj39.js`（main 11889c7，#228 已部署；bundle grep 证实含 `seatmarkModalSentinel`）。
