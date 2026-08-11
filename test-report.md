@@ -1,3 +1,17 @@
+# 第 239 轮（2026-08-11）：#241 导出文件名时间戳秒级 生产复测 ✅ 全部判据 PASS——同一分钟内连续两次相同 PNG 导出**两个 zip 均落盘**（`…-094227.zip` / `…-094233.zip`，秒位互异，r237 的同名去重丢文件问题闭环）；图片版 PDF 落盘 `电子座签 800×480-20260811-094738.pdf`（`-\d{8}-\d{6}\.pdf`）；整页导出与按字段命名无回归；pageerror 0
+
+**环境**：生产新 bundle `index-j8zuZYS6.js`（09:39 翻转确认，main a539193 含 #241 pngExport.ts:144 / pdfExport.ts:766 stamp 加 `pad(getSeconds())`），headless CDP，夹具 `/home/ubuntu/r231_fixtures/eink234.xlsx`，toast 判据用页内 MutationObserver（r237 口径）。
+
+**T1 同分钟双导出**：秒位 <35 时起跑，0942 分钟内连续两次 800 宽逐张导出——两次均 toast「PNG 图片已生成（3 张标签打包为 zip）」且**各自落盘**：`电子座签 800×480-800x480-20260811-094227.zip` 与 `…-094233.zip`（秒级互异；旧行为第二个必被 Chrome 同名去重丢弃）— passed。注：首轮尝试第 1 次导出命中既知低频「页面渲染不完整」快速失败 toast（0.8s，r237 已定性 1/25 级），重试轮两次全成功，非回归。
+
+**T2 PDF 秒级时间戳**：「图片版 PDF（推荐）」带水印导出 2.9s toast「图片版 PDF 已生成」，落盘 `电子座签 800×480-20260811-094738.pdf` 符合 `-\d{8}-\d{6}\.pdf` — passed。注：「打印 / 矢量 PDF」路径走浏览器打印对话框不落盘文件（设计如此，headless 下无打印预览，不在本轮判据内）。
+
+**T3 回归抽查**：整页导出成功，zip 内 `…-094413-001/002/003.png` 序号命名含秒级时间戳；按字段命名（模板 `{姓名}`）zip 内为 `张伟234.png`/`欧阳娜娜…234.png`/`𫔭𨱏234.png`——字段命名路径不含时间戳、不受 #241 影响 — passed。
+
+**T4 收尾**：pageerror=0 全部会话；storage 清理；SeatMark tabs 全关（仅剩 sw.js worker）。
+
+产物：`/home/ubuntu/r239_dl/`（7 zip + 1 pdf）、脚本 `/home/ubuntu/r239_t1.py`–`r239_t4.py`、截图 `/home/ubuntu/screenshots/r239_t1_two_success.png`、`r239_t2_pdf3.png`、`r239_t3_field.png`。headless 不录屏。
+
 # 第 237 轮（2026-08-11）：诊断 r236「与宽度无关的间歇性导出卡死」（生产，无代码变更）✅ 结论：**测试口径误判，非看门狗失效，撤销 r236 T-flake 的 P3 建议**——以 toast 为判据的受控复测 25 次导出（800/4096 交替）**全部 ≤3s 内收到成功或失败 toast，0 次卡死**；r236/r237 首轮的「卡死」由两个测试侧伪影叠加造成：① overlay 判据误匹配 AppHeader 常驻按钮文案「正在制作中」（studio 路由下该按钮永远显示此文案，导致「overlay 卡住」为假象）；② 文件落盘判据受 Chrome 下载去重影响——导出文件名仅含分钟级时间戳（`-YYYYMMDD-HHMM.zip`），同一分钟内的重复导出被静默丢弃不落盘（16 次成功 toast 仅 6 个文件落盘），file-based 检测便误报「无产物」。看门狗真实有效：捕获到一次真实渲染失败在 **1.1s** 即弹「PNG 生成失败 第 1/3 页渲染失败：页面渲染不完整（右侧内容未绘出）…」；取消按钮可用
 
 **环境**：生产 bundle `index-CXMSr-GO.js`（与 r236 相同，无新部署），headless CDP，夹具 `/home/ubuntu/r231_fixtures/eink234.xlsx`（3 行），`/studio?template=eink800` 自定义宽度 800/4096 交替。
