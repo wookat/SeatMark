@@ -1,3 +1,31 @@
+# 第 283 轮（2026-08-11）：剪贴板与文本输入边界稳健性审计（生产，无代码变更轮）✅ 主体判据 PASS（CRLF/CR/全角空格/制表符混排/超长单元格/10000 行大粘贴/emoji 导出/表单边界/IME 冒烟全过、pageerror=0、隐私零外发），⚠️ 1 个 P4 观察：零宽字符（\u200b/BOM）粘贴后不被过滤、随姓名进入数据与导出（打印不可见但占位）；另 1 处未覆盖：HTML 富文本真实剪贴板粘贴未执行（headless 限制，textarea 语义上取 text/plain）。
+
+**环境**：生产 /studio、/seating，CDP 29229 全新 incognito context。脚本 `/home/ubuntu/r283_p3.py`（T1 主体+T3+反馈）、`r283_p2.py`（大粘贴/seating/字段边界）、`r283_p4.py`、`r283_p5.py`；结果 r283_res*.json；导出物 `/home/ubuntu/r283_dl/`。代码基准 `utils/excel.ts:210-253` parsePastedRoster。
+
+## T1 粘贴导入极端内容 — PASSED（1 个 P4 观察）
+- CRLF：2 条 2 列、表头「姓名/班级」识别 ✅；老 Mac CR：3 条 ✅；全角空格 \u3000：转半角后按空白分列 2 列 ✅；\t+多空格混排：优先按 \t 分列、多空格保留在单元格内（符合代码语义）✅。
+- 零宽/BOM：`\ufeff姓名` 表头正常识别；但 `\u200b张三283` 的零宽字符**残留在姓名数据**（未过滤）——P4 观察：不可见字符随导出打印占位，建议解析时剥离 \ufeff/\u200b/\u200c/\u200d。
+- Emoji/组合字符（👨‍👩‍👧‍👦、é 组合、🎂）：3 条导入 ✅；600 字超长单元格：导入成功不报错 ✅。
+- 10000 行大粘贴：「识别到 10000 条数据、2 列」实时解析正确、点导入 0.4s 完成、toast「已导入 10000 条」、页面响应正常（evaluate 4ms）✅。测试侧注记：Playwright fill() 对 10000 行 textarea 两次超时（值实际已写入、计数正确）——自动化工具侧现象，真实用户单次粘贴不受影响，但提示粘贴框对超大文本的每次 input 重解析开销可留意。
+- 空/纯空白：导入按钮直接禁用（比 toast 更早的防线）✅。
+- 未覆盖：从网页复制的 HTML 富文本真实粘贴（需要真实剪贴板 text/html，headless CDP 未执行；textarea 粘贴语义上仅取 text/plain）。
+
+## T2 表单输入边界 — PASSED
+- /studio 名单单元格注入 \u0007+300 字后刷新渲染：pageerror=0、页面正常（r283_t2_longcell.png）。
+- /seating 列数输入 0/99/-1 → 钳制为 1/16/1（min=1 max=16）✅；1000 行名单粘贴后页面响应 5ms 不卡死 ✅。
+- 反馈表单：textarea maxlength=2000 前端硬截断（2500 字→2000、计数器 2000/2000）——「不能超过 2000 字」toast 经 UI 不可达（双保险）；含 emoji 提交成功「感谢反馈！」+ POST /api/feedback（已提交 1 条标注可忽略的测试反馈）。
+
+## T3 Emoji 导出回归 — PASSED（附注记）
+emoji 名单带水印导出 zip 3 张 PNG（1000×534），PIL 验非空白（非白像素采样 1085-1248）✅；预览截图 r283_t3_preview.png。注记：首次导出尝试曾 300s 无下载（无报错文案），重开 context 重试即成功——偶发未复现，如再遇可关注导出首次运行的资源加载。豆腐块判定基于 PNG 非空白+预览截图，未做逐字形像素比对。
+
+## T4 IME 冒烟（Regression r21）— PASSED
+/seating 标题逐字键入「输入法冒烟283」值完整；/studio 模板搜索框逐字键入后搜索功能正常（r283_t4_ime.png）。
+
+## T5 常规 — PASSED
+全程 pageerror=0（所有脚本）；第三方请求扫标记串（张三283/学生283/蛋糕283/输入法冒烟等）零命中；storage 清理、context 全关、常驻 Chrome 未动。
+
+---
+
 # 第 282 轮（2026-08-11）：全站 SEO 元数据与结构化数据一致性审计（生产，无代码变更轮）✅ 全部判据 PASS，零发现——13 页抽样 title 唯一/canonical 规范/OG 卡片齐全、JSON-LD 全部合法且字段完整（pricing FAQ 6 条=源数据）、sitemap 331 条抽 15 全 200 非软 404、/account /admin noindex、无效 slug 真 404、SPA 导航 head 同步正常。
 
 **环境**：以当前线上为基线（entry index-DQXCHqb-.js）。curl 静态源审计脚本 `/home/ubuntu/r282_audit.py`（结果 `/home/ubuntu/r282_audit.json`）+ 浏览器 SPA head 同步 `/home/ubuntu/r282_t6.py`。代码基准：`data/seo.ts`（单一数据源）、`scripts/prerender.mjs`（同清单生成预渲染页与 sitemap）。

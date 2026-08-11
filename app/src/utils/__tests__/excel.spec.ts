@@ -56,6 +56,13 @@ describe('parsePastedRoster', () => {
     expect(forced.rows).toHaveLength(1)
   })
 
+  it('零宽空格与 BOM 剥离；emoji ZWJ 序列保留', () => {
+    const parsed = parsePastedRoster('\ufeff姓名\n\u200b张伟\u200b\n👨‍👩‍👧‍👦\n')
+    expect(parsed.headerDetected).toBe(true)
+    expect(parsed.headers).toEqual(['姓名'])
+    expect(parsed.rows.map((r) => r['姓名'])).toEqual(['张伟', '👨‍👩‍👧‍👦'])
+  })
+
   it('空文本返回空结果', () => {
     expect(parsePastedRoster('  \n \n')).toEqual({ headers: [], rows: [], headerDetected: false })
   })
