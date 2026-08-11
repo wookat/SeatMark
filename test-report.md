@@ -1,3 +1,21 @@
+# 第 225 轮（2026-08-11）：#226 哨兵方案生产三测 ✅ 核心返回键拦截**生效**（单层弹窗 back 只关弹窗、URL 保持、名单在，双通道 2/2；Esc/遮罩关闭哨兵正确回收）❌ **新增 P2 回归**：配额引导弹窗内 /account 登录链接点击后不再跳转（2/2 复现，r223 该项 passed）；另有哨兵残留 P3；pageerror 0
+
+**环境**：生产真实 UI，entry 翻转 `index-DvH8Q9XM.js` → `index-BYArTfAJ.js`（main cb7a17f，#226 已部署；bundle grep 证实含 `seatmarkModalDepth`）。
+
+**结果**：
+- T1 单层弹窗后退（核心）：/studio「共 3 条」→ 开「图片 PNG」弹窗（history.state.seatmarkModalDepth=1）→ history.back()：弹窗关、**URL 仍 /studio**、名单在、哨兵态清除；再 back 才真正离开到 /，forward 回来名单保持。CDP `Page.navigateToHistoryEntry` 原生返回通道同样通过（历史尾部可见同 URL 哨兵条目 /studio×2）— **passed（2/2 双通道）**
+- T3 Esc/遮罩关闭哨兵回收：Esc 关与遮罩点击关后 history.state 均无 seatmarkModalDepth（哨兵被 history.back() 回收），随后**一次** back 即离开 /studio、无多跳 — passed
+- T5 前进键（#226 特有风险）：back 关弹窗后 forward → 落回哨兵条目（URL /studio 不变、弹窗不重开、sentinel=1、名单在、无 pageerror），再 back 正常 — passed（如实记录：forward 存在一格「原地」条目，属方案固有）
+- T4 弹窗内站内链接：**failed（P2 回归）**——配额引导弹窗（「今日无水印导出次数已用完」，注：此时 history.state 已无哨兵）内点 /account 链接，URL 100ms 采样全程 /studio、弹窗关闭、最终仍停 /studio，跳转**未发生**（2/2 复现；r223 同判据 passed）。疑因 chooseClean「关导出弹窗→开配额弹窗」过渡中 consumeSentinel 的异步 history.back() 与 RouterLink 的 router.push 竞态，popstate 取消进行中的导航，且弹窗快速切换时哨兵计数失衡。
+- T4b 单层导出弹窗开着直接点站内链接（/templates）：跳转成功、弹窗关；但哨兵条目**残留**在历史（entries: /studio, /studio(哨兵), /templates）——从 /templates 按 back 需两次才能离开 /studio（第一次落在哨兵原地）— **P3 注记**（历史不干净，consumeSentinel 在路由已变时不回收）
+- T2 叠层弹窗逐层关 — **untested**（「浏览全部」弹窗开启时侧栏扫码按钮被遮罩覆盖，产品仍无稳定两层 ModalDialog 叠加路径，与 r223 结论一致）
+- T6 回归：/templates `?cat=event&q=桌牌` 进详情返回——URL 参数/搜索词/分类/scrollY=500 全恢复；无弹窗 /studio↔/ 往返名单保持 — passed
+- 全程 pageerror=0；storage 清理 + 全部测试 tab 关闭。
+- 产物：`/home/ubuntu/r225_t1.py`、`r225_t2.py`、`r225_t4b.py`、`r225_t4c.py`；截图 `/home/ubuntu/screenshots/r225_dialog_open.png`、`r225_after_back1.png`、`r225_native_back.png`、`r225_quota_dialog.png`、`r225_after_account_click.png`。
+
+# 第 224 轮（2026-08-11）：代码变更轮说明——#226 弹窗返回键拦截二修（哨兵方案）
+
+- `app/src/components/ui/ModalDialog.vue` 重写拦截：弃用 #225 的 popstate 时间戳 + router.beforeEach 守卫（r223 验收 P2 未生效）；改为打开时 `pushState({...当前state(含 position), seatmarkModalDepth: openStack.length}, '', 同URL)` 哨兵条目；popstate 落到 depth<openStack.length 的条目时关顶层弹窗；Esc/遮罩/程序关闭时若哨兵仍是当前条目则 history.back() 回收；无 router 守卫；SSR 判空。生产验收见第 225 轮。
 # 第 223 轮（2026-08-11）：#225 弹窗返回键拦截生产验收 ❌ **核心判据 FAILED（P2）**——弹窗打开按后退仍整页跳走（4/4 复现，含 CDP 原生返回），守卫代码在 bundle 内但未生效；无弹窗导航/弹窗内链接/Esc 后关闭等回归项全过；pageerror 0
 
 **环境**：生产真实 UI，entry 已翻转 `index-m3vMPIl7.js` → `index-DvH8Q9XM.js`（main 87afa16，#225 已部署；bundle grep 证实含 popstate 时间戳+beforeEach 守卫逻辑）。

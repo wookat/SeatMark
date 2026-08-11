@@ -3,51 +3,71 @@
 const openStack: symbol[] = []
 /** 各弹窗实例的关闭回调：供返回键关闭顶层弹窗 */
 const closeHandlers = new Map<symbol, () => void>()
-/** 各弹窗实例哨兵条目的深度：用于判断关闭时是否需要回收哨兵 */
-const sentinelDepths = new Map<symbol, number>()
+/** 各弹窗实例哨兵条目的唯一号：用于判断关闭时是否需要回收哨兵 */
+const sentinelIds = new Map<symbol, number>()
+/** 各哨兵推入时的页面地址：回收前校验路由未变，避免与导航竞态 */
+const sentinelHrefs = new Map<number, string>()
 
-const SENTINEL_KEY = 'seatmarkModalDepth'
+const SENTINEL_KEY = 'seatmarkModalSentinel'
 let popListenerInstalled = false
+let sentinelSerial = 0
 
-function currentSentinelDepth(): number {
-  const state = window.history.state as Record<string, unknown> | null
-  const depth = state?.[SENTINEL_KEY]
-  return typeof depth === 'number' ? depth : 0
+function stateSentinelId(state: unknown): number | null {
+  const value = (state as Record<string, unknown> | null)?.[SENTINEL_KEY]
+  return typeof value === 'number' ? value : null
 }
 
 /**
  * 返回键拦截（哨兵方案）：弹窗打开时 pushState 一条同 URL 哨兵历史条目；
- * 按返回时 popstate 回到哨兵之前的条目，只关顶层弹窗而不离开页面。
+ * 按返回时 popstate 离开顶层哨兵条目，只关顶层弹窗而不离开页面。
  * 哨兵复制当前路由 state（含 position），vue-router 视为原地不动，不触发导航。
+ * 落到孤儿哨兵条目（对应弹窗已不存在）时自动再退一步，避免死条目占用一次返回。
  */
 function installPopListener() {
   if (popListenerInstalled || typeof window === 'undefined') return
   popListenerInstalled = true
   window.addEventListener('popstate', (event) => {
-    if (!openStack.length) return
-    const state = event.state as Record<string, unknown> | null
-    const depth = typeof state?.[SENTINEL_KEY] === 'number' ? (state[SENTINEL_KEY] as number) : 0
-    if (depth >= openStack.length) return
-    const top = openStack[openStack.length - 1]
-    if (top) closeHandlers.get(top)?.()
+    const landedId = stateSentinelId(event.state)
+    if (openStack.length) {
+      const top = openStack[openStack.length - 1]
+      const topId = top ? sentinelIds.get(top) : undefined
+      if (top && topId !== undefined && landedId !== topId) {
+        closeHandlers.get(top)?.()
+      }
+    }
+    if (landedId !== null && ![...sentinelIds.values()].includes(landedId)) {
+      // 孤儿哨兵（对应弹窗已关闭/导航离开后遗留）：透明跳过
+      window.history.back()
+    }
   })
 }
 
 function pushSentinel(id: symbol) {
   if (typeof window === 'undefined') return
   installPopListener()
-  const depth = openStack.length
-  sentinelDepths.set(id, depth)
+  const serial = ++sentinelSerial
+  sentinelIds.set(id, serial)
+  sentinelHrefs.set(serial, window.location.href)
   const base = (window.history.state as Record<string, unknown> | null) ?? {}
-  window.history.pushState({ ...base, [SENTINEL_KEY]: depth }, '', window.location.href)
+  window.history.pushState({ ...base, [SENTINEL_KEY]: serial }, '', window.location.href)
 }
 
-/** 弹窗以非返回键方式关闭（Esc/遮罩/程序）时回收未消耗的哨兵条目 */
+/**
+ * 弹窗以非返回键方式关闭（Esc/遮罩/程序）时回收未消耗的哨兵条目。
+ * 延迟执行并二次校验：若期间发生了路由导航或又有新弹窗推入哨兵，
+ * 则放弃回收（避免 history.back() 取消进行中的 router.push）。
+ */
 function consumeSentinel(id: symbol) {
-  const depth = sentinelDepths.get(id)
-  sentinelDepths.delete(id)
-  if (typeof window === 'undefined' || depth === undefined) return
-  if (currentSentinelDepth() === depth) window.history.back()
+  const serial = sentinelIds.get(id)
+  sentinelIds.delete(id)
+  if (typeof window === 'undefined' || serial === undefined) return
+  const href = sentinelHrefs.get(serial)
+  sentinelHrefs.delete(serial)
+  window.setTimeout(() => {
+    if (stateSentinelId(window.history.state) !== serial) return
+    if (href !== undefined && window.location.href !== href) return
+    window.history.back()
+  }, 50)
 }
 </script>
 
@@ -147,7 +167,7 @@ onBeforeUnmount(() => {
   const idx = openStack.indexOf(instanceId)
   if (idx >= 0) openStack.splice(idx, 1)
   closeHandlers.delete(instanceId)
-  sentinelDepths.delete(instanceId)
+  sentinelIds.delete(instanceId)
 })
 </script>
 
