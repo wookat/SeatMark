@@ -1,3 +1,35 @@
+# 第 290 轮（2026-08-12）：#291 blob 存储后登录全链路 + #292 分散对齐折行回退 ⚠️ 两项修复本体均验证生效（登录成功/刷新保持/错码专属文案；折行回退居中+单行分散不回归），但**新发现 P2**：/api/auth/code 与 /api/auth/verify 间歇返回 545「Error return from script」（受控探测 6/24 ≈25%），UI 无任何反馈提示；且 verify 遇 545 后原验证码记录疑似丢失（后续同码报「已过期」）。另：登出分支 UNTESTED（测试自身触发 IP 日限 20 次 429，无法再发码）。
+
+**环境**：部署确认 entry `index-DEJK6L2z.js`；线上 /api/auth/* 响应头 `X-SeatMark-Storage: blob`（#291 生效实测）。CDP 全新 incognito context 打生产；收码 mail.tm（@emalupe.com）。脚本 `/home/ubuntu/r290_login*.py`、`r290_justify.py`、`r290_export.py`、`r290_analyze.py`；结果 `r290_login.json`、`r290_login3.json`、`r290_justify.json`、`r290_export.json`、`r290_analyze.json`、`r290_pdf_analyze.json`；导出物 `/home/ubuntu/r290_dl/`。计划 test-plan-round290.md。
+
+## T1 登录全链路（#291，r289 T3/T4 补测）— 主体 PASSED（登出 UNTESTED）
+- 发码：200 `{"ok":true,"delivery":"email"}`、storage=blob；toast「验证码已发送」；mail.tm 真实收码。截图 r290_sent.png。
+- **错码专属文案（r289 被 memory 掩盖的分支闭环）**：真码±1 提交 → 400 `{"error":"验证码不正确"}`、storage=blob；UI 显示「验证码不正确」。截图 r290_wrongcode.png。
+- **verify 登录成功（r289 16/16 失败 → 本轮成功）**：真码提交后进入个人中心，显示邮箱 seatmark290x553238@emalupe.com、「今日无水印导出配额 3/3」及「每日 0 点恢复为 3 次」登录态配额文案（与匿名 1 次区分）。截图 r290_loggedin.png（OCR 复核文案）。
+- 刷新保持登录：reload 后仍个人中心（/api/auth/me 返回用户驱动前端恢复）。截图 r290_refresh.png。注：该成功轮脚本在登出步骤崩溃（登出按钮实际在头部头像下拉菜单 AppHeader.vue 内，脚本按钮定位错误超时），API 明细 JSON 未落盘，登录/刷新证据以截图+OCR 为准。
+- **登出 — UNTESTED**：重跑补测时 /api/auth/code 返回 429「请求过于频繁，请明天再试」（IP 日限 20 次被本轮探测耗尽；限频键为 UTC 日期，约 4 小时后重置）——顺带实证 **IP 日限频在 blob 下已生效**（r289 memory 下不生效的既有运维项闭环）。
+- storage 头：全部有响应头的 /api/auth/* 均 blob；**545 响应无 X-SeatMark-Storage 头**（EdgeOne 网关级错误页）。
+- payload 仅 {email, code}（名单零外发）；pageerror=0。
+
+## T2 **P2 新发现：auth 接口间歇 545「Error return from script」**
+- 受控探测 12 组「发码+错码 verify」：/api/auth/code 200×9 + 545×3；/api/auth/verify 400×9 + 545×3（合计 6/24 ≈25%）。间歇性、重试通常可过 → 疑似部分 EdgeOne 边缘实例上 `@edgeone/pages-blob` 运行时抛异常未被捕获（#291 改字面量 import 后新出现的形态）。
+- 用户可见影响：①UI 无反馈——发码/登录点击后无 toast 无错误文案（前端未处理非 JSON 545 响应）；②一轮实测中 verify 遇 545 后，同一真码重试报「验证码已过期」（记录疑似在崩溃路径中丢失/未回写），用户需重新收码且受 60s 重发与 IP 日限约束。复现明细 r290_login.json（verify 545→已过期序列）、r290_login3.json（429）。
+- 建议：verify/code 主路径包 try/catch 落 5xx JSON+storage 头；前端对非 2xx/非 JSON 响应给通用错误 toast。
+
+## T3 #292 分散对齐折行回退 — PASSED（预览判据）
+- 复现 r288 场景（TAB 分列「创新 网络科技公司」+姓名字段分散对齐+maxLines=2）：折行字段 computed textAlign/textAlignLast=**center**（data-justify=1 存在，adjustJustify 生效；r288 旧行为 justify 可区分）；Range 实测第一行「创新 」墨迹 leftGap=rightGap=42px、span=27.6%——**整体居中不再拉到两端**。截图 r290_wrap_justify.png、整页 r290_preview_justify.png。
+- 单行不受影响：张三/王小明 textAlignLast=justify、行内墨迹 span=100%（首尾贴边）。截图 r290_zs_justify.png、r290_wxm_justify.png。
+- 普通居中对齐折行对比：切回「居中」后同内容 textAlign=center/textAlignLast=auto，截图 r290_wrap_center.png（与分散对齐折行回退后形态一致——视觉对比用）。
+
+## T4 单行分散对齐导出回归（Regression，r288 像素判据沿用）— PASSED
+- 带水印逐张 PNG（1000px 宽）：张三墨迹 span=97.5%/2 簇首尾贴边、王小明 span=97.3%；折行卡第一行 span=47.5% 居中（left 24.6%/right 27.9%，非两端拉伸）。裁片 /home/ubuntu/r290_dl/crop_zs.png、crop_wxm.png、crop_wrap_l1.png。
+- 图片版 PDF（pdftoppm 150dpi）：张三 span=97.3%/2 簇、王小明 span=97.3%；折行卡第一行 span=26.8%、左右留白各 36.6%——**完美居中**。裁片 pdf_zs_crop.png、pdf_wxm_crop.png、pdf_wrap_l1_crop.png。
+
+## T5 常规 — PASSED
+第三方请求扫名单标记串零命中；pageerror=0（登录+设计器+导出全程）；storage 清理、context 全关、常驻 Chrome 未动。headless CDP 未录屏。
+
+---
+
 # 第 289 轮（2026-08-12）：SES 认证后登录全链路线上复测 ⚠️ 发码链路 PASS（502→200 闭环、邮件真实送达），**verify 全部失败**——生产 `X-SeatMark-Storage: memory` 跨实例读不到验证码（发码与验码落在不同边缘实例），登录成功分支（T3/T4）untested。属既有运维限制（KV/Blob 未绑定），非本次代码缺陷；但当前效果是**线上用户实际无法完成登录**。
 
 **环境**：CDP 全新 incognito context 打生产 /account；收码邮箱用 mail.tm API（@emalupe.com 随机地址）。脚本 `/home/ubuntu/r289_run.py`、`r289_retry.py`，结果 `r289_res.json`、`r289_res2.json`。
