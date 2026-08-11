@@ -1,3 +1,29 @@
+# 第 279 轮（2026-08-11）：多页签/多实例并发一致性专项（生产，无代码变更轮）✅ 主体判据 PASS（名单页签隔离、#153 写竞争防护、seating/studio 互不干扰、双击导出防重、pageerror=0、隐私零外发），⚠️ 发现 **1 个 P4**：匿名无水印配额跨页签不同步——A 页签消耗当日 1 次后，B 页签（未刷新）仍显示「今日剩余 1 次」且可再次无水印导出，且写回为覆写（used 仍=1 而非 2）——每多开一个页签实际可多得 1 次无水印导出；刷新后口径恢复正确（「今日剩余 0 次」并拦截）。
+
+**环境**：CDP 29229 全新 incognito context 内开双 page（同源共享 localStorage、独立 sessionStorage）打生产。脚本 `/home/ubuntu/r279_p2.py`（T2/T3/T4/T5）与 inline T1 重跑；请求 `/home/ubuntu/r279_reqs.json`（106 条第三方扫描）。
+
+## T1 双页签 /studio 名单隔离 + 模板共享 — PASSED
+A 粘贴 3 条（页签A279-*）「共 3 条」、B 粘贴 2 条「共 2 条」；各自 sessionStorage roster 只含本页签名单（互不污染）；B 换模板「大字远视版」→ A 刷新后模板跟随 B（localStorage 共享的既有语义）且 A 名单仍「共 3 条」（sessionStorage 本页签保留）。截图 r279_t1_A.png、r279_t1_B.png。
+
+## T2 自定义模板写竞争（Regression r138/#153）— PASSED
+A、B 相继经设计器保存「定制A279」「定制B279」→ `seatmark.custom-templates.v1` 同时含两条（写前 syncFromStorage 生效，后写不覆盖先写）；A 页签无需刷新即在模板列表看到「定制B279」（storage 事件同步生效）。截图 r279_t2_A.png、r279_t2_B.png。
+
+## T3 配额跨页签一致性 — ⚠️ 发现 P4
+A 无水印导出 1 次成功 → localStorage `{used:1}` ✅；B（未刷新）弹窗仍「无水印导出（今日剩余 1 次）」（内存陈旧，代码无 storage 监听）→ B 无水印导出**成功放行**，且写回仍 `{used:1}`（内存 0+1 覆写，未累加）→ 匿名日配额（1 次）实际按页签数放大。B 刷新后「今日 0 次…今日剩余 0 次」正确拦截 ✅。影响面：仅未登录本地计数（已登录走服务端计数不受影响）、且匿名配额本可通过清 storage 绕过，故评 P4；修复方向：quota store 加 storage 事件监听 + tryConsume 前重读 localStorage。证据截图 r279_t3_B_stale.png（B 陈旧显示）、r279_t3_B_after.png。
+
+## T4 /seating 与 /studio 互不干扰 — PASSED
+A /studio 名单 3 条、B /seating 标题改「并发279考场」→ `seatmark.seating-state.v1` 落盘、B 刷新后标题仍在；A 刷新名单仍「共 3 条」、roster 无 seating 数据写串。截图 r279_t4_seating.png。
+
+## T5 快速连点导出 — PASSED
+带水印连点 2 次（第二次点击被 loading 遮罩阻断，Playwright 超时）→ 仅 1 次下载（1 个 zip）、配额 used 不变；无水印路径配额只 +1。截图 r279_t5_dblclick.png。
+
+## T6 常规 — PASSED
+106 条第三方请求扫「页签A279/页签B279/并发279考场」零命中；全程 pageerror=0；storage 清理、context 全关、常驻 Chrome 未动。
+
+测试侧注记：/studio 刷新后立即 page.screenshot 偶发超时（字体/预览渲染忙），加 timeout+捕获重试即可；不影响断言（断言走 evaluate/文案）。
+
+---
+
 # 第 278 轮（2026-08-11）：/papers 纸型库全链路专项（生产，无代码变更轮）✅ 全部判据 PASS：列表 17 款与源数据/页首宣称三方一致、抽 5 款规格逐字一致、详情/深链/404、纸型→工坊锁定与不适配自动换模板（r83）、自由排版解锁（r133）、21 格整页导出切缝像素级命中、跨模板纸型携带与不适配重置（r76）、隐私零外发、pageerror=0。
 
 **环境**：CDP 29229 全新 incognito context 打生产。脚本 `/home/ubuntu/r278_run.py`、`r278_t5b.py`、`r278_t5c.py`（inline）；请求 `/home/ubuntu/r278_reqs.json`、`r278_reqs_t45.json`；导出物 `/home/ubuntu/r278_dl/标准考场版-*.zip`。

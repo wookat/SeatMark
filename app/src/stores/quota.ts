@@ -50,6 +50,15 @@ export const useQuotaStore = defineStore('quota', () => {
   /** 达到限额时打开的引导弹窗 */
   const limitDialogOpen = ref(false)
 
+  // 多页签同步：其他页签消耗配额后本页签的剩余次数实时跟随
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (event) => {
+      if (event.key === STORAGE_KEY) {
+        localUsage.value = loadLocalUsage()
+      }
+    })
+  }
+
   const anonRemaining = computed(() => {
     const usage =
       localUsage.value.date === todayStr() ? localUsage.value : { date: todayStr(), used: 0 }
@@ -97,14 +106,16 @@ export const useQuotaStore = defineStore('quota', () => {
       }
     }
 
-    if (localUsage.value.date !== todayStr()) {
-      localUsage.value = { date: todayStr(), used: 0 }
-    }
-    if (localUsage.value.used >= QUOTA_ANON_DAILY) {
+    // 消耗前重读本地计数并取与内存的较大值：其他页签已消耗的次数不被覆写回退
+    const stored = loadLocalUsage()
+    const memoryUsed = localUsage.value.date === todayStr() ? localUsage.value.used : 0
+    const used = Math.max(stored.used, memoryUsed)
+    if (used >= QUOTA_ANON_DAILY) {
+      localUsage.value = { date: todayStr(), used }
       limitDialogOpen.value = true
       return { ok: false, reason: 'anon-limit' }
     }
-    localUsage.value = { date: localUsage.value.date, used: localUsage.value.used + 1 }
+    localUsage.value = { date: todayStr(), used: used + 1 }
     persistLocal()
     return { ok: true }
   }
