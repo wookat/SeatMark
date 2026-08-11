@@ -163,8 +163,13 @@ export const router = createAppRouter()
 router.afterEach(async (to) => {
   if (typeof window === 'undefined') return
 
-  const { applySeo } = await import('@/utils/seo')
-  applySeo(to.path)
+  // 离线等网络异常时 SEO 模块加载失败不应产生裸 pageerror，跳过本次更新即可
+  try {
+    const { applySeo } = await import('@/utils/seo')
+    applySeo(to.path)
+  } catch {
+    // ignore: 下次导航会重试
+  }
 
   const path = to.fullPath
 

@@ -8,6 +8,18 @@ export const MAX_TITLE_ROWS = 3
 /** 单单元格行被视为大标题（而非单列表头）的最短文本长度 */
 export const MIN_TITLE_TEXT_LENGTH = 6
 
+/**
+ * 加载 xlsx 解析分包。动态 import 一旦网络失败会被浏览器按 URL 缓存为永久 reject，
+ * 此时给出明确的刷新引导，而不是透出模块加载的技术性错误。
+ */
+async function loadXlsx() {
+  try {
+    return await import('xlsx')
+  } catch {
+    throw new Error('表格组件加载失败（可能是网络异常），请刷新页面后重试')
+  }
+}
+
 /** CSV 文本解码：UTF-8（含 BOM）优先，非法字节序列时回退 GB18030 */
 export function decodeCsvText(bytes: Uint8Array): string {
   try {
@@ -19,7 +31,7 @@ export function decodeCsvText(bytes: Uint8Array): string {
 
 /** 解析 Excel 文件指定（默认首个）工作表：自动跳过前置大标题/空行定位表头行，其余为数据行 */
 export async function parseExcelFile(file: File, targetSheet?: string): Promise<ParsedExcel> {
-  const XLSX = await import('xlsx')
+  const XLSX = await loadXlsx()
 
   let buffer: ArrayBuffer
   try {
@@ -138,7 +150,7 @@ export function compareCellText(a: string, b: string): number {
 /** 按当前模板场景生成并下载样例 Excel（本地生成，不经过服务器） */
 export async function downloadSampleExcel(template: LabelTemplate): Promise<SampleExcel> {
   const sample = sampleExcelFor(template)
-  const XLSX = await import('xlsx')
+  const XLSX = await loadXlsx()
   const sheetData = [
     sample.headers,
     ...sample.rows.map((row) => sample.headers.map((h) => row[h] ?? '')),

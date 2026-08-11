@@ -1,3 +1,25 @@
+# 第 266 轮（2026-08-11）：#270 导入面板空闲预取 xlsx 分包线上复测（生产）⚠️ 主判据 PASS（空闲预取 0.36s 即拉取、首导 0.132s 热量级、竞态导入正常、回归全过），但发现 **1 个 P3**：预取网络失败后（失败本身静默）后续导入被浏览器模块缓存钉死——恢复网络重试 0 次网络请求、toast 直露英文错误「Failed to fetch dynamically imported module…」，需刷新页面才能导入
+
+**部署确认**：entry hash 翻转 `index-C2ENcB-P.js`（r264）→ `index-BC7trUVn.js`（轮询第 2 分钟命中）。环境：CDP 29229 全新 incognito context。代码依据：`DataImportPanel.vue:134-144`（onMounted 后 `requestIdleCallback(()=>import('xlsx').catch(()=>{}),{timeout:3000})`，Safari 兜底 setTimeout 1500ms）。脚本 `/home/ubuntu/r266_run.py`、`r266_t3b.py`、`r266_t3c.py`。
+
+**T1 阳性（主判据）**：全新 context 打开 /studio 无任何交互，load 后 **0.36s** 即见 `vendor-xlsx-CKwrMZHi.js` 网络拉取（r264 对照：直到导入才拉取——可区分判据）；随后首次导入 r113_40.xlsx **0.132s**（判据 ≤0.2s；r264 冷路径 0.17–1.5s），导入期间无新 chunk 拉取 — passed
+
+**T2 竞态（打开后立即导入）**：DOM ready 即注入文件（不等空闲）→ 无 pageerror、toast「已读取 40 条数据」0.139s、「共 40 条」— passed
+
+**T3 预取失败与恢复**：
+- 失败静默（阻断 `vendor-xlsx*` 请求模拟预取网络失败）：预取被 abort，pageerror=0（`.catch` 生效）、页面正常 — passed
+- **恢复后导入不可用（P3）**：解除阻断后导入 → toast「Excel 导入失败 Failed to fetch dynamically imported module: …vendor-xlsx-CKwrMZHi.js」，且重试期间 vendor-xlsx **网络请求 0 次**——Chrome 对同 URL 动态 import 失败做模块级缓存，`import('xlsx')` 永久 reject，直到**刷新页面**（刷新后导入 0.094s 正常）。真离线复现（CDP offline 6s 后恢复）同样导入失败。最小复现：打开 /studio 时短暂断网 3s（覆盖预取窗口）→ 恢复网络 → 导入任意 xlsx → 失败且重试无效 — **failed（P3）**
+- 附带观察（P4，非 #270 引入）：真离线窗口内路由守卫 `router/index.ts:166` `await import('@/utils/seo')` 无 catch，产生 pageerror「Failed to fetch dynamically imported module: …seo-*.js」——离线时既有动态导入链路的裸错误。
+- P3 定级理由：#270 把 xlsx chunk 拉取提前到页面打开后 3s 内的空闲窗口，**放大了瞬时网络抖动的暴露面**——修复前失败发生在用户主动导入时（可感知、重试常伴随刷新），修复后页面打开时的一次抖动会静默埋雷，之后网络已恢复仍导入失败且 toast 直露英文技术错误、无「请刷新重试」引导。建议：import 失败时带时间戳 query 重试一次（绕开模块缓存），或 catch 后提示「网络异常，请刷新页面后重试」。
+
+**T4 回归（Regression）**：粘贴 3 行（张伟266-*）「共 3 条」— passed；双 sheet roster231.xlsx 导入成功「共 3 条」+逐张 PNG zip 3 张 0 空白 — passed；注记：本轮页面未出现 sheet 切换按钮（S2 marker 不在 DOM），sheet 切换判据**未测**（r231/r232 已验过该链路），如实记录。
+
+**T5 常规**：交互会话 pageerror 仅上述 T3 离线 seo 观察项（预取路径本身 0）；请求标记串（张伟266）命中 0；storage 清理、context 全关、常驻 Chrome 未动 — passed
+
+**结论**：#270 主目标达成（预取生效、冷导入降至热量级、竞态安全），但预取失败后的恢复路径不成立（P3，复现与建议见上）。计划：`test-plan-round266.md`。产物：`/home/ubuntu/r266_dl/`、`/home/ubuntu/r266_reqs.json`、`r266_reqs_t3b.json`；截图 `/home/ubuntu/screenshots/r266_t1_imported.png`、`r266_t2_race.png`、`r266_t3_failtoast.png`、`r266_t3_reload_ok.png`、`r266_t4_sheet.png`。
+
+---
+
 # 第 264 轮（2026-08-11）：Lighthouse 与性能周期回归（无代码变更轮，上次 r233）✅ 无 >15% 劣化——移动中值 home 97（回升）/ studio 80 / templates 96 / seating 99 / account 83，CLS 五页全 0；桌面 home 100·studio 99（较 r233 88 改善）；主 chunk gzip 106.3KB（≈基线 107KB，未增长）；40 行导入热 0.046s；粘贴 100 行解析 81ms/导入 92ms 无卡顿；逐张 PNG 100 张 5.9s；pageerror 0
 
 **环境**：生产 entry 已翻转 `index-EbJxTvBJ.js`（r233）→ `index-C2ENcB-P.js`（含 #259 启动骨架、#261 横滑提示、#265/#267 粘贴导入）。口径与 r233 一致：lighthouse@13.4.1 npx、mobile 模拟节流每页 3 跑取中值、桌面 preset 2 跑；原始 JSON `/home/ubuntu/r264_lighthouse/`（19 份），脚本 `/home/ubuntu/r264_lh.sh`、`r264_t3.py`、`r264_cold.py`。
