@@ -515,6 +515,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     excel.headers = data.headers
     excel.rows = data.rows
     previewPage.value = 1
+    if (photos.value.size > 0) {
+      toast.info('照片已清除', '数据源已更换，照片需重新上传并匹配')
+    }
     clearPhotos()
     resetDataView()
     clearAllOverrides()
