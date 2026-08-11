@@ -156,6 +156,17 @@ export function exactPixelNamePrefix(prefix: string, width: number, height: numb
 /** 精确像素模式的超采样倍数：先按 2 倍渲染再高质量缩到目标尺寸，文字边缘更平滑 */
 export const EXACT_PIXEL_SUPERSAMPLE = 2
 
+/**
+ * 精确像素模式实际采用的超采样倍数：
+ * 超采样后的渲染宽度不得超过 MAX_EXACT_PIXEL_WIDTH（大画布会让 html2canvas 渲染失败无响应），
+ * 超出时退回 1 倍直出——大宽度本身像素已足够，不依赖超采样抗锯齿。
+ */
+export function exactPixelSupersample(targetWidthPx: number): number {
+  return targetWidthPx * EXACT_PIXEL_SUPERSAMPLE <= MAX_EXACT_PIXEL_WIDTH
+    ? EXACT_PIXEL_SUPERSAMPLE
+    : 1
+}
+
 /** PNG 输出基准倍率：300dpi（96 CSS px/in × 3.125） */
 export const PNG_BASE_SCALE = 3.125
 /** 小尺寸标签的最小输出宽度（px）：保证屏幕查看/二次编辑时文字清晰 */
@@ -329,7 +340,8 @@ export async function exportPagedPng(options: PngExportOptions): Promise<void> {
   // 先按 2 倍超采样渲染再高质量缩到目标尺寸，文字边缘更平滑
   const designWidthMm = options.cropRect?.width ?? options.pageWidth
   const scale = options.exactPixels
-    ? exactPixelScale(options.exactPixels.width, designWidthMm) * EXACT_PIXEL_SUPERSAMPLE
+    ? exactPixelScale(options.exactPixels.width, designWidthMm) *
+      exactPixelSupersample(options.exactPixels.width)
     : (options.scale ?? pngRasterScale(designWidthMm))
   const pxPerMm = CSS_PX_PER_MM * scale
   const sourceRect =
@@ -412,7 +424,8 @@ async function exportPerLabelPng(
   // 精确像素：按标签设计宽度（同模板各枚等宽）映射渲染倍率 + 2 倍超采样
   const labelWidthMm = labelsByPage.find((p) => p.length)?.[0]?.rect.width ?? options.pageWidth
   const scale = options.exactPixels
-    ? exactPixelScale(options.exactPixels.width, labelWidthMm) * EXACT_PIXEL_SUPERSAMPLE
+    ? exactPixelScale(options.exactPixels.width, labelWidthMm) *
+      exactPixelSupersample(options.exactPixels.width)
     : (options.scale ?? pngRasterScale(labelWidthMm))
   const throwIfCancelled = () => {
     if (options.signal?.aborted) throw new Error(EXPORT_CANCELLED_MESSAGE)

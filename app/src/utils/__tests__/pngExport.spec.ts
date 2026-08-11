@@ -9,6 +9,7 @@ import {
   exactPixelHeight,
   exactPixelNamePrefix,
   exactPixelScale,
+  exactPixelSupersample,
   exportPagedPng,
   findEinkPreset,
   isValidExactPixelWidth,
@@ -41,6 +42,15 @@ describe('精确像素映射', () => {
     expect(isValidExactPixelWidth(4097)).toBe(false)
     expect(isValidExactPixelWidth(800.5)).toBe(false)
     expect(isValidExactPixelWidth(NaN)).toBe(false)
+  })
+
+  it('超采样倍数：渲染宽度不超上限时 2 倍，超出退回 1 倍直出', () => {
+    expect(exactPixelSupersample(800)).toBe(2)
+    expect(exactPixelSupersample(1280)).toBe(2)
+    expect(exactPixelSupersample(2048)).toBe(2)
+    expect(exactPixelSupersample(2049)).toBe(1)
+    expect(exactPixelSupersample(3840)).toBe(1)
+    expect(exactPixelSupersample(4096)).toBe(1)
   })
 })
 
