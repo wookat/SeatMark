@@ -102,7 +102,7 @@ async function generate() {
     <div class="grid gap-4">
       <p class="text-xs leading-5 text-slate-600">
         填写字段与示例数据，AI 将在指定尺寸内完成一版标签排版，生成后可在画布上继续手动微调。
-        默认免费通道开箱即用，无需注册或配置任何密钥。
+        免费通道依赖公共模型服务，繁忙时可能失败；有自己的 API 密钥时推荐「自定义 API」更稳定。
       </p>
 
       <div>
@@ -154,7 +154,7 @@ async function generate() {
             "
             @click="config.provider = 'free'"
           >
-            免费通道 · 无需配置
+            免费通道 · 繁忙时限量
           </button>
           <button
             type="button"
@@ -172,7 +172,8 @@ async function generate() {
 
         <p v-if="config.provider === 'free'" class="mt-2 text-[11px] leading-4 text-slate-600">
           使用公共免费模型服务（站点内置通道 / Pollinations 匿名接口）自动生成，
-          仅发送字段名与示例值，不上传完整名单；高峰期偶尔繁忙，失败可重试或切换「自定义 API」。
+          仅发送字段名与示例值，不上传完整名单。公共服务限量且不保证可用，
+          失败时请稍后重试，或切换「自定义 API」用自己的密钥更稳定。
         </p>
 
         <div v-else class="mt-2 grid gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
