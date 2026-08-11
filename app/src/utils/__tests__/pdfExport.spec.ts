@@ -20,6 +20,7 @@ import {
   jpegQualityFor,
   neutralizeSyntheticBoldRareGlyphs,
   rasterDpi,
+  rasterizeJustifiedText,
   rasterizeRtlText,
   truncateClampedText,
   waitForElementReady,
@@ -253,6 +254,93 @@ describe('rasterizeRtlText 导出前 RTL 文本预栅格化', () => {
     expect(img.style.width).toBe('120px')
     expect(img.style.height).toBe('40px')
     expect(fillText).toHaveBeenCalledOnce()
+  })
+})
+
+describe('rasterizeJustifiedText 导出前分散对齐预栅格化', () => {
+  function makeJustified(text: string, textAlignLast = 'justify') {
+    const root = document.createElement('div')
+    const content = document.createElement('span')
+    content.className = 'label-field__content'
+    content.textContent = text
+    content.style.textAlignLast = textAlignLast
+    root.appendChild(content)
+    return { root, content }
+  }
+
+  it('非分散对齐字段不被改动', async () => {
+    const { root, content } = makeJustified('张三', '')
+    Object.defineProperty(content, 'getBoundingClientRect', {
+      value: () => ({ width: 120, height: 40 }),
+    })
+    await rasterizeJustifiedText(root)
+    expect(content.textContent).toBe('张三')
+    expect(content.querySelector('img')).toBeNull()
+  })
+
+  it('零尺寸（jsdom 默认 rect）时跳过，不破坏 DOM', async () => {
+    const { root, content } = makeJustified('张三')
+    await expect(rasterizeJustifiedText(root)).resolves.toBeUndefined()
+    expect(content.textContent).toBe('张三')
+  })
+
+  it('分散对齐单行文本被替换为同尺寸图片，逐字素簇等距绘制', async () => {
+    const { root, content } = makeJustified('张三')
+    Object.defineProperty(content, 'getBoundingClientRect', {
+      value: () => ({ width: 120, height: 40 }),
+    })
+    const fillText = vi.fn()
+    const ctx = {
+      scale: vi.fn(),
+      measureText: () => ({ width: 30 }),
+      fillText,
+      save: vi.fn(),
+      restore: vi.fn(),
+      translate: vi.fn(),
+      textAlign: 'left',
+      textBaseline: 'alphabetic',
+      font: '',
+      fillStyle: '',
+    }
+    const origCreate = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      if (tag === 'canvas') {
+        const canvas = origCreate('canvas') as HTMLCanvasElement
+        canvas.getContext = (() => ctx) as unknown as HTMLCanvasElement['getContext']
+        canvas.toDataURL = () => 'data:image/png;base64,AAAA'
+        return canvas
+      }
+      return origCreate(tag)
+    })
+    try {
+      await rasterizeJustifiedText(root)
+    } finally {
+      vi.restoreAllMocks()
+    }
+    const img = content.querySelector('img')!
+    expect(img).not.toBeNull()
+    expect(img.style.width).toBe('120px')
+    expect(img.style.height).toBe('40px')
+    // 「张三」两个字素簇：字宽 30，间隙 = 120 - 60 = 60，x 依次为 0 / 90
+    expect(fillText).toHaveBeenCalledTimes(2)
+    expect(fillText.mock.calls[0]).toEqual(['张', 0, 20])
+    expect(fillText.mock.calls[1]).toEqual(['三', 90, 20])
+  })
+
+  it('带 caption 前缀的字段跳过', async () => {
+    const { root, content } = makeJustified('张三')
+    const body = document.createElement('span')
+    body.className = 'label-field__body'
+    const caption = document.createElement('span')
+    caption.className = 'label-field__caption'
+    caption.textContent = '姓名'
+    root.replaceChildren(body)
+    body.append(caption, content)
+    Object.defineProperty(content, 'getBoundingClientRect', {
+      value: () => ({ width: 120, height: 40 }),
+    })
+    await rasterizeJustifiedText(root)
+    expect(content.querySelector('img')).toBeNull()
   })
 })
 

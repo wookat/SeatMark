@@ -361,7 +361,10 @@
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  word-break: break-all;
+  /* 优先在空格等分隔符处换行（「xx 公司」折成「xx / 公司」），
+     整段无分隔符放不下时才在任意字符处断行兜底 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .label-field__content {
