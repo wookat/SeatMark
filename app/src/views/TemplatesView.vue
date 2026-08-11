@@ -18,11 +18,33 @@ const items = templateDetails
 
 type CategoryFilter = TemplateCategory | 'all'
 
-// 筛选状态同步到 route.query：浏览器返回时分类/搜索与滚动位置一并恢复
+// 分类筛选同步到 route.query：浏览器返回时分类与滚动位置一并恢复。
+// 搜索词是用户输入，不进地址栏（避免被读 location.href 的第三方脚本外发），
+// 改用 sessionStorage 保状态：返回/刷新本页签仍恢复搜索，关页签即清除。
 const route = useRoute()
 const router = useRouter()
 
 const VALID_CATEGORIES = new Set<string>(TEMPLATE_CATEGORIES.map((c) => c.id))
+
+/** 搜索词的会话级持久化键（与 index.html 直开 ?q= 转存脚本共用） */
+const SEARCH_STORAGE_KEY = 'seatmark.templates-search.v1'
+
+function storedSearch(): string {
+  try {
+    return sessionStorage.getItem(SEARCH_STORAGE_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function persistSearch(q: string) {
+  try {
+    if (q.trim()) sessionStorage.setItem(SEARCH_STORAGE_KEY, q)
+    else sessionStorage.removeItem(SEARCH_STORAGE_KEY)
+  } catch {
+    // sessionStorage 不可用时仅影响搜索词恢复
+  }
+}
 
 function queryStr(v: unknown): string {
   return typeof v === 'string' ? v : ''
@@ -33,15 +55,22 @@ const activeCategory = ref<CategoryFilter>(
   VALID_CATEGORIES.has(initialCat) ? (initialCat as TemplateCategory) : 'all',
 )
 const activeSubcategory = ref<string>(queryStr(route.query.sub) || 'all')
-const searchQuery = ref(queryStr(route.query.q))
+const searchQuery = ref(queryStr(route.query.q) || storedSearch())
+
+// 兼容带 ?q= 的旧分享链接/站内跳转：带入搜索词后立即从地址栏移除
+if (route.query.q !== undefined) {
+  persistSearch(searchQuery.value)
+  void router.replace({ query: { ...route.query, q: undefined } })
+}
 
 watch([activeCategory, activeSubcategory, searchQuery], ([cat, sub, q]) => {
+  persistSearch(q)
   void router.replace({
     query: {
       ...route.query,
       cat: cat === 'all' ? undefined : cat,
       sub: sub === 'all' ? undefined : sub,
-      q: q.trim() ? q : undefined,
+      q: undefined,
     },
   })
 })

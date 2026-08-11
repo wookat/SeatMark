@@ -65,6 +65,27 @@
       }
     </script>
 
+    <!-- 搜索词等用户输入不进地址栏：?q= 直开时立即转存 sessionStorage 并从 URL 移除，
+         第三方脚本（GA/百度统计/百度推送/Sentry）读到的 location.href 里不含搜索词 -->
+    <script>
+      (function () {
+        try {
+          var params = new URLSearchParams(location.search);
+          if (!params.has('q')) return;
+          sessionStorage.setItem('seatmark.templates-search.v1', params.get('q'));
+          params.delete('q');
+          var rest = params.toString();
+          history.replaceState(
+            history.state,
+            '',
+            location.pathname + (rest ? '?' + rest : '') + location.hash
+          );
+        } catch (e) {
+          /* sessionStorage 不可用时跳过，仅影响搜索词带入 */
+        }
+      })();
+    </script>
+
     <!-- 统计脚本（GA4 / 百度统计 / 百度主动推送）：先建缓冲队列，页面空闲后再注入真实脚本 -->
     <script>
       window.dataLayer = window.dataLayer || [];
