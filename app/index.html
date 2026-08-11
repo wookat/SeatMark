@@ -70,8 +70,20 @@
       window.dataLayer = window.dataLayer || [];
       window.gtag = function () { dataLayer.push(arguments); };
       gtag('js', new Date());
-      gtag('config', 'G-5MKTF5XDYQ');
+      // 搜索词等用户输入（?q=）不随页面 URL 上报到第三方分析
+      var cleanPath = (function () {
+        var params = new URLSearchParams(location.search);
+        params.delete('q');
+        var rest = params.toString();
+        return location.pathname + (rest ? '?' + rest : '');
+      })();
+      gtag('config', 'G-5MKTF5XDYQ', {
+        page_path: cleanPath,
+        page_location: location.origin + cleanPath
+      });
       var _hmt = _hmt || [];
+      _hmt.push(['_setAutoPageview', false]);
+      _hmt.push(['_trackPageview', cleanPath]);
       (function () {
         var loaded = false;
         function addScript(src) {
