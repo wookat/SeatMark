@@ -1,3 +1,17 @@
+# 第 244 轮（2026-08-11）：次级链路 Firefox + WebKit 跨引擎回归（生产，无代码变更）✅ 全部判据 PASS——/seating 排座（粘贴/换座/持久化/桌贴联动）、长链分享（生成/还原/篡改容错）、模板设计器（加字段/改字号颜色/保存/刷新保留/导出 PNG）、#228 弹窗返回哨兵，在两引擎全过；隐私零外发；诚实注记：WebKit 全程 3 条良性 ResizeObserver pageerror（见 T5）
+
+**环境**：Playwright firefox-1438 与 webkit-1967（`PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1`）headless 打生产 `index-B7iIsDpm.js`；判据沿用 r240–r243（toast MutationObserver 改为 context init-script 安装，防导航后丢观察器；WebKit/Firefox 下载均用 `expect_download`；每大项全新 context 防 localStorage 模板残留）。脚本 `/home/ubuntu/r244_run.py`。
+
+**T1 /seating（两引擎）**：粘贴 10 行名单（含 张伟244/𫔭𨱏244）→「完全随机」toast「已完全随机排座」、10 个座位格出名；点选换座：张伟244⇄李四244 在座位序列中的下标互换（FF idx 9↔6 / WK idx 0↔7）；reload 后 `seatmark.seating-state.v1` 存在、座位顺序完全恢复；「一键生成对应桌贴」→ `location.href=/studio?from=seating`、预览「共 10 条」、映射含 座位号 — passed（两引擎）。打印对话框 window.print headless 不可验证 — untested（如实）。注意：Firefox headless 下 router.push 后 Playwright `page.url` 不更新（location.href 正确）——测试侧现象非产品问题。
+
+**T2 长链分享（两引擎）**：「复制当前模板分享链接」toast「分享链接已复制」，钩取 clipboard 得 `https://www.seatmark.cn/studio#tpl=…`（FF 1284 / WK 1288 字符）；全新 context 打开 → 分享模板弹窗出现，点「仅本次使用」→ toast「已应用分享模板 仅本次使用，未保存到我的模板」；篡改 payload（截断+加脏字符）打开 → toast「分享链接无效 链接可能不完整或已损坏，请让对方重新生成」、页面不崩、studio 可继续使用（PNG 按钮在） — passed（两引擎）
+
+**T3 模板设计器（两引擎）**：studio「新建模板」→ 设计器打开（模板名称 input 在）；「+ 添加字段」→ 文本字段加入（空字段提示消失，字段 2 个）；改字号 20pt、颜色 #E11D48；模板名改「r244自定义FI/WE」→「保存」→ 设计器关闭 + toast「模板已保存 已加入我的模板并应用」；reload 后自定义模板仍在列表且 localStorage 持久化串含 `"fontSize":20` 与 `e11d48`；用该模板导出逐张 PNG：toast「PNG 图片已生成（18 张标签打包为 zip）」，zip 落盘 18 张 1000×667 非空白（墨量 6.3-7.7%），首张可见新增红色 #E11D48 字段「示例文本」（`/home/ubuntu/screenshots/r244_label_ff.png`/`r244_label_wk.png`）— passed（两引擎）。注：空模板导出按钮置灰，需先载入演示数据（设计如此）。
+
+**T4 #228 弹窗返回哨兵（两引擎）**：/studio 打开 PNG 导出弹窗（dialog=1）→ `history.back()` → dialog=0、`location.pathname` 仍 `/studio`、页面可继续操作 — passed（两引擎）
+
+**T5 隐私与收尾**：FF 272 / WK 316 请求，张伟244/𫔭𨱏244/r244自定义 标记串命中 **0**（`/home/ubuntu/r244_reqs_firefox.json`/`r244_reqs_webkit.json`）；Firefox pageerror=0；**WebKit pageerror=3，均为「ResizeObserver loop completed with undelivered notifications.」**——业界公认良性警告（浏览器把未及时投递的 ResizeObserver 通知上报为 error 事件，不中断执行、无功能影响，本轮所有断言在其存在下仍全过），Chromium/Firefox 轮未出现，判 P4 记录不阻塞；storage 清理、两引擎 context/进程全退。
+
 # 第 243 轮（2026-08-11）：WebKit/Safari 跨引擎专项回归（生产，无代码变更）✅ 全部判据 PASS——主链路首次在 WebKit 引擎验证：导入/标准三导出链路/eink 精确像素（整页+逐标签 800 与 4096）/字体（𱁬+维文）/长名截断/隐私零外发/pageerror 0 全过，未见 Firefox 式误截或引擎级失败
 
 **环境**：Playwright webkit-1967 headless（WPE WebKit 2.43.1，UA Safari/605.1.15）。注意两个环境坑：① playwright host 校验对 bundled libjxl 误报缺依赖，需 `PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1` 启动（libjxl.so.0.8 实际在 webkit 目录 sys/lib 内，运行正常）；② WebKit 下 `page.on('download')` 回调里的 save_as 若与 ctx.close() 竞态会 TargetClosedError 丢文件——PDF 等大文件用 `page.expect_download()` 同步等待再 save_as。生产 bundle `index-B7iIsDpm.js`（与 r242 相同，无部署变化）。夹具同 r242。
