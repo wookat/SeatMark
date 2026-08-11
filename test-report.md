@@ -1,3 +1,17 @@
+# 第 217 轮（2026-08-11）：#218 反馈默认企微 webhook 上线后单条回归 ✅ UI 侧全部 PASS（200 {"ok":true} + 成功 toast + payload 口径不变 + pageerror 0）；webhook 实际送达 untested-externally（企微群由老板确认）
+
+**环境**：生产真实 UI，entry 仍 `index-m3vMPIl7.js`（#218 仅边缘函数改动）。代码依据：#218 diff edge-functions/api/feedback.js:21 `FEEDBACK_WEBHOOK_DEFAULT`（企微机器人，与 ai-design 告警同一常量）、:94 `env.FEEDBACK_WEBHOOK || FEEDBACK_WEBHOOK_DEFAULT`；前端 FeedbackButton.vue 不变。
+
+**结果**：
+- T1 标识反馈提交：右下浮动按钮 → 「意见反馈」→ 类型「其他」→ 内容「Devin 第 217 轮测试反馈，可忽略（#218 默认 webhook 验证）」→ 提交 → POST /api/feedback **200 `{"ok":true}`**、toast「感谢反馈！」截图可见、弹窗关闭 — PASS
+- T1 payload 口径不变：keys 恰为 {contact,content,page,type}、type=other、page=/ — PASS
+- webhook 送达企微群 — **untested-externally**（服务端推送外部不可观测，请老板在企微群确认这条「Devin 第 217 轮测试反馈」是否收到——收到即证 #218 端到端生效）
+- 全程 pageerror 0；storage 清理 + 全部测试 tab 关闭 — PASS
+
+**产物**：截图 `/home/ubuntu/screenshots/r217_filled.png`（填写态）、`r217_success.png`（成功 toast）；脚本 `/home/ubuntu/r217_t1.py`；计划 `test-plan-round217.md`。
+
+---
+
 # 第 215 轮（2026-08-11）：用户反馈通道全链路走查 ⚠️ 前端表单/XSS/提交链路全 PASS；两条注记：① IP 日限 10 次在生产**实测未生效**（15 次连续提交全部 200，memory 存储限频计数不持久）② 存档/webhook 不可持久或未配置时仍回「感谢反馈！已收到您的意见」——反馈可能实际丢失（诚实性注记，webhook 配置状态外部不可判定）
 
 **环境**：生产真实 UI，entry `index-m3vMPIl7.js`。入口：全局右下浮动按钮（App.vue:85 挂载 FeedbackButton，aria-label=反馈）。代码依据：FeedbackButton.vue:49-79（POST /api/feedback，body={type,content,contact,page}）；edge-functions/api/feedback.js（校验/IP 日限 10/存档 fb: 前缀/可选 FEEDBACK_WEBHOOK/恒回 {ok:true}）。
