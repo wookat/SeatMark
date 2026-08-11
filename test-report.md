@@ -1,3 +1,27 @@
+# 第 247 轮（2026-08-11）：大名单规模压力专项（300/1000 行，生产，无代码变更）✅ 全部判据 PASS——300 行三导出链路完整、1000 行导入/分页/PDF 可用、导出中途取消不落盘不扣配额可立即重导；无 P1/P2
+
+**环境**：常驻 Chromium CDP 29229（Chrome 133 headless，未动其本体），每大项全新 incognito context，add_init_script toast observer + expect_download。夹具 openpyxl 自造 `~/r247_fixtures/big300.xlsx` / `big1000.xlsx`（列 姓名/考场/座位号/学校；姓名 张伟247-NNNN 系列 + 𱁬田247/𫔭𨱏247 + 60 字长名，学校列含标记 隐私学校247）。脚本 `/home/ubuntu/r247_a.py`、`r247_b.py`。产物 `~/r247_dl/`。
+
+**T1 300 行导入**：1.5s 完成，toast「已读取 300 条数据」+「共 300 条」+ 映射面板齐全，导入后 evaluate 响应 <0.01s 无卡死 — passed。
+
+**T2 300 行三导出链路**（带水印通道，标准模板实际 24 行/页 → 13 页）：
+- 整页 PNG：13.9s，zip 13 张 2481×3509、md5 全互异、无一张空白（全量核验非抽样）— passed
+- 逐张 PNG：16.9s，zip 恰 300 张 1000×534、md5 300/300 互异、全量非空白（<0.3% 墨量视为坏页，0 张命中）— passed
+- 图片版 PDF：15.8s，toast「图片版 PDF 已生成 每页为 192dpi…」（大名单自动降 dpi：40 行轮为 300dpi、300 行 192dpi、1000 行 168dpi——设计内存保护，注记非缺陷），pypdfium2 13 页、p1/p7/p13 非空白 25.4/25.3/15.6% — passed
+- 文件名秒级 `-YYYYMMDD-HHMMSS` 全部 — passed
+
+**T3 1000 行**：导入 0.6s toast「已读取 1000 条数据」+「共 1000 条」，页面即时可交互；预览分页 42 页（`input[aria-label=跳转到页码]` max=42），跳页 22 显示 张伟247-0505/0506、末页 0999/1000、末页「下一页」按钮正确禁用 — passed。图片版 PDF 43.9s 成功（<5 分钟，进度「正在渲染第 N/42 页...」推进），pypdfium2 42 页、p1/p21/p42 非空白 25.1/25.2/18.9% — passed。内存：页内 performance.memory 每 2s 采样，导出峰值 147MB → 结束后回落 31MB（不失控、有回落），导出后页面 evaluate 正常 — passed。
+
+**T4 导出中途取消（300 行逐张、无水印通道）**：进度推进至「正在渲染第 4/13 页...」时点 LoadingOverlay「取消导出」→ toast「已取消导出 本次未扣除无水印次数，可随时重新导出」；等待 30s 无任何 download 事件（不落盘）；配额 key `seatmark.clean-export-usage.v1` 取消前后均未写入（used=0 未消耗，代码口径：配额仅成功后扣）；随即重导（带水印）成功，zip 恰 300 张完整 — passed。
+
+**T5 隐私与收尾**：两脚本合计 2290 请求，张伟247/𱁬田247/隐私学校247 命中 0 — passed；pageerror=0（无 ResizeObserver 亦无其他）— passed；storage 清理、自建 context 全关、常驻 Chrome 未动 — passed。
+
+**诚实注记**：① 首版脚本用 Python 线程内调 sync Playwright CDP `Performance.getMetrics` 采样失败（greenlet 跨线程限制，测试侧问题），改为页内 `performance.memory` setInterval 采样，故 T2（300 行）导出期间无内存曲线，内存判据由 T3（1000 行更重负载）覆盖；② 计划估算 20 行/页有误，实际 24 行/页（13/42 页），断言按实际张数/页数全量核验；③ 取消测试的进度点为 4/13 页（约 1/3 处而非恰一半），判据不受影响。
+
+**结论**：300/1000 行规模下导入、分页、四类导出、取消恢复、内存回落全部符合预期，无静默坏页，无 P1–P3 新发现。观察项：图片版 PDF dpi 随行数自动下调（192/168dpi），如需大名单高清打印建议用矢量打印链路。
+
+---
+
 # 第 246 轮（2026-08-11）：移动端 WebKit（iPhone 13 设备描述）黄金链路专项（生产，无代码变更）✅ 全部判据 PASS——移动 Safari 引擎口径下布局、导入、四导出链路、触摸交互、/seating 点选换座首次实证
 
 **环境**：Playwright webkit-1967 + `devices['iPhone 13']`（视口 390×664、DPR 3、has_touch、iOS Safari UA；用户所述 390×844 与本机 profile 664 高度略异，如实注记），`PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1`，方法沿用 r243/r244（add_init_script toast observer、expect_download、每大项全新 context）。脚本 `/home/ubuntu/r246_run.py`、`/home/ubuntu/r246_b.py`。
