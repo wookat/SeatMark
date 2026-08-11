@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 # 第 208 轮（2026-08-11）：键盘-only 全流程可用性走查 ✅ 全部 PASS（skip-link/Hero CTA/模板搜索与卡片/SelectField 方向键/导出对话框 focus trap/耗尽弹窗/全键盘导出）
 
 **环境**：生产 entry `index-zn4iqgIG.js`，CDP 1280×900 + Input.dispatchKeyEvent 真实键事件（rawKeyDown/keyUp），焦点可见性用聚焦/失焦裁片像素差与截图取证。代码依据：App.vue skip-link、HomeView.vue:252-271（CTA「开始生成标签」）、TemplatesView.vue:163/235、SelectField.vue:62-82、ModalDialog.vue:36-85。
@@ -17,8 +16,6 @@
 
 ---
 
-||||||| constructed merge base
-=======
 # 第 209 轮（2026-08-11）：设计器「AI 设计」全链路走查 ⚠️ **P2×1：生产免费通道全链路不可用**（/api/ai-design 501 + Pollinations 匿名 402）；前端错误路径/隐私承诺/clamp-应用-保存-导出管线全部 PASS（管线部分为 stub 验证）；自定义 API 成功路径 untested（无有效密钥）
 
 **环境**：生产 entry `index-zn4iqgIG.js`。代码依据：入口 TemplateDesigner.vue:1402「AI 自动设计」→ AiDesignDialog.vue；通道 aiDesign.ts:240-261（free：/api/ai-design → pollinations openai/openai-fast，全败报「免费通道暂时繁忙（…）」）；自定义 :211-232；clamp :294-356；应用 TemplateDesigner:1055-1067。
@@ -38,7 +35,6 @@
 
 ---
 
->>>>>>> Stashed changes
 # 第 207 轮（2026-08-11）：#211 匿名配额 used 负值/NaN clamp 复测 ✅ 全部 PASS（r205 P4 闭环）；⚠️ 口径勘误：QUOTA_ANON_DAILY 仍=1，非任务描述的 3
 
 **部署**：entry `index-DOR0it5-.js`→`index-zn4iqgIG.js`（15s 二次采样一致）。代码依据 origin/main eb7b390（quota.ts:22-36）：loadLocalUsage 增加 `Number.isFinite(parsed.used)` + `Math.max(0, Number(parsed.used))` clamp。**勘误**：任务描述称「应显示今日剩余 3 次（QUOTA_ANON_DAILY=3）」，但源码 quota.ts:8 与 edge [[default]].js:48 均仍为 1——本轮按 1 判定（used=-5 → 剩余 1；修复前 r205 实测显示 6）。
