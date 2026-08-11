@@ -70,6 +70,16 @@ describe('parseExcelFile', () => {
     expect(parsed.rows).toHaveLength(2)
   })
 
+  it('重名列自动加序号后缀，两列数据都保留', async () => {
+    const file = await buildFile([
+      ['姓名', '姓名', '姓名2'],
+      ['甲一', '乙一', '丙一'],
+    ])
+    const parsed = await parseExcelFile(file)
+    expect(parsed.headers).toEqual(['姓名', '姓名2', '姓名22'])
+    expect(parsed.rows[0]).toEqual({ 姓名: '甲一', 姓名2: '乙一', 姓名22: '丙一' })
+  })
+
   it('合并表头留下的空洞列不再丢失数据（表头补「列N」）', async () => {
     const file = await buildFile([
       ['姓名', '部门职务'],

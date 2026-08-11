@@ -1,3 +1,17 @@
+# 第 228 轮（2026-08-11）：Excel 导入字段映射边界形态走查（无代码变更轮）⚠️ 发现 **P3×2**（重复列名静默丢列；超长表头映射后撑破布局），其余边界形态（空表头/公式列/宽表/混合类型/最小表报错）全部 PASS；pageerror 0
+
+**环境**：生产真实 UI（entry `index-BRn1Rj39.js`，无新部署），headless CDP；夹具 python3+openpyxl/xlsxwriter 现场生成于 `/home/ubuntu/r228_fixtures/`（8 个）。
+
+**结果**：
+- T1 重复列名（两列都叫「姓名」，A列=甲X/B列=乙X）：导入 toast「导入成功 已读取 2 条」，headers 保留两个「姓名」，但 rows 中只剩后列值（乙一228/乙二228），前列数据**不可达且无任何提示**、预览不含甲值 — **P3（静默丢列）**。根因 excel.ts:97-106 `record[header]` 后列覆盖前列。建议：重名列自动加后缀（姓名/姓名2）或导入时提示。
+- T2 空表头列：自动补名「列2」，下拉可选、映射后卡片正确显示该列值（空头值X228）— passed
+- T3 公式列（=A2&B2）：含缓存计算值的真实 Excel 读出计算结果（丁一228三班），非公式串 — passed。注记：openpyxl 生成的**无缓存值**公式文件该列读出为空串（无报错）——真实 Excel 均带缓存值，属夹具边缘，如实记录。
+- T4 宽表 100 列×20 行：导入完成「共 20 条」、≈8s 内可交互、映射面板可用、pageerror 0 — passed
+- T5 超长表头（200 字符）：导入后与下拉打开态不破版（scrollWidth=1490=视口）；但**选中该列映射后**侧栏 ASIDE(w=400) scrollWidth=2982，页面出现 ~1500px 横向滚动（body overflow-x visible）— **P3（映射选中态破版）**。建议映射下拉选中值 truncate。
+- T6 混合类型列：按 Excel 所见文本呈现——42 / 纯文本228 / 2024-01-05 / **007（前导零保留）** / **50%** — passed
+- T7 只有表头、1×1 最小表：均 toast「Excel 导入失败 Excel 至少需要包含表头行和一行数据」，不产生空导入假成功、原有数据不被清坏 — passed
+- 全程 pageerror=0；storage 清理 + 全部测试 tab 关闭。
+- 产物：`/home/ubuntu/r228_t1.py`、`r228_t2.py`、`r228_t5b.py`、`/home/ubuntu/r228_fixtures/`；截图 `/home/ubuntu/screenshots/r228_t1_dup.png`、`r228_t2_mapped.png`、`r228_t3_formula.png`、`r228_t4_wide.png`、`r228_t5_after_map.png`（破版）、`r228_t6_mixed.png`、`r228_t7a.png`。
 # 第 227 轮（2026-08-11）：/account 账号页与登录链路容错走查（无代码变更轮）✅ 全部判据 PASS——SES 未认证下登录不可用但体验诚实：/api/auth/code 返回 502 `{"error":"验证码发送失败，请稍后再试"}`，UI 原文透出、**无假成功**、可重试；前端邮箱校验零请求拦截；payload 仅 {email} 无名单外发；pageerror 0
 
 **环境**：生产真实 UI（entry `index-BRn1Rj39.js`，main 11889c7），headless CDP + Network 全量捕获 + 页内 fetch 钩子取响应体；测试邮箱 devin-r227-test@example.com（假邮箱）。
