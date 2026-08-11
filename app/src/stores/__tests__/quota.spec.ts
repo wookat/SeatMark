@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
+function localToday(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 import { useAuthStore, type SessionUser } from '@/stores/auth'
 import { QUOTA_ANON_DAILY, useQuotaStore } from '@/stores/quota'
 
@@ -68,14 +73,14 @@ describe('quota store（每日无水印导出配额）', () => {
   it('未登录：篡改为负数/NaN 的 used 按 0 计，剩余不超过每日上限', () => {
     localStorage.setItem(
       'seatmark.clean-export-usage.v1',
-      JSON.stringify({ date: new Date().toISOString().slice(0, 10), used: -5 }),
+      JSON.stringify({ date: localToday(), used: -5 }),
     )
     const quota = useQuotaStore()
     expect(quota.anonRemaining).toBe(QUOTA_ANON_DAILY)
 
     localStorage.setItem(
       'seatmark.clean-export-usage.v1',
-      JSON.stringify({ date: new Date().toISOString().slice(0, 10), used: NaN }),
+      JSON.stringify({ date: localToday(), used: NaN }),
     )
     setActivePinia(createPinia())
     const fresh = useQuotaStore()
@@ -89,7 +94,7 @@ describe('quota store（每日无水印导出配额）', () => {
     // 模拟另一页签已消耗完当日配额（本页签内存计数仍为 0）
     localStorage.setItem(
       'seatmark.clean-export-usage.v1',
-      JSON.stringify({ date: new Date().toISOString().slice(0, 10), used: QUOTA_ANON_DAILY }),
+      JSON.stringify({ date: localToday(), used: QUOTA_ANON_DAILY }),
     )
 
     const result = await quota.tryConsume()
@@ -107,7 +112,7 @@ describe('quota store（每日无水印导出配额）', () => {
 
     localStorage.setItem(
       'seatmark.clean-export-usage.v1',
-      JSON.stringify({ date: new Date().toISOString().slice(0, 10), used: QUOTA_ANON_DAILY }),
+      JSON.stringify({ date: localToday(), used: QUOTA_ANON_DAILY }),
     )
     window.dispatchEvent(
       new StorageEvent('storage', { key: 'seatmark.clean-export-usage.v1' }),

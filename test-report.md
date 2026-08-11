@@ -1,3 +1,26 @@
+# 第 286 轮（2026-08-11）：日期/时区与「跨日重置」语义边界审计（生产，无代码变更轮）✅ 容错与逆向判据 PASS，⚠️ 证实 **1 个 P4**：匿名配额「今日」为 **UTC 日期**（`quota.ts:19 toISOString`）——北京时间 00:00–08:00 属「本地新一天但 UTC 未跨日」窗口，配额不重置（实测北京 01:30 仍显示「今日剩余 0 次」，到 08:00 才恢复）；且同一时刻导出文件名用**本地日期**（实测 `20260812-013018`）与配额/分享计数键的 UTC 日期（2026-08-11）**两套日历并存**。未来/异常日期记录容错全过、无锁死。
+
+**环境**：CDP 29229 全新 incognito context（timezone_id=Asia/Shanghai + init script 偏移 Date 至北京次日 01:30）打生产 /studio?demo=1。脚本 `/home/ubuntu/r286_run.py`，结果 `/home/ubuntu/r286_res.json`。代码基准 `quota.ts:18-19`（UTC）、`pngExport.ts:144`/`pdfExport.ts:779`（本地时间戳）、`PreviewArea.vue:320-334`（分享计数同 UTC）。
+
+## T1 北京 01:30 场景（主判据）— 证实 UTC 口径（P4）
+- 模拟环境自检：`new Date()` = Wed Aug 12 2026 01:30 GMT+0800，`toISOString().slice(0,10)` = 2026-08-11（本地已跨日、UTC 未跨）。
+- 预写 {date: 2026-08-11(UTC 今日), used:1}（=北京「昨晚」消耗）→ 导出弹窗仍「今日剩余 0 次」并拦截——**本地新一天不重置**。定级 P4：仅影响 0–8 点的匿名用户，重置延迟至北京 08:00 而非丢失；宣传文案「每日 0 点自动恢复」（定价页 FAQ）与实际（北京 8 点）不符。修复方向：todayStr 改本地日期（getFullYear/Month/Date），或文案改「按 UTC 日」。截图 r286_t1_beijing0130.png。
+- 逆向：预写 {date: UTC 昨日, used:1} → 「今日剩余 1 次」正常重置 ✅。
+
+## T2 未来/异常日期容错 — PASSED
+{date:明天,used:1}、{date:'2099-01-01',used:99}、{date:'garbage',used:null} 三种预写刷新后均显示「今日剩余 1 次」（非当日记录按 0 处理），无负数无锁死；随后无水印消费成功、写回 {date: 今日UTC, used:1}。
+
+## T3 导出文件名时间戳 — PASSED（附两套日历并存记录)
+北京 01:30 带水印导出文件名 `标准考场版-20260812-013018.zip`——日期/小时为本地口径（正确符合用户直觉）；但同一时刻配额键与分享计数键 date=2026-08-11（UTC）——同一次导出两套日历并存，为 T1 P4 的佐证。
+
+## T4 分享引导计数键 — PASSED（同 UTC 口径记录）
+导出后 `seatmark.post-export-share-prompt.v2` = {"date":"2026-08-11","count":1}（UTC 口径，与 quota 一致；影响仅为提示频控窗口偏移，无用户可见损失）。
+
+## T5 常规 — PASSED
+全程 pageerror=0；13 条第三方请求扫 demo 名单串零命中；storage 清理、context 全关、常驻 Chrome 未动。headless CDP 未录屏。
+
+---
+
 # 第 285 轮（2026-08-11）：#285 粘贴名单剥离零宽字符线上复测 ✅ 全部判据 PASS——r283 P4 闭环：`\ufeff`/`\u200b` 导入后不残留（codepoint 级断言），emoji ZWJ 序列（👨‍👩‍👧‍👦）完整保留不拆散；TSV/纯姓名/逗号顿号/「首行是表头」开关回归全过；pageerror=0、隐私零外发。
 
 **环境**：部署确认 entry `index-DQXCHqb-.js`→`index-DHZCT1Xa.js`，excel chunk `excel-DN-BUKnq.js` 含 `replace(/[\u200b\ufeff]/g,"")`。CDP 29229 全新 incognito context 打生产 /studio。脚本 `/home/ubuntu/r285_run.py`，结果 `/home/ubuntu/r285_res.json`。
