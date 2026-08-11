@@ -313,3 +313,6 @@ Overriding gtag page_path/page_location only cleans dp/config — every GA event
 
 ## Search privacy (r275/#277)
 /templates search never touches route.query — state lives in sessionStorage key `seatmark.templates-search.v1` (cleared when search emptied); legacy `?q=` links are imported+stripped by an inline head script via history.replaceState. Testing pitfall: history.replaceState cannot rewrite `PerformanceNavigationTiming.name`, so Sentry's auto.ui.browser.metrics pageload spans still carry the original direct-open URL (incl. q) — scan Sentry envelope bodies specifically when auditing direct-open flows. (Product-side beforeSendTransaction/beforeBreadcrumb stripping landed in r276.)
+
+## Sentry sampling (r277/#278)
+Pageload performance transactions use tracesSampleRate=0.2 — to capture one, loop fresh contexts (~3–5 direct opens typically suffice) and filter Sentry POSTs for `"type":"transaction"`. Since #278, main.ts beforeSendTransaction/beforeBreadcrumb strip `q` via telemetryPath from request.url, transaction, all span descriptions, and breadcrumb from/to/url — assert the stripped path is still present (strip-not-drop) when auditing.

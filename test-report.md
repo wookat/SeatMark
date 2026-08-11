@@ -1,3 +1,20 @@
+# 第 277 轮（2026-08-11）：#278 Sentry 上报前剥离 q（beforeSendTransaction/beforeBreadcrumb）线上复测（生产）✅ 全部判据 PASS——r275 P4 残留闭环：直开 ?q= 时 Sentry pageload 事务 envelope 全文零命中标记词，browser.metrics span description 已剥为 `https://www.seatmark.cn/templates`，Sentry 上报本身未被破坏。
+
+**部署确认**：entry 翻转 `index-B2OZ6Rre.js`→`index-BY-oO6Ou.js`（轮询第 2 分钟命中）。环境：CDP 29229 全新 incognito context，标记词「考场277标记词」，Sentry envelope 全量落盘 `/home/ubuntu/r277_reqs.json`、命中采样事务全文 `/home/ubuntu/r277_tx_envelope.txt`，脚本 `/home/ubuntu/r277_run.py`。
+
+## T1 主判据：直开 ?q= 的 Sentry envelope 零命中 — PASSED
+- 直开 `…/templates?q=考场277标记词` 循环重试，第 **3** 个 context 采样命中（tracesSampleRate=0.2 合理范围）。
+- 事务 envelope body 全文标记词原文/百分号编码 **0 命中**（r275 旧行为：browser.domContentLoadedEvent/loadEvent/connect/TLS/DNS/request/response 等 span description 均带 ?q=，可区分）。
+- 剥离而非丢弃：span description=「https://www.seatmark.cn/templates」（路径保留）、`request.url=https://www.seatmark.cn/templates`、`transaction=templates`、navigation 面包屑 `from:"/templates",to:"/templates"` 均干净且完整。
+
+## T2 Sentry 未被破坏 — PASSED
+`"type":"transaction"` envelope 正常发出、结构完整（trace_id/span 树在）；三次直开 pageerror=0；页面功能正常（地址栏剥离为 /templates、搜索框带入标记词）。截图 r277_t1_direct.png。
+
+## T3 快速回归（Regression）— PASSED
+SPA 内搜索标记词：地址栏无 ?q=、无结果态正常、GA/百度 8 条第三方请求零命中；改搜「桌牌」25 款正常；pageerror=0；storage 清理、context 全关、常驻 Chrome 未动。截图 r277_t3_search.png。
+
+---
+
 # 第 275 轮（2026-08-11）：#277 搜索词不进地址栏（sessionStorage 根治）线上复测（生产）✅ 主判据基本达成，⚠️ 残留 1 条 P4：直开旧链接 `?q=` 时 Sentry pageload 性能事务的 browser.metrics span description 仍含原始完整 URL（Performance API `PerformanceNavigationTiming.name` 记录的是文档初始请求 URL，history.replaceState 无法改写）。SPA 内搜索（主路径）已彻底零外发——r273 的 5 条通道全部消失。
 
 **部署确认**：entry 翻转 `index-B5y8Q7W3.js`→`index-B2OZ6Rre.js`，生产 HTML 含 `seatmark.templates-search.v1`（轮询第 2 分钟命中）。环境：CDP 29229 全新 incognito context，标记词「考场275标记词」，请求全量落盘 `/home/ubuntu/r275_reqs.json`，脚本 `/home/ubuntu/r275_run.py`。
