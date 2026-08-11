@@ -1,3 +1,21 @@
+# 第 255 轮（2026-08-11）：#259 SPA 壳页内联启动骨架线上复测（生产）✅ 全部判据 PASS——Slow 3G 空窗被骨架填补（spinner+加载中文案像素可见）、挂载后零残留、内容页/404 预渲染未回归、/account 壳页正常
+
+**部署确认**：/studio HTML 由 boot-splash=0 翻转为 6 处命中（entry 哈希不变 `index-DNF7Ft0O.js` 属预期——#259 仅改 index.html 与 prerender.mjs，不动 JS bundle）。环境：CDP 29229 全新 incognito context，弱网沿用 r253 页级 CDP `Network.emulateNetworkConditions`（50000 B/s、RTT 400ms）。脚本 `/home/ubuntu/r255_run.py`。代码依据：index.html:106-116（.boot-splash 内联样式+role=status）、prerender.mjs:84-90（replaceAppMount 正则整体替换，仅 /studio 与 shellPaths 保留骨架）。
+
+**T1 Slow 3G 首访 /studio 骨架（核心阳性）**：3s 与 5s 时刻截图均**像素可见** spinner + 「SeatMark 座签加载中…」（r253 同时刻为纯背景空窗——r253_t1_loading.png 对照），DOM `.boot-splash`=1；挂载完成后 `.boot-splash`=0 零残留、无错乱 scrollWidth≤innerWidth — passed。本次可用耗时 25.2s（r253 为 10.0s，弱网波动/缓存差异，同为 Slow 3G 量级，非本变更引入——骨架全程在场无空窗）。截图 r255_t1_splash_3s.png / r255_t1_splash_5s.png / r255_t1_loaded.png。
+
+**T2 正常网络**：load 后 `.boot-splash`=0 无残留，页面正常 — passed。截图 r255_t2_normal.png。
+
+**T3 内容页阴性（curl 源码）**：`/`、`/templates`、`/guides/exam-seat-label-batch-print`、`/nonexistent-r255`（404.html）boot-splash 均=0 且 h1 正文在（上传 Excel…/标签模板库/考场座位贴…/页面不存在或已被移动）——预渲染未回归 — passed。注记：`/guides/how-to-make-seat-cards` 为不存在的 slug（我猜错的 URL，返回 404 页同样 boot-splash=0），实际教程页以 exam-seat-label-batch-print 为准。
+
+**T4 /account 壳页**：curl 源码含 boot-splash（=6，壳页保留骨架）；浏览器直达加载后 `.boot-splash`=0、正常渲染登录页（登录 SeatMark + 邮箱验证码表单）— passed。截图 r255_t4_account.png。
+
+**T5 常规回归（Regression）**：/studio 导入 good40「已读取 40 条数据」+「共 40 条」、逐张 PNG 导出 zip 40 张 1000×534 md5 互异 0 空白 — passed；pageerror=0；130 请求标记串命中 0（r255_reqs.json）；storage 清理、context 全关、常驻 Chrome 未动 — passed。
+
+**结论**：#259 行为与 spec 完全一致：壳页（/studio、/account）弱网空窗被内联骨架填补且挂载后零残留，预渲染内容页与 404 未受 replaceAppMount 影响。r253 裁量注记①闭环。无新发现。
+
+---
+
 # 第 253 轮（2026-08-11）：弱网与网络中断稳健性专项（生产）✅ 全部判据 PASS——Slow 3G 首访 10s 可用、弱网/全断网/导出中途断网下导入导出全成功、断网路由切换 SW 缓存命中非白屏、恢复后名单持久化在、遥测挂起不阻塞 UI
 
 **环境**：生产 `index-DNF7Ft0O.js`，常驻 Chromium CDP 29229 全新 incognito context；弱网 = 页级 CDP session `Network.emulateNetworkConditions`（50000 B/s ≈400kbps、RTT 400ms）；断网 = `context.set_offline(True)`；遥测挂起 = context.route 对 googletagmanager.com/hm.baidu.com/zz.bdstatic.com 永不应答。夹具 good40.xlsx（张伟250）、ff240.xlsx（𱁬田240/RTL）、big300.xlsx（张伟247）。脚本 `/home/ubuntu/r253_a.py`、`r253_b.py`；产物 `~/r253_dl/`。代码依据：main.ts:32-44（router.isReady 后挂载+SW 注册）、vite.config.ts:48-75（workbox 导航 NetworkFirst 4s + 离线壳回落）、index.html:68-95（统计 idle 注入带缓冲队列）、workspace.ts:55-72（名单 sessionStorage 会话级持久化）。
