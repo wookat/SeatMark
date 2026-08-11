@@ -1,3 +1,17 @@
+# 第 207 轮（2026-08-11）：#211 匿名配额 used 负值/NaN clamp 复测 ✅ 全部 PASS（r205 P4 闭环）；⚠️ 口径勘误：QUOTA_ANON_DAILY 仍=1，非任务描述的 3
+
+**部署**：entry `index-DOR0it5-.js`→`index-zn4iqgIG.js`（15s 二次采样一致）。代码依据 origin/main eb7b390（quota.ts:22-36）：loadLocalUsage 增加 `Number.isFinite(parsed.used)` + `Math.max(0, Number(parsed.used))` clamp。**勘误**：任务描述称「应显示今日剩余 3 次（QUOTA_ANON_DAILY=3）」，但源码 quota.ts:8 与 edge [[default]].js:48 均仍为 1——本轮按 1 判定（used=-5 → 剩余 1；修复前 r205 实测显示 6）。
+
+**结果**：
+- T1 负值 clamp（核心）：used=-5 刷新后角标=「今日剩余 1 次」（OCR 证实，不再是 r205 的 6 次）；实导第 1 次无水印成功（used→1、角标「带水印免费」），第 2 次点无水印零下载 + QuotaLimitDialog「今日无水印导出次数已用完」（OCR 证实）— PASS
+- T2 容错：used=null（NaN 序列化）/ used="abc" / value=垃圾串 / 删除键 → 均按 0 计（剩余 1）、页面正常渲染、pageerror 0 — PASS
+- T3 回归：used=0 起——「取消导出」toast「已取消导出|本次未扣除无水印次数」且 used 仍 0；随后无水印导出成功 used→1；再点无水印弹耗尽弹窗零下载；`{date:昨日,used:99}` 刷新后角标回「今日剩余 1 次」（跨日重置，OCR 证实）— PASS
+- 全程 pageerror 0；storage 清理 + 全部测试 tab 关闭 — PASS
+
+**产物**：截图 `/home/ubuntu/screenshots/r207_neg5_badge.png`（🟢 clamp 后剩余 1，对照 r205 `r205_tamper_neg5.png` 🔴 剩余 6）、`r207_neg5_exhaust_dialog.png`、`r207_dayreset_badge.png`；脚本 `/home/ubuntu/r207_t1.py`；导出样本 `/home/ubuntu/r207_dl/`；计划 `test-plan-round207.md`。
+
+---
+
 # 第 205 轮（2026-08-11）：「分享送次数」链路 + 配额边界走查 ✅ 匿名侧全链路通过；⚠️ P4×1（used 负值未 clamp，角标可显「今日剩余 6 次」）；服务端赠送/IP 去重因登录不可用+storage=memory 维持 untested
 
 **环境**：entry 仍 `index-DOR0it5-.js`（#209 纯文档，无部署变化）。代码依据：quota.ts（QUOTA_ANON_DAILY=1、key `seatmark.clean-export-usage.v1`）、PreviewArea.vue:452-501（chooseClean 统一闸门、consumeQuotaAfterSuccess 成功后计次）、App.vue:32-49（?ref= 上报+横幅+清参）、edge-functions [[default]].js:710-746（sharevisit IP+日去重）。

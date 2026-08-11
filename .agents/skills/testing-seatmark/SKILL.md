@@ -17,6 +17,9 @@ Composite editor opens via the mapping row SelectField option 自定义组合…
 ## Truncated-export interception (#208/r204)
 The final render now throws 「页面渲染不完整（右侧内容未绘出），请重新导出」 when a truncated canvas has DOM right-side content (domExpectsRightInk: non-empty .label-box or .sheet-watermark extending past 70% width). Legit sparse tail pages never enter this branch because the watermark leaves right-side ink (right-40% non-white ≈116k on the 25-row fixture p2). Known-good 25-row fixture md5s: WM `3625e3196e…`/`8e8750ee5a…`, clean `9d50e34475…`/`31a4695840…`; steady-state export ≈1.8–2.0s, +~1s indicates the retry chain fired. The interception path still cannot be force-driven in production (devForcedExportFailure is DEV-only).
 
+## Anonymous quota tamper clamp (#211/r207)
+The negative-`used` clamp is live — loadLocalUsage now applies Number.isFinite + Math.max(0, used), so tampered `used=-5` in `seatmark.clean-export-usage.v1` shows 今日剩余 1 次, not 6; null/"abc"/garbage/missing keys all fall back to 0 without pageerror. Remember QUOTA_ANON_DAILY=1 (anonymous) vs QUOTA_USER_DAILY=3 (logged-in) — task descriptions sometimes conflate them. Cancel-export never deducts (toast 本次未扣除无水印次数); a stale `{date:昨日,used:99}` record resets to today's full quota on load.
+
 ## Export-mode memory gotcha (r191)
 The 图片 PNG dialog remembers the last export mode (整页 vs 逐张) across exports in the same tab — always read the mode field before clicking 带水印导出, or a per-label export silently yields a whole-page zip. Also: uncommitted test-report.md sections can be lost if the working tree is updated to a newer main between rounds — commit report sections before pulling.
 
