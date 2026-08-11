@@ -81,6 +81,14 @@ function applyHead(html, seo) {
   return out.replace('</head>', `    ${jsonLdTags}\n  </head>`)
 }
 
+/** 将挂载点内容（含启动骨架）整体替换为预渲染正文 */
+function replaceAppMount(html, appHtml) {
+  return html.replace(
+    /<div id="app">[\s\S]*?<!-- boot-splash-end --><\/div>/,
+    `<div id="app">${appHtml}</div>`,
+  )
+}
+
 const paths = await prerenderPaths()
 // 应用壳路径（账号/管理页）：预渲染 HTML 壳供静态托管直达，noindex 且不进 sitemap
 const shellPaths = appShellPaths()
@@ -91,7 +99,7 @@ for (const path of [...paths, ...shellPaths]) {
   // /studio 与应用壳为纯交互应用，保持 SPA 挂载即可；其余路由注入正文
   if (path !== '/studio' && !shellPaths.includes(path)) {
     const appHtml = await render(path)
-    html = html.replace('<div id="app"></div>', `<div id="app">${appHtml}</div>`)
+    html = replaceAppMount(html, appHtml)
   }
 
   const outFile = path === '/' ? join(distDir, 'index.html') : join(distDir, path, 'index.html')
@@ -105,7 +113,7 @@ for (const path of [...paths, ...shellPaths]) {
   const seo = await resolveSeo('/404')
   let html = applyHead(template, seo)
   const appHtml = await render('/404')
-  html = html.replace('<div id="app"></div>', `<div id="app">${appHtml}</div>`)
+  html = replaceAppMount(html, appHtml)
   writeFileSync(join(distDir, '404.html'), html)
   console.log('prerendered /404 -> dist/404.html')
 }
