@@ -82,6 +82,39 @@ describe('quota store（每日无水印导出配额）', () => {
     expect(fresh.anonRemaining).toBe(QUOTA_ANON_DAILY)
   })
 
+  it('未登录：其他页签已消耗的次数不被覆写——消耗前重读本地计数取较大值', async () => {
+    const quota = useQuotaStore()
+    expect(quota.anonRemaining).toBe(QUOTA_ANON_DAILY)
+
+    // 模拟另一页签已消耗完当日配额（本页签内存计数仍为 0）
+    localStorage.setItem(
+      'seatmark.clean-export-usage.v1',
+      JSON.stringify({ date: new Date().toISOString().slice(0, 10), used: QUOTA_ANON_DAILY }),
+    )
+
+    const result = await quota.tryConsume()
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.reason).toBe('anon-limit')
+    expect(quota.limitDialogOpen).toBe(true)
+    // 本地计数不被覆写回退
+    const raw = localStorage.getItem('seatmark.clean-export-usage.v1')
+    expect(JSON.parse(raw!).used).toBe(QUOTA_ANON_DAILY)
+  })
+
+  it('未登录：storage 事件同步其他页签的消耗到本页签剩余次数', () => {
+    const quota = useQuotaStore()
+    expect(quota.anonRemaining).toBe(QUOTA_ANON_DAILY)
+
+    localStorage.setItem(
+      'seatmark.clean-export-usage.v1',
+      JSON.stringify({ date: new Date().toISOString().slice(0, 10), used: QUOTA_ANON_DAILY }),
+    )
+    window.dispatchEvent(
+      new StorageEvent('storage', { key: 'seatmark.clean-export-usage.v1' }),
+    )
+    expect(quota.anonRemaining).toBe(0)
+  })
+
   it('已登录：走服务端计数，429 时打开引导弹窗', async () => {
     const auth = useAuthStore()
     auth.user = mockUser({ used: 3, remaining: 0 })
