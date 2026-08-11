@@ -1,3 +1,15 @@
+# 第 231 轮（2026-08-11）：照片链路专项（无代码变更轮）✅ 全部判据 PASS——真实照片导入/覆盖率/卡片渲染正确；带照片重导/切 sheet 均静默清照片（UI 无提示，注记）；刷新有「照片需重新上传」明确提醒；匹配边界（同批完全一致优先、.JPG、空格括号名、双值文件名、未匹配/伪图错误明细）全过；导出 PNG 像素级验到照片真实渲染；照片文件名与二进制零外发；pageerror 0
+
+**环境**：生产真实 UI（entry `index-6teszdpy.js`，无新部署），headless CDP + Network 全量捕获；模板「照片核验版」（`/studio?template=withPhoto` 直达）；夹具 `/home/ubuntu/r231_fixtures/`（3 行名单双 sheet + 纯色 JPEG/PNG 可做像素断言 + 伪图片）。
+
+**结果**：
+- T1 真实照片导入：匹配列=姓名后传 张伟.jpg（红）+李娜.png（绿）：toast「照片已加载 本次匹配 2 张，当前覆盖率 67%」、覆盖率行「已导入 2 张照片，匹配 2/3 行（覆盖率 67%）」、预览 2 张 data: 照片上卡（张伟卡像素=纯红 254,0,0）；未选匹配列时上传按钮 disabled — passed
+- T2 带照片重置实证（r230 缺口）：重导同一文件/切 sheet 后照片全清（卡片照片消失、覆盖率行消失、data img=0），**无任何提示**（静默清除，photoColumn 亦复位）——行为一致但静默，注记供裁量；刷新页面：名单/匹配列恢复 + toast「照片需重新上传 为保护隐私，照片仅保存在浏览器内存中…」明确提醒 — passed
+- T3 匹配边界：**同批**上传 [张伟20230101.jpg(蓝,包含), 张伟.jpg(红,完全一致)] → 完全一致优先，卡上为红 — passed；**跨批**后传的包含匹配文件会覆盖已有完全一致照片（exactKeys 仅批内生效，跨批=后传覆盖）——如实注记（可解读为「重新上传即更新」，非缺陷上报）；李娜.JPG 大写扩展名命中；「王强 (1).jpg」空格括号包含命中（覆盖率 100%）；匹配列=学号时 张伟20230101.jpg 命中学号行（33%）；未匹配「无名氏.jpg - 未找到匹配的数据行…」与伪图「伪图张伟2.jpg - 不是有效的图片文件…」进错误明细 details — passed
+- T4 照片行导出：PNG 带水印导出 zip 3 张，PIL 像素断言：001 含大面积纯红（张伟照片）、002 含纯绿（李娜）、003 无色块（王强无照片占位）——照片真实渲染非裂图 — passed
+- T5 隐私：129 个请求（seatmark.cn+统计域+sentry）中姓名/学号/文件名标识串与图片 base64 特征串命中 0（页内 data: URL 不出网）；有 body 的仅 GA/sentry 心跳（199B 内无标记）— passed
+- 全程 pageerror=0；storage 清理 + tabs left: []。
+- 产物：`/home/ubuntu/r231_t1b.py`、`r231_t2c.py`、`r231_t2d.py`、`/home/ubuntu/r231_fixtures/`、`/home/ubuntu/r231_dl/照片核验版-20260811-0441.zip`、`/home/ubuntu/r231_reqs_a.json`/`_b.json`；截图 `/home/ubuntu/screenshots/r231_t1_photos.png`、`r231_t2_after_reimport.png`、`r231_t2c_reload.png`、`r231_t3e_single_batch.png`、`r231_t3_errors.png`、`r231_t4_export.png`。
 # 第 229 轮（2026-08-11）：#232（r228 P3×2 修复）生产复测 ✅ 全部判据 PASS——重名列自动加序号后缀不再丢列（姓名/姓名2/姓名22）、超长表头映射选中态三宽度均不再溢出；r228 已过项全部无回归；pageerror 0
 
 **环境**：生产真实 UI，entry 翻转 `index-BRn1Rj39.js` → `index-6teszdpy.js`（main 50e53df，#232 已部署），复用 r228 夹具 + 新增后缀冲突夹具。
