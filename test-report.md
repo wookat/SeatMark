@@ -1,3 +1,25 @@
+# 第 289 轮（2026-08-12）：SES 认证后登录全链路线上复测 ⚠️ 发码链路 PASS（502→200 闭环、邮件真实送达），**verify 全部失败**——生产 `X-SeatMark-Storage: memory` 跨实例读不到验证码（发码与验码落在不同边缘实例），登录成功分支（T3/T4）untested。属既有运维限制（KV/Blob 未绑定），非本次代码缺陷；但当前效果是**线上用户实际无法完成登录**。
+
+**环境**：CDP 全新 incognito context 打生产 /account；收码邮箱用 mail.tm API（@emalupe.com 随机地址）。脚本 `/home/ubuntu/r289_run.py`、`r289_retry.py`，结果 `r289_res.json`、`r289_res2.json`。
+
+## T1 发码 — PASSED（r227 的 502 容错分支闭环为 200 真实发信）
+- POST /api/auth/code → **200** `{"ok":true,"delivery":"email"}`（非 stub/devCode，无 X-SeatMark-Mail-Error）；UI toast「验证码已发送」+ 按钮变「57s 后重发」disabled 倒计时。截图 r289_t1_sent.png。
+- mail.tm 收件箱 4/4 轮均收到主题『【SeatMark 座签】登录验证码 XXXXXX』真实邮件（SES 发信认证生效）。
+
+## T2 错误分支 — 部分（重发频控前端护栏 PASSED；错码文案被 memory 掩盖）
+- 60s 重发：按钮 disabled 显示「57s 后重发」（前端倒计时护栏，服务端 60s 限频未能独立触发——按钮不可点）。
+- 错误验证码：返回 400 但文案为「验证码已过期，请重新获取」而非「验证码不正确」——验码实例读不到 code 记录（memory 掩盖了错码分支），错码专属文案未能实证。
+
+## T3 verify 登录 — FAILED（memory 运维限制，非代码缺陷；判「邮件收到但验码失败」）
+4 个新邮箱 × 每邮箱 4 次快速重试（共 16 次 verify）全部 400「验证码已过期，请重新获取」；每次响应头 X-SeatMark-Storage=memory。区分口径：邮件全部收到、码为邮件原文 6 位码且在 10 分钟 TTL 内提交——失败原因为发码写入实例与验码读取实例不同。**结论：KV/Blob 绑定生效前，线上真实用户大概率同样无法登录**（复现 16/16）。
+
+## T4 登录态链路（me/刷新保持/登出/配额文案）— UNTESTED（依赖 T3 成功）
+
+## T5 常规 — PASSED
+/api/auth/* payload 仅含 {email, code}（名单零外发）；pageerror=0；storage 清理、context 全关。headless CDP 未录屏。
+
+---
+
 # 第 288 轮（2026-08-12）：#289 线上复测——分隔符优先换行 + 分散对齐（含导出预栅格化）✅ 全部判据 PASS
 
 **环境**：部署确认 CSS `index-Drr90_HC.css` `.label-field__body`=`word-break:keep-all;overflow-wrap:anywhere`、`StudioView-CAoR79uO.js` 含「分散对齐」/textAlignLast/Intl.Segmenter。CDP 全新 incognito context 打生产 /studio；脚本 `/home/ubuntu/r288_run.py`/`r288_p2.py`/`r288_p3.py`，结果 `r288_res*.json`，导出物 `/home/ubuntu/r288_dl2/`、`r288_dl3/`。
