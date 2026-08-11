@@ -303,6 +303,8 @@ function fieldStyle(field: TemplateField): CSSProperties {
     fontSize: `${field.fontSize ?? 12}pt`,
     fontWeight: field.fontWeight ?? 'normal',
     textAlign: field.align ?? 'center',
+    // 分散对齐：最后一行（含单行姓名）也拉满字段宽度，两字名与三字名等宽对齐
+    ...(field.align === 'justify' ? { textAlignLast: 'justify' as const } : {}),
     color: field.color ?? (field.fontWeight === 'bold' ? '#0f172a' : '#334155'),
     // 西文字体在前仅覆盖英文/数字，中文字体兜底汉字；字段未设置时跟随模板；
     // 末尾的生僻字扩展字库仅覆盖 CJK 扩展区码位，按需下载

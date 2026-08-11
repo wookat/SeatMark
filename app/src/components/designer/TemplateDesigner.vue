@@ -165,6 +165,7 @@ const ALIGN_OPTIONS: SelectOption[] = [
   { value: 'left', label: '左' },
   { value: 'center', label: '居中' },
   { value: 'right', label: '右' },
+  { value: 'justify', label: '分散对齐' },
 ]
 
 const VALIGN_OPTIONS: SelectOption[] = [

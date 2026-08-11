@@ -1,5 +1,5 @@
 export type FieldType = 'text' | 'image'
-export type TextAlign = 'left' | 'center' | 'right'
+export type TextAlign = 'left' | 'center' | 'right' | 'justify'
 export type VerticalAlign = 'top' | 'middle' | 'bottom'
 export type FontWeight = 'normal' | 'bold'
 

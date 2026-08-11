@@ -354,6 +354,75 @@ export async function rasterizeRtlText(root: HTMLElement): Promise<void> {
   await Promise.all(decodes)
 }
 
+/** 文本按字素簇切分（Intl.Segmenter 保证 emoji/组合字符不被拆散） */
+function graphemeClusters(text: string): string[] {
+  if (typeof Intl !== 'undefined' && 'Segmenter' in Intl) {
+    return Array.from(new Intl.Segmenter().segment(text), (s) => s.segment)
+  }
+  return Array.from(text)
+}
+
+/**
+ * 栅格化引擎不支持两端/分散对齐（text-align: justify 被降级为居中绘制），
+ * 导出前把分散对齐的单行字段文本用 Canvas 2D 按字素簇等距分布预栅格化，
+ * 与预览中浏览器的 justify 排布一致。多行内容与带 caption 前缀的字段
+ * 逐行分布无法精确对齐预览，保持原样交给栅格化引擎。
+ */
+export async function rasterizeJustifiedText(root: HTMLElement): Promise<void> {
+  const decodes: Promise<void>[] = []
+  for (const content of Array.from(root.querySelectorAll<HTMLElement>('.label-field__content'))) {
+    const text = (content.textContent ?? '').trim()
+    if (!text || content.querySelector('img')) continue
+    const style = getComputedStyle(content)
+    if (style.textAlignLast !== 'justify') continue
+    if (content.parentElement?.querySelector('.label-field__caption')) continue
+    const rect = content.getBoundingClientRect()
+    if (!rect.width || !rect.height) continue
+    // 仅处理单行内容：内容高度明显超过一行说明已换行，浏览器逐行 justify，跳过
+    const fontSize = Number.parseFloat(style.fontSize) || 0
+    const lineHeight = Number.parseFloat(style.lineHeight) || fontSize * 1.15
+    if (lineHeight > 0 && rect.height > lineHeight * 1.5) continue
+    const clusters = graphemeClusters(text)
+    const oversample = 4
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.ceil(rect.width * oversample))
+    canvas.height = Math.max(1, Math.ceil(rect.height * oversample))
+    const ctx = canvas.getContext('2d')
+    if (!ctx) continue
+    ctx.scale(oversample, oversample)
+    ctx.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
+    if (style.letterSpacing !== 'normal' && 'letterSpacing' in ctx) {
+      ctx.letterSpacing = style.letterSpacing
+    }
+    ctx.fillStyle = style.color
+    ctx.textBaseline = 'middle'
+    ctx.textAlign = 'left'
+    const widths = clusters.map((c) => ctx.measureText(c).width)
+    const total = widths.reduce((a, b) => a + b, 0)
+    const gap = clusters.length > 1 ? Math.max(0, (rect.width - total) / (clusters.length - 1)) : 0
+    let x = clusters.length > 1 ? 0 : Math.max(0, (rect.width - total) / 2)
+    // 超宽兜底：自适应缩放后不应发生，实测超宽时水平压缩以免溢出被裁
+    if (total > rect.width) {
+      ctx.save()
+      ctx.scale(rect.width / total, 1)
+    }
+    for (let i = 0; i < clusters.length; i++) {
+      ctx.fillText(clusters[i]!, x, rect.height / 2)
+      x += widths[i]! + gap
+    }
+    if (total > rect.width) ctx.restore()
+    const img = document.createElement('img')
+    img.src = canvas.toDataURL('image/png')
+    img.style.display = 'block'
+    img.style.width = `${rect.width}px`
+    img.style.height = `${rect.height}px`
+    img.alt = text
+    content.replaceChildren(img)
+    if (typeof img.decode === 'function') decodes.push(img.decode().catch(() => undefined))
+  }
+  await Promise.all(decodes)
+}
+
 /**
  * 栅格化引擎用 canvas fillText 自绘文本，对无粗体面的字体（遍黑体
  * 扩展字库）仍自行合成加粗，把高密度字形涂抹成碎裂重影（CSS
@@ -627,6 +696,7 @@ export function createPageRenderer(
         truncateClampedText(el)
         neutralizeSyntheticBoldRareGlyphs(el)
         await rasterizeRtlText(el)
+        await rasterizeJustifiedText(el)
         throwIfCancelled()
         const canvas = await html2canvas(el, {
           scale,
