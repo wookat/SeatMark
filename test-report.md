@@ -1,3 +1,22 @@
+# 第 223 轮（2026-08-11）：#225 弹窗返回键拦截生产验收 ❌ **核心判据 FAILED（P2）**——弹窗打开按后退仍整页跳走（4/4 复现，含 CDP 原生返回），守卫代码在 bundle 内但未生效；无弹窗导航/弹窗内链接/Esc 后关闭等回归项全过；pageerror 0
+
+**环境**：生产真实 UI，entry 已翻转 `index-m3vMPIl7.js` → `index-DvH8Q9XM.js`（main 87afa16，#225 已部署；bundle grep 证实含 popstate 时间戳+beforeEach 守卫逻辑）。
+
+**结果**：
+- T1 单层弹窗后退（核心判据）：/studio 导入「共 3 条」→ 开「图片 PNG」导出弹窗 → 后退 → **URL 变为 /、弹窗随视图卸载**，与 r221 旧行为完全一致——期望「弹窗关、URL 仍 /studio」未发生。history.back() 三次独立会话 + `Page.navigateToHistoryEntry`（浏览器原生返回通道）各复现，4/4 全失败 — **failed（P2）**
+- 根因分析（源码+实验取证）：vue-router 自身 popstate 监听在 app 初始化注册，先于 ModalDialog 守卫的时间戳监听；事件监听器之间存在 microtask checkpoint，router.beforeEach 在守卫更新 lastPopstateAt **之前**执行 → `Date.now()-lastPopstateAt>300` 恒真 → 放行。旁证实验：页内先手动 dispatch PopStateEvent 预热时间戳再 back，弹窗被关但历史错乱（落到 about:blank），说明 return false 后的 restore 路径同样有问题。建议改用「弹窗打开时 pushState 哨兵条目 + popstate 直接关顶层弹窗」的常规方案。
+- T2 叠层弹窗逐层关 — **untested**（核心拦截未生效，叠层判据无意义；且 chooseClean 设计上先关导出框再开配额框，UI 无稳定两层 ModalDialog 叠加路径）
+- T3（Regression）无弹窗导航照常：/studio↔/ back/forward 正常、名单保持「共 3 条」；/templates `?cat=event&q=桌牌` 返回保搜索词/分类/scrollY=500 — passed
+- T4 弹窗内站内链接：置 `seatmark.clean-export-usage.v1` used=1（匿名日限 1）→「无水印导出（今日剩余 0 次）」→ 配额弹窗「今日无水印导出次数已用完」→ 点弹窗内 /account 链接正常跳转 /account（守卫不拦点击导航——本来也未生效）— passed
+- T5 Esc 关弹窗后 back：Esc 只关弹窗、后续 back 正常走历史、无残留拦截 — passed（在守卫未生效前提下该项无区分力，如实注记）
+- 全程 pageerror=0；storage 清理 + 全部测试 tab 关闭 — passed
+
+**产物**：截图 `r223_dialog_open.png`/`r223_after_back1.png`（后退后已离开 /studio）/`r223_native_back.png`/`r223_quota_dialog.png`/`r223_account.png`；脚本 `/home/ubuntu/r223_t1.py`、`r223_t2.py`。已 message_parent 即时回报 P2。
+
+# 第 222 轮（2026-08-11）：#225 弹窗返回键拦截（代码变更轮）
+
+ModalDialog.vue 增加模块级 popstate 时间戳 + router.beforeEach 守卫：弹窗打开且本次导航由 popstate 驱动（300ms 窗口）时关顶层弹窗并取消导航（r221 T3 裁量项）。生产验收见第 223 轮——**结论：未生效（P2），需返工**。
+
 # 第 221 轮（2026-08-11）：浏览器历史导航与状态完整性走查 ✅ 全部判据 PASS——/studio 后退/前进名单+模板保持、/templates 返回保搜索词+分类+滚动位（#79 回归）、导出弹窗后退为路由级后退但名单不丢、/seating 排座后退前进保持、分享长链页后退正常、刷新中断导出无残留可复导；pageerror 0
 
 **环境**：生产真实 UI，entry `index-m3vMPIl7.js`（main df59d33）。SPA 历史由页内真实链接点击建立，后退/前进用 history.back()/forward()。夹具：`r221_roster.xlsx`（历史审计孙一/钱二/李三221，3 行）与 60 行版（中断导出用）。
