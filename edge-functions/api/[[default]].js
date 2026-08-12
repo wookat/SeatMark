@@ -265,16 +265,19 @@ async function quotaStatus(kv, email) {
   return { date, used, limit, bonus, remaining: Math.max(0, limit - used) }
 }
 
-async function shareCodeFor(kv, email) {
+async function shareCodeFor(kv, email, defer) {
   const existing = await kv.get(`share:owner:${email}`)
   if (existing) return existing
   const code = (await sha256Hex(`${email}:${Date.now()}`)).slice(0, 8)
-  await Promise.all([kv.put(`share:owner:${email}`, code), kv.put(`share:code:${code}`, email)])
+  const write = () =>
+    Promise.all([kv.put(`share:owner:${email}`, code), kv.put(`share:code:${code}`, email)])
+  if (defer) defer(write)
+  else await write()
   return code
 }
 
-async function shareStats(kv, email) {
-  const code = await shareCodeFor(kv, email)
+async function shareStats(kv, email, defer) {
+  const code = await shareCodeFor(kv, email, defer)
   const [totalVisits, totalBonus, bonusToday] = await Promise.all([
     getCounter(kv, `sharestat:visits:${code}`),
     getCounter(kv, `sharestat:bonus:${code}`),
@@ -290,10 +293,13 @@ async function shareStats(kv, email) {
   }
 }
 
-async function publicUser(kv, email, env, preloadedUser) {
+async function publicUser(kv, email, env, preloadedUser, defer) {
   const user = preloadedUser || (await getUser(kv, email))
   if (!user) return null
-  const [quota, share] = await Promise.all([quotaStatus(kv, email), shareStats(kv, email)])
+  const [quota, share] = await Promise.all([
+    quotaStatus(kv, email),
+    shareStats(kv, email, defer),
+  ])
   return {
     email: user.email,
     createdAt: user.createdAt,
@@ -513,15 +519,24 @@ async function handleRequest(context) {
    * 非关键写入移出响应关键路径：平台支持 waitUntil 时响应先行、写入后台完成
    * （生产实测 Blob 写入会间歇性干扰响应收尾导致网关 545）；不支持时回退同步等待
    */
-  const deferWrite = (promise) => {
-    const guarded = promise.catch((err) => {
-      console.error('[seatmark-api] 后台写入失败:', err)
-    })
+  const deferWrite = (start) => {
     if (typeof context.waitUntil === 'function') {
-      context.waitUntil(guarded)
+      // 延迟启动：避免写入与响应回传同时在飞（实测在飞写入同样会干扰收尾导致 545）
+      context.waitUntil(
+        (async () => {
+          await new Promise((resolve) => setTimeout(resolve, 150))
+          try {
+            await start()
+          } catch (err) {
+            console.error('[seatmark-api] 后台写入失败:', err)
+          }
+        })(),
+      )
       return
     }
-    return guarded
+    return start().catch((err) => {
+      console.error('[seatmark-api] 后台写入失败:', err)
+    })
   }
 
   /** 云端模板体积大：Blob 可用时优先 Blob，读取保留 KV 存量兜底 */
@@ -663,9 +678,9 @@ async function handleRequest(context) {
     const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
     const token = await signJwt({ sub: email, exp }, getSecret(env))
     // 会话签发成功后才消费验证码：中途实例异常时码仍有效，用户重试同一码即可
-    await deferWrite(kv.delete(codeKey))
+    await deferWrite(() => kv.delete(codeKey))
     return json(
-      { ok: true, user: await publicUser(kv, email, env, user) },
+      { ok: true, user: await publicUser(kv, email, env, user, deferWrite) },
       200,
       { ...storageHeader, 'Set-Cookie': sessionCookie(token) },
     )
@@ -690,7 +705,7 @@ async function handleRequest(context) {
     if (regCount >= REGISTER_IP_DAILY_LIMIT) {
       return json({ error: '请求过于频繁，请明天再试' }, 429, storageHeader)
     }
-    await deferWrite(kv.put(regKey, String(regCount + 1)))
+    await deferWrite(() => kv.put(regKey, String(regCount + 1)))
 
     let user = await getUser(kv, email)
     if (user && user.passwordHash) {
@@ -711,7 +726,7 @@ async function handleRequest(context) {
     const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
     const token = await signJwt({ sub: email, exp }, getSecret(env))
     return json(
-      { ok: true, user: await publicUser(kv, email, env, user) },
+      { ok: true, user: await publicUser(kv, email, env, user, deferWrite) },
       200,
       { ...storageHeader, 'Set-Cookie': sessionCookie(token) },
     )
@@ -752,20 +767,20 @@ async function handleRequest(context) {
     const ok = await verifyPassword(password, user.passwordHash)
     if (!ok) {
       fails.count += 1
-      await deferWrite(kv.put(failKey, JSON.stringify(fails)))
+      await deferWrite(() => kv.put(failKey, JSON.stringify(fails)))
       return json({ error: '邮箱或密码不正确' }, 401, storageHeader)
     }
     const now = new Date().toISOString()
     user.lastLoginAt = now
     user.loginCount = (user.loginCount || 0) + 1
     // 登录统计更新与限流计数清零都非关键：后台完成，响应不等 Blob 写回
-    await deferWrite(kv.delete(failKey))
-    await deferWrite(putUser(kv, user))
+    await deferWrite(() => kv.delete(failKey))
+    await deferWrite(() => putUser(kv, user))
 
     const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
     const token = await signJwt({ sub: email, exp }, getSecret(env))
     return json(
-      { ok: true, user: await publicUser(kv, email, env, user) },
+      { ok: true, user: await publicUser(kv, email, env, user, deferWrite) },
       200,
       { ...storageHeader, 'Set-Cookie': sessionCookie(token) },
     )
