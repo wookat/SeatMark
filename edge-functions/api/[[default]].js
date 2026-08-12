@@ -4,6 +4,8 @@
  * 覆盖 /api/* 中未被具体文件（ai-design.js / feedback.js）命中的所有路径：
  *   POST /api/auth/code          发送邮箱验证码（限频）
  *   POST /api/auth/verify        校验验证码，签发 httpOnly JWT 会话
+ *   POST /api/auth/register      邮箱+密码注册（已有验证码账号未设密码时可补设），签发会话
+ *   POST /api/auth/login         邮箱+密码登录（连续失败限流），签发会话
  *   GET  /api/auth/me            当前登录用户（含配额/分享状态）
  *   POST /api/auth/logout        退出登录
  *   GET  /api/account/templates  拉取云端模板
@@ -56,6 +58,12 @@ const CODE_TTL_MS = 10 * 60 * 1000
 const CODE_RESEND_INTERVAL_MS = 60 * 1000
 const CODE_MAX_ATTEMPTS = 5
 const CODE_IP_DAILY_LIMIT = 20
+const PASSWORD_MIN_LENGTH = 8
+const PASSWORD_MAX_LENGTH = 72
+const PBKDF2_ITERATIONS = 100000
+const LOGIN_FAIL_LIMIT = 10
+const LOGIN_FAIL_WINDOW_MS = 15 * 60 * 1000
+const REGISTER_IP_DAILY_LIMIT = 20
 const TEMPLATES_MAX_BYTES = 512 * 1024
 
 function json(data, status = 200, extraHeaders = {}) {
@@ -175,6 +183,55 @@ function clientIp(request) {
 async function sha256Hex(text) {
   const digest = await crypto.subtle.digest('SHA-256', encoder.encode(text))
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+// ---------- 密码哈希（PBKDF2-SHA256，Web Crypto） ----------
+async function pbkdf2Bits(password, saltBytes, iterations) {
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits'],
+  )
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', hash: 'SHA-256', salt: saltBytes, iterations },
+    keyMaterial,
+    256,
+  )
+  return new Uint8Array(bits)
+}
+
+async function hashPassword(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const derived = await pbkdf2Bits(password, salt, PBKDF2_ITERATIONS)
+  return `pbkdf2$${PBKDF2_ITERATIONS}$${b64url(salt)}$${b64url(derived)}`
+}
+
+async function verifyPassword(password, stored) {
+  try {
+    const [scheme, iterStr, saltB64, hashB64] = String(stored).split('$')
+    if (scheme !== 'pbkdf2') return false
+    const iterations = Number(iterStr)
+    if (!Number.isFinite(iterations) || iterations < 1000) return false
+    const salt = Uint8Array.from(b64urlDecode(saltB64), (c) => c.charCodeAt(0))
+    const expected = Uint8Array.from(b64urlDecode(hashB64), (c) => c.charCodeAt(0))
+    const derived = await pbkdf2Bits(password, salt, iterations)
+    if (derived.length !== expected.length) return false
+    let diff = 0
+    for (let i = 0; i < derived.length; i++) diff |= derived[i] ^ expected[i]
+    return diff === 0
+  } catch {
+    return false
+  }
+}
+
+function isValidPassword(password) {
+  return (
+    typeof password === 'string' &&
+    password.length >= PASSWORD_MIN_LENGTH &&
+    password.length <= PASSWORD_MAX_LENGTH
+  )
 }
 
 // ---------- 用户与配额 ----------
@@ -588,6 +645,106 @@ async function handleRequest(context) {
     const token = await signJwt({ sub: email, exp }, getSecret(env))
     // 会话签发成功后才消费验证码：中途实例异常时码仍有效，用户重试同一码即可
     await kv.delete(codeKey)
+    return json(
+      { ok: true, user: await publicUser(kv, email, env) },
+      200,
+      { ...storageHeader, 'Set-Cookie': sessionCookie(token) },
+    )
+  }
+
+  if (path === '/api/auth/register' && method === 'POST') {
+    const body = await readBody()
+    const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
+    const password = typeof body?.password === 'string' ? body.password : ''
+    if (!isValidEmail(email)) return json({ error: '邮箱格式不正确' }, 400, storageHeader)
+    if (!isValidPassword(password)) {
+      return json(
+        { error: `密码长度需在 ${PASSWORD_MIN_LENGTH}–${PASSWORD_MAX_LENGTH} 位之间` },
+        400,
+        storageHeader,
+      )
+    }
+
+    const ip = clientIp(request)
+    const regKey = `rl:reg:${await sha256Hex(ip)}:${today()}`
+    const regCount = await getCounter(kv, regKey)
+    if (regCount >= REGISTER_IP_DAILY_LIMIT) {
+      return json({ error: '请求过于频繁，请明天再试' }, 429, storageHeader)
+    }
+    await kv.put(regKey, String(regCount + 1))
+
+    let user = await getUser(kv, email)
+    if (user && user.passwordHash) {
+      return json({ error: '该邮箱已注册，请直接登录' }, 409, storageHeader)
+    }
+    const now = new Date().toISOString()
+    if (!user) {
+      user = { email, createdAt: now, lastLoginAt: now, loginCount: 1, templateCount: 0 }
+    } else {
+      // 历史验证码账号未设密码：首次注册即补设密码
+      user.lastLoginAt = now
+      user.loginCount = (user.loginCount || 0) + 1
+    }
+    user.passwordHash = await hashPassword(password)
+    user.passwordSetAt = now
+    await putUser(kv, user)
+
+    const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
+    const token = await signJwt({ sub: email, exp }, getSecret(env))
+    return json(
+      { ok: true, user: await publicUser(kv, email, env) },
+      200,
+      { ...storageHeader, 'Set-Cookie': sessionCookie(token) },
+    )
+  }
+
+  if (path === '/api/auth/login' && method === 'POST') {
+    const body = await readBody()
+    const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
+    const password = typeof body?.password === 'string' ? body.password : ''
+    if (!isValidEmail(email) || typeof password !== 'string' || !password) {
+      return json({ error: '邮箱或密码格式不正确' }, 400, storageHeader)
+    }
+
+    // 连续失败限流（按邮箱，15 分钟窗口）
+    const failKey = `pwfail:${email}`
+    let fails = { count: 0, firstAt: Date.now() }
+    const failsRaw = await kv.get(failKey)
+    if (failsRaw) {
+      try {
+        const parsed = JSON.parse(failsRaw)
+        if (Date.now() - parsed.firstAt < LOGIN_FAIL_WINDOW_MS) fails = parsed
+      } catch {
+        // 损坏记录直接重置
+      }
+    }
+    if (fails.count >= LOGIN_FAIL_LIMIT) {
+      return json({ error: '失败次数过多，请 15 分钟后再试' }, 429, storageHeader)
+    }
+
+    const user = await getUser(kv, email)
+    if (!user || !user.passwordHash) {
+      return json(
+        { error: user ? '该账号尚未设置密码，请先注册设置' : '邮箱或密码不正确' },
+        user ? 409 : 401,
+        storageHeader,
+      )
+    }
+    const ok = await verifyPassword(password, user.passwordHash)
+    if (!ok) {
+      fails.count += 1
+      await kv.put(failKey, JSON.stringify(fails))
+      return json({ error: '邮箱或密码不正确' }, 401, storageHeader)
+    }
+    await kv.delete(failKey)
+
+    const now = new Date().toISOString()
+    user.lastLoginAt = now
+    user.loginCount = (user.loginCount || 0) + 1
+    await putUser(kv, user)
+
+    const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
+    const token = await signJwt({ sub: email, exp }, getSecret(env))
     return json(
       { ok: true, user: await publicUser(kv, email, env) },
       200,

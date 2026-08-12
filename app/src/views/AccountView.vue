@@ -13,69 +13,43 @@ const quota = useQuotaStore()
 const library = useTemplateLibrary()
 const toast = useToastStore()
 
-// ---------- 登录表单 ----------
+// ---------- 登录表单（邮箱 + 密码） ----------
 const email = ref('')
-const code = ref('')
-const codeSent = ref(false)
-const sending = ref(false)
-const verifying = ref(false)
+const password = ref('')
+const mode = ref<'login' | 'register'>('login')
+const submitting = ref(false)
 const formError = ref('')
-const resendCountdown = ref(0)
-let countdownTimer: number | undefined
 
-function startCountdown() {
-  resendCountdown.value = 60
-  countdownTimer = window.setInterval(() => {
-    resendCountdown.value -= 1
-    if (resendCountdown.value <= 0 && countdownTimer) {
-      window.clearInterval(countdownTimer)
-      countdownTimer = undefined
-    }
-  }, 1000)
-}
-
-async function onSendCode() {
+async function onSubmit() {
   formError.value = ''
-  const value = email.value.trim().toLowerCase()
-  if (!isValidEmail(value)) {
+  const emailValue = email.value.trim().toLowerCase()
+  if (!isValidEmail(emailValue)) {
     formError.value = '请输入正确的邮箱地址'
     return
   }
-  sending.value = true
-  try {
-    const data = await auth.sendCode(value)
-    codeSent.value = true
-    startCountdown()
-    if (data.delivery === 'stub' && data.devCode) {
-      // 邮件服务未配置时的联调通道：验证码直接回显
-      code.value = data.devCode
-      toast.warning('邮件服务未接入', '验证码已自动填入（联调模式）')
-    } else {
-      toast.success('验证码已发送', '请查收邮箱，10 分钟内有效')
-    }
-  } catch (err) {
-    formError.value = err instanceof ApiError ? err.message : '发送失败，请稍后再试'
-  } finally {
-    sending.value = false
-  }
-}
-
-async function onVerify() {
-  formError.value = ''
-  if (!/^\d{6}$/.test(code.value.trim())) {
-    formError.value = '请输入 6 位数字验证码'
+  if (password.value.length < 8) {
+    formError.value = '密码至少 8 位'
     return
   }
-  verifying.value = true
+  submitting.value = true
   try {
-    await auth.verify(email.value.trim().toLowerCase(), code.value.trim())
-    toast.success('登录成功', `已开通专业版 Beta 限时免费试用：每日 ${QUOTA_USER_DAILY} 次无水印导出与云端模板同步已生效`)
-    code.value = ''
-    codeSent.value = false
+    if (mode.value === 'register') {
+      await auth.register(emailValue, password.value)
+      toast.success('注册成功', `已开通专业版 Beta 限时免费试用：每日 ${QUOTA_USER_DAILY} 次无水印导出与云端模板同步已生效`)
+    } else {
+      await auth.login(emailValue, password.value)
+      toast.success('登录成功', `每日 ${QUOTA_USER_DAILY} 次无水印导出与云端模板同步已生效`)
+    }
+    password.value = ''
   } catch (err) {
-    formError.value = err instanceof ApiError ? err.message : '登录失败，请稍后再试'
+    formError.value =
+      err instanceof ApiError
+        ? err.message
+        : mode.value === 'register'
+          ? '注册失败，请稍后再试'
+          : '登录失败，请稍后再试'
   } finally {
-    verifying.value = false
+    submitting.value = false
   }
 }
 
@@ -184,14 +158,16 @@ function formatDate(iso: string | null | undefined): string {
     <template v-if="!auth.user">
       <div class="mx-auto max-w-md">
         <div class="text-center">
-          <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">登录 SeatMark</h1>
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            {{ mode === 'register' ? '注册 SeatMark' : '登录 SeatMark' }}
+          </h1>
           <p class="mt-2 text-sm leading-6 text-slate-600">
-            邮箱验证码登录，无需设置密码。登录即开通专业版 Beta 限时免费试用：每日
+            邮箱 + 密码登录。登录即开通专业版 Beta 限时免费试用：每日
             {{ QUOTA_USER_DAILY }} 次无水印导出（未登录 {{ QUOTA_ANON_DAILY }} 次）、自定义模板云端同步与跨设备找回；带水印导出/打印始终不限次数。
           </p>
         </div>
 
-        <form class="mt-8 grid gap-4" @submit.prevent="codeSent ? onVerify() : onSendCode()">
+        <form class="mt-8 grid gap-4" @submit.prevent="onSubmit">
           <label class="grid gap-1.5">
             <span class="text-sm font-semibold text-slate-700">邮箱</span>
             <input
@@ -204,37 +180,44 @@ function formatDate(iso: string | null | undefined): string {
             />
           </label>
 
-          <div v-if="codeSent" class="grid gap-1.5">
-            <span class="text-sm font-semibold text-slate-700">验证码</span>
-            <div class="flex gap-2">
-              <input
-                v-model="code"
-                type="text"
-                inputmode="numeric"
-                maxlength="6"
-                placeholder="6 位数字"
-                class="h-10 min-w-0 flex-1 rounded border border-slate-300 px-3 text-sm tracking-widest text-slate-900 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-              />
-              <button
-                type="button"
-                class="btn btn-secondary btn-sm h-10 shrink-0"
-                :disabled="sending || resendCountdown > 0"
-                @click="onSendCode"
-              >
-                {{ resendCountdown > 0 ? `${resendCountdown}s 后重发` : '重新发送' }}
-              </button>
-            </div>
-          </div>
+          <label class="grid gap-1.5">
+            <span class="text-sm font-semibold text-slate-700">密码</span>
+            <input
+              v-model="password"
+              type="password"
+              required
+              minlength="8"
+              maxlength="72"
+              :autocomplete="mode === 'register' ? 'new-password' : 'current-password'"
+              :placeholder="mode === 'register' ? '至少 8 位' : '请输入密码'"
+              class="h-10 rounded border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            />
+          </label>
 
           <p v-if="formError" class="text-sm font-medium text-red-600">{{ formError }}</p>
 
-          <button
-            type="submit"
-            class="btn btn-primary btn-md w-full"
-            :disabled="sending || verifying"
-          >
-            {{ codeSent ? (verifying ? '登录中...' : '登录') : sending ? '发送中...' : '获取验证码' }}
+          <button type="submit" class="btn btn-primary btn-md w-full" :disabled="submitting">
+            {{
+              mode === 'register'
+                ? submitting
+                  ? '注册中...'
+                  : '注册并登录'
+                : submitting
+                  ? '登录中...'
+                  : '登录'
+            }}
           </button>
+
+          <p class="text-center text-sm text-slate-600">
+            {{ mode === 'register' ? '已有账号？' : '还没有账号？' }}
+            <button
+              type="button"
+              class="font-semibold text-brand-600 hover:text-brand-700"
+              @click="mode = mode === 'register' ? 'login' : 'register'; formError = ''"
+            >
+              {{ mode === 'register' ? '去登录' : '免费注册' }}
+            </button>
+          </p>
         </form>
 
         <p class="mt-6 text-center text-xs leading-5 text-slate-600">

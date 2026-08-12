@@ -104,6 +104,111 @@ describe('/api/auth/code devCode 环境限制', () => {
   })
 })
 
+describe('/api/auth/register 与 /api/auth/login 密码登录', () => {
+  const EMAIL = 'pw-user@example.com'
+  const PASSWORD = 'super-secret-1'
+
+  it('注册成功即签发会话，/api/auth/me 可见用户', async () => {
+    const { response, data } = await call('POST', 'https://www.seatmark.cn/api/auth/register', {
+      body: { email: EMAIL, password: PASSWORD },
+    })
+    expect(response.status).toBe(200)
+    expect((data.user as Record<string, unknown>).email).toBe(EMAIL)
+    const cookie = (response.headers.get('Set-Cookie') || '').split(';')[0]
+    expect(cookie).toContain('sm_session=')
+
+    const { data: meData } = await call('GET', 'https://www.seatmark.cn/api/auth/me', { cookie })
+    expect((meData.user as Record<string, unknown>).email).toBe(EMAIL)
+  })
+
+  it('重复注册返回 409', async () => {
+    await call('POST', 'https://www.seatmark.cn/api/auth/register', {
+      body: { email: 'dup@example.com', password: PASSWORD },
+    })
+    const { response, data } = await call('POST', 'https://www.seatmark.cn/api/auth/register', {
+      body: { email: 'dup@example.com', password: 'another-pass-2' },
+    })
+    expect(response.status).toBe(409)
+    expect(data.error).toBe('该邮箱已注册，请直接登录')
+  })
+
+  it('密码过短返回 400', async () => {
+    const { response } = await call('POST', 'https://www.seatmark.cn/api/auth/register', {
+      body: { email: 'short@example.com', password: '1234567' },
+    })
+    expect(response.status).toBe(400)
+  })
+
+  it('正确密码登录成功，错误密码 401', async () => {
+    await call('POST', 'https://www.seatmark.cn/api/auth/register', {
+      body: { email: 'login@example.com', password: PASSWORD },
+    })
+    const { response: okRes, data: okData } = await call(
+      'POST',
+      'https://www.seatmark.cn/api/auth/login',
+      { body: { email: 'login@example.com', password: PASSWORD } },
+    )
+    expect(okRes.status).toBe(200)
+    expect((okData.user as Record<string, unknown>).email).toBe('login@example.com')
+
+    const { response: badRes, data: badData } = await call(
+      'POST',
+      'https://www.seatmark.cn/api/auth/login',
+      { body: { email: 'login@example.com', password: 'wrong-password' } },
+    )
+    expect(badRes.status).toBe(401)
+    expect(badData.error).toBe('邮箱或密码不正确')
+  })
+
+  it('未注册邮箱登录返回 401（不泄露账号是否存在）', async () => {
+    const { response, data } = await call('POST', 'https://www.seatmark.cn/api/auth/login', {
+      body: { email: 'nobody@example.com', password: PASSWORD },
+    })
+    expect(response.status).toBe(401)
+    expect(data.error).toBe('邮箱或密码不正确')
+  })
+
+  it('历史验证码账号（无密码）可通过注册补设密码', async () => {
+    // 先用 devCode 通道创建无密码账号
+    const { data: codeData } = await call('POST', 'http://localhost:5173/api/auth/code', {
+      body: { email: 'legacy@example.com' },
+    })
+    await call('POST', 'http://localhost:5173/api/auth/verify', {
+      body: { email: 'legacy@example.com', code: codeData.devCode },
+    })
+    // 未设密码时直接登录提示先注册
+    const { response: earlyRes } = await call('POST', 'https://www.seatmark.cn/api/auth/login', {
+      body: { email: 'legacy@example.com', password: PASSWORD },
+    })
+    expect(earlyRes.status).toBe(409)
+    // 注册补设密码
+    const { response: regRes } = await call('POST', 'https://www.seatmark.cn/api/auth/register', {
+      body: { email: 'legacy@example.com', password: PASSWORD },
+    })
+    expect(regRes.status).toBe(200)
+    const { response: loginRes } = await call('POST', 'https://www.seatmark.cn/api/auth/login', {
+      body: { email: 'legacy@example.com', password: PASSWORD },
+    })
+    expect(loginRes.status).toBe(200)
+  })
+
+  it('连续 10 次错密码后限流 429', async () => {
+    await call('POST', 'https://www.seatmark.cn/api/auth/register', {
+      body: { email: 'ratelimit@example.com', password: PASSWORD },
+    })
+    for (let i = 0; i < 10; i++) {
+      await call('POST', 'https://www.seatmark.cn/api/auth/login', {
+        body: { email: 'ratelimit@example.com', password: 'wrong-password' },
+      })
+    }
+    const { response, data } = await call('POST', 'https://www.seatmark.cn/api/auth/login', {
+      body: { email: 'ratelimit@example.com', password: PASSWORD },
+    })
+    expect(response.status).toBe(429)
+    expect(data.error).toBe('失败次数过多，请 15 分钟后再试')
+  })
+})
+
 describe('/api/admin/health', () => {
   const env: Env = {
     AUTH_SECRET: 'test-secret',
