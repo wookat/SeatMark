@@ -1,3 +1,36 @@
+# 第 293 轮（2026-08-12）：邮箱+密码登录（PR #299，已合入部署）——本地全功能 ✅ 全 PASS；线上功能打通但 ⚠️ auth POST 端点 545 率 7/13（注册 3/4、登录 4/7），依赖 #294 友好提示 + 用户手动重试才能完成注册/登录
+
+**环境**：本地 vite dev（http://localhost:5173，`app/scripts/devApi.mjs` 内存 KV，`env -u RESEND_API_KEY …` 启动）+ 线上 https://www.seatmark.cn（storage=blob）。可视 Chromium（CDP 29229）计算机操作 + Playwright async 监听器旁路捕获 /api/auth/* 请求/响应/pageerror（`/home/ubuntu/r293_listen.py` → `r293_net.jsonl`）。全程录屏。计划 test-plan-round293.md。
+
+## Part A 本地（内存 KV）——全部 PASS
+- A2 短密码：注册模式 7 位密码 → input `minlength=8` 原生拦截（气泡提示），**无 /api/auth/register 请求发出** — PASS
+- A1 注册：新邮箱 r293x47121@test.dev + 12 位密码 → 200、toast「注册成功」、个人中心显示邮箱 + 配额 3/3 — PASS
+- A3 刷新保持：F5 后仍个人中心（me 200 user） — PASS
+- A4 登出：头像下拉「退出登录」→ /account 回登录表单，me 返回 `{"user":null}` — PASS
+- A5 错密码：401 `{"error":"邮箱或密码不正确"}`，表单同文案 — PASS
+- A6 正确密码重登：toast「登录成功」，累计登录 2 次 — PASS
+- A7 重复注册：同邮箱再注册 → 409「该邮箱已注册，请直接登录」，表单显示同文案 — PASS
+- A8 移动端 390px：devtools device 模式，scrollWidth=390=innerWidth 无横向溢出 — PASS
+
+## Part B 线上（blob）——功能打通，但 545 显著
+- 部署确认：/account 已是密码表单；POST /api/auth/login 对未知邮箱返回 401（新端点已上线）。
+- B1 注册 seatmark293x812@example.com：**前 2 次提交均 545**（「Error return from script」，无 storage 头；UI 显示 #294 友好提示「服务暂时不可用，请重试」）；第 3 次返回 **409「该邮箱已注册」**——说明**首次 545 的请求在服务端已实际写入账号**（545 发生在响应阶段，handler 已执行完）。随后切登录模式，第 2 次尝试登录成功（第 1 次又 545）→ 个人中心、配额 3/3、storage=blob — 功能可达但体验受损
+- B2 刷新保持：me 200（blob，含 user）→ 仍个人中心 — PASS（注：me 响应耗时约 3s，刷新后有短暂未登录表单闪现）
+- B3 登出：logout 200 → me `{"user":null}`，刷新仍未登录 — PASS
+- B4 登出后正确密码重登：成功（中间又遇 2 次 545，重试后 200）；服务端「累计登录 6 次」而 UI 成功登录仅 2 次——**545 的登录请求服务端同样已执行**（计数+签发后响应才死在网关） — PASS（如实记录）
+- B5 错密码：401「邮箱或密码不正确」表单显示 — PASS；短密码 390px 下原生拦截无请求 — PASS
+- B6 移动端 390px：scrollWidth=390 无溢出 — PASS
+- ⚠️ **545 统计（本轮线上 auth POST）**：register 3/4、login 4/7，合计 **7/13 ≈54%**（r290 code/verify 为 6/24≈25%；r291 GET 0/50）。545 无 storage 头（网关级）；每次 UI 均正确显示「服务暂时不可用，请重试」（#294 ③ 生效）。**新证据：545 请求的服务端副作用已完成**（注册已建号、登录已计数）——问题定位在响应/收尾阶段（疑 waitUntil/Blob 写回或响应流），建议按此排查。
+
+## 常规
+- 隐私：15 个 auth POST payload 键均 ⊆ {email,password}（logout/me 无 body），名单零外发；24 个 auth 响应体**均无 passwordHash** — PASS
+- pageerror=0；正常线上响应均 storage=blob；storage/cookie 清理完毕、登出收尾 — PASS
+- 测试残留：线上新增测试账号 seatmark293x812@example.com（可清理）；本地内存账号随 dev server 关闭消失。
+
+**产物**：录屏 `/home/ubuntu/screencasts/rec-6f2e64d2-f1c3-4ac2-ba89-8a221522de1d/rec-6f2e64d2-f1c3-4ac2-ba89-8a221522de1d-edited.mp4`；截图 r293_a1_registered/a2_short/a3_refresh/a4_loggedout/a5_wrongpass/a6_relogin/a7_dup409/a8_390/b1_545/b1_loggedin/b2_refresh/b3_loggedout/b4_relogin/b5_wrongpass（/home/ubuntu/screenshots/）；网络明细 `/home/ubuntu/r293_net.jsonl`。
+
+---
+
 # 第 292 轮（2026-08-12）：登录闭环补测 🔴 BLOCKED——生产 SES 凭证失效（`X-SeatMark-Mail-Error: AuthFailure.SecretIdNotFound`，8 次发码 0 成功），且 POST /api/auth/code 仍有间歇 545（3/8）。登出闭环、错码回归、#294 ① 不吞码实证全部无法执行。
 
 **环境**：UTC 日界已过（00:02 UTC 起测），IP 发码日限已重置实证（不再 429）。CDP 全新 incognito context 打生产 /account + mail.tm 新邮箱；脚本 `/home/ubuntu/r292_run.py`，结果 `r292_res.json`。计划 test-plan-round292.md。
