@@ -513,7 +513,8 @@ async function handleRequest(context) {
   if (method === 'OPTIONS') return new Response(null, { status: 204 })
 
   const { kv, storage, blobStore } = await getStorage(env)
-  const storageHeader = { 'X-SeatMark-Storage': storage }
+  // Rev 标记仅用于部署观测：探针可确认线上边缘函数版本，改动本文件时递增
+  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r298' }
 
   /**
    * 非关键写入移出响应关键路径：平台支持 waitUntil 时响应先行、写入后台完成
@@ -771,8 +772,8 @@ async function handleRequest(context) {
     const now = new Date().toISOString()
     user.lastLoginAt = now
     user.loginCount = (user.loginCount || 0) + 1
-    // 登录统计更新与限流计数清零都非关键：后台完成，响应不等 Blob 写回
-    await deferWrite(() => kv.delete(failKey))
+    // 登录统计更新与限流计数清零都非关键：后台完成，响应不等 Blob 写回；无失败记录时不白写
+    if (failsRaw) await deferWrite(() => kv.delete(failKey))
     await deferWrite(() => putUser(kv, user))
 
     const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
