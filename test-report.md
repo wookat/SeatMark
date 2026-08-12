@@ -1,3 +1,35 @@
+# 第 294 轮（2026-08-12）：PR #301 线上复测（auth 545 双管齐下）——⚠️ 大幅改善但未达「用户视角 0 失败」：raw 545 8/21 auth POST，前端静默重试吸收其中 2 轮，但 1 次登录 3 连 545 打穿重试上限，用户仍见「服务暂时不可用，请重试」
+
+**环境**：生产 https://www.seatmark.cn（storage=blob）。部署确认：entry `/assets/index-CnDnn-Ti.js` → 主 chunk `index-C6Gj5hO2.js` 含 `600*d` 退避与 register→login 收尾代码（auth.ts 新 bundle 已上线）。可视 Chromium（CDP 29229）UI 操作 + Playwright async 监听器（`/home/ubuntu/r294_listen.py` → `r294_net.jsonl`）。全程录屏。计划 test-plan-round294.md。
+
+## T1 545 成功率（register×3 新账号 + login×8 正确密码）
+- **raw 网络层 545**：register 1/3、login 7/18（含重试产生的额外请求；login POST 中 200×10、545×7、401×1）。按用户操作口径：11 次用户操作（注册 3 + 登录 8），其中 3 次操作遭遇 545。
+- **前端自动收尾成功 2 例**：
+  - 注册账号 c：register 545 → 自动改走 login（又 545）→ 600ms 退避重试 login → 200，UI 全程只见「注册中...」，最终 toast 进入个人中心（**#301 register→login 收尾 + login 重试链路实证**）。
+  - 登录第 1 次：login 545 → 600ms 静默重试 → 200，用户无感。
+- **❌ 用户视角失败 1 例（未达 0 失败目标）**：登录第 4 次 3 次尝试全部 545（间隔 ~0.6s/1.2s 符合退避设计），表单显示「服务暂时不可用，请重试」；手动再点登录后成功。545 响应均无 storage 头（网关级）。
+- 副作用注记（与 r293 一致）：每次 545 的 login 服务端均已计数——账号 a 实际 UI 成功登录 9 次但「累计登录 16 次」（545 尝试全部入账）。
+- **结论：FAIL（判据「用户视角 0 失败」）**——重试把 545 对用户的影响从 r293 的「过半操作需手动重试」降到 1/11，但 3 连 545 仍会打穿；545 根因未消除（本轮 auth POST raw 545 率 8/21 ≈38%，与 r293 的 54% 同量级）。
+
+## T2 错密码不重试 — PASS
+- 错密码提交 → **仅 1 个** /api/auth/login 请求、401 `{"error":"邮箱或密码不正确"}`，表单立即（~1.8s，无退避延迟）显示同文案，无第 2/3 次请求（不重复计失败次数）。
+
+## T3 短密码拦截 + 登出回归 — PASS
+- 注册模式 7 位密码 → input minlength=8 原生气泡拦截，**无任何 register 请求发出**。
+- 登出（头像下拉）→ me `{"user":null}`，F5 后仍未登录；正确密码重登成功（8 轮登录循环反复实证）。
+
+## T4 存储/隐私/健康 — PASS
+- 全部正常（<500）auth 响应头 `X-SeatMark-Storage: blob`（0 例外）；545 无 storage 头（网关错误页）。
+- 全部 auth POST payload 键仅 {email,password}（logout/me 无 body）；全部响应体无 `passwordHash`；pageerror=0。
+
+## 测试残留与清理
+- 新增线上测试账号（可清理）：seatmark294a417 / seatmark294b528 / seatmark294c639 @example.com（密码 ProdPass294!）。上轮 seatmark293x812@example.com 未复用、未清理（无删除入口，注销账号按钮未触碰以免误删流程未测路径）。
+- 浏览器 cookie/localStorage 已清理，监听器已停止。
+
+**产物**：录屏 rec-f9009462；截图 r294_reg_a/b/c、r294_login4_fail（用户可见失败）、r294_wrongpass、r294_shortpass、r294_loggedout；网络明细 /home/ubuntu/r294_net.jsonl。
+
+---
+
 # 第 293 轮（2026-08-12）：邮箱+密码登录（PR #299，已合入部署）——本地全功能 ✅ 全 PASS；线上功能打通但 ⚠️ auth POST 端点 545 率 7/13（注册 3/4、登录 4/7），依赖 #294 友好提示 + 用户手动重试才能完成注册/登录
 
 **环境**：本地 vite dev（http://localhost:5173，`app/scripts/devApi.mjs` 内存 KV，`env -u RESEND_API_KEY …` 启动）+ 线上 https://www.seatmark.cn（storage=blob）。可视 Chromium（CDP 29229）计算机操作 + Playwright async 监听器旁路捕获 /api/auth/* 请求/响应/pageerror（`/home/ubuntu/r293_listen.py` → `r293_net.jsonl`）。全程录屏。计划 test-plan-round293.md。

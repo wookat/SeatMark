@@ -509,6 +509,21 @@ async function handleRequest(context) {
   const { kv, storage, blobStore } = await getStorage(env)
   const storageHeader = { 'X-SeatMark-Storage': storage }
 
+  /**
+   * 非关键写入移出响应关键路径：平台支持 waitUntil 时响应先行、写入后台完成
+   * （生产实测 Blob 写入会间歇性干扰响应收尾导致网关 545）；不支持时回退同步等待
+   */
+  const deferWrite = (promise) => {
+    const guarded = promise.catch((err) => {
+      console.error('[seatmark-api] 后台写入失败:', err)
+    })
+    if (typeof context.waitUntil === 'function') {
+      context.waitUntil(guarded)
+      return
+    }
+    return guarded
+  }
+
   /** 云端模板体积大：Blob 可用时优先 Blob，读取保留 KV 存量兜底 */
   const templateStore = {
     async get(email) {
@@ -648,7 +663,7 @@ async function handleRequest(context) {
     const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
     const token = await signJwt({ sub: email, exp }, getSecret(env))
     // 会话签发成功后才消费验证码：中途实例异常时码仍有效，用户重试同一码即可
-    await kv.delete(codeKey)
+    await deferWrite(kv.delete(codeKey))
     return json(
       { ok: true, user: await publicUser(kv, email, env, user) },
       200,
@@ -675,12 +690,9 @@ async function handleRequest(context) {
     if (regCount >= REGISTER_IP_DAILY_LIMIT) {
       return json({ error: '请求过于频繁，请明天再试' }, 429, storageHeader)
     }
-    const [, preloaded] = await Promise.all([
-      kv.put(regKey, String(regCount + 1)),
-      getUser(kv, email),
-    ])
+    await deferWrite(kv.put(regKey, String(regCount + 1)))
 
-    let user = preloaded
+    let user = await getUser(kv, email)
     if (user && user.passwordHash) {
       return json({ error: '该邮箱已注册，请直接登录' }, 409, storageHeader)
     }
@@ -740,13 +752,15 @@ async function handleRequest(context) {
     const ok = await verifyPassword(password, user.passwordHash)
     if (!ok) {
       fails.count += 1
-      await kv.put(failKey, JSON.stringify(fails))
+      await deferWrite(kv.put(failKey, JSON.stringify(fails)))
       return json({ error: '邮箱或密码不正确' }, 401, storageHeader)
     }
     const now = new Date().toISOString()
     user.lastLoginAt = now
     user.loginCount = (user.loginCount || 0) + 1
-    await Promise.all([kv.delete(failKey), putUser(kv, user)])
+    // 登录统计更新与限流计数清零都非关键：后台完成，响应不等 Blob 写回
+    await deferWrite(kv.delete(failKey))
+    await deferWrite(putUser(kv, user))
 
     const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
     const token = await signJwt({ sub: email, exp }, getSecret(env))

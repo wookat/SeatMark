@@ -5,6 +5,9 @@ description: How to end-to-end test SeatMark in production (www.seatmark.cn) via
 
 # Testing SeatMark online (www.seatmark.cn)
 
+## Auth retry testing (r294, post-#301)
+The frontend silently retries login on gateway 5xx (≤5 attempts, 600ms·n backoff) and register falls back to login on 5xx — so a raw 545 no longer implies a user-visible failure. To measure true user impact, drive the UI and count form-level errors, while an async CDP listener counts raw 545s; server-side login counters include 545'd attempts. Root-cause isolation (r295 probes): 545 only hits requests that do Blob WRITES (write-only POST ≈18%, wrong-pass login write+PBKDF2 ≈33%); read-only GET/POST paths were 0/90. Deployment check: fetch the entry /assets/index-*.js, follow its referenced index-*.js chunk (entry is a small loader), and grep for a code marker (e.g. the backoff literal).
+
 ## Password auth testing (r293)
 /account is now email+password (register/login toggle via 免费注册/去登录; short passwords are blocked client-side by input minlength=8 — assert zero network request). Registration needs no email delivery, so any syntactically valid address works. Gotcha: production auth POSTs (register/login) intermittently return gateway 545 but the server-side handler HAS completed (account created / login counted) — a 545'd register followed by retry returns 409 已注册, so switch to login mode with the same password. To passively capture request payloads/responses while driving the visible CDP browser, attach a playwright **async** listener over connect_over_cdp (sync API + time.sleep does not dispatch events).
 
