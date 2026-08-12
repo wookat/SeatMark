@@ -346,3 +346,7 @@ SES sending works — POST /api/auth/code returns 200 `{delivery:'email'}` and t
 ## Simulating gateway 5xx (r291)
 
 To replicate EdgeOne's real 545 "Error return from script" page, Playwright route.fulfill rejects non-standard status codes — use a raw CDP session (`ctx.new_cdp_session(page)` + Fetch.enable/Fetch.fulfillRequest with responseCode 545 and responsePhrase). apiFetch (#294) shows「服务暂时不可用，请重试」for any non-JSON ≥500. Safe no-side-effect probe endpoints for 545 frequency stats: GET /api/auth/me and GET /api/quota (do NOT probe POST /api/auth/code — its 20/day per-IP UTC-keyed limit will lock out login testing until 00:00 UTC).
+
+## Mail-send diagnostics (r292)
+
+When /api/auth/code returns 502, check the `X-SeatMark-Mail-Error` response header for the upstream Tencent SES error code (e.g. AuthFailure.SecretIdNotFound = SES credentials missing/invalid in EdgeOne env — a deploy-time regression, all logins dead). Budget discipline: the 20/day per-IP send limit is UTC-keyed; stop probing as soon as a systemic blocker is confirmed to preserve quota for the retest. Intermittent gateway 545 (no storage header) has been observed on POST /api/auth/code even after #294 while GET endpoints show 0/50 — treat 545-on-POST as an open issue, possibly in the mail-send path.
