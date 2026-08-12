@@ -5,6 +5,9 @@ description: How to end-to-end test SeatMark in production (www.seatmark.cn) via
 
 # Testing SeatMark online (www.seatmark.cn)
 
+## Password auth testing (r293)
+/account is now email+password (register/login toggle via 免费注册/去登录; short passwords are blocked client-side by input minlength=8 — assert zero network request). Registration needs no email delivery, so any syntactically valid address works. Gotcha: production auth POSTs (register/login) intermittently return gateway 545 but the server-side handler HAS completed (account created / login counted) — a 545'd register followed by retry returns 409 已注册, so switch to login mode with the same password. To passively capture request payloads/responses while driving the visible CDP browser, attach a playwright **async** listener over connect_over_cdp (sync API + time.sleep does not dispatch events).
+
 ## html2canvas-pro 2.3.2 baseline (r192/#200) — OBSOLETE as of #202/r194
 html2canvas-pro was reverted 2.3.2→2.0.4 — the 2.3.2 baselines (demo `ef6b69ad…`, 009 `cec2aac0…`) are void; the canonical baselines are again demo whole-page watermarked `3e8fdf3e…` (r170) and per-label 009 `eb4eb7bd…` (r188), name-alignment ratio ≈0.635. If a future engine upgrade is attempted, rerun the r192 4x-ratio method — upstream #222 (fontBoundingBoxAscent) draws large text ~12px@300dpi higher than the DOM preview and will break WYSIWYG again unless compensated. To judge preview-vs-export alignment objectively: capture the first label with Page.captureScreenshot clip {x:rect.x+scrollX, y:rect.y+scrollY, scale:4} (rect from getBoundingClientRect; forgetting scrollY clips the toolbar instead), then compare the ratio (学号-row center − name center)/name ink height across preview and both exports. PNG dialog mode selector is the input-field button containing 按标签逐张/按整页 — NOT the first input-field button (that's the 姓名 field).
 
