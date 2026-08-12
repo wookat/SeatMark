@@ -517,26 +517,24 @@ async function handleRequest(context) {
 
   /**
    * 非关键写入移出响应关键路径：平台支持 waitUntil 时响应先行、写入后台完成
-   * （生产实测 Blob 写入会间歇性干扰响应收尾导致网关 545）；不支持时回退同步等待
+   * （生产实测 Blob 写入会间歇性干扰响应收尾导致网关 545）；不支持时回退同步等待。
+   * 同一请求的多个后台写串成单链依次执行：并发的后台写同样会干扰收尾。
    */
+  let writeChain = null
   const deferWrite = (start) => {
+    const run = () =>
+      start().catch((err) => {
+        console.error('[seatmark-api] 后台写入失败:', err)
+      })
     if (typeof context.waitUntil === 'function') {
       // 延迟启动：避免写入与响应回传同时在飞（实测在飞写入同样会干扰收尾导致 545）
-      context.waitUntil(
-        (async () => {
-          await new Promise((resolve) => setTimeout(resolve, 150))
-          try {
-            await start()
-          } catch (err) {
-            console.error('[seatmark-api] 后台写入失败:', err)
-          }
-        })(),
-      )
+      writeChain = writeChain
+        ? writeChain.then(run)
+        : new Promise((resolve) => setTimeout(resolve, 150)).then(run)
+      context.waitUntil(writeChain)
       return
     }
-    return start().catch((err) => {
-      console.error('[seatmark-api] 后台写入失败:', err)
-    })
+    return run()
   }
 
   /** 云端模板体积大：Blob 可用时优先 Blob，读取保留 KV 存量兜底 */
