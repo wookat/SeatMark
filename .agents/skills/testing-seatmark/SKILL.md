@@ -5,6 +5,9 @@ description: How to end-to-end test SeatMark in production (www.seatmark.cn) via
 
 # Testing SeatMark online (www.seatmark.cn)
 
+## Deployment & 545 classification (r296+)
+Every normal API response now carries `X-SeatMark-Rev` — verify the expected revision via `curl -sI https://www.seatmark.cn/api/auth/me` before measuring, instead of only bundle-hash grepping (edge-function-only changes don't change bundle hashes). Registration is 20/day/IP; if register returns 429, switch to the standing probe accounts seatmark295probe1..10@example.com / probepass{N}{N} for login coverage. Gateway 545 responses carry neither rev nor storage headers — use header absence to classify gateway-layer failures. Root-cause status (post #302–#305): 545 correlates with Blob writes on the response critical path; auth writes now run as a serialized background chain via waitUntil (150ms delayed), which brought curl-probed login raw 545 from ~39% to ~7.5% and register 8/10→0/10, with frontend retry (≤5) absorbing the rest.
+
 ## Auth retry testing (r294, post-#301)
 The frontend silently retries login on gateway 5xx (≤5 attempts, 600ms·n backoff) and register falls back to login on 5xx — so a raw 545 no longer implies a user-visible failure. To measure true user impact, drive the UI and count form-level errors, while an async CDP listener counts raw 545s; server-side login counters include 545'd attempts. Root-cause isolation (r295 probes): 545 only hits requests that do Blob WRITES (write-only POST ≈18%, wrong-pass login write+PBKDF2 ≈33%); read-only GET/POST paths were 0/90. Deployment check: fetch the entry /assets/index-*.js, follow its referenced index-*.js chunk (entry is a small loader), and grep for a code marker (e.g. the backoff literal).
 

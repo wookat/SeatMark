@@ -1,3 +1,32 @@
+# 第 296 轮（2026-08-12）：#302–#305 部署后 545 攻坚全链路复测——✅ 登录侧「用户视角 0 失败」达成：login 8/8 成功，raw 545 = 4/13 login 尝试（≈31%），全部被 1 次静默重试吸收；⚠️ 注册项 BLOCKED（IP 日限 429，改用探针账号）
+
+**环境**：生产 https://www.seatmark.cn。部署确认：所有正常 API 响应头 `X-SeatMark-Rev: r298`、`X-SeatMark-Storage: blob`；entry `/assets/index-BxN07GMT.js` 含 `600*d` 与 `d<5;`（前端登录重试上限 5 已上线）。可视 Chromium（CDP 29229）UI 操作 + Playwright async 监听器（`/home/ubuntu/r296_listen.py` → `r296_net.jsonl`，53 行）。全程录屏。计划 test-plan-round296.md。
+
+## T1 545 成功率
+- **注册×3：BLOCKED**——首次注册 seatmark296a731@example.com 即 429「请求过于频繁，请明天再试」（IP 20/天限额已被当日 curl 探针耗尽，符合预期）。零新账号创建，立即停手改用已有探针账号。截图 r296_reg_429.png。
+- **登录×8（+1 次登出回归重登=9 次操作）**：seatmark295probe1..8@example.com（probepass{N}{N}）逐一登录，**9/9 用户视角成功进入个人中心，0 次可见失败**。
+- **raw 545**：login 响应 4×545 / 13 次尝试 ≈31%（r294 为 login 7/18 ≈39%、合计 8/21 ≈38%；用户 curl 探针 3/40）。545 均无 rev/storage 头（网关层）。**每次 545 后 ~600ms 出现自动重试且下一次即 200**——本轮无一操作需要第 2 次重试，未逼近 5 次上限。probe6 登录 UI 停留「登录中...」约 4s 后成功（1 次 545 被无感吸收）。
+- 判据「用户视角 0 失败」：登录侧 **PASS**；注册侧因限额未测（非代码缺陷）。
+
+## T2 错密码
+- probe8 + 错密码：监听器仅 **1 个** login 请求、401「邮箱或密码不正确」，请求→响应 1.5s，表单即时显示文案、无重试延迟 — PASS（截图 r296_wrongpass.png）。
+
+## T3 短密码 + 登出回归
+- 注册模式 7 位密码：原生 minlength 提示「Please lengthen this text to 8 characters or more」，**零 register 请求** — PASS（截图 r296_shortpass.png）。
+- probe8 登出 → `/api/auth/me` 返回 `{"user":null}`（r298/blob）→ 刷新仍为匿名登录表单 → 正确密码重登成功（累计登录 18）— PASS（截图 r296_loggedout.png）。
+
+## T4 头/隐私/payload 形状
+- 26 个正常响应全部 `X-SeatMark-Rev: r298` + `X-SeatMark-Storage: blob`（0 例外）；4 个 545 无头。
+- 全部请求 payload 键 ⊆ {email,password}；全部响应体无 `passwordHash`；pageerror = 0。
+- 登录成功响应形状完整（publicUser 后台写线程化后不变）：`loginCount:18`、`lastLoginAt`、`quota{used,limit,bonus,remaining}`、`share{code:"d970ed87",totalVisits,totalBonus,bonusToday,bonusDailyCap}` 均正常返回。
+
+## 结论与残留
+- #302–#305 效果实证：登录侧用户视角 0 失败（r294 为 1/11 打穿）；raw 545 仍存在（4/13 ≈31%，与 r294 同量级、高于用户 curl 的 3/40——样本小且 UI 操作节奏不同，如实记录口径差异），但重试上限 5 下全部 1 次重试吸收。**注册路径（register 545→login 收尾）本轮未获验证**（429 阻断），待限额重置后可补。
+- 残留账号：无新增（注册被 429 阻断）。既有 seatmark293x812 / seatmark294a417/b528/c639 / seatmark295probe1..10 仍在。
+- 产物：录屏 rec-0704468d…-edited.mp4；截图 r296_reg_429/login1/wrongpass/shortpass/loggedout.png；网络明细 /home/ubuntu/r296_net.jsonl。
+
+---
+
 # 第 294 轮（2026-08-12）：PR #301 线上复测（auth 545 双管齐下）——⚠️ 大幅改善但未达「用户视角 0 失败」：raw 545 8/21 auth POST，前端静默重试吸收其中 2 轮，但 1 次登录 3 连 545 打穿重试上限，用户仍见「服务暂时不可用，请重试」
 
 **环境**：生产 https://www.seatmark.cn（storage=blob）。部署确认：entry `/assets/index-CnDnn-Ti.js` → 主 chunk `index-C6Gj5hO2.js` 含 `600*d` 退避与 register→login 收尾代码（auth.ts 新 bundle 已上线）。可视 Chromium（CDP 29229）UI 操作 + Playwright async 监听器（`/home/ubuntu/r294_listen.py` → `r294_net.jsonl`）。全程录屏。计划 test-plan-round294.md。
