@@ -92,7 +92,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(email: string, password: string): Promise<SessionUser> {
     let lastError: unknown
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 5; attempt++) {
       if (attempt > 0) await new Promise((r) => setTimeout(r, 600 * attempt))
       try {
         const data = await apiFetch<{ user: SessionUser }>('/api/auth/login', {
