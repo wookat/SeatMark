@@ -62,8 +62,8 @@ import { LEGAL_UPDATED_AT, OPERATOR_NAME } from '@/data/site'
         <p class="mt-2">仅当你主动使用以下可选功能时，我们才会处理对应的少量信息：</p>
         <ul class="mt-2 list-disc space-y-1.5 pl-5">
           <li>
-            <strong>邮箱地址（账号功能）：</strong>你使用邮箱验证码登录时，我们收集你的邮箱地址用于身份验证、
-            维持登录状态与发送验证码邮件。处理的法律依据是履行与你订立的服务协议。
+            <strong>邮箱地址与密码（账号功能）：</strong>你使用邮箱与密码注册登录时，我们收集你的邮箱地址用于身份验证与维持登录状态；
+            密码仅以不可逆加盐哈希形式存储，我们无法获知你的密码原文。处理的法律依据是履行与你订立的服务协议。
           </li>
           <li>
             <strong>登录状态凭证：</strong>登录成功后我们通过浏览器 Cookie 保存加密的会话凭证（HttpOnly），
@@ -97,7 +97,7 @@ import { LEGAL_UPDATED_AT, OPERATOR_NAME } from '@/data/site'
             仅用于生成模板版式；名单与照片数据不会被发送。不使用该功能则不产生相关请求。
           </li>
           <li>
-            <strong>验证码邮件：</strong>登录验证码通过第三方邮件服务发送，仅向其提供收件邮箱与验证码内容。
+            <strong>通知邮件：</strong>如需向你发送账号相关邮件（如回信、通知），通过第三方邮件服务发送，仅向其提供收件邮箱与邮件内容。
           </li>
         </ul>
       </section>

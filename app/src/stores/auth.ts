@@ -68,6 +68,24 @@ export const useAuthStore = defineStore('auth', () => {
     return data.user
   }
 
+  async function register(email: string, password: string): Promise<SessionUser> {
+    const data = await apiFetch<{ user: SessionUser }>('/api/auth/register', {
+      method: 'POST',
+      body: { email, password },
+    })
+    user.value = data.user
+    return data.user
+  }
+
+  async function login(email: string, password: string): Promise<SessionUser> {
+    const data = await apiFetch<{ user: SessionUser }>('/api/auth/login', {
+      method: 'POST',
+      body: { email, password },
+    })
+    user.value = data.user
+    return data.user
+  }
+
   async function logout(): Promise<void> {
     try {
       await apiFetch('/api/auth/logout', { method: 'POST' })
@@ -76,5 +94,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, ready, isLoggedIn, refresh, sendCode, verify, logout }
+  return { user, ready, isLoggedIn, refresh, sendCode, verify, register, login, logout }
 })

@@ -28,7 +28,7 @@ import { LEGAL_UPDATED_AT, OPERATOR_NAME } from '@/data/site'
           <li>本服务提供 Excel 名单解析、标签模板设计、批量排版、PDF 导出与浏览器打印等功能。</li>
           <li>上述核心制签功能均在你的浏览器本地完成，你导入的名单与照片数据不会上传到我们的服务器（详见<RouterLink to="/privacy" class="text-brand-600 hover:underline">隐私政策</RouterLink>）。</li>
           <li>
-            可选的账号功能（邮箱验证码登录）用于提供更高的每日无水印导出配额、分享奖励等能力；不注册登录也可使用核心功能。
+            可选的账号功能（邮箱 + 密码注册登录）用于提供更高的每日无水印导出配额、分享奖励等能力；不注册登录也可使用核心功能。
           </li>
           <li>
             可选的「AI 设计」功能会将你输入的设计描述（不含名单数据）经我们的同源代理转发至第三方大模型服务；
@@ -41,8 +41,8 @@ import { LEGAL_UPDATED_AT, OPERATOR_NAME } from '@/data/site'
       <section>
         <h2 class="text-lg font-bold text-slate-900">三、账号管理</h2>
         <ul class="mt-2 list-disc space-y-1.5 pl-5">
-          <li>你使用邮箱验证码登录即创建账号，应确保所用邮箱为你本人合法持有。</li>
-          <li>账号仅限本人使用，请妥善保管邮箱与验证码；因你保管不善造成的损失由你自行承担。</li>
+          <li>你使用邮箱与密码注册即创建账号，应确保所用邮箱为你本人合法持有。</li>
+          <li>账号仅限本人使用，请妥善保管邮箱与密码；因你保管不善造成的损失由你自行承担。</li>
           <li>你可以随时在账号页申请注销账号；注销后我们将依照隐私政策删除与你账号关联的信息。</li>
         </ul>
       </section>
