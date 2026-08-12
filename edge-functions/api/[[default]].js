@@ -257,8 +257,10 @@ async function getCounter(kv, key) {
 
 async function quotaStatus(kv, email) {
   const date = today()
-  const used = await getCounter(kv, `usage:${email}:${date}`)
-  const bonus = await getCounter(kv, `bonus:${email}:${date}`)
+  const [used, bonus] = await Promise.all([
+    getCounter(kv, `usage:${email}:${date}`),
+    getCounter(kv, `bonus:${email}:${date}`),
+  ])
   const limit = QUOTA_USER_DAILY + Math.min(bonus, SHARE_BONUS_DAILY_CAP)
   return { date, used, limit, bonus, remaining: Math.max(0, limit - used) }
 }
@@ -267,16 +269,17 @@ async function shareCodeFor(kv, email) {
   const existing = await kv.get(`share:owner:${email}`)
   if (existing) return existing
   const code = (await sha256Hex(`${email}:${Date.now()}`)).slice(0, 8)
-  await kv.put(`share:owner:${email}`, code)
-  await kv.put(`share:code:${code}`, email)
+  await Promise.all([kv.put(`share:owner:${email}`, code), kv.put(`share:code:${code}`, email)])
   return code
 }
 
 async function shareStats(kv, email) {
   const code = await shareCodeFor(kv, email)
-  const totalVisits = await getCounter(kv, `sharestat:visits:${code}`)
-  const totalBonus = await getCounter(kv, `sharestat:bonus:${code}`)
-  const bonusToday = await getCounter(kv, `bonus:${email}:${today()}`)
+  const [totalVisits, totalBonus, bonusToday] = await Promise.all([
+    getCounter(kv, `sharestat:visits:${code}`),
+    getCounter(kv, `sharestat:bonus:${code}`),
+    getCounter(kv, `bonus:${email}:${today()}`),
+  ])
   return {
     code,
     totalVisits,
@@ -287,9 +290,10 @@ async function shareStats(kv, email) {
   }
 }
 
-async function publicUser(kv, email, env) {
-  const user = await getUser(kv, email)
+async function publicUser(kv, email, env, preloadedUser) {
+  const user = preloadedUser || (await getUser(kv, email))
   if (!user) return null
+  const [quota, share] = await Promise.all([quotaStatus(kv, email), shareStats(kv, email)])
   return {
     email: user.email,
     createdAt: user.createdAt,
@@ -299,8 +303,8 @@ async function publicUser(kv, email, env) {
     templateUpdatedAt: user.templateUpdatedAt || null,
     betaMember: true,
     isAdmin: isAdmin(email, env),
-    quota: await quotaStatus(kv, email),
-    share: await shareStats(kv, email),
+    quota,
+    share,
   }
 }
 
@@ -646,7 +650,7 @@ async function handleRequest(context) {
     // 会话签发成功后才消费验证码：中途实例异常时码仍有效，用户重试同一码即可
     await kv.delete(codeKey)
     return json(
-      { ok: true, user: await publicUser(kv, email, env) },
+      { ok: true, user: await publicUser(kv, email, env, user) },
       200,
       { ...storageHeader, 'Set-Cookie': sessionCookie(token) },
     )
@@ -671,9 +675,12 @@ async function handleRequest(context) {
     if (regCount >= REGISTER_IP_DAILY_LIMIT) {
       return json({ error: '请求过于频繁，请明天再试' }, 429, storageHeader)
     }
-    await kv.put(regKey, String(regCount + 1))
+    const [, preloaded] = await Promise.all([
+      kv.put(regKey, String(regCount + 1)),
+      getUser(kv, email),
+    ])
 
-    let user = await getUser(kv, email)
+    let user = preloaded
     if (user && user.passwordHash) {
       return json({ error: '该邮箱已注册，请直接登录' }, 409, storageHeader)
     }
@@ -692,7 +699,7 @@ async function handleRequest(context) {
     const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
     const token = await signJwt({ sub: email, exp }, getSecret(env))
     return json(
-      { ok: true, user: await publicUser(kv, email, env) },
+      { ok: true, user: await publicUser(kv, email, env, user) },
       200,
       { ...storageHeader, 'Set-Cookie': sessionCookie(token) },
     )
@@ -736,17 +743,15 @@ async function handleRequest(context) {
       await kv.put(failKey, JSON.stringify(fails))
       return json({ error: '邮箱或密码不正确' }, 401, storageHeader)
     }
-    await kv.delete(failKey)
-
     const now = new Date().toISOString()
     user.lastLoginAt = now
     user.loginCount = (user.loginCount || 0) + 1
-    await putUser(kv, user)
+    await Promise.all([kv.delete(failKey), putUser(kv, user)])
 
     const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
     const token = await signJwt({ sub: email, exp }, getSecret(env))
     return json(
-      { ok: true, user: await publicUser(kv, email, env) },
+      { ok: true, user: await publicUser(kv, email, env, user) },
       200,
       { ...storageHeader, 'Set-Cookie': sessionCookie(token) },
     )
