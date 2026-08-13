@@ -51,6 +51,16 @@ interface Reservation {
   createdAt: string
 }
 
+interface CodeBatch {
+  batch: string
+  days: number
+  count: number
+  note: string
+  createdAt: string
+  codes: string[]
+  used: number
+}
+
 const auth = useAuthStore()
 const toast = useToastStore()
 
@@ -93,6 +103,7 @@ async function loadAll() {
       announcementText.value = an.announcement.text
       announcementEnabled.value = an.announcement.enabled
     }
+    void loadCodeBatches()
   } catch (err) {
     if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
       forbidden.value = true
@@ -101,6 +112,54 @@ async function loadAll() {
     }
   } finally {
     loading.value = false
+  }
+}
+
+// ---------- 兑换码 ----------
+const codeBatches = ref<CodeBatch[]>([])
+const codeDays = ref('30')
+const codeCount = ref('10')
+const codeNote = ref('')
+const generatingCodes = ref(false)
+
+async function loadCodeBatches() {
+  try {
+    const data = await apiFetch<{ batches: CodeBatch[] }>('/api/admin/codes')
+    codeBatches.value = data.batches
+  } catch {
+    // 非关键面板，静默失败
+  }
+}
+
+async function generateCodes() {
+  const days = Number(codeDays.value)
+  const count = Number(codeCount.value)
+  if (!Number.isInteger(days) || days < 1 || !Number.isInteger(count) || count < 1) {
+    toast.warning('参数不正确', '天数与数量需为正整数')
+    return
+  }
+  generatingCodes.value = true
+  try {
+    const data = await apiFetch<{ codes: string[] }>('/api/admin/codes', {
+      method: 'POST',
+      body: { days, count, note: codeNote.value.trim() },
+    })
+    await navigator.clipboard.writeText(data.codes.join('\n')).catch(() => {})
+    toast.success('兑换码已生成', `共 ${data.codes.length} 个（已尝试复制到剪贴板），可在下方批次列表导出`)
+    await loadCodeBatches()
+  } catch (err) {
+    toast.danger('生成失败', err instanceof ApiError ? err.message : '请稍后再试')
+  } finally {
+    generatingCodes.value = false
+  }
+}
+
+async function copyBatchCodes(batch: CodeBatch) {
+  try {
+    await navigator.clipboard.writeText(batch.codes.join('\n'))
+    toast.success('已复制', `该批次 ${batch.codes.length} 个兑换码已复制，可直接粘贴到卡网库存`)
+  } catch {
+    toast.warning('复制失败', '请手动复制')
   }
 }
 
@@ -285,6 +344,58 @@ watch(
           <span>{{ overview.growth[0]?.date }}</span>
           <span>{{ overview.growth[overview.growth.length - 1]?.date }}</span>
         </div>
+      </section>
+
+      <!-- 兑换码管理 -->
+      <section class="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-card">
+        <h2 class="text-sm font-bold text-slate-900">兑换码管理</h2>
+        <p class="mt-1 text-xs text-slate-600">
+          批量生成专业版兑换码（可导出到卡网售卖）；用户在个人中心输入兑换码即开通/延长，天数可叠加。
+        </p>
+        <div class="mt-3 flex flex-wrap items-end gap-3">
+          <label class="grid gap-1">
+            <span class="text-xs font-semibold text-slate-700">天数</span>
+            <input v-model="codeDays" type="number" min="1" max="3660" class="h-9 w-24 rounded border border-slate-300 px-2.5 text-sm" />
+          </label>
+          <label class="grid gap-1">
+            <span class="text-xs font-semibold text-slate-700">数量</span>
+            <input v-model="codeCount" type="number" min="1" max="200" class="h-9 w-24 rounded border border-slate-300 px-2.5 text-sm" />
+          </label>
+          <label class="grid min-w-[160px] flex-1 gap-1">
+            <span class="text-xs font-semibold text-slate-700">备注（选填）</span>
+            <input v-model="codeNote" type="text" maxlength="100" placeholder="如：卡网月卡第一批" class="h-9 rounded border border-slate-300 px-2.5 text-sm" />
+          </label>
+          <button type="button" class="btn btn-primary btn-sm h-9" :disabled="generatingCodes" @click="generateCodes">
+            {{ generatingCodes ? '生成中...' : '生成兑换码' }}
+          </button>
+        </div>
+        <div v-if="codeBatches.length" class="mt-4 overflow-x-auto">
+          <table class="w-full min-w-[560px] text-left text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 text-xs text-slate-600">
+                <th class="py-2 pr-3 font-semibold">生成时间</th>
+                <th class="py-2 pr-3 font-semibold">天数</th>
+                <th class="py-2 pr-3 font-semibold">数量</th>
+                <th class="py-2 pr-3 font-semibold">已兑换</th>
+                <th class="py-2 pr-3 font-semibold">备注</th>
+                <th class="py-2 font-semibold">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="b in codeBatches" :key="b.batch" class="border-b border-slate-100">
+                <td class="py-2 pr-3 text-slate-600">{{ formatDate(b.createdAt) }}</td>
+                <td class="py-2 pr-3 font-medium text-slate-900">{{ b.days }} 天</td>
+                <td class="py-2 pr-3 text-slate-600">{{ b.count }}</td>
+                <td class="py-2 pr-3 text-slate-600">{{ b.used }}/{{ b.count }}</td>
+                <td class="max-w-[180px] truncate py-2 pr-3 text-slate-600" :title="b.note">{{ b.note || '—' }}</td>
+                <td class="py-2">
+                  <button type="button" class="btn btn-secondary btn-sm" @click="copyBatchCodes(b)">复制全部码</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p v-else class="mt-3 text-center text-xs text-slate-600">暂无兑换码批次</p>
       </section>
 
       <!-- 公告配置 -->

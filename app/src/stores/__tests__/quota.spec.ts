@@ -18,6 +18,7 @@ function mockUser(overrides: Partial<SessionUser['quota']> = {}): SessionUser {
     templateCount: 0,
     templateUpdatedAt: null,
     betaMember: true,
+    pro: { active: false, until: null },
     isAdmin: false,
     quota: { date: '2026-01-01', used: 0, limit: 3, bonus: 0, remaining: 3, ...overrides },
     share: {
