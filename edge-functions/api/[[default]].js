@@ -303,6 +303,36 @@ function randomRedeemCode() {
   return `SM-${s}`
 }
 
+/** 兑换码存储键：只存哈希，服务端不保留可反推的明文码 */
+async function redeemKey(code) {
+  return `redeem:${await sha256Hex(`redeem-code:${code}`)}`
+}
+
+/** 掉尾展示：仅保留末 4 位便于人工对账 */
+function maskRedeemCode(code) {
+  return `SM-****-****-${code.slice(-4)}`
+}
+
+/** 读兑换码记录：优先哈希键，兼容历史明文键并迁移 */
+async function getRedeemRecord(kv, code) {
+  const key = await redeemKey(code)
+  let raw = await kv.get(key)
+  if (!raw) {
+    const legacyKey = `redeem:${code}`
+    raw = await kv.get(legacyKey)
+    if (raw) {
+      await kv.put(key, raw)
+      await kv.delete(legacyKey).catch(() => {})
+    }
+  }
+  if (!raw) return { key, record: null }
+  try {
+    return { key, record: JSON.parse(raw) }
+  } catch {
+    return { key, record: null }
+  }
+}
+
 /** 归一化用户输入：容忍大小写/空格/丢失的连字符 */
 function normalizeRedeemCode(input) {
   const raw = String(input || '').toUpperCase().replace(/[^0-9A-Z]/g, '')
@@ -982,15 +1012,7 @@ async function handleRequest(context) {
       return json({ error: '兑换码格式不正确' }, 400, storageHeader)
     }
 
-    const raw = await kv.get(`redeem:${code}`)
-    let record = null
-    if (raw) {
-      try {
-        record = JSON.parse(raw)
-      } catch {
-        record = null
-      }
-    }
+    const { key: recordKey, record } = await getRedeemRecord(kv, code)
     if (!record) {
       await deferWrite(() => kv.put(rlKey, String(attempts + 1)))
       return json({ error: '兑换码无效' }, 400, storageHeader)
@@ -1005,10 +1027,22 @@ async function handleRequest(context) {
       return json({ error: '兑换码已被使用' }, 409, storageHeader)
     }
 
-    // 核销与发放均同步落库：兑换是低频关键操作，不能接受后台写丢失
+    // 两段式核销（KV 无条件写）：先写入认领声明，延迟回读确认声明仍归本人后才发放，
+    // 将并发双发窗口收窄到写-写重叠的毫秒级；核销与发放均同步落库
     record.usedBy = email
     record.usedAt = new Date().toISOString()
-    await kv.put(`redeem:${code}`, JSON.stringify(record))
+    await kv.put(recordKey, JSON.stringify(record))
+    await new Promise((resolve) => setTimeout(resolve, 60))
+    const confirmRaw = await kv.get(recordKey)
+    let confirmed = null
+    try {
+      confirmed = confirmRaw ? JSON.parse(confirmRaw) : null
+    } catch {
+      confirmed = null
+    }
+    if (!confirmed || confirmed.usedBy !== email) {
+      return json({ error: '兑换码已被使用' }, 409, storageHeader)
+    }
     grantProDays(user, record.days)
     await putUser(kv, user)
     return json({ ok: true, days: record.days, pro: proStatus(user) }, 200, storageHeader)
@@ -1257,7 +1291,7 @@ async function handleRequest(context) {
       return json({ items }, 200, storageHeader)
     }
 
-    // 兑换码批量生成（供卡网售卖）：返回明文码列表，同时按批次存档便于回查
+    // 兑换码批量生成（供卡网售卖）：明文仅在本次响应返回一次，服务端只存哈希与末 4 位掩码
     if (path === '/api/admin/codes' && method === 'POST') {
       const body = await readBody()
       const days = Number(body?.days)
@@ -1272,16 +1306,24 @@ async function handleRequest(context) {
       const batch = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
       const createdAt = new Date().toISOString()
       const codes = []
+      const hashes = []
+      const masked = []
       for (let i = 0; i < count; i++) {
         let code = randomRedeemCode()
+        let key = await redeemKey(code)
         // 碰撞防御：已存在则重新生成（码空间 31^12，碰撞概率极低）
-        while (await kv.get(`redeem:${code}`)) code = randomRedeemCode()
-        await kv.put(`redeem:${code}`, JSON.stringify({ days, batch, createdAt, note }))
+        while (await kv.get(key)) {
+          code = randomRedeemCode()
+          key = await redeemKey(code)
+        }
+        await kv.put(key, JSON.stringify({ days, batch, createdAt, note }))
         codes.push(code)
+        hashes.push(key.slice('redeem:'.length))
+        masked.push(maskRedeemCode(code))
       }
       await kv.put(
         `redeembatch:${batch}`,
-        JSON.stringify({ batch, days, count, note, createdAt, codes }),
+        JSON.stringify({ batch, days, count, note, createdAt, hashes, masked }),
       )
       return json({ ok: true, batch, days, count, codes }, 200, storageHeader)
     }
@@ -1294,9 +1336,14 @@ async function handleRequest(context) {
         if (!raw) continue
         try {
           const b = JSON.parse(raw)
+          // 新批次存哈希；历史批次兼容明文 codes（同时兼容已被兑换迁移到哈希键的记录）
+          const keys = Array.isArray(b.hashes)
+            ? b.hashes.map((h) => `redeem:${h}`)
+            : await Promise.all((b.codes || []).map((code) => redeemKey(code)))
           let used = 0
-          for (const code of b.codes || []) {
-            const rec = await kv.get(`redeem:${code}`)
+          for (let i = 0; i < keys.length; i++) {
+            let rec = await kv.get(keys[i])
+            if (!rec && Array.isArray(b.codes)) rec = await kv.get(`redeem:${b.codes[i]}`)
             if (rec) {
               try {
                 if (JSON.parse(rec).usedBy) used += 1
@@ -1305,7 +1352,15 @@ async function handleRequest(context) {
               }
             }
           }
-          batches.push({ ...b, used })
+          const { codes: legacyCodes, hashes: _hashes, ...rest } = b
+          batches.push({
+            ...rest,
+            masked: Array.isArray(b.masked)
+              ? b.masked
+              : (legacyCodes || []).map((c) => maskRedeemCode(c)),
+            legacyCodes: Array.isArray(legacyCodes) ? legacyCodes : undefined,
+            used,
+          })
         } catch {
           // 跳过损坏记录
         }
