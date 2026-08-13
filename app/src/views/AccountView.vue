@@ -447,7 +447,10 @@ function formatDate(iso: string | null | undefined): string {
     </template>
 
     <!-- 未登录时也提示当前本地剩余次数 -->
-    <p v-if="!auth.user && auth.ready" class="mt-8 text-center text-xs text-slate-600">
+    <p
+      v-if="!auth.user && auth.ready"
+      class="mx-auto mt-6 max-w-md rounded-lg bg-slate-100 px-4 py-2.5 text-center text-xs text-slate-600"
+    >
       当前未登录：今日本设备剩余 {{ quota.anonRemaining }}/{{ QUOTA_ANON_DAILY }} 次无水印导出（带水印不限次）
     </p>
   </div>

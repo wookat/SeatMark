@@ -142,11 +142,14 @@ async function submitReserve() {
         v-for="plan in PLANS"
         :key="plan.name"
         class="relative flex flex-col rounded-lg border bg-white p-6 shadow-card"
-        :class="plan.highlight ? 'border-brand-400 ring-2 ring-brand-500/20' : 'border-slate-200'"
+        :class="[
+          plan.highlight ? 'border-brand-400 ring-2 ring-brand-500/20' : 'border-slate-200',
+          plan.badge ? 'pt-7' : '',
+        ]"
       >
         <span
           v-if="plan.badge"
-          class="absolute -top-3 left-1/2 -translate-x-1/2 rounded px-3 py-0.5 text-[11px] font-semibold"
+          class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-0.5 text-[11px] font-semibold whitespace-nowrap shadow-sm"
           :class="plan.highlight ? 'bg-brand-600 text-white' : 'bg-slate-700 text-white'"
         >
           {{ plan.badge }}
