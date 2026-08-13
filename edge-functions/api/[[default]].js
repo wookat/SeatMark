@@ -591,7 +591,7 @@ async function handleRequest(context) {
 
   const { kv, storage, blobStore } = await getStorage(env)
   // Rev 标记仅用于部署观测：探针可确认线上边缘函数版本，改动本文件时递增
-  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r298' }
+  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r304' }
 
   /**
    * 非关键写入移出响应关键路径：平台支持 waitUntil 时响应先行、写入后台完成
