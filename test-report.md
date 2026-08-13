@@ -1,3 +1,26 @@
+# 第 303 轮（2026-08-13）：PR #311 admin/users 白名单复测 + 云端模板同步全量回归（main 57ef5ca，本地）——✅ 全部执行判据 PASS（响应体零凭据字段、管理表渲染正常；多模板同步/更新覆盖/跨设备找回/导出/不串号；免费口径 UNTESTED）
+
+**环境**：本地 http://localhost:5173（main 57ef5ca 含 #311 合并，vite dev + devApi 内存 KV，邮件环境变量剥离）。可视 Chromium 全 UI 操作 + async 监听器（`/home/ubuntu/r303_listen.py` → `r303_net.jsonl`，全 /api/* 口径，86 行）。全程录屏。计划 test-plan-round303.md。**未触碰生产**。账号：r303user1@example.com（云同步主账号）、r303user2@example.com（隔离）、admin@seatmark.cn（本地密码注册即管理员）。
+
+## A. #311 /api/admin/users 白名单
+- admin 注册后 /account 出现「进入管理后台」入口 → /admin 概览（注册用户 3、云端模板 1/2）与用户列表（3）渲染正常：admin/user1/user2 三行，注册时间/最近登录/登录次数(1/2/1)/云端模板(0/2/0) 列无空白无 NaN — PASS。
+- GET /api/admin/users 200 原始响应体（576B）逐字扫描：`passwordHash`/`passwordSetAt`/`pbkdf2`/`salt` 均 **0 命中**；users[] 每条仅 email/createdAt/lastLoginAt/loginCount/templateCount/proUntil（inviteCount/invitedBy 本轮账号无值故 JSON 省略，属白名单子集）；cursor:null — PASS。
+- 全 86 行监听捕获（含 auth/templates/admin 各接口）响应体凭据字样 0 命中 — PASS。
+
+## B. 云端模板同步全量回归
+- r303user1 在 /studio 设计器创建并保存 2 个自定义模板 r303（60×40）与 r303b（60×40）→ /account「同步到云端」→ PUT 200 `{ok:true,count:2}`，页面「云端已存 2 个」 — PASS。
+- 更新覆盖：编辑既有 r303 高 40→45（同 id 保存）→ 再同步 → PUT 200 count **仍 2**（覆盖非新增） — PASS。（注：改名操作在卡片上未见生效，改用尺寸变更作更新标记；名称覆盖未单独断言。）
+- 跨设备找回：CDP 清 cookies + 全部 origin 存储 → 匿名 → 重登 user1 → 「本设备 0 个；云端已存 2 个」→「从云端找回」→ toast「云端共 2 个模板，新增 2 个到本设备」；/studio 列表 r303 为 **60×45**（更新版）、r303b 60×40 完整 — PASS。
+- 可继续编辑导出：找回的 r303 进入编辑器正常渲染；载入演示数据（18 条）后选 r303 渲染 18 枚标签，「图片版 PDF · 无水印导出」成功下载（106KB Done） — PASS。
+- 不串号：再清存储注册 r303user2 → 「本设备 0 个；云端已存 0 个」，同步/找回按钮均禁用（GET templates:[]）；admin 表 user1=2、user2=0 — PASS。
+- 会员口径：user1/user2 均为 7 天专业版（会员口径覆盖）；**免费口径 UNTESTED**（本地新号必送会员，无法制造免费账号；接口层同步仅要求登录、不区分 pro）。
+- 健康：pageerror=0（仅既知本地 SW 注册 MIME 警告）；两次 PUT/一次 GET 响应形状正确无数据丢失。
+
+## 收尾
+- vite 与监听器已停、浏览器 cookies/storage 已清、内存 KV 随进程销毁无残留。
+
+---
+
 # 第 302 轮（2026-08-13）：PR #310 兑换码安全加固复测（main e7e1a26，本地）——✅ 全部判据 PASS（哈希只存/明文一次性展示/末4位掩码、新码兑换+幂等+409、存量明文键迁移、并发核销恰一赢家、批次核销 2/3、定价回归）
 
 **环境**：本地 http://localhost:5173（main e7e1a26 含 #310 合并，vite dev + devApi 内存 KV，邮件环境变量剥离）。可视 Chromium 全 UI 操作 + async 监听器（`/home/ubuntu/r302_listen.py` → `r302_net.jsonl`，全 /api/* 口径）。全程录屏。计划 test-plan-round302.md。**未触碰生产**。测试注入：devApi.mjs 临时 seed 旧格式明文键 `redeem:SM-LEGA-CYAA-TE55`（15 天），测试后已 `git checkout` 回滚。
