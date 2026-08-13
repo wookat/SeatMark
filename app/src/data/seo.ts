@@ -87,7 +87,7 @@ export const PRICING_FAQS = [
   },
   {
     q: '使用需要注册账号吗？',
-    a: '不登录也能使用全部功能（带水印不限次，无水印每日 1 次）。邮箱注册登录即开通专业版 Beta 限时免费试用：每日 3 次无水印导出、自定义模板云端同步与跨设备找回。',
+    a: '不登录也能使用全部功能（带水印不限次，无水印每日 1 次）。邮箱注册即送 7 天专业版试用：无水印导出不限次、自定义模板云端同步与跨设备找回；邀请好友注册双方各再送 7 天，可累计叠加。',
   },
   {
     q: '我的名单数据安全吗？',
@@ -95,11 +95,11 @@ export const PRICING_FAQS = [
   },
   {
     q: '专业版怎么开通？',
-    a: '专业版定价 ¥29/月，Beta 期间限时免费试用：注册登录即自动开通，无需支付。正式收费前会提前在站内显著位置公告。',
+    a: '专业版限时 5 折 ¥14.5/月（原价 ¥29）。新用户注册即送 7 天试用；邀请好友注册双方各送 7 天，可累计叠加；在线支付开通前可在个人中心用兑换码开通，天数可叠加。',
   },
   {
     q: '团队版怎么购买？',
-    a: '团队版 ¥99/月，支付通道即将开通。现在可在定价页预订登记（留邮箱与团队规模），开通后我们会第一时间邮件通知，预订用户享首批优惠。',
+    a: '团队版限时 5 折 ¥49.5/月（原价 ¥99），支付通道即将开通。现在可在定价页预订登记（留邮箱与团队规模），开通后我们会第一时间邮件通知，预订用户享首批优惠。',
   },
 ]
 
@@ -134,9 +134,9 @@ export async function resolveSeo(path: string): Promise<PageSeo> {
 
   if (p === '/pricing') {
     return {
-      title: '定价：带水印免费不限次，专业版 Beta 限时免费试用 - SeatMark 座签',
+      title: '定价：注册送 7 天专业版，限时 5 折 - SeatMark 座签',
       description:
-        'SeatMark 座签定价：带水印导出/打印不限次数；无水印导出每日 1 次（登录后 3 次），分享每被点开 1 次再送 1 次；专业版 ¥29/月 Beta 期间限时免费试用；团队版 ¥99/月支持预订登记。数据不出浏览器。',
+        'SeatMark 座签定价：带水印导出/打印不限次数；无水印导出每日 1 次（登录后 3 次）；注册即送 7 天专业版，邀请好友双方各送 7 天可叠加；专业版限时 5 折 ¥14.5/月，支持兑换码开通；团队版 ¥49.5/月支持预订登记。数据不出浏览器。',
       path: '/pricing',
       jsonLd: [
         {
@@ -151,17 +151,17 @@ export async function resolveSeo(path: string): Promise<PageSeo> {
             },
             {
               '@type': 'Offer',
-              name: '专业版（Beta 限时免费试用）',
-              price: '29',
+              name: '专业版（限时 5 折）',
+              price: '14.5',
               priceCurrency: 'CNY',
-              description: '定价 ¥29/月，Beta 期间限时免费试用，注册登录即开通',
+              description: '限时 5 折 ¥14.5/月（原价 ¥29），注册即送 7 天试用，支持兑换码开通',
             },
             {
               '@type': 'Offer',
               name: '团队版',
-              price: '99',
+              price: '49.5',
               priceCurrency: 'CNY',
-              description: '¥99/月，支付即将开通，现在可预订登记',
+              description: '限时 5 折 ¥49.5/月（原价 ¥99），支付即将开通，现在可预订登记',
             },
           ],
         },
@@ -177,7 +177,7 @@ export async function resolveSeo(path: string): Promise<PageSeo> {
   if (p === '/account') {
     return {
       title: '个人中心 - SeatMark 座签',
-      description: 'SeatMark 个人中心：云端模板同步、使用统计、分享送无水印次数与专业版 Beta 限时免费试用。',
+      description: 'SeatMark 个人中心：云端模板同步、使用统计、邀请好友双方各送 7 天专业版与兑换码开通。',
       path: '/account',
       jsonLd: [],
       robots: 'noindex, nofollow',

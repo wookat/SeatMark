@@ -24,7 +24,7 @@ const valueLadder = computed(() => [
   {
     key: 'login',
     label: `登录后每天 ${QUOTA_USER_DAILY} 次无水印导出`,
-    detail: '专业版功能 Beta 限时免费试用，自定义模板可同步云端',
+    detail: '注册即送 7 天专业版试用（无水印导出不限次），自定义模板可同步云端',
     active: !isLoggedIn.value,
   },
   {

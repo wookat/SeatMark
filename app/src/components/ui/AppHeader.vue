@@ -160,7 +160,7 @@ const SECTIONS = [
                   <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m12 2 2.6 5.3 5.9.9-4.3 4.1 1 5.9L12 15.4 6.8 18.2l1-5.9L3.5 8.2l5.9-.9L12 2z" />
                   </svg>
-                  Beta 会员 · 试用中
+                  {{ auth.user.pro?.active ? '专业版会员' : '免费版' }}
                 </p>
               </div>
               <RouterLink

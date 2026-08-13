@@ -1358,7 +1358,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         </button>
       </div>
       <p v-if="!auth.isLoggedIn" class="mt-3 text-xs leading-5 text-slate-600">
-        登录后无水印导出每天 {{ QUOTA_USER_DAILY }} 次，分享链接每被点开 1 次再得 1 次；同时获得专业版 Beta 限时免费试用。
+        注册即送 7 天专业版试用（无水印导出不限次）；免费版登录后每天 {{ QUOTA_USER_DAILY }} 次，分享链接每被点开 1 次再得 1 次。
       </p>
     </ModalDialog>
 
