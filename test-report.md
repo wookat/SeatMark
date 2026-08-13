@@ -1,3 +1,15 @@
+# 第 308 轮（2026-08-14）：PR #315 五处 UI 小改生产复测——✅ 全部 PASS（三导出弹窗新水印文案/角标外移白描边/模板库短 placeholder/定价胶囊徽章/账户浅灰信息条），五页 390/1280 10/10 无横向溢出、pageerror=0，无回归
+
+**环境**：生产 https://www.seatmark.cn ，全程匿名。部署确认：新前端 bundle `index-BDLw0dx-.js` + `StudioView-BVUuqBQw.js` 含「细线签名式」（旧 bundle `index-CkHzKmPK.js` 时代等待约 20 分钟后切换）；本轮未改边缘函数，`x-seatmark-rev: r304` 保持不变（符合预期）。硬刷新确认页面实际加载新 bundle。计划 test-plan-round308.md，全程录屏。
+
+- T1 导出弹窗水印文案：/studio?demo=1 依次打开 图片 PNG / 图片版 PDF / 打印·矢量 PDF 三个弹窗，「带水印导出」说明均为「每张标签底边叠加细线签名式品牌水印（细线 + seatmark.cn 小字，配色随模板自适应），不遮挡姓名等核心内容」；「徽章式」「座位格标记」0 出现 — PASS（`ss_2c77c666.png`、`ss_zoom_2f6800c4.png`、`ss_zoom_bdae860b.png`）。
+- T5 工坊 1280 导出角标：「今日剩余 1 次」角标外移（-top-2.5/-right-2）不再紧贴「图片版 PDF（推荐）」按钮文字，ring-1 ring-white 描边生效 — PASS（`ss_zoom_b160d7a7.png`）。
+- T2 模板库 placeholder：390 下完整显示「搜索模板 / 场景，支持拼音、首字母」无截断（DOM placeholder 逐字一致）；1280 同 — PASS（`r308_templates_390.png`）。
+- T3 定价徽章：390 与 1280 下「限时 5 折 · 注册送 7 天」「限时 5 折 · 可预约」均为胶囊形（rounded-full）单行不换行、带阴影，pt-7 后不压卡内标题、与描边间距正常 — PASS（`r308_pricing_390_badge.png`、`r308_pricing_1280_badge.png`）。
+- T4 账户未登录信息条：浅灰 bg-slate-100（计算色 oklch(0.968 0.007 247.896)）圆角、max-w-md 居中，390/1280 均层级清晰无溢出 — PASS（`r308_account_390_bar.png`、`r308_account_1280_bar.png`）。
+- 硬判据：/、/studio、/templates、/pricing、/account × 1280/390 共 10 组 `scrollWidth ≤ innerWidth`（1280 下 sw=1270、390 下 sw=390），window error=0 — PASS。
+- 回归：无新发现，未见 P 级问题。收尾：清除设备仿真、结束于匿名首页。
+
 # 第 306 轮（2026-08-13）：PR #314 底边细线签名水印生产视觉复测 + UI 小改走查——✅ A 全部 6 分支 PASS（浅/深/小标签/退顶边/打印通道/新旧对比），B 无横向溢出、pageerror=0、微调点 8 条（另：三个导出弹窗水印文案陈旧 P2）
 
 **环境**：生产 https://www.seatmark.cn （部署确认：CSS `index-6XEkK5P2.css` 含 `.label-watermark__rule`，旧 `__mark` 已消失），全程匿名（带水印导出不限次）。可视 Chromium 全 UI 操作，全程录屏；导出物落 ~/Downloads 后 shell 解包用 PIL/pdftoppm 逐像素核验。旧版对比用独立 worktree /tmp/sm_old (f5b8103) 起 vite:5199，测后已 `git worktree remove` + 停 vite，主工作树零改动。计划 test-plan-round306.md。
