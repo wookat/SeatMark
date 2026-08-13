@@ -1,3 +1,39 @@
+# 第 298 轮（2026-08-13）：PR #308 会员体系与兑换码——本地全流程 ✅ 全部判据 PASS（注册送7天、邀请双方+7、兑换码生成/兑换/幂等/409/无效、五折定价、390/768/1280 无溢出）
+
+**环境**：本地 http://localhost:5173（分支 devin/1786652411-membership-redeem 62d23ee，vite dev + devApi 内存 KV，邮件环境变量剥离）。可视 Chromium（CDP 29229）全 UI 操作 + async 监听器（`/home/ubuntu/r298_listen.py` → `r298_net.jsonl`）。全程录屏。计划 test-plan-round298.md。**未触碰生产**。
+
+## T1 注册送 7 天专业版
+- UI 注册 m298user1@example.com → 徽章「专业版会员 · 2026/8/20 到期」（注册日 8/13 +7 天），配额卡显示「不限」— PASS。
+- API 证据：register 200 响应 `pro:{active:true,until:"2026-08-20T20:30:16Z"}`、`quota:{limit:9999,remaining:9999,pro:true}`，无 passwordHash — PASS。
+
+## T2 邀请裂变 +7/+7（deferWrite）
+- 登出后访问 `/?ref=0fa5446a`（user1 分享码）→ 分享欢迎横幅出现，localStorage `sm-invite-ref=0fa5446a` — PASS。
+- UI 注册 m298user2 → register payload 携带 `inviteCode:"0fa5446a"`（且仅 email/password/inviteCode 三键），响应到期 **2026/8/27（+14 = 注册7+受邀7）**；注册后 `sm-invite-ref` 已清除 — PASS。
+- 重登 user1（二次查询）→ 到期由 8/20 变 **8/27（邀请方 +7，deferWrite 已落库）**，分享统计累计访问/获赠 1 — PASS。
+
+## T3 兑换码全分支
+- admin@seatmark.cn（默认 ADMIN_EMAILS）注册后 /admin「兑换码管理」生成 30 天 ×3（备注 test298）→ toast「兑换码已生成 共 3 个（已尝试复制到剪贴板）」，批次表「30 天 / 3 / 已兑换 0/3 / test298 / 复制全部码」— PASS。
+- user1 在 /account#redeem 输码 SM-HVYS-AEWY-NW37 → toast「兑换成功 · 专业版已延长 30 天」，到期 8/27 → **9/26（+30）** — PASS。
+- 同人同码重试 → toast「兑换码已生效 · 此前已兑换到你的账号」（already 幂等），到期仍 9/26 未叠加 — PASS。
+- user2 输同码 → 红字「兑换码已被使用」（409），到期仍 8/27 — PASS。
+- 未发行码 SM-2222-3333-4444 →「兑换码无效」；`abc` →「兑换码格式不正确」— PASS。
+- 回 /admin 批次表「已兑换 **1/3**」核销计数正确 — PASS。
+
+## T4 /pricing 定价与响应式
+- 专业版 ¥14.5/月 + 划线 ¥29/月、badge「限时 5 折 · 注册送 7 天」、绿标「注册送 7 天」、feature「邀请好友注册，双方各送 7 天，可累计叠加」「支持兑换码开通，天数可叠加」；团队版 ¥49.5 + 划线 ¥99「限时 5 折 · 可预订」— PASS。
+- 登录态点专业版 CTA「使用兑换码开通 / 延长」→ 跳转 /account#redeem 并滚动到兑换区 — PASS。
+- 390/768/1280 下 /pricing 与 /account 均 scrollWidth ≤ innerWidth（CDP 设备仿真，截图 r298_pricing_390/768/1280.png、r298_account_*.png）— PASS。
+- **观察项（旧文案残留，非本轮判据）**：/pricing FAQ 仍写「专业版定价 ¥29/月，Beta 期间限时免费试用：注册登录即自动开通」「登录即开通专业版 Beta 限时免费试用」；页脚链接文案「定价（Beta 限时免费试用）」；导航头像下拉徽标「Beta 会员 · 试用中」；登录成功 toast 仍写「每日 3 次无水印导出」——与新会员体系文案不一致，建议同 PR 顺手更新。
+
+## T5 回归与隐私
+- 普通登录（user1/user2/admin 共 5 次密码登录）全部成功 — PASS。
+- **免费版配额展示（非会员视角）— UNTESTED**：本分支所有新注册账号均获 7 天专业版，本地无到期/免费账号可用（用户已允许跳过到期场景；免费分支 UI 代码为 quota.pro 为假时回落原数字展示，未获运行时实证）。
+- 云端模板区块正常渲染（0 模板、按钮禁用态正确）；完整同步链路本轮未跑 — 轻回归。
+- 监听器：pageerror=0；所有 auth 响应无 passwordHash；payload 键仅 {email,password(,inviteCode)} — PASS。
+- 收尾：vite 已停、监听器已停、浏览器 storage/cookie 已清、结束于登出态。内存 KV 随进程销毁，无持久测试残留。
+
+---
+
 # 第 297 轮（2026-08-13）：UI 口径注册补测（r296 注册项 429 遗留）——✅ UI 注册 3/3 成功 0 可见失败；本轮 register raw 545 = 0/3（未触发 545，前端 register→login 收尾链路未被动用，与用户 curl 口径 3/3 545 形成鲜明波动对比）
 
 **环境**：生产 https://www.seatmark.cn，`X-SeatMark-Rev: r298`、`X-SeatMark-Storage: blob` 复核。可视 Chromium（CDP 29229）UI 操作 + async 监听器（`/home/ubuntu/r297_listen.py` → `r297_net.jsonl`）。全程录屏。计划 test-plan-round297.md。IP 注册日限已重置（用户 curl 已用 3 次）。

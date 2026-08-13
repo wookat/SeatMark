@@ -38,7 +38,7 @@ async function onSubmit() {
       toast.success('注册成功', '已赠送 7 天专业版试用：无水印导出不限次与云端模板同步已生效')
     } else {
       await auth.login(emailValue, password.value)
-      toast.success('登录成功', `每日 ${QUOTA_USER_DAILY} 次无水印导出与云端模板同步已生效`)
+      toast.success('登录成功', '无水印导出额度与云端模板同步已生效')
     }
     password.value = ''
   } catch (err) {
@@ -196,8 +196,8 @@ function formatDate(iso: string | null | undefined): string {
             {{ mode === 'register' ? '注册 SeatMark' : '登录 SeatMark' }}
           </h1>
           <p class="mt-2 text-sm leading-6 text-slate-600">
-            邮箱 + 密码登录。登录即开通专业版 Beta 限时免费试用：每日
-            {{ QUOTA_USER_DAILY }} 次无水印导出（未登录 {{ QUOTA_ANON_DAILY }} 次）、自定义模板云端同步与跨设备找回；带水印导出/打印始终不限次数。
+            邮箱 + 密码登录。新用户注册即送 7 天专业版试用（无水印导出不限次）；免费版每日
+            {{ QUOTA_USER_DAILY }} 次无水印导出（未登录 {{ QUOTA_ANON_DAILY }} 次）；自定义模板云端同步与跨设备找回；带水印导出/打印始终不限次数。
           </p>
         </div>
 
