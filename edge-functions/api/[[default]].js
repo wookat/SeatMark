@@ -1244,7 +1244,18 @@ async function handleRequest(context) {
         const raw = await kv.get(k.name)
         if (raw) {
           try {
-            users.push(JSON.parse(raw))
+            const u = JSON.parse(raw)
+            // 白名单字段：绝不下发 passwordHash 等凭据材料
+            users.push({
+              email: u.email,
+              createdAt: u.createdAt,
+              lastLoginAt: u.lastLoginAt,
+              loginCount: u.loginCount,
+              templateCount: u.templateCount,
+              proUntil: u.proUntil,
+              inviteCount: u.inviteCount,
+              invitedBy: u.invitedBy,
+            })
           } catch {
             // 跳过损坏记录
           }
