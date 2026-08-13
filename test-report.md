@@ -1,3 +1,31 @@
+# 第 297 轮（2026-08-13）：UI 口径注册补测（r296 注册项 429 遗留）——✅ UI 注册 3/3 成功 0 可见失败；本轮 register raw 545 = 0/3（未触发 545，前端 register→login 收尾链路未被动用，与用户 curl 口径 3/3 545 形成鲜明波动对比）
+
+**环境**：生产 https://www.seatmark.cn，`X-SeatMark-Rev: r298`、`X-SeatMark-Storage: blob` 复核。可视 Chromium（CDP 29229）UI 操作 + async 监听器（`/home/ubuntu/r297_listen.py` → `r297_net.jsonl`）。全程录屏。计划 test-plan-round297.md。IP 注册日限已重置（用户 curl 已用 3 次）。
+
+## T1 UI 注册 ×3
+- seatmark297ui1/ui2/ui3@example.com（uipass297{N}）依次注册：**3/3 直接 200**、UI 全程只见「注册中...」→ 个人中心，0 用户可见失败 — PASS。
+- **raw 545 = 0/3**：本轮未触发任何 545，因此前端 register→545→login 自动收尾链路本轮**未获动用/验证**（r294 已实证过一次）。与同日早些时候用户 curl 口径 3/3 注册请求 545（服务端副作用完成）对比：545 呈强波动/时段相关，UI 口径无法稳定复现。
+- 注册响应体形状完整：loginCount:1、quota{3/3}、share code（fbeeb763/7659acfb/4aea9b79），无 passwordHash。
+
+## T2 登录态形状
+- 个人中心 share 链接（?ref=码）、配额 3/3、使用统计（注册时间/最近登录/累计登录 1 次）区块渲染正常 — PASS。
+
+## T3 回归
+- 刷新保持登录（me 200 ui3 user）；登出 → me 未再查询即回匿名表单（logout 200 {"ok":true}），页面回到「登录 SeatMark」— PASS。
+
+## T4 头/隐私/健康
+- 8/8 响应全部 200 且 r298+blob（本轮 0 个 545/4xx/5xx）；payload 键仅 {email,password}；响应无 passwordHash；pageerror=0 — PASS。
+
+## 观察项（用户实测转录，本轮未复测）
+- 错密码限流实测 12 次才 429（限 10）：deferred write 下 1 次后台失败计数写丢失——已知代价；锁定期内正确密码也 429，15 分钟后自动恢复。记录为观察项，非 P 项。
+
+## 结论与残留
+- UI 口径注册路径本身健康；545 未在本轮出现，register→login 收尾链路的生产触发依赖 545 时段波动，无法按需复现（r294 曾实证一次）。
+- 新增账号：seatmark297ui1/ui2/ui3@example.com（另用户 curl 建 seatmark297reg1..3）。本日注册限额已用 6/20。
+- 产物：录屏 rec-b998ac8a…-edited.mp4；截图 r297_ui1_registered/ui3_registered/refresh/loggedout.png；网络明细 /home/ubuntu/r297_net.jsonl。
+
+---
+
 # 第 296 轮（2026-08-12）：#302–#305 部署后 545 攻坚全链路复测——✅ 登录侧「用户视角 0 失败」达成：login 8/8 成功，raw 545 = 4/13 login 尝试（≈31%），全部被 1 次静默重试吸收；⚠️ 注册项 BLOCKED（IP 日限 429，改用探针账号）
 
 **环境**：生产 https://www.seatmark.cn。部署确认：所有正常 API 响应头 `X-SeatMark-Rev: r298`、`X-SeatMark-Storage: blob`；entry `/assets/index-BxN07GMT.js` 含 `600*d` 与 `d<5;`（前端登录重试上限 5 已上线）。可视 Chromium（CDP 29229）UI 操作 + Playwright async 监听器（`/home/ubuntu/r296_listen.py` → `r296_net.jsonl`，53 行）。全程录屏。计划 test-plan-round296.md。
