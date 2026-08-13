@@ -11,7 +11,7 @@ import QuotaLimitDialog from '@/components/ui/QuotaLimitDialog.vue'
 import ShareWelcomeBanner from '@/components/ui/ShareWelcomeBanner.vue'
 import ToastHost from '@/components/ui/ToastHost.vue'
 import WeChatGuideOverlay from '@/components/ui/WeChatGuideOverlay.vue'
-import { useAuthStore } from '@/stores/auth'
+import { INVITE_REF_KEY, useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { apiFetch } from '@/utils/api'
 import { clearLandingQuery } from '@/utils/landing'
@@ -39,6 +39,12 @@ onMounted(() => {
   if (refCode && /^[0-9a-f]{8}$/.test(refCode)) {
     void apiFetch('/api/share/visit', { method: 'POST', body: { code: refCode } }).catch(() => {})
     shareWelcomeOpen.value = true
+    // 邀请归属：留存邀请码，新用户注册时双方各赠专业版天数
+    try {
+      localStorage.setItem(INVITE_REF_KEY, refCode)
+    } catch {
+      // 忽略存储异常
+    }
   }
 
   // 模板短码（?s=短码，微信扫码短链）：取回负载后走既有 #tpl= 导入流程

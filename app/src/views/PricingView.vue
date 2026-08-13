@@ -17,6 +17,7 @@ interface Plan {
   name: string
   price: string
   priceUnit: string
+  originalPrice?: string
   badge: string | null
   tagline: string
   features: string[]
@@ -44,25 +45,28 @@ const PLANS = computed<Plan[]>(() => [
   },
   {
     name: '专业版',
-    price: '¥29',
+    price: '¥14.5',
     priceUnit: '/月',
-    badge: 'Beta 限时免费试用',
+    originalPrice: '¥29',
+    badge: '限时 5 折 · 注册送 7 天',
     tagline: '考务与会务重度用户',
     features: [
-      'Beta 期间免费试用，注册登录即开通，不需支付',
-      '更高每日无水印导出次数',
+      '新用户注册即送 7 天专业版试用',
+      '邀请好友注册，双方各送 7 天，可累计叠加',
+      '无水印导出 / 打印不限次数',
       '照片批量核验与覆盖率统计',
       '自定义模板云端同步与跨设备找回',
-      '在线开源字体库与 AI 设计辅助',
+      '支持兑换码开通，天数可叠加',
     ],
     highlight: true,
     cta: 'pro-trial',
   },
   {
     name: '团队版',
-    price: '¥99',
+    price: '¥49.5',
     priceUnit: '/月',
-    badge: '可预订',
+    originalPrice: '¥99',
+    badge: '限时 5 折 · 可预订',
     tagline: '学校 / 机构多人协作',
     features: [
       '含专业版全部功能',
@@ -129,7 +133,7 @@ async function submitReserve() {
         {{ QUOTA_USER_DAILY }} 次），分享可再送次数。
       </p>
       <p class="mx-auto mt-1.5 max-w-xl text-sm leading-6 text-slate-600">
-        专业版 Beta 期间限时免费试用；团队版支付开通前可预订登记。
+        注册即送 7 天专业版；邀请好友注册，双方各送 7 天，可累计叠加；专业版可用兑换码开通。
       </p>
     </div>
 
@@ -153,11 +157,14 @@ async function submitReserve() {
         <div class="mt-4 flex items-end gap-2">
           <span class="text-4xl font-bold tracking-tight text-slate-900">{{ plan.price }}</span>
           <span class="pb-1 text-sm font-semibold text-slate-600">{{ plan.priceUnit }}</span>
+          <span v-if="plan.originalPrice" class="pb-1 text-sm text-slate-400 line-through">
+            {{ plan.originalPrice }}{{ plan.priceUnit }}
+          </span>
           <span
             v-if="plan.cta === 'pro-trial'"
             class="mb-1 ml-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700"
           >
-            Beta 期间 ¥0 试用
+            注册送 7 天
           </span>
         </div>
 
@@ -187,10 +194,10 @@ async function submitReserve() {
         </RouterLink>
         <RouterLink
           v-else-if="plan.cta === 'pro-trial'"
-          :to="auth.user ? '/studio' : '/account'"
+          :to="auth.user ? '/account#redeem' : '/account'"
           class="btn btn-primary btn-md mt-6 w-full"
         >
-          {{ auth.user ? '试用已开通，进入工坊' : '免费开通试用（登录即可）' }}
+          {{ auth.user ? '使用兑换码开通 / 延长' : '注册领 7 天试用' }}
         </RouterLink>
         <button
           v-else
@@ -204,7 +211,7 @@ async function submitReserve() {
     </div>
 
     <p class="mt-6 text-center text-xs text-slate-600">
-      团队版支付通道即将开通，预订登记不收取任何费用；所有名单数据仅在浏览器本地处理，不会上传服务器。
+      在线支付通道开通前，专业版通过兑换码开通（<RouterLink to="/account#redeem" class="font-semibold text-brand-600 hover:underline">去兑换</RouterLink>）；团队版预订登记不收取任何费用；所有名单数据仅在浏览器本地处理，不会上传服务器。
     </p>
 
     <!-- FAQ -->

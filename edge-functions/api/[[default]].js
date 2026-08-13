@@ -16,6 +16,9 @@
  *   POST /api/share/visit        分享链接访问上报（IP+日去重，为分享者赠送次数）
  *   POST /api/share/tpl          模板短码寄存（微信扫码短链，内容寻址）
  *   GET  /api/share/tpl          按短码取回模板负载
+ *   POST /api/redeem             兑换码开通会员（登录用户，IP 限频防枚举）
+ *   POST /api/admin/codes        批量生成兑换码（管理员，供卡网售卖）
+ *   GET  /api/admin/codes        兑换码批次列表与核销进度
  *   POST /api/team/reserve       团队版预订登记
  *   GET  /api/announcement       公告（公开）
  *   GET  /api/admin/health       环境健康检查（KV/邮件/AUTH_SECRET 配置状态）
@@ -65,6 +68,15 @@ const LOGIN_FAIL_LIMIT = 10
 const LOGIN_FAIL_WINDOW_MS = 15 * 60 * 1000
 const REGISTER_IP_DAILY_LIMIT = 20
 const TEMPLATES_MAX_BYTES = 512 * 1024
+
+// ---------- 会员与兑换码 ----------
+const TRIAL_DAYS_REGISTER = 7
+const INVITE_BONUS_DAYS = 7
+const REDEEM_IP_DAILY_LIMIT = 20
+const REDEEM_BATCH_MAX = 200
+const REDEEM_DAYS_MAX = 3660
+/** 兑换码字符集：去除易混淆字符 0/O/1/I/L */
+const REDEEM_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'
 
 function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
@@ -255,14 +267,48 @@ async function getCounter(kv, key) {
   return Number.isFinite(n) ? n : 0
 }
 
-async function quotaStatus(kv, email) {
+async function quotaStatus(kv, email, user) {
   const date = today()
   const [used, bonus] = await Promise.all([
     getCounter(kv, `usage:${email}:${date}`),
     getCounter(kv, `bonus:${email}:${date}`),
   ])
+  const resolved = user === undefined ? await getUser(kv, email) : user
+  // 会员有效期内无水印导出不限次（用大额度表达，前端据 pro.active 展示「不限」）
+  if (proStatus(resolved).active) {
+    return { date, used, limit: 9999, bonus, remaining: 9999, pro: true }
+  }
   const limit = QUOTA_USER_DAILY + Math.min(bonus, SHARE_BONUS_DAILY_CAP)
   return { date, used, limit, bonus, remaining: Math.max(0, limit - used) }
+}
+
+/** 会员到期时间顺延：未过期在尾部叠加，已过期从当前时刻起算 */
+function grantProDays(user, days) {
+  const base = Math.max(Date.now(), Date.parse(user.proUntil || '') || 0)
+  user.proUntil = new Date(base + days * 86400000).toISOString()
+}
+
+function proStatus(user) {
+  const until = Date.parse(user?.proUntil || '') || 0
+  return { active: until > Date.now(), until: until ? new Date(until).toISOString() : null }
+}
+
+function randomRedeemCode() {
+  const bytes = crypto.getRandomValues(new Uint8Array(12))
+  let s = ''
+  for (let i = 0; i < 12; i++) {
+    s += REDEEM_ALPHABET[bytes[i] % REDEEM_ALPHABET.length]
+    if (i === 3 || i === 7) s += '-'
+  }
+  return `SM-${s}`
+}
+
+/** 归一化用户输入：容忍大小写/空格/丢失的连字符 */
+function normalizeRedeemCode(input) {
+  const raw = String(input || '').toUpperCase().replace(/[^0-9A-Z]/g, '')
+  if (!/^SM[0-9A-Z]{12}$/.test(raw)) return null
+  const body = raw.slice(2)
+  return `SM-${body.slice(0, 4)}-${body.slice(4, 8)}-${body.slice(8, 12)}`
 }
 
 async function shareCodeFor(kv, email, defer) {
@@ -297,7 +343,7 @@ async function publicUser(kv, email, env, preloadedUser, defer) {
   const user = preloadedUser || (await getUser(kv, email))
   if (!user) return null
   const [quota, share] = await Promise.all([
-    quotaStatus(kv, email),
+    quotaStatus(kv, email, user),
     shareStats(kv, email, defer),
   ])
   return {
@@ -308,6 +354,7 @@ async function publicUser(kv, email, env, preloadedUser, defer) {
     templateCount: user.templateCount || 0,
     templateUpdatedAt: user.templateUpdatedAt || null,
     betaMember: true,
+    pro: proStatus(user),
     isAdmin: isAdmin(email, env),
     quota,
     share,
@@ -711,13 +758,37 @@ async function handleRequest(context) {
       return json({ error: '该邮箱已注册，请直接登录' }, 409, storageHeader)
     }
     const now = new Date().toISOString()
+    const isNewAccount = !user
     if (!user) {
       user = { email, createdAt: now, lastLoginAt: now, loginCount: 1, templateCount: 0 }
+      // 新注册赠 7 天专业版试用（仅首次建账，历史验证码账号补设密码不重复赠送）
+      grantProDays(user, TRIAL_DAYS_REGISTER)
     } else {
       // 历史验证码账号未设密码：首次注册即补设密码
       user.lastLoginAt = now
       user.loginCount = (user.loginCount || 0) + 1
     }
+
+    // 邀请裂变：新用户携带邀请码（分享码）注册，双方各赠 7 天专业版，邀请方可叠加
+    const inviteCode =
+      typeof body?.inviteCode === 'string' && /^[0-9a-f]{8}$/.test(body.inviteCode.trim())
+        ? body.inviteCode.trim()
+        : ''
+    if (isNewAccount && inviteCode) {
+      const inviter = await kv.get(`share:code:${inviteCode}`)
+      if (inviter && inviter !== email) {
+        grantProDays(user, INVITE_BONUS_DAYS)
+        user.invitedBy = inviter
+        deferWrite(async () => {
+          const inviterUser = await getUser(kv, inviter)
+          if (!inviterUser) return
+          grantProDays(inviterUser, INVITE_BONUS_DAYS)
+          inviterUser.inviteCount = (inviterUser.inviteCount || 0) + 1
+          await putUser(kv, inviterUser)
+        })
+      }
+    }
+
     user.passwordHash = await hashPassword(password)
     user.passwordSetAt = now
     await putUser(kv, user)
@@ -889,6 +960,58 @@ async function handleRequest(context) {
       200,
       storageHeader,
     )
+  }
+
+  // ----- 兑换码 -----
+  if (path === '/api/redeem' && method === 'POST') {
+    const email = await currentUserEmail(request, env)
+    if (!email) return json({ error: '请先登录' }, 401, storageHeader)
+
+    // IP 日限频：防暴力枚举兑换码
+    const ip = clientIp(request)
+    const rlKey = `rl:redeem:${await sha256Hex(ip)}:${today()}`
+    const attempts = await getCounter(kv, rlKey)
+    if (attempts >= REDEEM_IP_DAILY_LIMIT) {
+      return json({ error: '尝试次数过多，请明天再试' }, 429, storageHeader)
+    }
+
+    const body = await readBody()
+    const code = normalizeRedeemCode(body?.code)
+    if (!code) {
+      await deferWrite(() => kv.put(rlKey, String(attempts + 1)))
+      return json({ error: '兑换码格式不正确' }, 400, storageHeader)
+    }
+
+    const raw = await kv.get(`redeem:${code}`)
+    let record = null
+    if (raw) {
+      try {
+        record = JSON.parse(raw)
+      } catch {
+        record = null
+      }
+    }
+    if (!record) {
+      await deferWrite(() => kv.put(rlKey, String(attempts + 1)))
+      return json({ error: '兑换码无效' }, 400, storageHeader)
+    }
+    const user = await getUser(kv, email)
+    if (!user) return json({ error: '请先登录' }, 401, storageHeader)
+    if (record.usedBy) {
+      // 幂等：同一用户重试已兑换成功的码（如 5xx 后重试）直接返回当前会员状态
+      if (record.usedBy === email) {
+        return json({ ok: true, already: true, pro: proStatus(user) }, 200, storageHeader)
+      }
+      return json({ error: '兑换码已被使用' }, 409, storageHeader)
+    }
+
+    // 核销与发放均同步落库：兑换是低频关键操作，不能接受后台写丢失
+    record.usedBy = email
+    record.usedAt = new Date().toISOString()
+    await kv.put(`redeem:${code}`, JSON.stringify(record))
+    grantProDays(user, record.days)
+    await putUser(kv, user)
+    return json({ ok: true, days: record.days, pro: proStatus(user) }, 200, storageHeader)
   }
 
   // ----- 分享裂变 -----
@@ -1132,6 +1255,63 @@ async function handleRequest(context) {
       }
       items.reverse()
       return json({ items }, 200, storageHeader)
+    }
+
+    // 兑换码批量生成（供卡网售卖）：返回明文码列表，同时按批次存档便于回查
+    if (path === '/api/admin/codes' && method === 'POST') {
+      const body = await readBody()
+      const days = Number(body?.days)
+      const count = Number(body?.count)
+      const note = typeof body?.note === 'string' ? body.note.trim().slice(0, 100) : ''
+      if (!Number.isInteger(days) || days < 1 || days > REDEEM_DAYS_MAX) {
+        return json({ error: `天数需为 1–${REDEEM_DAYS_MAX} 的整数` }, 400, storageHeader)
+      }
+      if (!Number.isInteger(count) || count < 1 || count > REDEEM_BATCH_MAX) {
+        return json({ error: `数量需为 1–${REDEEM_BATCH_MAX} 的整数` }, 400, storageHeader)
+      }
+      const batch = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      const createdAt = new Date().toISOString()
+      const codes = []
+      for (let i = 0; i < count; i++) {
+        let code = randomRedeemCode()
+        // 碰撞防御：已存在则重新生成（码空间 31^12，碰撞概率极低）
+        while (await kv.get(`redeem:${code}`)) code = randomRedeemCode()
+        await kv.put(`redeem:${code}`, JSON.stringify({ days, batch, createdAt, note }))
+        codes.push(code)
+      }
+      await kv.put(
+        `redeembatch:${batch}`,
+        JSON.stringify({ batch, days, count, note, createdAt, codes }),
+      )
+      return json({ ok: true, batch, days, count, codes }, 200, storageHeader)
+    }
+
+    if (path === '/api/admin/codes' && method === 'GET') {
+      const page = await kv.list({ prefix: 'redeembatch:', limit: 100 })
+      const batches = []
+      for (const k of page.keys) {
+        const raw = await kv.get(k.name)
+        if (!raw) continue
+        try {
+          const b = JSON.parse(raw)
+          let used = 0
+          for (const code of b.codes || []) {
+            const rec = await kv.get(`redeem:${code}`)
+            if (rec) {
+              try {
+                if (JSON.parse(rec).usedBy) used += 1
+              } catch {
+                // 损坏记录计未使用
+              }
+            }
+          }
+          batches.push({ ...b, used })
+        } catch {
+          // 跳过损坏记录
+        }
+      }
+      batches.reverse()
+      return json({ batches }, 200, storageHeader)
     }
 
     if (path === '/api/admin/announcement') {

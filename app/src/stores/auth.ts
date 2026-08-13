@@ -9,6 +9,13 @@ export interface QuotaStatus {
   limit: number
   bonus: number
   remaining: number
+  /** 会员有效期内为 true，无水印导出不限次 */
+  pro?: boolean
+}
+
+export interface ProStatus {
+  active: boolean
+  until: string | null
 }
 
 export interface ShareStats {
@@ -28,9 +35,22 @@ export interface SessionUser {
   templateCount: number
   templateUpdatedAt: string | null
   betaMember: boolean
+  pro: ProStatus
   isAdmin: boolean
   quota: QuotaStatus
   share: ShareStats
+}
+
+/** 邀请码（?ref= 落地时写入）：注册时携带，双方各赠专业版天数 */
+export const INVITE_REF_KEY = 'sm-invite-ref'
+
+export function pendingInviteCode(): string {
+  try {
+    const code = localStorage.getItem(INVITE_REF_KEY) || ''
+    return /^[0-9a-f]{8}$/.test(code) ? code : ''
+  } catch {
+    return ''
+  }
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -70,11 +90,17 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function register(email: string, password: string): Promise<SessionUser> {
     try {
+      const inviteCode = pendingInviteCode()
       const data = await apiFetch<{ user: SessionUser }>('/api/auth/register', {
         method: 'POST',
-        body: { email, password },
+        body: inviteCode ? { email, password, inviteCode } : { email, password },
       })
       user.value = data.user
+      try {
+        localStorage.removeItem(INVITE_REF_KEY)
+      } catch {
+        // 忽略存储异常
+      }
       return data.user
     } catch (err) {
       // 边缘网关 5xx 时服务端注册可能已完成（账号已建），自动改走登录收尾
@@ -110,6 +136,15 @@ export const useAuthStore = defineStore('auth', () => {
     throw lastError
   }
 
+  async function redeem(code: string): Promise<{ days?: number; already?: boolean; pro: ProStatus }> {
+    const data = await apiFetch<{ days?: number; already?: boolean; pro: ProStatus }>(
+      '/api/redeem',
+      { method: 'POST', body: { code } },
+    )
+    await refresh()
+    return data
+  }
+
   async function logout(): Promise<void> {
     try {
       await apiFetch('/api/auth/logout', { method: 'POST' })
@@ -118,5 +153,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, ready, isLoggedIn, refresh, sendCode, verify, register, login, logout }
+  return { user, ready, isLoggedIn, refresh, sendCode, verify, register, login, logout, redeem }
 })

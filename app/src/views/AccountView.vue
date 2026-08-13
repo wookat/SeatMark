@@ -35,7 +35,7 @@ async function onSubmit() {
   try {
     if (mode.value === 'register') {
       await auth.register(emailValue, password.value)
-      toast.success('注册成功', `已开通专业版 Beta 限时免费试用：每日 ${QUOTA_USER_DAILY} 次无水印导出与云端模板同步已生效`)
+      toast.success('注册成功', '已赠送 7 天专业版试用：无水印导出不限次与云端模板同步已生效')
     } else {
       await auth.login(emailValue, password.value)
       toast.success('登录成功', `每日 ${QUOTA_USER_DAILY} 次无水印导出与云端模板同步已生效`)
@@ -140,6 +140,40 @@ async function copyShareText() {
   }
 }
 
+// ---------- 兑换码 ----------
+const redeemCode = ref('')
+const redeeming = ref(false)
+const redeemError = ref('')
+
+async function onRedeem() {
+  redeemError.value = ''
+  const code = redeemCode.value.trim()
+  if (!code) {
+    redeemError.value = '请输入兑换码'
+    return
+  }
+  redeeming.value = true
+  try {
+    const result = await auth.redeem(code)
+    redeemCode.value = ''
+    if (result.already) {
+      toast.success('兑换码已生效', '该兑换码此前已兑换到你的账号')
+    } else {
+      toast.success('兑换成功', `专业版已延长 ${result.days} 天`)
+    }
+  } catch (err) {
+    redeemError.value = err instanceof ApiError ? err.message : '兑换失败，请稍后再试'
+  } finally {
+    redeeming.value = false
+  }
+}
+
+const proUntilText = computed(() => {
+  const until = auth.user?.pro?.until
+  if (!until) return ''
+  return new Date(until).toLocaleDateString('zh-CN')
+})
+
 const quotaPercent = computed(() => {
   if (!auth.user) return 0
   const { used, limit } = auth.user.quota
@@ -239,7 +273,7 @@ function formatDate(iso: string | null | undefined): string {
           <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m12 2 2.6 5.3 5.9.9-4.3 4.1 1 5.9L12 15.4 6.8 18.2l1-5.9L3.5 8.2l5.9-.9L12 2z" />
           </svg>
-          Beta 会员 · 专业版限时免费试用中
+          {{ auth.user.pro?.active ? `专业版会员 · ${proUntilText} 到期` : '免费版 · 邀请好友或兑换码可开通专业版' }}
         </span>
       </div>
 
@@ -247,25 +281,36 @@ function formatDate(iso: string | null | undefined): string {
         <!-- 今日配额 -->
         <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-card">
           <h2 class="text-sm font-bold text-slate-900">今日无水印导出配额</h2>
-          <div class="mt-3 flex items-end gap-2">
-            <span class="text-3xl font-bold tracking-tight text-slate-900">
-              {{ auth.user.quota.remaining }}
-            </span>
-            <span class="pb-1 text-sm text-slate-600">/ {{ auth.user.quota.limit }} 次剩余</span>
-          </div>
-          <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div class="h-full rounded-full bg-brand-600 transition-all" :style="{ width: `${quotaPercent}%` }" />
-          </div>
-          <p class="mt-2 text-xs leading-5 text-slate-600">
-            仅无水印导出/打印计次，带水印不限次数；每日 0 点恢复为 {{ QUOTA_USER_DAILY }} 次，分享被点开额外赠送（今日已 +{{ auth.user.quota.bonus }}）。
-          </p>
+          <template v-if="auth.user.quota.pro">
+            <div class="mt-3 flex items-end gap-2">
+              <span class="text-3xl font-bold tracking-tight text-slate-900">不限</span>
+            </div>
+            <p class="mt-2 text-xs leading-5 text-slate-600">
+              专业版有效期内无水印导出/打印不限次数（{{ proUntilText }} 到期）。
+            </p>
+          </template>
+          <template v-else>
+            <div class="mt-3 flex items-end gap-2">
+              <span class="text-3xl font-bold tracking-tight text-slate-900">
+                {{ auth.user.quota.remaining }}
+              </span>
+              <span class="pb-1 text-sm text-slate-600">/ {{ auth.user.quota.limit }} 次剩余</span>
+            </div>
+            <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div class="h-full rounded-full bg-brand-600 transition-all" :style="{ width: `${quotaPercent}%` }" />
+            </div>
+            <p class="mt-2 text-xs leading-5 text-slate-600">
+              仅无水印导出/打印计次，带水印不限次数；每日 0 点恢复为 {{ QUOTA_USER_DAILY }} 次，分享被点开额外赠送（今日已 +{{ auth.user.quota.bonus }}）。
+            </p>
+          </template>
         </section>
 
         <!-- 分享送次数 -->
         <section id="share" class="scroll-mt-20 rounded-lg border border-slate-200 bg-white p-5 shadow-card">
-          <h2 class="text-sm font-bold text-slate-900">分享送次数</h2>
+          <h2 class="text-sm font-bold text-slate-900">邀请好友 · 双方各送 7 天专业版</h2>
           <p class="mt-2 text-xs leading-5 text-slate-600">
-            把专属链接发给同事或群聊，每被点开 1 次即得 {{ auth.user.share.bonusPerVisit }} 次无水印导出（服务端去重防刷，每日上限
+            好友通过你的专属链接注册，你和好友各得 7 天专业版，可累计叠加；链接每被点开 1 次还得
+            {{ auth.user.share.bonusPerVisit }} 次无水印导出（服务端去重防刷，每日上限
             {{ auth.user.share.bonusDailyCap }} 次）。
           </p>
           <div class="mt-3 flex gap-2">
@@ -306,6 +351,27 @@ function formatDate(iso: string | null | undefined): string {
               </dd>
             </div>
           </dl>
+        </section>
+
+        <!-- 兑换码 -->
+        <section id="redeem" class="scroll-mt-20 rounded-lg border border-slate-200 bg-white p-5 shadow-card">
+          <h2 class="text-sm font-bold text-slate-900">兑换码开通专业版</h2>
+          <p class="mt-2 text-xs leading-5 text-slate-600">
+            输入兑换码即可开通或延长专业版，天数可累计叠加。兑换码可在官方渠道购买获取。
+          </p>
+          <form class="mt-3 flex gap-2" @submit.prevent="onRedeem">
+            <input
+              v-model="redeemCode"
+              type="text"
+              maxlength="24"
+              placeholder="SM-XXXX-XXXX-XXXX"
+              class="h-9 min-w-0 flex-1 rounded border border-slate-300 px-2.5 font-mono text-xs tracking-wider text-slate-900 uppercase outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            />
+            <button type="submit" class="btn btn-primary btn-sm h-9 shrink-0" :disabled="redeeming">
+              {{ redeeming ? '兑换中...' : '兑换' }}
+            </button>
+          </form>
+          <p v-if="redeemError" class="mt-2 text-xs font-medium text-red-600">{{ redeemError }}</p>
         </section>
 
         <!-- 云端模板 -->
