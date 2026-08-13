@@ -275,34 +275,37 @@
   user-select: none;
 }
 
-/* 标签内品牌徽章水印：座位格 Logo + 域名，低饱和半透明；
+/* 标签内底边细线签名水印：左右细线夹极小字距文字，印刷厂版权脚注式；
    字号/定位由 LabelCard 按标签尺寸内联注入，色调随模板底色切换 */
 .label-watermark {
   position: absolute;
+  left: 0;
+  right: 0;
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 0.32em;
-  font-weight: 600;
+  gap: 0.7em;
+  padding: 0 1.2em;
+  font-weight: 500;
   line-height: 1;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.14em;
   white-space: nowrap;
-  color: rgba(100, 116, 139, 0.55);
-  text-shadow: 0 0 0.4mm rgba(255, 255, 255, 0.85);
+  color: rgba(100, 116, 139, 0.5);
   pointer-events: none;
   user-select: none;
 }
 
-/* 深色模板：浅色半透明水印，光晕改为深色以贴合底色 */
+/* 深色模板：浅色半透明签名，细线同步反色 */
 .label-watermark--light {
-  color: rgba(255, 255, 255, 0.6);
-  text-shadow: 0 0 0.4mm rgba(15, 23, 42, 0.45);
+  color: rgba(255, 255, 255, 0.55);
 }
 
-.label-watermark__mark {
-  width: 1em;
-  height: 1em;
-  flex-shrink: 0;
+.label-watermark__rule {
+  flex: 1;
+  height: 0.12mm;
+  min-height: 1px;
+  background: currentColor;
+  opacity: 0.55;
 }
 
 .sheet-page--screen {
