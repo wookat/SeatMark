@@ -1,3 +1,34 @@
+# 第 306 轮（2026-08-13）：PR #314 底边细线签名水印生产视觉复测 + UI 小改走查——✅ A 全部 6 分支 PASS（浅/深/小标签/退顶边/打印通道/新旧对比），B 无横向溢出、pageerror=0、微调点 8 条（另：三个导出弹窗水印文案陈旧 P2）
+
+**环境**：生产 https://www.seatmark.cn （部署确认：CSS `index-6XEkK5P2.css` 含 `.label-watermark__rule`，旧 `__mark` 已消失），全程匿名（带水印导出不限次）。可视 Chromium 全 UI 操作，全程录屏；导出物落 ~/Downloads 后 shell 解包用 PIL/pdftoppm 逐像素核验。旧版对比用独立 worktree /tmp/sm_old (f5b8103) 起 vite:5199，测后已 `git worktree remove` + 停 vite，主工作树零改动。计划 test-plan-round306.md。
+
+## A. 水印视觉复测（六分支）
+- A1 浅色 standard 60×32 PNG（带水印）：底边呈「细线—SeatMark 座签 · seatmark.cn—细线」，极小字距、半透明；无旧徽章 Logo；放大裁剪线像素存在（html2canvas 未丢线）— PASS（`r306_std_png_bottom.png`）。
+- A1 浅色 standard 图片版 PDF：pdftoppm 栅格化首页，底部同样式、细线未丢 — PASS（`r306_std_pdf_bottom.png`）。
+- A2 深色 navyConfCard 180×90 PNG：深蓝底上水印**反白**（白系半透明）细线+文字清晰可辨；大标签显示全称「SeatMark 座签 · seatmark.cn」；无徽章 — PASS（`r306_navy_png_bottom.png`）。
+- A3 小标签 drinkCup 36×24 PNG：水印文字为短版「seatmark.cn」，≈2mm 下限仍可辨，两侧细线存在，不遮甜度冰量字段 — PASS（`r306_cup_png_full.png`）。
+- A4 底边被字段占用退顶边：本地复算全部内置模板水印落位（脚本 /tmp/wm2.ts），选中「姓名贴·糖果款 kidsCandy 45×30」（底占顶空）→ 生产带水印 PNG：水印出现在**顶边**、短版文字+细线，不遮班级字段 — PASS（`r306_candy_png_top.png`/`_full.png`）。
+- A5 打印/矢量通道（糖果款抽 1 例）：stub window.print 保留打印宿主后 CDP printToPDF——每枚标签顶边同样呈细线签名水印 — PASS（`r306_candy_print_crop.png`，PDF `/home/ubuntu/r306/candy_print.pdf`）。注：首次 no-op stub 时宿主随 print() 返回即卸载得空白页，需 throw 保留宿主，属测试手法非产品缺陷。
+- A6 新旧对比：本地 f5b8103 同 standard 带水印 PNG——旧版为右下角「徽章图标+seatmark.cn」大字；生产新版为底边细线签名，并排图 `r306_old_vs_new.png` — PASS（旧徽章已完全移除）。
+- ⚠️ 未测/口径注记：深色与小标签的 PDF 未跑（PNG 已证，PDF 走同一 DOM 渲染路径，风险低）；「两条候选带都被占用→仍贴底边半透明叠加」分支未实测（内置模板多数属此形态，standard 即该 fallback 且导出正常，但未构造双占对照断言）；纯黑白 PNG 分支（hostWatermark=false 走 sheet 角标）未测。
+
+## B. UI 小改走查（1280/390 双宽度五页，不改代码）
+- 硬判据：10/10 组 `scrollWidth ≤ innerWidth`（1280 均 1270/1280；390 均 390/390）、window error=0 — PASS。截图 `r306_ui_{home,studio,templates,pricing,account}_{1280,390}.png`。
+- 微调点清单（P2/P3）：
+  1. **P2 导出弹窗文案陈旧**：PNG/图片版 PDF/打印三个弹窗「带水印导出」描述仍写「叠加半透明**徽章式**品牌水印（座位格标记 + seatmark.cn）」——与 #314 细线签名实现不符，建议改为「底边细线签名（细线 + seatmark.cn 小字）」。
+  2. P3 首页 390：快捷入口 chips 换行成两行后行间距与上方按钮间距不一致，且勾选项「A4 · A5 · A3」孤行换行；建议统一 chips 行 gap、勾选项允许换行对齐。
+  3. P3 首页 390：hero 副文案段落约 9 行过长，移动端建议截短或拆两段。
+  4. P3 定价 390：「限时 5 折 · 注册送 7 天」徽章压住专业版卡片顶部描边、间距偏紧，建议 badge 上移 2-4px 或卡片 padding-top 加大。
+  5. P3 模板库 390：搜索框 placeholder「…支持拼音、首字母，如“jkz”」被截断显示为「如“!」，建议移动端用短版 placeholder。
+  6. P3 账户页（双宽度）：底部「当前未登录：今日本设备剩余 1/1 次…」纯文本层级弱、与上方隐私说明距离大，建议加浅色信息条背景。
+  7. P3 工坊 1280：导出按钮上方「今日剩余 1 次」绿色角标紧贴按钮文字、视觉拥挤，建议角标改为按钮内 badge 或加 2px 间距。
+  8. P3 定价 1280：三卡功能列表条数不一（7/6/5）致卡片留白不均，建议团队版补一条或列表区 min-height 对齐。
+
+## 健康与收尾
+- 全程 window error=0；导出物均核对（std/navy/cup/candy zip + std PDF + candy 打印 PDF）；旧版 vite 已停、worktree 已删、`git status` 仅新增 test-plan/report/skill 文档；浏览器结束时恢复正常 UA/尺寸并清理导出残留状态（匿名无登录态）。
+
+---
+
 # 第 303 轮（2026-08-13）：PR #311 admin/users 白名单复测 + 云端模板同步全量回归（main 57ef5ca，本地）——✅ 全部执行判据 PASS（响应体零凭据字段、管理表渲染正常；多模板同步/更新覆盖/跨设备找回/导出/不串号；免费口径 UNTESTED）
 
 **环境**：本地 http://localhost:5173（main 57ef5ca 含 #311 合并，vite dev + devApi 内存 KV，邮件环境变量剥离）。可视 Chromium 全 UI 操作 + async 监听器（`/home/ubuntu/r303_listen.py` → `r303_net.jsonl`，全 /api/* 口径，86 行）。全程录屏。计划 test-plan-round303.md。**未触碰生产**。账号：r303user1@example.com（云同步主账号）、r303user2@example.com（隔离）、admin@seatmark.cn（本地密码注册即管理员）。

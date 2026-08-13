@@ -1006,7 +1006,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           图片版 PDF<span class="hidden sm:inline">（推荐）</span>
           <span
             v-if="!sharePromptVisible"
-            class="absolute -top-2 -right-1.5 rounded-full px-1.5 py-px text-[9px] font-bold"
+            class="absolute -top-2.5 -right-2 rounded-full px-1.5 py-px text-[9px] font-bold ring-1 ring-white"
             :class="exportBadge.cls"
             :title="exportBadgeTitle"
           >{{ exportBadge.text }}</span>
@@ -1352,7 +1352,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           <span>
             <span class="block text-sm font-bold text-slate-900">带水印导出（不限次数）</span>
             <span class="mt-0.5 block text-xs leading-5 text-slate-600">
-              每张标签内底部叠加半透明徽章式品牌水印（座位格标记 + seatmark.cn，配色随模板自适应），不遮挡姓名等核心内容
+              每张标签底边叠加细线签名式品牌水印（细线 + seatmark.cn 小字，配色随模板自适应），不遮挡姓名等核心内容
             </span>
           </span>
         </button>
