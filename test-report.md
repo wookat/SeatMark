@@ -1,3 +1,35 @@
+# 第 302 轮（2026-08-13）：PR #310 兑换码安全加固复测（main e7e1a26，本地）——✅ 全部判据 PASS（哈希只存/明文一次性展示/末4位掩码、新码兑换+幂等+409、存量明文键迁移、并发核销恰一赢家、批次核销 2/3、定价回归）
+
+**环境**：本地 http://localhost:5173（main e7e1a26 含 #310 合并，vite dev + devApi 内存 KV，邮件环境变量剥离）。可视 Chromium 全 UI 操作 + async 监听器（`/home/ubuntu/r302_listen.py` → `r302_net.jsonl`，全 /api/* 口径）。全程录屏。计划 test-plan-round302.md。**未触碰生产**。测试注入：devApi.mjs 临时 seed 旧格式明文键 `redeem:SM-LEGA-CYAA-TE55`（15 天），测试后已 `git checkout` 回滚。
+
+## T1 明文一次性 + 批次只存哈希
+- admin 生成 7 天 ×3（备注 r302）→ toast「共 3 个，请立即复制保存——服务端只存哈希，离开页面后无法再查看明文」；amber 一次性展示区出现（标题「仅展示一次…」+ textarea 3 个明文码 + 复制全部码按钮）；复制后剪贴板核对（xclip）3 个码一致 — PASS。
+- 生成码：SM-ZR8R-TTBF-3ER6 / SM-5WFD-RFCP-3Q9H / SM-324X-NWBK-K6RA。
+- 刷新 /admin → amber 区消失；批次行操作列仅「末4位：3ER6 / 3Q9H / K6RA」，无复制按钮 — PASS。
+- 监听证据：5 个 GET /api/admin/codes 200 响应体均无任何完整明文码，仅 `masked:["SM-****-****-3ER6",…]`；明文仅出现在 POST 生成响应一次（`{"ok":true,…,"codes":[…]}`，符合设计） — PASS。
+
+## T2 新码兑换全分支（UI）
+- r302user1 注册（8/20 到期）→ 兑码 A → toast「兑换成功 · 专业版已延长 7 天」，到期 8/20 → **8/27** — PASS。
+- 同人重试码 A → toast「兑换码已生效 · 此前已兑换到你的账号」，到期不变 — PASS。
+- r302user2 注册 → 兑码 A → 红字「兑换码已被使用」，到期仍 8/20 — PASS。
+
+## T3 存量明文键迁移
+- user2 兑 seed 旧码 SM-LEGA-CYAA-TE55 → toast「兑换成功 · 专业版已延长 15 天」，到期 8/20 → **9/4** — PASS。
+- 同人重试旧码 → 「兑换码已生效」（核销记录已落哈希键、usedBy 归属正确的间接实证） — PASS。
+- 注：内存 KV 无外部调试口，「旧明文键已删除」未直接观测，以哈希键记录可读+幂等归属间接验证（getRedeemRecord 迁移路径已被触发）。
+
+## T4 并发核销（脚本口径，用户指定）
+- curl 注册 r302c1/c2 两账号，同码 B（SM-5WFD-RFCP-3Q9H）两并发 POST /api/redeem → **c1 200 `ok:true days:7`、c2 409「兑换码已被使用」**（恰一赢家；两段式 60ms 回读确认生效） — PASS。
+- 回 /admin：批次「已兑换 **2/3**」（码 A+B；legacy 码不属此批次不计入）——哈希键口径核销计数正确 — PASS。
+
+## T5 回归与隐私
+- 注册仍送 7 天（4 个新号全部 8/20 到期、配额「不限」）；/pricing 五折卡、注册送 7 天文案、登录态 CTA→/account#redeem 正常 — PASS。
+- pageerror=0；auth 响应无 passwordHash — PASS。
+- **观察项（既有问题，非 #310 引入）**：`GET /api/admin/users`（管理端用户列表）直接返回 KV 原始用户记录，**响应体含每个用户的 `passwordHash`（PBKDF2 哈希）与盐**。管理员会话才可访问，且为哈希非明文，但按最小暴露原则建议裁剪字段（如剔除 passwordHash/passwordSetAt），与本轮「服务端最小化明文暴露」的加固方向一致。
+- 收尾：devApi.mjs 临时 seed 已回滚、vite/监听器已停、浏览器 storage/cookie 已清、结束于登出态；内存 KV 随进程销毁无残留。
+
+---
+
 # 第 298 轮（2026-08-13）：PR #308 会员体系与兑换码——本地全流程 ✅ 全部判据 PASS（注册送7天、邀请双方+7、兑换码生成/兑换/幂等/409/无效、五折定价、390/768/1280 无溢出）
 
 **环境**：本地 http://localhost:5173（分支 devin/1786652411-membership-redeem 62d23ee，vite dev + devApi 内存 KV，邮件环境变量剥离）。可视 Chromium（CDP 29229）全 UI 操作 + async 监听器（`/home/ubuntu/r298_listen.py` → `r298_net.jsonl`）。全程录屏。计划 test-plan-round298.md。**未触碰生产**。
