@@ -57,7 +57,9 @@ interface CodeBatch {
   count: number
   note: string
   createdAt: string
-  codes: string[]
+  masked: string[]
+  /** 历史批次遗留的明文码（新批次服务端只存哈希，无此字段） */
+  legacyCodes?: string[]
   used: number
 }
 
@@ -121,6 +123,8 @@ const codeDays = ref('30')
 const codeCount = ref('10')
 const codeNote = ref('')
 const generatingCodes = ref(false)
+// 明文码仅在生成响应中返回一次，刷新即不可再取，展示供管理员导出
+const freshCodes = ref<string[]>([])
 
 async function loadCodeBatches() {
   try {
@@ -144,8 +148,9 @@ async function generateCodes() {
       method: 'POST',
       body: { days, count, note: codeNote.value.trim() },
     })
+    freshCodes.value = data.codes
     await navigator.clipboard.writeText(data.codes.join('\n')).catch(() => {})
-    toast.success('兑换码已生成', `共 ${data.codes.length} 个（已尝试复制到剪贴板），可在下方批次列表导出`)
+    toast.success('兑换码已生成', `共 ${data.codes.length} 个，请立即复制保存——服务端只存哈希，离开页面后无法再查看明文`)
     await loadCodeBatches()
   } catch (err) {
     toast.danger('生成失败', err instanceof ApiError ? err.message : '请稍后再试')
@@ -154,10 +159,10 @@ async function generateCodes() {
   }
 }
 
-async function copyBatchCodes(batch: CodeBatch) {
+async function copyCodes(codes: string[]) {
   try {
-    await navigator.clipboard.writeText(batch.codes.join('\n'))
-    toast.success('已复制', `该批次 ${batch.codes.length} 个兑换码已复制，可直接粘贴到卡网库存`)
+    await navigator.clipboard.writeText(codes.join('\n'))
+    toast.success('已复制', `${codes.length} 个兑换码已复制，可直接粘贴到卡网库存`)
   } catch {
     toast.warning('复制失败', '请手动复制')
   }
@@ -350,7 +355,7 @@ watch(
       <section class="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-card">
         <h2 class="text-sm font-bold text-slate-900">兑换码管理</h2>
         <p class="mt-1 text-xs text-slate-600">
-          批量生成专业版兑换码（可导出到卡网售卖）；用户在个人中心输入兑换码即开通/延长，天数可叠加。
+          批量生成专业版兑换码（可导出到卡网售卖）；用户在个人中心输入兑换码即开通/延长，天数可叠加。服务端只存哈希：明文码仅在生成时展示一次，请及时导出保存。
         </p>
         <div class="mt-3 flex flex-wrap items-end gap-3">
           <label class="grid gap-1">
@@ -368,6 +373,19 @@ watch(
           <button type="button" class="btn btn-primary btn-sm h-9" :disabled="generatingCodes" @click="generateCodes">
             {{ generatingCodes ? '生成中...' : '生成兑换码' }}
           </button>
+        </div>
+        <div v-if="freshCodes.length" class="mt-4 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-xs font-bold text-amber-800">本次生成的 {{ freshCodes.length }} 个兑换码（仅展示一次，离开页面后不可再查）</p>
+            <button type="button" class="btn btn-secondary btn-sm" @click="copyCodes(freshCodes)">复制全部码</button>
+          </div>
+          <textarea
+            readonly
+            :value="freshCodes.join('\n')"
+            :rows="Math.min(8, freshCodes.length)"
+            class="mt-2 w-full rounded border border-amber-200 bg-white px-2.5 py-2 font-mono text-xs text-slate-800"
+            aria-label="本次生成的兑换码列表"
+          />
         </div>
         <div v-if="codeBatches.length" class="mt-4 overflow-x-auto">
           <table class="w-full min-w-[560px] text-left text-sm">
@@ -389,7 +407,8 @@ watch(
                 <td class="py-2 pr-3 text-slate-600">{{ b.used }}/{{ b.count }}</td>
                 <td class="max-w-[180px] truncate py-2 pr-3 text-slate-600" :title="b.note">{{ b.note || '—' }}</td>
                 <td class="py-2">
-                  <button type="button" class="btn btn-secondary btn-sm" @click="copyBatchCodes(b)">复制全部码</button>
+                  <button v-if="b.legacyCodes?.length" type="button" class="btn btn-secondary btn-sm" @click="copyCodes(b.legacyCodes!)">复制全部码</button>
+                  <span v-else class="text-xs text-slate-500" :title="(b.masked || []).join('\n')">末4位：{{ (b.masked || []).slice(0, 3).map((m) => m.slice(-4)).join(' / ') }}{{ (b.masked || []).length > 3 ? ' …' : '' }}</span>
                 </td>
               </tr>
             </tbody>
