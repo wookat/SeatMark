@@ -376,3 +376,11 @@ State key `seatmark.banquet-state.v1` (guests/groups/tables/markers/paper/orient
 - Observed in prod: reset email is sent by `noreply@seatmark.cn` via Tencent qcloudmail (SES), arriving in ~15–30s. If a spec expects Resend `seatmark@zalize.com`, verify headers — channel priority may prefer Tencent SES when configured.
 - auth POSTs can intermittently return raw 545. login/register may auto-retry, but reset-password surfaced 545 as「服务暂时不可用，请重试」requiring a manual re-submit — capture raw statuses with `performance.getEntriesByType('resource').map(r=>r.responseStatus)` to separate user vs raw口径.
 - Prod never auto-fills devCode (code input stays empty after send) — that is local-only behavior.
+
+## EN i18n testing (r318, post-#328/#329)
+- Deploy detection for static-only changes: poll `curl -s https://www.seatmark.cn/en | grep 'html lang'` until `lang="en"` (rev header does NOT change); took ~6 min after merge.
+- Locale persistence key: `seatmark.locale` ('zh'/'en'); header switcher links are plain `<a href>` between `/x` and `/en/x`.
+- Non-localized `/en/*` mirrors render as branded 404 with canonical `/404` and `robots: noindex, follow`.
+- Typing Chinese via computer-use `type` fails (xdotool drops CJK). Workaround: `printf '中文' | DISPLAY=:0 xclip -selection clipboard` then ctrl+v.
+- CDP 390px emulation on this box may report innerWidth 417 (display scaling); assert no-overflow via scrollWidth == innerWidth instead of ==390.
+- Known residual Chinese on /en (as of r318): studio onboarding + export-dialog explanations + watermark banner/tooltips; banquet venue-layout preset buttons and default table names; footer guide links.
