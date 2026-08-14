@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import { useI18n } from '@/i18n'
+
 import { useWorkspaceStore } from '@/stores/workspace'
 import { dismissStudioGuide, studioGuideDismissed } from '@/utils/firstVisit'
 
+const { t } = useI18n()
 const workspace = useWorkspaceStore()
 
 // 响应式联动：导出/打印成功后（dismissStudioGuide）引导卡片当场消失
@@ -12,13 +15,13 @@ const visible = computed(() => !studioGuideDismissed.value)
 const hasRows = computed(() => workspace.excel.rows.length > 0)
 
 const steps = computed(() => [
-  { title: '选模板', desc: '默认已选好，可随时更换', done: true },
+  { title: t('选模板'), desc: t('默认已选好，可随时更换'), done: true },
   {
-    title: '导入名单',
-    desc: hasRows.value ? '名单已就绪' : '上传 Excel 或先用演示数据',
+    title: t('导入名单'),
+    desc: hasRows.value ? t('名单已就绪') : t('上传 Excel 或先用演示数据'),
     done: hasRows.value,
   },
-  { title: '导出打印', desc: '预览面板工具栏导出 PDF / 打印', done: false },
+  { title: t('导出打印'), desc: t('预览面板工具栏导出 PDF / 打印'), done: false },
 ])
 
 function close() {
@@ -37,7 +40,7 @@ function tryDemo() {
     aria-label="首次使用引导"
   >
     <div class="flex items-start justify-between gap-2">
-      <p class="text-sm font-bold text-slate-900">三步拿到成品</p>
+      <p class="text-sm font-bold text-slate-900">{{ t('三步拿到成品') }}</p>
       <button
         type="button"
         class="cursor-pointer rounded p-1 text-slate-600 transition-colors hover:bg-white hover:text-slate-600"
@@ -90,7 +93,7 @@ function tryDemo() {
       class="btn btn-primary btn-sm mt-3 w-full"
       @click="tryDemo"
     >
-      用演示数据先试试
+      {{ t('用演示数据先试试') }}
       <svg
         class="size-3.5"
         viewBox="0 0 16 16"

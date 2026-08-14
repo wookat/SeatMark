@@ -14,6 +14,7 @@ import {
   autoAssignGuests,
   BANQUET_STATE_KEY,
   buildVenuePreset,
+  defaultTableName,
   MARKER_PRESETS,
   nextGroupColor,
   parseBanquetGuests,
@@ -205,7 +206,7 @@ function applyPreset(preset: VenuePresetId) {
 function addTable(shape: 'round' | 'rect') {
   const t: BanquetTable = {
     id: uid('tbl'),
-    name: `${tables.value.length + 1}${tr('号桌')}`,
+    name: defaultTableName(tables.value.length + 1),
     shape,
     x: VENUE_WIDTH / 2 - 32,
     y: VENUE_HEIGHT / 2 - 32,
@@ -228,7 +229,7 @@ function addMarker(kind: MarkerKind) {
   const m: BanquetMarker = {
     id: uid('mrk'),
     kind,
-    label: preset.label,
+    label: tr(preset.label),
     x: VENUE_WIDTH / 2 - preset.width / 2,
     y: kind === 'entrance' ? VENUE_HEIGHT - preset.height - 8 : 8,
     width: preset.width,

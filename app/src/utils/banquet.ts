@@ -1,3 +1,4 @@
+import { currentLocale, t } from '@/i18n'
 import { uid } from '@/utils/id'
 
 /** 宴会座位表本地持久化 key（口径同 SeatingView 的 seatmark.seating-state.v1） */
@@ -108,6 +109,11 @@ function makeTable(partial: Omit<BanquetTable, 'id' | 'guestIds'>): BanquetTable
   return { id: uid('tbl'), guestIds: [], ...partial }
 }
 
+/** 默认桌名随当前语言：中文「n号桌」，英文「Table n」 */
+export function defaultTableName(n: number): string {
+  return currentLocale() === 'en' ? `Table ${n}` : `${n}号桌`
+}
+
 /** 按预设生成一批桌位（纯函数，不含标记元素） */
 export function buildVenuePreset(preset: VenuePresetId): BanquetTable[] {
   const tables: BanquetTable[] = []
@@ -117,7 +123,7 @@ export function buildVenuePreset(preset: VenuePresetId): BanquetTable[] {
       const row = Math.floor(i / 4)
       tables.push(
         makeTable({
-          name: `${i + 1}号桌`,
+          name: defaultTableName(i + 1),
           shape: 'round',
           x: 30 + col * 96,
           y: 46 + row * 120,
@@ -131,7 +137,7 @@ export function buildVenuePreset(preset: VenuePresetId): BanquetTable[] {
     for (let i = 0; i < 4; i++) {
       tables.push(
         makeTable({
-          name: `${i + 1}号桌`,
+          name: defaultTableName(i + 1),
           shape: 'rect',
           x: (VENUE_WIDTH - LONG_W) / 2,
           y: 34 + i * 64,
@@ -144,7 +150,7 @@ export function buildVenuePreset(preset: VenuePresetId): BanquetTable[] {
   } else if (preset === 'head') {
     tables.push(
       makeTable({
-        name: '主桌',
+        name: t('主桌'),
         shape: 'rect',
         x: (VENUE_WIDTH - 160) / 2,
         y: 24,
@@ -158,7 +164,7 @@ export function buildVenuePreset(preset: VenuePresetId): BanquetTable[] {
       const row = Math.floor(i / 3)
       tables.push(
         makeTable({
-          name: `${i + 1}号桌`,
+          name: defaultTableName(i + 1),
           shape: 'round',
           x: 66 + col * 110,
           y: 96 + row * 104,
@@ -171,7 +177,7 @@ export function buildVenuePreset(preset: VenuePresetId): BanquetTable[] {
   } else if (preset === 'ushape') {
     tables.push(
       makeTable({
-        name: '主位桌',
+        name: t('主位桌'),
         shape: 'rect',
         x: (VENUE_WIDTH - 200) / 2,
         y: 40,
@@ -182,7 +188,7 @@ export function buildVenuePreset(preset: VenuePresetId): BanquetTable[] {
     )
     tables.push(
       makeTable({
-        name: '左侧桌',
+        name: t('左侧桌'),
         shape: 'rect',
         x: (VENUE_WIDTH - 200) / 2,
         y: 96,
@@ -193,7 +199,7 @@ export function buildVenuePreset(preset: VenuePresetId): BanquetTable[] {
     )
     tables.push(
       makeTable({
-        name: '右侧桌',
+        name: t('右侧桌'),
         shape: 'rect',
         x: (VENUE_WIDTH + 200) / 2 - LONG_H,
         y: 96,

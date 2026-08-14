@@ -778,8 +778,8 @@ const exportBadge = computed(() =>
 )
 const exportBadgeTitle = computed(
   () =>
-    `带水印导出永远免费、不限次数；无水印今日剩余 ${quota.remaining}/${quota.limit} 次${
-      auth.isLoggedIn ? '' : `，免费登录后每天 ${QUOTA_USER_DAILY} 次`
+    `${t('带水印导出永远免费、不限次数；无水印今日剩余')} ${quota.remaining}/${quota.limit} ${t('次')}${
+      auth.isLoggedIn ? '' : `${t('，免费登录后每天')} ${QUOTA_USER_DAILY} ${t('次')}`
     }`,
 )
 
@@ -924,7 +924,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           <CheckboxField
             v-model="workspace.cutStackSort"
             class="text-xs font-semibold text-slate-600"
-            :title="HINTS.cutSort!.text"
+            :title="t(HINTS.cutSort!.text)"
             :label="t('裁切排序')"
           />
           <button
@@ -943,7 +943,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           <CheckboxField
             v-model="workspace.showMirror"
             class="text-xs font-semibold text-slate-600"
-            :title="HINTS.mirror!.text"
+            :title="t(HINTS.mirror!.text)"
             :label="t('对折双联（镜像）')"
           />
           <button
@@ -961,7 +961,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         <button
           type="button"
           class="btn btn-secondary btn-sm"
-          :title="calibrationStore.active ? '打印校准已生效：导出与打印自动应用偏移/缩放补偿' : '打印跑偏、尺寸不准？打印一页标尺校准页，量两下即可全局补偿'"
+          :title="calibrationStore.active ? t('打印校准已生效：导出与打印自动应用偏移/缩放补偿') : t('打印跑偏、尺寸不准？打印一页标尺校准页，量两下即可全局补偿')"
           @click="calibrationOpen = true"
         >
           <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -977,7 +977,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         <button
           type="button"
           class="btn btn-primary btn-sm relative"
-          title="经浏览器打印对话框输出：选「另存为 PDF」可得到矢量 PDF；直接打印请用对应纸张、无边距、缩放 100%"
+          :title="t('经浏览器打印对话框输出：选「另存为 PDF」可得到矢量 PDF；直接打印请用对应纸张、无边距、缩放 100%')"
           :disabled="!workspace.excel.rows.length"
           @click="openExportChoice('print')"
         >
@@ -997,7 +997,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         <button
           type="button"
           class="btn btn-secondary btn-sm relative"
-          title="逐页渲染为高清图片后合成 PDF，所见即所得、任何设备打开都一致（推荐）；文字不可选中，如需矢量文字请用「打印 / 矢量 PDF」"
+          :title="t('逐页渲染为高清图片后合成 PDF，所见即所得、任何设备打开都一致（推荐）；文字不可选中，如需矢量文字请用「打印 / 矢量 PDF」')"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="openExportChoice('pdf')"
         >
@@ -1023,7 +1023,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         <button
           type="button"
           class="btn btn-secondary btn-sm"
-          title="按标签逐张导出 PNG 图片：每一张标签单独成图，单张直接下载，多张自动打包 zip；电子座签模板支持精确 800×480 像素输出"
+          :title="t('按标签逐张导出 PNG 图片：每一张标签单独成图，单张直接下载，多张自动打包 zip；电子座签模板支持精确 800×480 像素输出')"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="openExportChoice('png')"
         >
@@ -1058,17 +1058,17 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         </svg>
       </span>
       <p class="min-w-0 flex-1 text-xs leading-5 text-slate-600">
-        <strong class="text-slate-800">{{ sharePromptWatermarked ? '想去除页脚水印？' : '成品已拿到，觉得好用？' }}</strong>
+        <strong class="text-slate-800">{{ sharePromptWatermarked ? t('想去除页脚水印？') : t('成品已拿到，觉得好用？') }}</strong>
         {{
           sharePromptWatermarked
             ? (auth.isLoggedIn
-                ? `今日还剩 ${quota.remaining} 次无水印导出，分享链接每被点开 1 次再 +1 次`
-                : `免费登录后每天 ${QUOTA_USER_DAILY} 次无水印导出，分享被点开还能再送次数`)
+                ? `${t('今日还剩')} ${quota.remaining} ${t('次无水印导出，分享链接每被点开 1 次再 +1 次')}`
+                : `${t('免费登录后每天')} ${QUOTA_USER_DAILY} ${t('次无水印导出，分享被点开还能再送次数')}`)
             : (auth.isLoggedIn
-                ? '把工具分享给同事，他们每点开 1 次你就再得 1 次无水印导出'
+                ? t('把工具分享给同事，他们每点开 1 次你就再得 1 次无水印导出')
                 : quota.remaining <= 0
-                  ? `今日无水印次数已用完，免费登录后每天 ${QUOTA_USER_DAILY} 次，分享被点开还能再送次数`
-                  : `登录后无水印导出每天 ${QUOTA_USER_DAILY} 次，自定义模板可同步云端，还可分享送次数`)
+                  ? `${t('今日无水印次数已用完，免费登录后每天')} ${QUOTA_USER_DAILY} ${t('次，分享被点开还能再送次数')}`
+                  : `${t('登录后无水印导出每天')} ${QUOTA_USER_DAILY} ${t('次，自定义模板可同步云端，还可分享送次数')}`)
         }}
       </p>
       <div class="flex shrink-0 items-center gap-1.5 max-sm:basis-full max-sm:justify-end">
@@ -1190,8 +1190,8 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         <p class="mt-1.5 text-xs leading-5 text-slate-600">
           {{
             pngExportUnit === 'label'
-              ? `按标签逐张导出：共 ${pngTotalLabels} 张标签，每一张单独生成一张 PNG（尺寸=标签实际尺寸），支持按每张标签对应的名单行命名`
-              : '按整页导出：每页纸张（含多枚标签）合成一张 PNG'
+              ? `${t('按标签逐张导出：共')} ${pngTotalLabels} ${t('张标签，每一张单独生成一张 PNG（尺寸=标签实际尺寸），支持按每张标签对应的名单行命名')}`
+              : t('按整页导出：每页纸张（含多枚标签）合成一张 PNG')
           }}
         </p>
         <label class="field-label mt-3">{{ t('输出尺寸') }}</label>
@@ -1214,15 +1214,15 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
               :class="pngExactWidthValid ? '' : '!border-red-400'"
             />
             <span v-if="pngExactWidthValid" class="text-slate-600">
-              输出 <strong class="text-slate-700">{{ pngExactWidth }}×{{ pngExactHeight }}</strong> 像素（高度按模板比例自动推导）
+              {{ t('输出') }} <strong class="text-slate-700">{{ pngExactWidth }}×{{ pngExactHeight }}</strong> {{ t('像素（高度按模板比例自动推导）') }}
             </span>
-            <span v-else class="text-red-500">请输入 {{ MIN_EXACT_PIXEL_WIDTH }}–{{ MAX_EXACT_PIXEL_WIDTH }} 之间的整数</span>
+            <span v-else class="text-red-500">{{ t('请输入') }} {{ MIN_EXACT_PIXEL_WIDTH }}–{{ MAX_EXACT_PIXEL_WIDTH }} {{ t('之间的整数') }}</span>
           </div>
           <p v-else class="mt-2 text-xs text-slate-600">
-            每页精确输出 <strong class="text-slate-700">{{ pngPreset.width }}×{{ pngPreset.height }}</strong> 像素
+            {{ t('每页精确输出') }} <strong class="text-slate-700">{{ pngPreset.width }}×{{ pngPreset.height }}</strong> {{ t('像素') }}
           </p>
           <p v-if="pngPresetStretch" class="mt-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">
-            该预设宽高比与当前模板不一致，画面会被拉伸；建议改用比例匹配的模板，或选「自定义宽度」按模板比例输出。
+            {{ t('该预设宽高比与当前模板不一致，画面会被拉伸；建议改用比例匹配的模板，或选「自定义宽度」按模板比例输出。') }}
           </p>
         </template>
         <CheckboxField
@@ -1231,7 +1231,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           :label="t('纯黑白输出（电子墨水屏推荐）')"
         />
         <p class="mt-2 text-xs leading-5 text-slate-600">
-          单张直接下载 PNG，多张自动打包为 zip；{{ isEinkTemplate ? '电子座签模板默认精确 800×480 像素 + 纯黑白，可直接导入电子桌牌系统。' : '需要精确像素（如电子墨水屏）时选「精确像素」，可用分辨率预设或自定义宽度。' }}
+          {{ t('单张直接下载 PNG，多张自动打包为 zip；') }}{{ isEinkTemplate ? t('电子座签模板默认精确 800×480 像素 + 纯黑白，可直接导入电子桌牌系统。') : t('需要精确像素（如电子墨水屏）时选「精确像素」，可用分辨率预设或自定义宽度。') }}
         </p>
         <template v-if="pngExportUnit === 'label' ? pngTotalLabels > 1 : workspace.totalPages > 1">
           <label class="field-label mt-3" for="png-name-mode">{{ t('zip 内文件命名') }}</label>
@@ -1242,8 +1242,8 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
               type="text"
               class="input-field w-full"
               :class="pngNameTemplateValid ? '' : '!border-amber-400'"
-              placeholder="如 {姓名}-{考场}"
-              aria-label="文件命名模板"
+              :placeholder="t('如 {姓名}-{考场}')"
+              :aria-label="t('文件命名模板')"
             />
             <div v-if="workspace.excel.headers.length" class="mt-1.5 flex flex-wrap items-center gap-1.5">
               <span class="text-slate-600">{{ t('点击插入字段：') }}</span>
@@ -1258,10 +1258,10 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
               </button>
             </div>
             <p v-if="!pngNameTemplateValid" class="mt-1.5 text-amber-600">
-              模板中引用了名单里不存在的列，对应占位符会按空处理；字段为空的页面自动回退为序号命名。
+              {{ t('模板中引用了名单里不存在的列，对应占位符会按空处理；字段为空的页面自动回退为序号命名。') }}
             </p>
             <p v-else class="mt-1.5 text-slate-600">
-              {列名} 会替换为{{ pngExportUnit === 'label' ? '每张标签对应名单行' : '该页对应名单行（每页多枚时取该页第一条记录）' }}的内容；非法字符自动过滤，重名自动追加 -2，空字段回退序号命名。
+              {{ t('{列名} 会替换为') }}{{ pngExportUnit === 'label' ? t('每张标签对应名单行') : t('该页对应名单行（每页多枚时取该页第一条记录）') }}{{ t('的内容；非法字符自动过滤，重名自动追加 -2，空字段回退序号命名。') }}
             </p>
           </div>
         </template>
@@ -1288,24 +1288,24 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         class="mb-2 rounded-lg border border-amber-200/80 bg-amber-50/60 px-3 py-2"
       >
         <summary class="cursor-pointer text-xs font-bold text-amber-800 select-none">
-          打印出来是黑白的？彩色打印检查清单（3 步）
+          {{ t('打印出来是黑白的？彩色打印检查清单（3 步）') }}
         </summary>
         <ol class="mt-2 list-decimal space-y-1.5 pl-5 text-xs leading-5 text-slate-600">
           <li>
-            在浏览器打印对话框展开「更多设置」，勾选
-            <strong class="text-slate-800">「背景图形 / Background graphics」</strong>，否则背景色与装饰会整体丢失。
+            {{ t('在浏览器打印对话框展开「更多设置」，勾选') }}
+            <strong class="text-slate-800">「{{ t('背景图形 / Background graphics') }}」</strong>{{ t('，否则背景色与装饰会整体丢失。') }}
           </li>
           <li>
-            打印对话框的「颜色」选项选
-            <strong class="text-slate-800">「彩色 / Color」</strong>，不要选黑白（黑白模式会把整页转成灰度）。
+            {{ t('打印对话框的「颜色」选项选') }}
+            <strong class="text-slate-800">「{{ t('彩色 / Color') }}」</strong>{{ t('，不要选黑白（黑白模式会把整页转成灰度）。') }}
           </li>
           <li>
-            仍是黑白时，多半是打印机驱动默认开了省墨 / 灰度模式：在打印对话框的「使用系统对话框打印」或系统「打印机首选项」里，关闭
-            <strong class="text-slate-800">「灰度打印 / 黑白打印 / 省墨模式」</strong>后重试。
+            {{ t('仍是黑白时，多半是打印机驱动默认开了省墨 / 灰度模式：在打印对话框的「使用系统对话框打印」或系统「打印机首选项」里，关闭') }}
+            <strong class="text-slate-800">「{{ t('灰度打印 / 黑白打印 / 省墨模式') }}」</strong>{{ t('后重试。') }}
           </li>
         </ol>
         <p class="mt-1.5 pl-5 text-[11px] leading-4 text-slate-600">
-          小验证：目标打印机先选「另存为 PDF」，导出的 PDF 是彩色就说明页面没问题，剩下的是打印机设置。
+          {{ t('小验证：目标打印机先选「另存为 PDF」，导出的 PDF 是彩色就说明页面没问题，剩下的是打印机设置。') }}
         </p>
       </details>
       <p class="leading-6">{{ t('选择导出方式') }}<span class="text-xs text-slate-500">{{ t('（点击即开始导出，可随时取消，取消不扣次数）') }}</span>：</p>
@@ -1313,10 +1313,10 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         v-if="pendingAction === 'pdf' && exportEstimate"
         class="mt-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600"
       >
-        共 {{ exportEstimate.pageCount }} 页 · 每页约 {{ exportEstimate.dpi }}dpi ·
-        预估体积约 <span class="font-bold text-slate-700">{{ exportEstimate.size }}</span>（按页数自适应清晰度与压缩）
+        {{ t('共') }} {{ exportEstimate.pageCount }} {{ t('页') }} · {{ t('每页约') }} {{ exportEstimate.dpi }}dpi ·
+        {{ t('预估体积约') }} <span class="font-bold text-slate-700">{{ exportEstimate.size }}</span>{{ t('（按页数自适应清晰度与压缩）') }}
         <span v-if="exportEstimate.dpi < 240" class="mt-0.5 block text-amber-700">
-          页数较多时清晰度自动降档以控制体积；追求最高打印清晰度请改用「打印 / 矢量 PDF」。
+          {{ t('页数较多时清晰度自动降档以控制体积；追求最高打印清晰度请改用「打印 / 矢量 PDF」。') }}
         </span>
       </p>
       <div class="mt-3 grid gap-3">
@@ -1367,7 +1367,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         </button>
       </div>
       <p v-if="!auth.isLoggedIn" class="mt-3 text-xs leading-5 text-slate-600">
-        注册即送 7 天专业版试用（无水印导出不限次）；免费版登录后每天 {{ QUOTA_USER_DAILY }} 次，分享链接每被点开 1 次再得 1 次。
+        {{ t('注册即送 7 天专业版试用（无水印导出不限次）；免费版登录后每天') }} {{ QUOTA_USER_DAILY }} {{ t('次，分享链接每被点开 1 次再得 1 次。') }}
       </p>
     </ModalDialog>
 
