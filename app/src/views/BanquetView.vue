@@ -661,7 +661,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
           <div class="mt-3">
             <div class="flex items-center justify-between">
               <label class="field-label !mb-0">
-                {{ tr('名单') }}（{{ guestCount }} {{ tr('人') }} / {{ seatCount }} {{ tr('座') }}）
+                {{ tr('名单') }}{{ tr('（') }}{{ guestCount }} {{ tr('人') }} / {{ seatCount }} {{ tr('座') }}{{ tr('）') }}
               </label>
               <button type="button" class="btn btn-ghost btn-sm" @click="addGuestRow">
                 + {{ tr('加一行') }}
@@ -957,7 +957,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
           "
         >
           <p class="text-xs font-bold text-slate-600">
-            {{ tr('未安排宾客') }}（{{ unassignedGuests.length }}）
+            {{ tr('未安排宾客') }}{{ tr('（') }}{{ unassignedGuests.length }}{{ tr('）') }}
             <span class="ml-1 font-normal text-slate-400">{{ tr('拖到餐桌上即可安排；从桌上拖回这里撤下') }}</span>
           </p>
           <div v-if="unassignedGuests.length" class="mt-1.5 flex flex-wrap gap-1.5">
