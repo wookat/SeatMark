@@ -430,6 +430,12 @@ function toDeskLabels() {
         粘贴名单、设置行列与过道，支持随机排座（男女混排）、点选或拖拽换位、整排交换与双视角切换，
         生成 A4 教室平面座位表直接打印张贴。数据全程在浏览器本地处理。
       </p>
+      <p class="mt-2 text-xs text-slate-500">
+        要排婚宴、年会圆桌？用
+        <RouterLink to="/banquet" class="font-semibold text-brand-600 hover:underline">
+          宴会座位表生成器
+        </RouterLink>
+      </p>
     </div>
 
     <div class="mt-6 grid items-start gap-5 lg:grid-cols-[380px_minmax(0,1fr)]">

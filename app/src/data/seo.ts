@@ -486,6 +486,28 @@ export async function resolveSeo(path: string): Promise<PageSeo> {
     }
   }
 
+  if (p === '/banquet') {
+    return {
+      title: '婚宴/宴会座位表在线制作，圆桌布局自动排座 - SeatMark 座签',
+      description:
+        '免费在线生成婚宴、年会宴会座位表：粘贴宾客名单自动去重、按亲友/同事分组标色，选圆桌、长桌、U 形等场地布局，一键自动分配同组同桌、拖拽微调，导出 A4/A3 高清 PNG/PDF 直接打印。名单不出浏览器。',
+      path: '/banquet',
+      jsonLd: [
+        SOFTWARE_APP_JSONLD,
+        howToJsonLd('在线制作宴会座位表并打印', [
+          { name: '粘贴宾客名单', text: '逐行粘贴或上传 TXT 名单，自动去重；可按男方亲友、女方亲友、同事等分组并标色。' },
+          { name: '选场地布局', text: '选圆桌、长桌、主桌、U 形或教室课桌预设，拖动餐桌位置，添加入口、舞台、舞池标记。' },
+          { name: '自动分配座位', text: '一键自动分配，同组宾客尽量同桌；拖拽宾客姓名在桌间移动微调。' },
+          { name: '检查并导出', text: '自动检查未安排宾客、空桌与餐桌重叠，导出 A4/A3 高清 PNG 或 PDF 直接打印。' },
+        ]),
+        breadcrumb([
+          { name: '首页', path: '/' },
+          { name: '宴会座位表', path: '/banquet' },
+        ]),
+      ],
+    }
+  }
+
   if (p === '/terms') {
     return {
       title: '用户协议 - SeatMark 座签',
@@ -558,6 +580,7 @@ export async function prerenderPaths(): Promise<string[]> {
     ...vsPages.map((v) => `/vs/${v.slug}`),
     ...topicPages.map((t) => t.path),
     '/seating',
+    '/banquet',
     '/terms',
     '/privacy',
   ]
