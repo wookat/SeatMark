@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import { TEMPLATE_CATEGORIES } from '@/data/defaultTemplates'
+import { t as tr } from '@/i18n'
 import { TEMPLATE_SUBCATEGORIES, subcategoryOf } from '@/data/templateTaxonomy'
 import { useAuthStore } from '@/stores/auth'
 import { useTemplateLibrary, isValidTemplate } from '@/stores/templateLibrary'
@@ -286,13 +287,13 @@ function confirmDelete() {
 <template>
   <section class="panel-card">
     <div class="panel-head">
-      <h2 class="section-title"><span class="step-chip">1</span>选择模板</h2>
+      <h2 class="section-title"><span class="step-chip">1</span>{{ tr('选择模板') }}</h2>
       <div class="flex gap-1.5">
         <button type="button" class="btn btn-ghost btn-sm" @click="importInput?.click()">
-          导入 JSON
+          {{ tr('导入 JSON') }}
         </button>
         <button type="button" class="btn btn-secondary btn-sm" @click="emit('openDesigner', null)">
-          新建模板
+          {{ tr('新建模板') }}
         </button>
       </div>
     </div>
@@ -345,7 +346,7 @@ function confirmDelete() {
                   :aria-pressed="workspace.selectedTemplateId === t.id"
                   @click.stop="workspace.selectTemplate(t)"
                 >
-                  {{ t.name }}
+                  {{ tr(t.name) }}
                 </button>
               </h3>
               <span class="flex shrink-0 gap-1">
@@ -353,17 +354,17 @@ function confirmDelete() {
                   v-if="fitOf(t)?.level === 'recommended'"
                   class="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700"
                 >
-                  适配
+                  {{ tr('适配') }}
                 </span>
                 <span
                   v-if="!t.builtin"
                   class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700"
                 >
-                  自定义
+                  {{ tr('自定义') }}
                 </span>
               </span>
             </div>
-            <p class="mt-1 line-clamp-2 text-xs leading-4 text-slate-600">{{ t.description }}</p>
+            <p class="mt-1 line-clamp-2 text-xs leading-4 text-slate-600">{{ tr(t.description) }}</p>
             <p
               v-if="fitOf(t)?.level === 'incompatible'"
               class="mt-1 text-[11px] leading-4 text-slate-600"
@@ -372,8 +373,8 @@ function confirmDelete() {
             </p>
             <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600">
               <span>{{ t.label.width }} × {{ t.label.height }} mm</span>
-              <span>{{ t.page.cols * t.page.rows }} 枚 / 页</span>
-              <span v-if="t.scenario">{{ t.scenario }}</span>
+              <span>{{ t.page.cols * t.page.rows }} {{ tr('枚 / 页') }}</span>
+              <span v-if="t.scenario">{{ tr(t.scenario) }}</span>
             </div>
             <div class="mt-2 flex gap-1.5">
               <button
@@ -381,7 +382,7 @@ function confirmDelete() {
                 class="btn btn-ghost btn-sm"
                 @click.stop="emit('openDesigner', t)"
               >
-                {{ t.builtin ? '以此为基础设计' : '编辑' }}
+                {{ t.builtin ? tr('以此为基础设计') : tr('编辑') }}
               </button>
               <button
                 v-if="!t.builtin"
@@ -389,7 +390,7 @@ function confirmDelete() {
                 class="btn btn-ghost btn-sm text-red-500 hover:bg-red-50 hover:text-red-600"
                 @click.stop="deleteTarget = t"
               >
-                删除
+                {{ tr('删除') }}
               </button>
             </div>
           </div>
@@ -403,7 +404,7 @@ function confirmDelete() {
       class="mt-2.5 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 py-2 text-xs font-semibold text-slate-600 transition-colors duration-150 hover:border-brand-400 hover:text-brand-600"
       @click="pickerOpen = true"
     >
-      浏览全部 {{ library.allTemplates.length }} 款模板
+      {{ tr('浏览全部') }} {{ library.allTemplates.length }} {{ tr('款模板') }}
       <svg
         class="size-3.5"
         viewBox="0 0 16 16"
@@ -419,7 +420,7 @@ function confirmDelete() {
 
     <div class="mt-3 flex flex-wrap gap-1.5 border-t border-slate-100 pt-3">
       <button type="button" class="btn btn-secondary btn-sm" @click="shareCurrentTemplate">
-        复制当前模板分享链接
+        {{ tr('复制当前模板分享链接') }}
       </button>
       <button type="button" class="btn btn-secondary btn-sm" @click="showShareQr">
         <svg
@@ -433,27 +434,27 @@ function confirmDelete() {
         >
           <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h3v3h-3zM20 14v2M17 20h3M20 18h.01" />
         </svg>
-        微信扫码打开
+        {{ tr('微信扫码打开') }}
       </button>
       <button type="button" class="btn btn-ghost btn-sm" @click="exportCurrentTemplate">
-        导出 JSON
+        {{ tr('导出 JSON') }}
       </button>
     </div>
 
     <p v-if="library.customTemplates.length" class="mt-2 text-[11px] leading-4 text-slate-600">
       <template v-if="auth.user">
-        本设备有 {{ library.customTemplates.length }} 个自定义模板，可到
-        <RouterLink to="/account" class="font-semibold text-brand-600 hover:underline">个人中心</RouterLink>
-        同步云端，换设备登录即可找回
+        {{ tr('本设备有') }} {{ library.customTemplates.length }} {{ tr('个自定义模板，可到') }}
+        <RouterLink to="/account" class="font-semibold text-brand-600 hover:underline">{{ tr('个人中心') }}</RouterLink>
+        {{ tr('同步云端，换设备登录即可找回') }}
       </template>
       <template v-else>
-        自定义模板目前只存在本浏览器，
-        <RouterLink to="/account" class="font-semibold text-brand-600 hover:underline">免费登录</RouterLink>
-        后可同步云端、跨设备找回
+        {{ tr('自定义模板目前只存在本浏览器，') }}
+        <RouterLink to="/account" class="font-semibold text-brand-600 hover:underline">{{ tr('免费登录') }}</RouterLink>
+        {{ tr('后可同步云端、跨设备找回') }}
       </template>
     </p>
 
-    <ModalDialog :open="shareQrOpen" title="微信扫码打开此模板" @close="closeShareQr">
+    <ModalDialog :open="shareQrOpen" :title="tr('微信扫码打开此模板')" @close="closeShareQr">
       <div v-if="shareQrLoading" class="flex flex-col items-center gap-3 py-8">
         <span
           class="size-8 animate-spin rounded-full border-[3px] border-brand-200 border-t-brand-600"
@@ -493,7 +494,7 @@ function confirmDelete() {
 
     <ModalDialog
       :open="pickerOpen"
-      :title="`全部模板（${library.allTemplates.length} 款）`"
+      :title="`${tr('全部模板')}（${library.allTemplates.length}）`"
       size="xl"
       @close="pickerOpen = false"
     >
@@ -514,7 +515,7 @@ function confirmDelete() {
           <input
             v-model="searchQuery"
             type="search"
-            placeholder="搜索模板名称 / 场景，支持拼音、首字母，如“jkz”"
+            :placeholder="tr('搜索模板名称 / 场景，支持拼音、首字母，如“jkz”')"
             class="w-full rounded-lg border border-slate-200 bg-white py-1.5 pr-3 pl-8 text-xs text-slate-700 placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
           />
         </label>
@@ -531,7 +532,7 @@ function confirmDelete() {
           "
           @click="selectCategory(opt.id)"
         >
-          {{ opt.name }}
+          {{ tr(opt.name) }}
           <span :class="activeCategory === opt.id ? 'text-brand-100' : 'text-slate-600'">
             {{ opt.count }}
           </span>
@@ -550,7 +551,7 @@ function confirmDelete() {
             "
             @click="activeSubcategory = sub.id"
           >
-            {{ sub.name }}
+            {{ tr(sub.name) }}
             <span :class="activeSubcategory === sub.id ? 'text-brand-400' : 'text-slate-600'">
               {{ sub.count }}
             </span>

@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
+import { t } from '@/i18n'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { isCompositeMapping, templateColumnsValid } from '@/utils/fieldTemplate'
 
@@ -23,9 +24,9 @@ const headerOptions = computed<SelectOption[]>(() =>
 )
 
 const mappingOptions = computed<SelectOption[]>(() => [
-  { value: '', label: '未映射' },
+  { value: '', label: t('未映射') },
   ...headerOptions.value,
-  { value: COMPOSITE_OPTION, label: '自定义组合…' },
+  { value: COMPOSITE_OPTION, label: t('自定义组合…') },
 ])
 
 function isComposite(value: string | undefined): boolean {
@@ -78,7 +79,7 @@ function cancelComposite() {
 }
 
 const photoColumnOptions = computed<SelectOption[]>(() => [
-  { value: '', label: '请选择 Excel 中的一列' },
+  { value: '', label: t('请选择 Excel 中的一列') },
   ...headerOptions.value,
 ])
 
@@ -93,15 +94,15 @@ function onPhotoFiles(event: Event) {
 <template>
   <section class="panel-card">
     <div class="panel-head">
-      <h2 class="section-title"><span class="step-chip">3</span>字段映射</h2>
+      <h2 class="section-title"><span class="step-chip">3</span>{{ t('字段映射') }}</h2>
     </div>
 
     <div
       class="rounded-lg border p-3 text-xs leading-5"
       :class="TONE_CLASSES[workspace.mappingSummary.tone]"
     >
-      <p class="font-bold">{{ workspace.mappingSummary.title }}</p>
-      <p class="mt-0.5 opacity-85">{{ workspace.mappingSummary.text }}</p>
+      <p class="font-bold">{{ t(workspace.mappingSummary.title) }}</p>
+      <p class="mt-0.5 opacity-85">{{ t(workspace.mappingSummary.text) }}</p>
     </div>
 
     <div class="mt-3 grid gap-2">
@@ -118,7 +119,7 @@ function onPhotoFiles(event: Event) {
               : 'bg-slate-100 text-slate-600'
           "
         >
-          {{ field.label || field.id }}
+          {{ t(field.label || field.id) }}
         </span>
         <span class="text-center text-slate-300">→</span>
         <SelectField
@@ -136,19 +137,19 @@ function onPhotoFiles(event: Event) {
             class="shrink-0 text-[11px] font-bold text-brand-600 hover:text-brand-700"
             @click="openCompositeEditor(field.id)"
           >
-            编辑
+            {{ t('编辑') }}
           </button>
         </div>
         <div
           v-if="compositeEditing === field.id"
           class="col-span-3 rounded-lg border border-brand-200 bg-brand-50/50 p-2.5"
         >
-          <label class="field-label">组合模板：用 {列名} 引用列，其余文字原样输出</label>
+          <label class="field-label">{{ t('组合模板：用 {列名} 引用列，其余文字原样输出') }}</label>
           <input
             v-model="compositeDraft"
             type="text"
             class="input-field w-full"
-            placeholder="如：第{考场}考场-{座位号}号"
+            :placeholder="t('如：第{考场}考场-{座位号}号')"
           />
           <div class="mt-1.5 flex flex-wrap gap-1">
             <button
@@ -162,11 +163,11 @@ function onPhotoFiles(event: Event) {
             </button>
           </div>
           <p v-if="compositeDraft && !compositeDraftValid" class="mt-1.5 text-[11px] text-amber-600">
-            模板需至少引用一个 {列名}，且引用的列必须存在于当前表头
+            {{ t('模板需至少引用一个 {列名}，且引用的列必须存在于当前表头') }}
           </p>
           <div class="mt-2 flex justify-end gap-2">
             <button type="button" class="btn btn-secondary btn-sm" @click="cancelComposite">
-              取消
+              {{ t('取消') }}
             </button>
             <button
               type="button"
@@ -174,7 +175,7 @@ function onPhotoFiles(event: Event) {
               :disabled="!compositeDraftValid"
               @click="saveComposite"
             >
-              应用组合
+              {{ t('应用组合') }}
             </button>
           </div>
         </div>
@@ -185,35 +186,34 @@ function onPhotoFiles(event: Event) {
       v-if="workspace.hasDataQualityRisk"
       class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800"
     >
-      <p class="font-bold">数据质量提醒</p>
+      <p class="font-bold">{{ t('数据质量提醒') }}</p>
       <ul class="mt-1 list-inside list-disc space-y-0.5">
         <li v-if="workspace.dataQuality.missingRows">
-          {{ workspace.dataQuality.missingRows }} 行存在已映射字段为空
+          {{ workspace.dataQuality.missingRows }} {{ t('行存在已映射字段为空') }}
         </li>
         <li v-if="workspace.dataQuality.duplicateExamIds">
-          {{ workspace.dataQuality.duplicateExamIds }} 个准考证号重复
+          {{ workspace.dataQuality.duplicateExamIds }} {{ t('个准考证号重复') }}
         </li>
         <li v-if="workspace.dataQuality.duplicateSeatKeys">
-          {{ workspace.dataQuality.duplicateSeatKeys }} 个「考场 + 座位号」组合重复
+          {{ workspace.dataQuality.duplicateSeatKeys }} {{ t('个「考场 + 座位号」组合重复') }}
         </li>
       </ul>
       <CheckboxField
         v-model="workspace.highlightMissing"
         tone="amber"
         class="mt-2 font-semibold"
-        label="在预览中高亮缺失内容"
+        :label="t('在预览中高亮缺失内容')"
       />
     </div>
 
     <div v-if="workspace.hasMatchedImageField" class="mt-4 border-t border-slate-100 pt-4">
-      <h3 class="text-xs font-bold text-slate-700">照片匹配</h3>
+      <h3 class="text-xs font-bold text-slate-700">{{ t('照片匹配') }}</h3>
       <p class="mt-1 text-[11px] leading-4 text-slate-600">
-        照片文件名与所选列的值一致或包含该值即可匹配。例如「张伟2023010101.jpg」，
-        按姓名列或学号列都能匹配；完全一致的文件优先。
+        {{ t('照片文件名与所选列的值一致或包含该值即可匹配。例如「张伟2023010101.jpg」，按姓名列或学号列都能匹配；完全一致的文件优先。') }}
       </p>
       <div class="mt-2 grid gap-2">
         <div>
-          <label class="field-label">匹配列</label>
+          <label class="field-label">{{ t('匹配列') }}</label>
           <SelectField
             :model-value="workspace.photoColumn"
             :options="photoColumnOptions"
@@ -226,7 +226,7 @@ function onPhotoFiles(event: Event) {
           :disabled="!workspace.photoColumn"
           @click="photoInput?.click()"
         >
-          上传照片文件（可多选）
+          {{ t('上传照片文件（可多选）') }}
         </button>
         <input
           ref="photoInput"
@@ -237,13 +237,13 @@ function onPhotoFiles(event: Event) {
           @change="onPhotoFiles"
         />
         <p v-if="workspace.photoStats.totalPhotos > 0" class="text-xs text-slate-600">
-          已导入 {{ workspace.photoStats.totalPhotos }} 张照片，匹配
-          {{ workspace.photoStats.matchedRows }}/{{ workspace.photoStats.totalRows }} 行（覆盖率
+          {{ t('已导入') }} {{ workspace.photoStats.totalPhotos }} {{ t('张照片，匹配') }}
+          {{ workspace.photoStats.matchedRows }}/{{ workspace.photoStats.totalRows }} {{ t('行（覆盖率') }}
           {{ workspace.photoStats.coverage }}%）
         </p>
         <details v-if="workspace.photoErrors.length" class="text-xs text-slate-600">
           <summary class="cursor-pointer font-semibold text-amber-600">
-            {{ workspace.photoErrors.length }} 个文件未匹配，查看详情
+            {{ workspace.photoErrors.length }} {{ t('个文件未匹配，查看详情') }}
           </summary>
           <ul class="mt-1 max-h-32 list-inside list-disc space-y-0.5 overflow-y-auto">
             <li v-for="(err, i) in workspace.photoErrors" :key="i">{{ err }}</li>

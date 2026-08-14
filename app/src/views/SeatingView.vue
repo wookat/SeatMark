@@ -6,6 +6,7 @@ import CheckboxField from '@/components/ui/CheckboxField.vue'
 import NumberField from '@/components/ui/NumberField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
+import { localePath, t as tr } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
 import { MM_TO_PX } from '@/utils/layout'
 import { setPrintPageSize } from '@/utils/paper'
@@ -50,7 +51,7 @@ function loadPersistedState(): SeatingPersistedState | null {
 
 const persisted = loadPersistedState()
 
-const title = ref(persisted?.title ?? '高三（2）班 期末考试')
+const title = ref(persisted?.title ?? tr('高三（2）班 期末考试'))
 const rows = ref(persisted?.rows ?? 6)
 const cols = ref(persisted?.cols ?? 8)
 const podium = ref<'top' | 'none'>(persisted?.podium ?? 'top')
@@ -59,10 +60,10 @@ const fillOrder = ref<'rows' | 'serpentine'>(persisted?.fillOrder ?? 'rows')
 const aisles = ref(new Set<number>(persisted?.aisles ?? []))
 const namesText = ref(persisted?.namesText ?? '')
 
-const FILL_OPTIONS: SelectOption[] = [
-  { value: 'rows', label: '按行填充', hint: '从讲台侧第一排，自左向右' },
-  { value: 'serpentine', label: 'S 形蛇形填充', hint: '奇数排向右、偶数排向左' },
-]
+const FILL_OPTIONS = computed<SelectOption[]>(() => [
+  { value: 'rows', label: tr('按行填充'), hint: tr('从讲台侧第一排，自左向右') },
+  { value: 'serpentine', label: tr('S 形蛇形填充'), hint: tr('奇数排向右、偶数排向左') },
+])
 
 const parsedEntries = computed<SeatingEntry[]>(() => parseSeatingRoster(namesText.value))
 
@@ -117,31 +118,31 @@ function loadDemoNames() {
     list.push(`${name}\t${i % 2 === 0 ? '男' : '女'}`)
   }
   namesText.value = list.join('\n')
-  toast.info('已生成演示名单', `共 ${list.length} 人（含性别列），与当前行列数一致`)
+  toast.info(tr('已生成演示名单'), `${list.length} ${tr('人（含性别列），与当前行列数一致')}`)
 }
 
 // ---------- 随机排座 ----------
 function randomizeAll() {
   if (!entries.value.length) {
-    toast.warning('名单为空', '请先在左侧粘贴学生名单')
+    toast.warning(tr('名单为空'), tr('请先在左侧粘贴学生名单'))
     return
   }
   arranged.value = shuffleEntries(entries.value.filter((e) => e.name))
   selectedSeat.value = null
-  toast.success('已完全随机排座', '再点一次可重新打乱')
+  toast.success(tr('已完全随机排座'), tr('再点一次可重新打乱'))
 }
 
 function randomizeMixed() {
   if (!hasGender.value) return
   arranged.value = interleaveByGender(parsedEntries.value.filter((e) => e.name))
   selectedSeat.value = null
-  toast.success('已按男女混排', '相邻座位尽量男女交替')
+  toast.success(tr('已按男女混排'), tr('相邻座位尽量男女交替'))
 }
 
 function restoreOrder() {
   arranged.value = null
   selectedSeat.value = null
-  toast.info('已还原为名单原始顺序')
+  toast.info(tr('已还原为名单原始顺序'))
 }
 
 // ---------- 座位计算 ----------
@@ -235,7 +236,7 @@ function swapRows(a: number, b: number) {
     ;[work[a * c + i], work[b * c + i]] = [work[b * c + i]!, work[a * c + i]!]
   }
   arranged.value = work
-  toast.success(`已交换第 ${a + 1} 排与第 ${b + 1} 排`)
+  toast.success(`${tr('已交换排')}: ${a + 1} ⇄ ${b + 1}`)
 }
 
 function onSeatClick(seat: Seat | null) {
@@ -382,7 +383,7 @@ async function doPrint() {
   printPending.value = true
   // 打印设置提示需让用户先看到再弹对话框：window.print 会阻塞渲染，
   // 同一任务内先 toast 再 print 不会渲染出 toast 帧，需留出展示间隔
-  toast.info('即将调起浏览器打印', '请选 A4 横向、无边距、缩放 100%，并勾选「背景图形」；也可「另存为 PDF」')
+  toast.info(tr('即将调起浏览器打印'), tr('请选 A4 横向、无边距、缩放 100%，并勾选「背景图形」；也可「另存为 PDF」'))
   renderHost.value = true
   await nextTick()
   await new Promise((resolve) => setTimeout(resolve, 1200))
@@ -396,7 +397,7 @@ async function doPrint() {
 function toDeskLabels() {
   const filled = seats.value.filter((s) => s.name)
   if (!filled.length) {
-    toast.warning('名单为空', '请先在左侧粘贴学生名单，每行一个姓名')
+    toast.warning(tr('名单为空'), tr('请先在左侧粘贴学生名单，每行一个姓名'))
     return
   }
   const handoff: SeatingHandoff = {
@@ -412,10 +413,10 @@ function toDeskLabels() {
   try {
     localStorage.setItem(SEATING_HANDOFF_KEY, JSON.stringify(handoff))
   } catch {
-    toast.danger('无法暂存名单', '浏览器存储不可用，请改用 Excel 上传方式')
+    toast.danger(tr('无法暂存名单'), tr('浏览器存储不可用，请改用 Excel 上传方式'))
     return
   }
-  void router.push('/studio?from=seating')
+  void router.push(localePath('/studio?from=seating'))
 }
 </script>
 
@@ -424,16 +425,15 @@ function toDeskLabels() {
     <div class="text-center">
       <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Seating Chart</p>
       <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-        教室座位表打印
+        {{ tr('教室座位表打印') }}
       </h1>
       <p class="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-        粘贴名单、设置行列与过道，支持随机排座（男女混排）、点选或拖拽换位、整排交换与双视角切换，
-        生成 A4 教室平面座位表直接打印张贴。数据全程在浏览器本地处理。
+        {{ tr('粘贴名单、设置行列与过道，支持随机排座（男女混排）、点选或拖拽换位、整排交换与双视角切换，生成 A4 教室平面座位表直接打印张贴。数据全程在浏览器本地处理。') }}
       </p>
       <p class="mt-2 text-xs text-slate-500">
-        要排婚宴、年会圆桌？用
-        <RouterLink to="/banquet" class="font-semibold text-brand-600 hover:underline">
-          宴会座位表生成器
+        {{ tr('要排婚宴、年会圆桌？用') }}
+        <RouterLink :to="localePath('/banquet')" class="font-semibold text-brand-600 hover:underline">
+          {{ tr('宴会座位表生成器') }}
         </RouterLink>
       </p>
     </div>
@@ -442,43 +442,43 @@ function toDeskLabels() {
       <!-- 设置面板 -->
       <aside class="no-print flex min-w-0 flex-col gap-4">
         <section class="panel-card">
-          <h2 class="section-title"><span class="step-chip">1</span>基本信息</h2>
+          <h2 class="section-title"><span class="step-chip">1</span>{{ tr('基本信息') }}</h2>
           <div class="mt-3 grid grid-cols-2 gap-2.5">
             <div class="col-span-2">
-              <label class="field-label" for="seating-title">班级 / 考场标题</label>
+              <label class="field-label" for="seating-title">{{ tr('班级 / 考场标题') }}</label>
               <input
                 id="seating-title"
                 v-model="title"
                 type="text"
                 class="input-field"
-                placeholder="如：高三（2）班 期末考试"
+                :placeholder="tr('如：高三（2）班 期末考试')"
               />
             </div>
             <div>
-              <label class="field-label">排数（前后）</label>
+              <label class="field-label">{{ tr('排数（前后）') }}</label>
               <NumberField
-                aria-label="排数（前后）" v-model="rows" :min="1" :max="20" />
+                :aria-label="tr('排数（前后）')" v-model="rows" :min="1" :max="20" />
             </div>
             <div>
-              <label class="field-label">列数（左右）</label>
+              <label class="field-label">{{ tr('列数（左右）') }}</label>
               <NumberField
-                aria-label="列数（左右）" v-model="cols" :min="1" :max="16" />
+                :aria-label="tr('列数（左右）')" v-model="cols" :min="1" :max="16" />
             </div>
             <div class="col-span-2">
-              <label class="field-label">座位填充顺序</label>
+              <label class="field-label">{{ tr('座位填充顺序') }}</label>
               <SelectField v-model="fillOrder" :options="FILL_OPTIONS" />
             </div>
             <div class="col-span-2">
               <CheckboxField
                 :model-value="podium === 'top'"
                 class="text-xs font-semibold text-slate-600"
-                label="顶部标注讲台位置"
+                :label="tr('顶部标注讲台位置')"
                 @update:model-value="podium = $event ? 'top' : 'none'"
               />
             </div>
           </div>
           <div class="mt-3">
-            <label class="field-label">过道位置（点击列间隙切换）</label>
+            <label class="field-label">{{ tr('过道位置（点击列间隙切换）') }}</label>
             <div class="flex flex-wrap gap-1.5">
               <button
                 v-for="n in Math.max(cols - 1, 0)"
@@ -492,7 +492,7 @@ function toDeskLabels() {
                 "
                 @click="toggleAisle(n)"
               >
-                第 {{ n }}-{{ n + 1 }} 列间
+                {{ tr('列间') }} {{ n }}-{{ n + 1 }}
               </button>
             </div>
           </div>
@@ -500,28 +500,28 @@ function toDeskLabels() {
 
         <section class="panel-card">
           <div class="panel-head">
-            <h2 class="section-title"><span class="step-chip">2</span>学生名单</h2>
+            <h2 class="section-title"><span class="step-chip">2</span>{{ tr('学生名单') }}</h2>
             <button type="button" class="btn btn-ghost btn-sm" @click="loadDemoNames">
-              用演示名单
+              {{ tr('用演示名单') }}
             </button>
           </div>
           <textarea
             v-model="namesText"
             rows="10"
             class="input-field mt-2 h-auto min-h-40 resize-y py-2 leading-6"
-            placeholder="每行一个姓名，可附性别列（空格/逗号分隔）：&#10;张伟 男&#10;李娜 女&#10;王芳……"
+            :placeholder="tr('每行一个姓名，可附性别列（空格/逗号分隔）')"
           ></textarea>
           <p class="mt-2 text-xs leading-5 text-slate-600">
-            已输入 <strong class="text-slate-700">{{ filledCount }}</strong> 人 / 座位
-            <strong class="text-slate-700">{{ seatCount }}</strong> 个。
+            {{ tr('已输入') }} <strong class="text-slate-700">{{ filledCount }}</strong> {{ tr('人') }} /
+            <strong class="text-slate-700">{{ seatCount }}</strong> {{ tr('座') }}。
             <span v-if="overflowCount" class="font-bold text-amber-600">
-              超出 {{ overflowCount }} 人排不下，请增加行列数。
+              {{ tr('超出') }} {{ overflowCount }} {{ tr('人排不下，请增加行列数。') }}
             </span>
           </p>
         </section>
 
         <section class="panel-card">
-          <h2 class="section-title"><span class="step-chip">3</span>随机排座</h2>
+          <h2 class="section-title"><span class="step-chip">3</span>{{ tr('随机排座') }}</h2>
           <div class="mt-3 flex flex-wrap gap-2">
             <button type="button" class="btn btn-secondary btn-sm" @click="randomizeAll">
               <svg
@@ -535,13 +535,13 @@ function toDeskLabels() {
               >
                 <path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
               </svg>
-              完全随机
+              {{ tr('完全随机') }}
             </button>
             <button
               type="button"
               class="btn btn-secondary btn-sm"
               :disabled="!hasGender"
-              :title="hasGender ? '相邻座位尽量男女交替' : '名单需包含性别列（如：张伟 男）'"
+              :title="hasGender ? tr('相邻座位尽量男女交替') : tr('名单需包含性别列（如：张伟 男）')"
               @click="randomizeMixed"
             >
               <svg
@@ -556,7 +556,7 @@ function toDeskLabels() {
                 <circle cx="8" cy="8" r="4" />
                 <circle cx="16" cy="16" r="4" />
               </svg>
-              男女混排
+              {{ tr('男女混排') }}
             </button>
             <button
               type="button"
@@ -564,18 +564,16 @@ function toDeskLabels() {
               :disabled="!arranged"
               @click="restoreOrder"
             >
-              还原名单顺序
+              {{ tr('还原名单顺序') }}
             </button>
           </div>
           <p class="mt-2 text-xs leading-5 text-slate-600">
-            男女混排需名单包含性别列（每行「姓名 性别」）。预览中可
-            <strong class="text-slate-600">点选两个座位互换</strong>，桌面鼠标还可直接按住座位拖拽交换；
-            触屏设备请用点选方式。点击（桌面也可拖拽）行首「排」把手可整排交换。
+            {{ tr('男女混排需名单包含性别列（每行「姓名 性别」）。预览中可点选两个座位互换，桌面鼠标还可直接按住座位拖拽交换；触屏设备请用点选方式。点击（桌面也可拖拽）行首「排」把手可整排交换。') }}
           </p>
         </section>
 
         <section class="panel-card">
-          <h2 class="section-title"><span class="step-chip">4</span>输出</h2>
+          <h2 class="section-title"><span class="step-chip">4</span>{{ tr('输出') }}</h2>
           <div class="mt-3 flex flex-col gap-2">
             <button type="button" class="btn btn-primary btn-md" @click="doPrint">
               <svg
@@ -589,7 +587,7 @@ function toDeskLabels() {
               >
                 <path d="M7 8V3h10v5M7 17H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3m-10-3h10v7H7v-7z" />
               </svg>
-              打印座位表（A4 横向）
+              {{ tr('打印座位表（A4 横向）') }}
             </button>
             <button type="button" class="btn btn-secondary btn-md" @click="toDeskLabels">
               <svg
@@ -603,10 +601,10 @@ function toDeskLabels() {
               >
                 <path d="M4 5h16v6H4zM4 13h7v6H4zM13 13h7v6h-7z" />
               </svg>
-              一键生成对应桌贴
+              {{ tr('一键生成对应桌贴') }}
             </button>
             <p class="text-xs leading-5 text-slate-600">
-              「生成桌贴」会把这份名单（含座位号、排、列）带入标签工坊，选模板即可批量输出课桌贴。
+              {{ tr('「生成桌贴」会把这份名单（含座位号、排、列）带入标签工坊，选模板即可批量输出课桌贴。') }}
             </p>
           </div>
         </section>
@@ -618,7 +616,7 @@ function toDeskLabels() {
           <div
             class="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-bold"
             role="group"
-            aria-label="视角切换"
+            :aria-label="tr('视角切换')"
           >
             <button
               type="button"
@@ -626,7 +624,7 @@ function toDeskLabels() {
               :class="viewMode === 'teacher' ? 'bg-brand-600 text-white' : 'text-slate-600 hover:text-brand-600'"
               @click="viewMode = 'teacher'"
             >
-              教师视角
+              {{ tr('教师视角') }}
             </button>
             <button
               type="button"
@@ -634,14 +632,14 @@ function toDeskLabels() {
               :class="viewMode === 'student' ? 'bg-brand-600 text-white' : 'text-slate-600 hover:text-brand-600'"
               @click="viewMode = 'student'"
             >
-              学生视角（镜像）
+              {{ tr('学生视角（镜像）') }}
             </button>
           </div>
           <p v-if="selectedSeat != null || selectedRow != null" class="text-xs font-semibold text-brand-600">
-            {{ selectedRow != null ? `已选中第 ${selectedRow + 1} 排，点另一排把手交换` : '已选中座位，点另一个座位交换' }}
+            {{ selectedRow != null ? `${tr('已选中排')} ${selectedRow + 1}，${tr('点另一排把手交换')}` : tr('已选中座位，点另一个座位交换') }}
           </p>
         </div>
-        <p class="mb-1 text-[11px] leading-5 text-slate-400 sm:hidden">← 座位表超宽时可左右滑动查看 →</p>
+        <p class="mb-1 text-[11px] leading-5 text-slate-400 sm:hidden">← {{ tr('座位表超宽时可左右滑动查看') }} →</p>
         <div
           ref="previewContainer"
           class="overflow-auto rounded-lg border border-slate-200/80 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-slate-100/70 bg-[size:16px_16px] p-3 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)]"
@@ -660,8 +658,8 @@ function toDeskLabels() {
                 :style="{ transform: `scale(${scale})` }"
               >
                 <div class="sheet-page seating-sheet">
-                  <h2 class="seating-title">{{ title || '教室座位表' }}</h2>
-                  <div v-if="podium === 'top'" class="seating-podium">讲　台</div>
+                  <h2 class="seating-title">{{ title || tr('教室座位表') }}</h2>
+                  <div v-if="podium === 'top'" class="seating-podium">{{ tr('讲　台') }}</div>
                   <div class="seating-grid">
                     <div v-for="(rowCells, r) in displayGrid" :key="r" class="seating-row">
                       <button
@@ -671,7 +669,7 @@ function toDeskLabels() {
                           'seating-row-handle--active': selectedRow === r,
                           'seating-seat--drop-target': dragging && dropRowTarget === r,
                         }"
-                        :title="`第 ${r + 1} 排：点击或拖拽与另一排交换`"
+                        :title="`${tr('排')} ${r + 1}：${tr('点击或拖拽与另一排交换')}`"
                         :data-row-index="r"
                         @click="onRowHandleClick(r)"
                         @pointerdown="onRowPointerDown(r, $event)"
@@ -705,8 +703,8 @@ function toDeskLabels() {
                     </div>
                   </div>
                   <p class="seating-footnote">
-                    共 {{ rows }} 排 × {{ cols }} 列 · {{ filledCount }} 人 ·
-                    {{ viewMode === 'teacher' ? '教师视角' : '学生视角' }} · seatmark.cn 生成
+                    {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} · {{ filledCount }} {{ tr('人') }} ·
+                    {{ viewMode === 'teacher' ? tr('教师视角') : tr('学生视角') }} · {{ tr('seatmark.cn 生成') }}
                   </p>
                 </div>
               </div>
@@ -720,8 +718,8 @@ function toDeskLabels() {
     <Teleport to="body">
       <div v-if="renderHost" class="offscreen-host">
         <div class="sheet-page seating-sheet">
-          <h2 class="seating-title">{{ title || '教室座位表' }}</h2>
-          <div v-if="podium === 'top'" class="seating-podium">讲　台</div>
+          <h2 class="seating-title">{{ title || tr('教室座位表') }}</h2>
+          <div v-if="podium === 'top'" class="seating-podium">{{ tr('讲　台') }}</div>
           <div class="seating-grid">
             <div v-for="(rowCells, r) in displayGrid" :key="r" class="seating-row">
               <template v-for="(cell, i) in rowCells" :key="`${r}-${i}`">
@@ -734,8 +732,8 @@ function toDeskLabels() {
             </div>
           </div>
           <p class="seating-footnote">
-            共 {{ rows }} 排 × {{ cols }} 列 · {{ filledCount }} 人 ·
-            {{ viewMode === 'teacher' ? '教师视角' : '学生视角' }} · seatmark.cn 生成
+            {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} · {{ filledCount }} {{ tr('人') }} ·
+            {{ viewMode === 'teacher' ? tr('教师视角') : tr('学生视角') }} · {{ tr('seatmark.cn 生成') }}
           </p>
         </div>
       </div>

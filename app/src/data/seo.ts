@@ -112,6 +112,14 @@ export async function resolveSeo(path: string): Promise<PageSeo> {
   const clean = path.split('?')[0]!.split('#')[0]!
   const p = clean !== '/' && clean.endsWith('/') ? clean.slice(0, -1) : clean
 
+  // /en 前缀路由：先复用对应中文路由的 SEO 数据，canonical 指向 /en 自身
+  // （英文 meta 文案与 hreflang 在着陆页批次补齐）
+  if (p === '/en' || p.startsWith('/en/')) {
+    const base = p === '/en' ? '/' : p.slice(3)
+    const seo = await resolveSeo(base)
+    return { ...seo, path: p }
+  }
+
   if (p === '/' || p === '') {
     return {
       title: '座签·桌牌席卡·门贴证卡批量生成 - SeatMark 座签 | Excel 批量打印',

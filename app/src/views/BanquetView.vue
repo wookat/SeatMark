@@ -7,6 +7,7 @@ import ModalDialog from '@/components/ui/ModalDialog.vue'
 import NumberField from '@/components/ui/NumberField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
+import { localePath, t as tr } from '@/i18n'
 import { useQuotaStore } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
 import {
@@ -64,7 +65,7 @@ function loadPersistedState(): BanquetPersistedState | null {
 
 const persisted = loadPersistedState()
 
-const title = ref(persisted?.title ?? '婚宴座位表')
+const title = ref(persisted?.title ?? tr('婚宴座位表'))
 const pasteText = ref(persisted?.pasteText ?? '')
 const guests = ref<BanquetGuest[]>(persisted?.guests ?? [])
 const groups = ref<BanquetGroup[]>(persisted?.groups ?? [])
@@ -108,7 +109,7 @@ const groupById = computed(() => new Map(groups.value.map((g) => [g.id, g])))
 function importPasted() {
   const { names, duplicates } = parseBanquetGuests(pasteText.value)
   if (!names.length) {
-    toast.warning('名单为空', '请粘贴宾客名单，每行一位')
+    toast.warning(tr('名单为空'), tr('请粘贴宾客名单，每行一位'))
     return
   }
   const existing = new Set(guests.value.map((g) => g.name))
@@ -116,8 +117,8 @@ function importPasted() {
   guests.value = [...guests.value, ...fresh.map((name) => ({ id: uid('gst'), name, groupId: null }))]
   const skipped = names.length - fresh.length + duplicates.length
   toast.success(
-    `已添加 ${fresh.length} 位宾客`,
-    skipped ? `自动去重 ${skipped} 条重复姓名` : '可在下方列表继续编辑、分组',
+    `${tr('已添加宾客')}: ${fresh.length}`,
+    skipped ? `${tr('自动去重重复姓名')}: ${skipped}` : tr('可在下方列表继续编辑、分组'),
   )
   pasteText.value = ''
 }
@@ -131,7 +132,7 @@ function onTxtChange(event: Event) {
   reader.onload = () => {
     const text = typeof reader.result === 'string' ? reader.result : ''
     pasteText.value = pasteText.value.trim() ? `${pasteText.value}\n${text}` : text
-    toast.info('TXT 已读取到输入框', '确认内容后点「添加到名单」')
+    toast.info(tr('TXT 已读取到输入框'), tr('确认内容后点「添加到名单」'))
   }
   reader.readAsText(file)
 }
@@ -150,7 +151,7 @@ function removeGuest(id: string) {
 function addGroup() {
   groups.value = [
     ...groups.value,
-    { id: uid('grp'), name: `分组 ${groups.value.length + 1}`, color: nextGroupColor(groups.value) },
+    { id: uid('grp'), name: `${tr('分组')} ${groups.value.length + 1}`, color: nextGroupColor(groups.value) },
   ]
 }
 
@@ -162,7 +163,7 @@ function removeGroup(id: string) {
 }
 
 const groupOptions = computed<SelectOption[]>(() => [
-  { value: '', label: '未分组' },
+  { value: '', label: tr('未分组') },
   ...groups.value.map((g) => ({ value: g.id, label: g.name })),
 ])
 
@@ -170,9 +171,9 @@ function loadDemoGuests() {
   const surnames = '王李张刘陈杨赵黄周吴徐孙马朱胡郭何高林罗'
   const given = '伟芳娜敏静丽强磊军洋勇艳杰娟涛明超霞平刚'
   const demoGroups: BanquetGroup[] = [
-    { id: uid('grp'), name: '男方亲友', color: '#4f46e5' },
-    { id: uid('grp'), name: '女方亲友', color: '#e11d48' },
-    { id: uid('grp'), name: '同事', color: '#0891b2' },
+    { id: uid('grp'), name: tr('男方亲友'), color: '#4f46e5' },
+    { id: uid('grp'), name: tr('女方亲友'), color: '#e11d48' },
+    { id: uid('grp'), name: tr('同事'), color: '#0891b2' },
   ]
   const list: BanquetGuest[] = []
   for (let i = 0; i < 48; i++) {
@@ -185,7 +186,7 @@ function loadDemoGuests() {
   groups.value = demoGroups
   guests.value = list
   for (const t of tables.value) t.guestIds = []
-  toast.info('已生成演示名单', `共 ${list.length} 位宾客、3 个分组`)
+  toast.info(tr('已生成演示名单'), `${list.length} ${tr('位宾客、3 个分组')}`)
 }
 
 // ---------- 第 2 步：场地布局 ----------
@@ -198,13 +199,13 @@ const selectedMarker = computed(() => markers.value.find((m) => m.id === selecte
 function applyPreset(preset: VenuePresetId) {
   tables.value = buildVenuePreset(preset)
   selectedId.value = null
-  toast.success('已应用场地预设', '桌上原有的宾客安排已清空，可重新一键分配')
+  toast.success(tr('已应用场地预设'), tr('桌上原有的宾客安排已清空，可重新一键分配'))
 }
 
 function addTable(shape: 'round' | 'rect') {
   const t: BanquetTable = {
     id: uid('tbl'),
-    name: `${tables.value.length + 1}号桌`,
+    name: `${tables.value.length + 1}${tr('号桌')}`,
     shape,
     x: VENUE_WIDTH / 2 - 32,
     y: VENUE_HEIGHT / 2 - 32,
@@ -316,11 +317,11 @@ function onElementPointerUp() {
 
 function autoAssign() {
   if (!guests.value.length) {
-    toast.warning('名单为空', '请先在第 1 步添加宾客')
+    toast.warning(tr('名单为空'), tr('请先在第 1 步添加宾客'))
     return
   }
   if (!tables.value.length) {
-    toast.warning('还没有餐桌', '请先在第 2 步选择场地预设或添加餐桌')
+    toast.warning(tr('还没有餐桌'), tr('请先在第 2 步选择场地预设或添加餐桌'))
     return
   }
   const result = autoAssignGuests(guests.value, tables.value)
@@ -330,17 +331,17 @@ function autoAssign() {
   const issues = validateBanquet(guests.value, tables.value)
   if (issues.unassigned.length) {
     toast.warning(
-      `座位不够：${issues.unassigned.length} 位宾客未安排`,
-      '可增加餐桌或提高每桌座位数后重新分配',
+      `${tr('座位不够：未安排宾客')}: ${issues.unassigned.length}`,
+      tr('可增加餐桌或提高每桌座位数后重新分配'),
     )
   } else {
-    toast.success('已自动分配座位', '同组宾客已尽量安排同桌，可拖拽宾客微调')
+    toast.success(tr('已自动分配座位'), tr('同组宾客已尽量安排同桌，可拖拽宾客微调'))
   }
 }
 
 function clearAssignments() {
   for (const t of tables.value) t.guestIds = []
-  toast.info('已清空全部座位安排')
+  toast.info(tr('已清空全部座位安排'))
 }
 
 const seatedIds = computed(() => {
@@ -409,7 +410,7 @@ function moveGuestToTable(guestId: string, tableId: string) {
   }
   target.guestIds = [...target.guestIds, guestId]
   if (target.guestIds.length > target.seats) {
-    toast.warning(`「${target.name}」已超员`, `${target.guestIds.length} 人 / ${target.seats} 座`)
+    toast.warning(`「${target.name}」${tr('已超员')}`, `${target.guestIds.length} / ${target.seats}`)
   }
 }
 
@@ -425,10 +426,10 @@ const PAPER_OPTIONS: SelectOption[] = [
   { value: 'a4', label: 'A4', hint: '210 × 297 mm' },
   { value: 'a3', label: 'A3', hint: '297 × 420 mm' },
 ]
-const ORIENTATION_OPTIONS: SelectOption[] = [
-  { value: 'landscape', label: '横向' },
-  { value: 'portrait', label: '纵向' },
-]
+const ORIENTATION_OPTIONS = computed<SelectOption[]>(() => [
+  { value: 'landscape', label: tr('横向') },
+  { value: 'portrait', label: tr('纵向') },
+])
 
 const pageSize = computed(() => {
   const [short, long] = paper.value === 'a4' ? [210, 297] : [297, 420]
@@ -504,7 +505,7 @@ async function rebuildExportHost() {
 
 function getExportPage(): HTMLElement {
   const el = exportHost.value
-  if (!el) throw new Error('导出页渲染失败')
+  if (!el) throw new Error(tr('导出页渲染失败'))
   return el
 }
 
@@ -515,7 +516,7 @@ async function runExport() {
   await nextTick()
   try {
     getExportPage()
-    const baseName = sanitizeFileNamePart(title.value) || '宴会座位表'
+    const baseName = sanitizeFileNamePart(title.value) || tr('宴会座位表')
     if (pendingFormat.value === 'pdf') {
       await exportPagedPdf({
         pageCount: 1,
@@ -537,11 +538,11 @@ async function runExport() {
     }
     if (!withWatermark.value) await quota.tryConsume()
     toast.success(
-      pendingFormat.value === 'pdf' ? 'PDF 已导出' : 'PNG 已导出',
-      exportColors.value ? '本次带分组颜色输出' : '默认不带分组颜色，适合直接张贴',
+      pendingFormat.value === 'pdf' ? tr('PDF 已导出') : tr('PNG 已导出'),
+      exportColors.value ? tr('本次带分组颜色输出') : tr('默认不带分组颜色，适合直接张贴'),
     )
   } catch (error) {
-    toast.danger('导出失败', error instanceof Error ? error.message : String(error))
+    toast.danger(tr('导出失败'), error instanceof Error ? error.message : String(error))
   } finally {
     renderExportHost.value = false
     exporting.value = false
@@ -569,16 +570,15 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
     <div class="text-center">
       <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Banquet Seating</p>
       <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-        宴会座位表生成器
+        {{ tr('宴会座位表生成器') }}
       </h1>
       <p class="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-        婚宴、年会、答谢宴的桌位安排：粘贴宾客名单并分组，选圆桌/长桌/U 形等场地布局，
-        一键自动分配（同组尽量同桌），拖拽微调后导出 A4/A3 高清座位图直接打印。数据全程在浏览器本地处理。
+        {{ tr('婚宴、年会、答谢宴的桌位安排：粘贴宾客名单并分组，选圆桌/长桌/U 形等场地布局，一键自动分配（同组尽量同桌），拖拽微调后导出 A4/A3 高清座位图直接打印。数据全程在浏览器本地处理。') }}
       </p>
       <p class="mt-2 text-xs text-slate-500">
-        要排教室座位？用
-        <RouterLink to="/seating" class="font-semibold text-brand-600 hover:underline">
-          教室座位表打印
+        {{ tr('要排教室座位？用') }}
+        <RouterLink :to="localePath('/seating')" class="font-semibold text-brand-600 hover:underline">
+          {{ tr('教室座位表打印') }}
         </RouterLink>
       </p>
     </div>
@@ -589,48 +589,48 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         <!-- 第 1 步：宾客名单 -->
         <section class="panel-card">
           <div class="panel-head">
-            <h2 class="section-title"><span class="step-chip">1</span>宾客名单与分组</h2>
+            <h2 class="section-title"><span class="step-chip">1</span>{{ tr('宾客名单与分组') }}</h2>
             <button type="button" class="btn btn-ghost btn-sm" @click="loadDemoGuests">
-              用演示名单
+              {{ tr('用演示名单') }}
             </button>
           </div>
           <div class="mt-2">
-            <label class="field-label" for="banquet-title">座位表标题</label>
+            <label class="field-label" for="banquet-title">{{ tr('座位表标题') }}</label>
             <input
               id="banquet-title"
               v-model="title"
               type="text"
               class="input-field"
-              placeholder="如：张王联姻 婚宴座位表"
+              :placeholder="tr('如：张王联姻 婚宴座位表')"
             />
           </div>
           <textarea
             v-model="pasteText"
             rows="5"
             class="input-field mt-2 h-auto min-h-24 resize-y py-2 leading-6"
-            placeholder="每行一位宾客姓名，粘贴后点「添加到名单」：&#10;张伟&#10;李娜&#10;王芳……"
+            :placeholder="tr('每行一位宾客姓名，粘贴后点「添加到名单」')"
           ></textarea>
           <div class="mt-2 flex flex-wrap gap-2">
             <button type="button" class="btn btn-primary btn-sm" @click="importPasted">
-              添加到名单（自动去重）
+              {{ tr('添加到名单（自动去重）') }}
             </button>
             <button type="button" class="btn btn-secondary btn-sm" @click="txtInput?.click()">
-              上传 TXT 名单
+              {{ tr('上传 TXT 名单') }}
             </button>
             <input
               ref="txtInput"
               type="file"
               accept=".txt,text/plain"
               class="hidden"
-              aria-label="上传 TXT 名单文件"
+              :aria-label="tr('上传 TXT 名单文件')"
               @change="onTxtChange"
             />
           </div>
 
           <div class="mt-3">
             <div class="flex items-center justify-between">
-              <label class="field-label !mb-0">宾客分组（颜色可自定义）</label>
-              <button type="button" class="btn btn-ghost btn-sm" @click="addGroup">+ 加分组</button>
+              <label class="field-label !mb-0">{{ tr('宾客分组（颜色可自定义）') }}</label>
+              <button type="button" class="btn btn-ghost btn-sm" @click="addGroup">+ {{ tr('加分组') }}</button>
             </div>
             <div v-if="groups.length" class="mt-1.5 flex flex-col gap-1.5">
               <div v-for="g in groups" :key="g.id" class="flex items-center gap-1.5">
@@ -638,14 +638,14 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
                   v-model="g.name"
                   type="text"
                   class="input-field min-w-0 flex-1"
-                  :aria-label="`分组名称`"
-                  placeholder="如：男方亲友"
+                  :aria-label="tr('分组名称')"
+                  :placeholder="tr('如：男方亲友')"
                 />
                 <ColorField v-model="g.color" class="w-28 shrink-0" />
                 <button
                   type="button"
                   class="btn btn-ghost btn-sm shrink-0 !px-1.5 text-slate-400 hover:text-red-500"
-                  :aria-label="`删除分组 ${g.name}`"
+                  :aria-label="`${tr('删除分组')} ${g.name}`"
                   @click="removeGroup(g.id)"
                 >
                   ✕
@@ -653,17 +653,17 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
               </div>
             </div>
             <p v-else class="mt-1 text-xs text-slate-500">
-              可选：加「男方亲友 / 女方亲友 / 同事」等分组，自动分配时同组尽量同桌。
+              {{ tr('可选：加「男方亲友 / 女方亲友 / 同事」等分组，自动分配时同组尽量同桌。') }}
             </p>
           </div>
 
           <div class="mt-3">
             <div class="flex items-center justify-between">
               <label class="field-label !mb-0">
-                名单（{{ guestCount }} 人 / {{ seatCount }} 座）
+                {{ tr('名单') }}（{{ guestCount }} {{ tr('人') }} / {{ seatCount }} {{ tr('座') }}）
               </label>
               <button type="button" class="btn btn-ghost btn-sm" @click="addGuestRow">
-                + 加一行
+                + {{ tr('加一行') }}
               </button>
             </div>
             <div
@@ -675,8 +675,8 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
                   v-model="g.name"
                   type="text"
                   class="input-field min-w-0 flex-1"
-                  aria-label="宾客姓名"
-                  placeholder="宾客姓名"
+                  :aria-label="tr('宾客姓名')"
+                  :placeholder="tr('宾客姓名')"
                 />
                 <SelectField
                   :model-value="g.groupId ?? ''"
@@ -688,7 +688,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
                 <button
                   type="button"
                   class="btn btn-ghost btn-sm shrink-0 !px-1.5 text-slate-400 hover:text-red-500"
-                  :aria-label="`删除宾客 ${g.name || '未命名'}`"
+                  :aria-label="`${tr('删除宾客')} ${g.name || tr('未命名')}`"
                   @click="removeGuest(g.id)"
                 >
                   ✕
@@ -696,14 +696,14 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
               </div>
             </div>
             <p v-else class="mt-1 text-xs text-slate-500">
-              还没有宾客：粘贴名单、上传 TXT，或点「加一行」直接在线输入（无需 Excel）。
+              {{ tr('还没有宾客：粘贴名单、上传 TXT，或点「加一行」直接在线输入（无需 Excel）。') }}
             </p>
           </div>
         </section>
 
         <!-- 第 2 步：场地布局 -->
         <section class="panel-card">
-          <h2 class="section-title"><span class="step-chip">2</span>场地布局</h2>
+          <h2 class="section-title"><span class="step-chip">2</span>{{ tr('场地布局') }}</h2>
           <div class="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-2">
             <button
               v-for="p in VENUE_PRESETS"
@@ -712,42 +712,42 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
               class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-left transition-colors hover:border-brand-400 hover:bg-brand-50/40"
               @click="applyPreset(p.id)"
             >
-              <span class="block text-xs font-bold text-slate-700">{{ p.name }}</span>
-              <span class="block text-[10px] leading-4 text-slate-500">{{ p.hint }}</span>
+              <span class="block text-xs font-bold text-slate-700">{{ tr(p.name) }}</span>
+              <span class="block text-[10px] leading-4 text-slate-500">{{ tr(p.hint) }}</span>
             </button>
           </div>
           <div class="mt-2.5 flex flex-wrap gap-2">
             <button type="button" class="btn btn-secondary btn-sm" @click="addTable('round')">
-              + 圆桌
+              + {{ tr('圆桌') }}
             </button>
             <button type="button" class="btn btn-secondary btn-sm" @click="addTable('rect')">
-              + 长桌
+              + {{ tr('长桌') }}
             </button>
             <button type="button" class="btn btn-ghost btn-sm" @click="addMarker('entrance')">
-              + 入口
+              + {{ tr('入口') }}
             </button>
             <button type="button" class="btn btn-ghost btn-sm" @click="addMarker('stage')">
-              + 舞台
+              + {{ tr('舞台') }}
             </button>
             <button type="button" class="btn btn-ghost btn-sm" @click="addMarker('dance')">
-              + 舞池
+              + {{ tr('舞池') }}
             </button>
           </div>
 
           <div v-if="selectedTable" class="mt-3 rounded-lg border border-brand-100 bg-brand-50/50 p-2.5">
             <div class="grid grid-cols-2 gap-2">
               <div class="col-span-2">
-                <label class="field-label">选中的餐桌名称</label>
+                <label class="field-label">{{ tr('选中的餐桌名称') }}</label>
                 <input
                   v-model="selectedTable.name"
                   type="text"
                   class="input-field"
-                  placeholder="如：1号桌 / 主桌"
+                  :placeholder="tr('如：1号桌 / 主桌')"
                 />
               </div>
               <div>
-                <label class="field-label">每桌座位数</label>
-                <NumberField v-model="selectedTable.seats" :min="1" :max="30" aria-label="每桌座位数" />
+                <label class="field-label">{{ tr('每桌座位数') }}</label>
+                <NumberField v-model="selectedTable.seats" :min="1" :max="30" :aria-label="tr('每桌座位数')" />
               </div>
               <div class="flex items-end">
                 <button
@@ -755,7 +755,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
                   class="btn btn-danger btn-sm w-full"
                   @click="removeTable(selectedTable.id)"
                 >
-                  删除这张桌
+                  {{ tr('删除这张桌') }}
                 </button>
               </div>
             </div>
@@ -766,7 +766,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
           >
             <div class="grid grid-cols-2 items-end gap-2">
               <div>
-                <label class="field-label">标记名称</label>
+                <label class="field-label">{{ tr('标记名称') }}</label>
                 <input v-model="selectedMarker.label" type="text" class="input-field" />
               </div>
               <button
@@ -774,48 +774,46 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
                 class="btn btn-danger btn-sm"
                 @click="removeMarker(selectedMarker.id)"
               >
-                删除标记
+                {{ tr('删除标记') }}
               </button>
             </div>
           </div>
           <p v-else class="mt-2 text-xs leading-5 text-slate-600">
-            在右侧画布上<strong class="text-slate-700">按住拖动</strong>餐桌与标记调整位置；
-            点选餐桌后可改名、设座位数或删除。
+            {{ tr('在右侧画布上按住拖动餐桌与标记调整位置；点选餐桌后可改名、设座位数或删除。') }}
           </p>
         </section>
 
         <!-- 第 3 步：自动分配 -->
         <section class="panel-card">
-          <h2 class="section-title"><span class="step-chip">3</span>分配座位</h2>
+          <h2 class="section-title"><span class="step-chip">3</span>{{ tr('分配座位') }}</h2>
           <div class="mt-3 flex flex-wrap gap-2">
             <button type="button" class="btn btn-primary btn-sm" @click="autoAssign">
-              一键自动分配（同组同桌）
+              {{ tr('一键自动分配（同组同桌）') }}
             </button>
             <button type="button" class="btn btn-ghost btn-sm" @click="clearAssignments">
-              清空安排
+              {{ tr('清空安排') }}
             </button>
           </div>
           <p class="mt-2 text-xs leading-5 text-slate-600">
-            分配后可直接<strong class="text-slate-700">拖拽宾客姓名</strong>在桌之间移动微调；
-            拖到画布下方「未安排」区可撤下宾客。
+            {{ tr('分配后可直接拖拽宾客姓名在桌之间移动微调；拖到画布下方「未安排」区可撤下宾客。') }}
           </p>
         </section>
 
         <!-- 第 4 步：检查与导出 -->
         <section class="panel-card">
-          <h2 class="section-title"><span class="step-chip">4</span>检查与导出</h2>
+          <h2 class="section-title"><span class="step-chip">4</span>{{ tr('检查与导出') }}</h2>
           <div class="mt-3 grid grid-cols-2 gap-2.5">
             <div>
-              <label class="field-label">纸张</label>
+              <label class="field-label">{{ tr('纸张') }}</label>
               <SelectField v-model="paper" :options="PAPER_OPTIONS" />
             </div>
             <div>
-              <label class="field-label">方向</label>
+              <label class="field-label">{{ tr('方向') }}</label>
               <SelectField v-model="orientation" :options="ORIENTATION_OPTIONS" />
             </div>
             <div class="col-span-2">
               <CheckboxField v-model="exportColors" class="text-xs font-semibold text-slate-600">
-                导出带分组颜色（默认不带，适合张贴给宾客看）
+                {{ tr('导出带分组颜色（默认不带，适合张贴给宾客看）') }}
               </CheckboxField>
             </div>
           </div>
@@ -826,7 +824,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
               :disabled="exporting"
               @click="startExport('png')"
             >
-              {{ exporting ? '导出中…' : '导出高清 PNG' }}
+              {{ exporting ? tr('导出中…') : tr('导出高清 PNG') }}
             </button>
             <button
               type="button"
@@ -834,10 +832,10 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
               :disabled="exporting"
               @click="startExport('pdf')"
             >
-              导出 PDF（可直接打印）
+              {{ tr('导出 PDF（可直接打印）') }}
             </button>
             <p class="text-xs leading-5 text-slate-600">
-              导出前会自动检查未安排的宾客、空桌与餐桌重叠；名单全程不出浏览器。
+              {{ tr('导出前会自动检查未安排的宾客、空桌与餐桌重叠；名单全程不出浏览器。') }}
             </p>
           </div>
         </section>
@@ -850,7 +848,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             <button
               type="button"
               class="rounded-md px-2.5 py-1.5 text-slate-600 transition-colors hover:text-brand-600"
-              aria-label="缩小画布"
+              :aria-label="tr('缩小画布')"
               @click="zoom = Math.max(0.5, Math.round((zoom - 0.25) * 100) / 100)"
             >
               −
@@ -859,18 +857,18 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             <button
               type="button"
               class="rounded-md px-2.5 py-1.5 text-slate-600 transition-colors hover:text-brand-600"
-              aria-label="放大画布"
+              :aria-label="tr('放大画布')"
               @click="zoom = Math.min(2, Math.round((zoom + 0.25) * 100) / 100)"
             >
               +
             </button>
           </div>
           <p class="text-xs text-slate-500">
-            共 {{ tables.length }} 桌 · 已安排 {{ guests.length - unassignedGuests.length }} /
-            {{ guests.length }} 人
+            {{ tables.length }} {{ tr('桌') }} · {{ tr('已安排') }} {{ guests.length - unassignedGuests.length }} /
+            {{ guests.length }}
           </p>
         </div>
-        <p class="mb-1 text-[11px] leading-5 text-slate-400 sm:hidden">← 画布超宽时可左右滑动查看 →</p>
+        <p class="mb-1 text-[11px] leading-5 text-slate-400 sm:hidden">← {{ tr('画布超宽时可左右滑动查看') }} →</p>
         <div
           ref="canvasContainer"
           class="overflow-auto rounded-lg border border-slate-200/80 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-slate-100/70 bg-[size:16px_16px] p-3 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)]"
@@ -958,8 +956,8 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
           "
         >
           <p class="text-xs font-bold text-slate-600">
-            未安排宾客（{{ unassignedGuests.length }}）
-            <span class="ml-1 font-normal text-slate-400">拖到餐桌上即可安排；从桌上拖回这里撤下</span>
+            {{ tr('未安排宾客') }}（{{ unassignedGuests.length }}）
+            <span class="ml-1 font-normal text-slate-400">{{ tr('拖到餐桌上即可安排；从桌上拖回这里撤下') }}</span>
           </p>
           <div v-if="unassignedGuests.length" class="mt-1.5 flex flex-wrap gap-1.5">
             <span
@@ -974,14 +972,14 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
               "
               @pointerdown="onGuestPointerDown(g.id, $event)"
             >
-              {{ g.name || '（未命名）' }}
+              {{ g.name || tr('（未命名）') }}
             </span>
           </div>
-          <p v-else class="mt-1 text-xs text-slate-400">全部宾客都已安排上桌。</p>
+          <p v-else class="mt-1 text-xs text-slate-400">{{ tr('全部宾客都已安排上桌。') }}</p>
         </div>
 
         <div v-if="groups.length" class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
-          <span class="font-bold">分组图例：</span>
+          <span class="font-bold">{{ tr('分组图例：') }}</span>
           <span v-for="g in groups" :key="g.id" class="inline-flex items-center gap-1">
             <span
               class="inline-block size-2.5 rounded-full"
@@ -995,22 +993,22 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
     </div>
 
     <!-- 导出前检查弹窗 -->
-    <ModalDialog :open="issuesOpen" title="导出前检查发现问题" size="md" @close="issuesOpen = false">
+    <ModalDialog :open="issuesOpen" :title="tr('导出前检查发现问题')" size="md" @close="issuesOpen = false">
       <div v-if="issues" class="flex flex-col gap-3 text-sm text-slate-700">
         <div v-if="issues.unassigned.length">
-          <p class="font-bold text-amber-600">未安排的宾客（{{ issues.unassigned.length }}）</p>
+          <p class="font-bold text-amber-600">{{ tr('未安排的宾客') }}（{{ issues.unassigned.length }}）</p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">{{ issues.unassigned.join('、') }}</p>
         </div>
         <div v-if="issues.emptyTables.length">
-          <p class="font-bold text-amber-600">空桌（{{ issues.emptyTables.length }}）</p>
+          <p class="font-bold text-amber-600">{{ tr('空桌') }}（{{ issues.emptyTables.length }}）</p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">{{ issues.emptyTables.join('、') }}</p>
         </div>
         <div v-if="issues.overCapacity.length">
-          <p class="font-bold text-red-600">超员的桌（{{ issues.overCapacity.length }}）</p>
+          <p class="font-bold text-red-600">{{ tr('超员的桌') }}（{{ issues.overCapacity.length }}）</p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">{{ issues.overCapacity.join('、') }}</p>
         </div>
         <div v-if="issues.overlaps.length">
-          <p class="font-bold text-red-600">位置重叠的餐桌</p>
+          <p class="font-bold text-red-600">{{ tr('位置重叠的餐桌') }}</p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">
             {{ issues.overlaps.map(([a, b]) => `${a} ↔ ${b}`).join('；') }}
           </p>
@@ -1018,10 +1016,10 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
       </div>
       <template #actions>
         <button type="button" class="btn btn-secondary btn-md" @click="issuesOpen = false">
-          返回修改
+          {{ tr('返回修改') }}
         </button>
         <button type="button" class="btn btn-primary btn-md" @click="confirmIssuesAndExport">
-          忽略问题，继续导出
+          {{ tr('忽略问题，继续导出') }}
         </button>
       </template>
     </ModalDialog>
@@ -1029,20 +1027,19 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
     <!-- 导出方式选择：带水印免费不限次 / 无水印计配额（口径同 /studio） -->
     <ModalDialog
       :open="exportChoiceOpen"
-      :title="pendingFormat === 'pdf' ? '导出 PDF' : '导出 PNG'"
+      :title="pendingFormat === 'pdf' ? tr('导出 PDF') : tr('导出 PNG')"
       size="md"
       @close="exportChoiceOpen = false"
     >
       <p class="text-sm text-slate-600">
-        带水印导出永远免费、不限次数（页脚一行 seatmark.cn 细线签名）；
-        无水印导出今日剩余 {{ quota.remaining }} 次。
+        {{ tr('带水印导出永远免费、不限次数（页脚一行 seatmark.cn 细线签名）；无水印导出今日剩余') }} {{ quota.remaining }}。
       </p>
       <template #actions>
         <button type="button" class="btn btn-secondary btn-md" @click="chooseWatermarked">
-          带水印导出（免费）
+          {{ tr('带水印导出（免费）') }}
         </button>
         <button type="button" class="btn btn-primary btn-md" @click="chooseClean">
-          无水印导出
+          {{ tr('无水印导出') }}
         </button>
       </template>
     </ModalDialog>
@@ -1055,7 +1052,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
           class="sheet-page banquet-sheet"
           :style="{ width: `${pageSize.width}mm`, height: `${pageSize.height}mm` }"
         >
-          <h2 class="banquet-sheet-title">{{ title || '宴会座位表' }}</h2>
+          <h2 class="banquet-sheet-title">{{ title || tr('宴会座位表') }}</h2>
           <div class="banquet-sheet-body">
             <!-- 外层盒取缩放后的实际尺寸，flex 居中才不会按未缩放的布局盒溢出页面；
                  data-export-ink 声明场地图横贯页面，右侧纯白即判渲染不完整 -->
