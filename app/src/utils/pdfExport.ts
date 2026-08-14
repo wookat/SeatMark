@@ -176,7 +176,8 @@ export function isCanvasTruncated(canvas: HTMLCanvasElement): boolean {
 }
 
 /**
- * DOM 侧右区内容预期：页内是否存在延伸进右侧区域的可见内容（标签格/水印层）。
+ * DOM 侧右区内容预期：页内是否存在延伸进右侧区域的可见内容
+ * （标签格/水印层/显式标记 data-export-ink 的内容盒）。
  * 用于区分真截断（DOM 有右侧内容但画布右侧纯白）与合法稀疏页（末页仅左上角一枚标签）。
  */
 export function domExpectsRightInk(el: HTMLElement): boolean {
@@ -184,7 +185,7 @@ export function domExpectsRightInk(el: HTMLElement): boolean {
   if (!rect.width) return false
   const threshold = rect.left + rect.width * 0.7
   for (const node of Array.from(
-    el.querySelectorAll<HTMLElement>('.label-box, .sheet-watermark'),
+    el.querySelectorAll<HTMLElement>('.label-box, .sheet-watermark, [data-export-ink]'),
   )) {
     // 空槽 label-box 不渲染内容，不作为右侧内容预期
     if (node.classList.contains('label-box') && !node.childElementCount) continue

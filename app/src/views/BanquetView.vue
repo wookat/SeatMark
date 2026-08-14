@@ -31,7 +31,7 @@ import {
 import { uid } from '@/utils/id'
 import { MM_TO_PX } from '@/utils/layout'
 import { exportPagedPng, sanitizeFileNamePart } from '@/utils/pngExport'
-import { defaultPdfFileName, exportPagesToPdf } from '@/utils/pdfExport'
+import { defaultPdfFileName, exportPagedPdf } from '@/utils/pdfExport'
 
 const toast = useToastStore()
 const quota = useQuotaStore()
@@ -494,17 +494,33 @@ async function chooseClean() {
   await runExport()
 }
 
+/** 重建离屏导出宿主：渲染异常（首次挂载竞态等）时卸掉重挂再重渲 */
+async function rebuildExportHost() {
+  renderExportHost.value = false
+  await nextTick()
+  renderExportHost.value = true
+  await nextTick()
+}
+
+function getExportPage(): HTMLElement {
+  const el = exportHost.value
+  if (!el) throw new Error('导出页渲染失败')
+  return el
+}
+
 async function runExport() {
   if (exporting.value) return
   exporting.value = true
   renderExportHost.value = true
   await nextTick()
-  const el = exportHost.value
   try {
-    if (!el) throw new Error('导出页渲染失败')
+    getExportPage()
     const baseName = sanitizeFileNamePart(title.value) || '宴会座位表'
     if (pendingFormat.value === 'pdf') {
-      await exportPagesToPdf([el], {
+      await exportPagedPdf({
+        pageCount: 1,
+        getPage: getExportPage,
+        rebuildHost: rebuildExportHost,
         pageWidth: pageSize.value.width,
         pageHeight: pageSize.value.height,
         fileName: defaultPdfFileName(baseName),
@@ -512,7 +528,8 @@ async function runExport() {
     } else {
       await exportPagedPng({
         pageCount: 1,
-        getPage: () => el,
+        getPage: getExportPage,
+        rebuildHost: rebuildExportHost,
         pageWidth: pageSize.value.width,
         pageHeight: pageSize.value.height,
         fileName: baseName,
@@ -1040,8 +1057,10 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         >
           <h2 class="banquet-sheet-title">{{ title || '宴会座位表' }}</h2>
           <div class="banquet-sheet-body">
-            <!-- 外层盒取缩放后的实际尺寸，flex 居中才不会按未缩放的布局盒溢出页面 -->
+            <!-- 外层盒取缩放后的实际尺寸，flex 居中才不会按未缩放的布局盒溢出页面；
+                 data-export-ink 声明场地图横贯页面，右侧纯白即判渲染不完整 -->
             <div
+              data-export-ink
               :style="{
                 width: `${VENUE_WIDTH * exportScale}mm`,
                 height: `${VENUE_HEIGHT * exportScale}mm`,
