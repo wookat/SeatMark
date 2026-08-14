@@ -932,6 +932,7 @@ export const en: Record<string, string> = {
   '三边长桌围合': 'Long tables on three sides',
   '教室课桌': 'Classroom desks',
   '4 排 × 4 列小桌，每桌 2 座': '4 × 4 grid of desks, 2 seats each',
+  '无水印导出（今日剩余 {n} 次）': 'Export without watermark (left today: {n})',
   '主桌': 'Head Table',
   '主位桌': 'Head Table',
   '左侧桌': 'Left Table',

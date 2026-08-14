@@ -1,3 +1,36 @@
+# 第 319 轮（2026-08-14）：PR #331 英文补全复测（/en/studio 英文化收尾 + /en/banquet 预设/桌名英文化，已合并）——**生产 >20 分钟未部署新前端包，按预案改用本地 build 预览验证**：全部功能判据 PASS，另记 2×P3 英文标点/空格瑕疵
+
+**环境**：生产轮询超时（详下），改用本地 build 预览 `http://localhost:4319`（`cd app && npm run build && npm run preview -- --port 4319`，构建自 origin/main 含 #331 提交 4e507da）。计划 test-plan-round319.md；浏览器部分全程录屏。
+
+## 升级项
+
+- ⚠️ **生产部署滞后（阻断生产复测）**：轮询 >40 分钟，https://www.seatmark.cn/en 始终引用旧主包 `index-D1idSJz3.js` / 旧英文 locale 分包 `en-DuQwxa0c.js`（不含新键 `Round-table banquet`；本地新构建为 `en-BbB9Ausg.js`）；响应头 `last-modified: Fri, 14 Aug 2026 21:49:07 GMT`、`eo-cache-status: Cache Hit`。按预案改本地 build 验证，**生产口径待 EdgeOne 部署后需补一次冒烟**。
+- P3-1：英文导出弹窗按钮文案 `Export without watermark（Left today: 1 ）`——全角括号 + 括号内尾随空格，应为半角 `(Left today: 1)`。
+- P3-2：水印/分享提示条英文句中出现全角中文冒号「：」（插值拆分键拼接残留），应为半角 `:`。
+- 判读注记：/en/studio 「无可见中文」判据以**可见视口 UI**为准全过；但 DOM 全文仍含中文演示数据（姓名/考场等演示内容本身）与语言切换器「中文」字样（指示目标语言，属合理），未计为缺陷。
+
+## T1 /en/studio 可见 UI 全英文 + PNG 导出（本地，UI 录屏）——PASS
+- 清 localStorage 后 /en/studio?demo=1：首次引导卡全英文「Three steps to a finished print / Pick a template / Your list is ready / Export & print」（ss_b80f379b.png）。
+- 预览工具栏 hover tooltip 英文（Print calibration 等，ss_04520f23.png）。
+- PNG 导出弹窗说明段全英文（ss_51c44741.png）；图片 PDF 导出弹窗说明/彩打检查清单英文（ss_c1d7d77d.png，未实际导出 PDF）。
+- PNG 导出成功：toast 'PNG images exported (26 labels zipped)' 英文；导出后水印/分享提示条英文（ss_286a567a.png，含 P3-1/P3-2 标点瑕疵）。
+
+## T2 /en/banquet 预设与桌名英文（清 seatmark.banquet-state.v1）——PASS
+- 五预设卡名称+hint 英文：Round-table banquet / Long-table banquet / Head table + rounds / U-shape meeting / Classroom desks（ss_12f8d21b.png）。
+- Round-table banquet → Table 1…Table 8；Head table + rounds → Head Table + Table 1…Table 6（ss_5f2dd90a.png）。
+- 添加桌 → Table 8；入口标记 'Entrance'、Stage、Dance floor 英文（ss_665ca900.png、ss_72149558.png、ss_zoom_bdb98ea9.png）。
+
+## T3 中文回归（Regression）——PASS
+- 清状态后中文 /banquet：预设卡中文（圆桌宴会…），应用后桌名「1号桌…8号桌」（ss_50a4c5d5.png）。
+- 中文 /studio?demo=1：引导卡中文「三步拿到成品」（ss_3fe19a48.png）、导出弹窗中文（ss_121eecbd.png）、PNG 导出 toast「PNG 图片已生成」中文（ss_e71a7291.png）。
+
+## T4 390px + pageerror（CDP，本地）——PASS
+- /en/studio?demo=1 与 /en/banquet：scrollWidth==innerWidth（无横向溢出）、errs 仅 /en/banquet 1 条良性 ResizeObserver；中文 /studio、/banquet 同判据过。截图 /tmp/r319/mob390_*.png。
+
+**收尾**：浏览器存储已清；录屏 rec-591825c2-b086-4de9-9e08-9fa3bfb26e76-edited.mp4。**遗留**：生产部署生效后需补生产冒烟（/en/studio 引导+导出 toast、/en/banquet 预设桌名各一遍）。
+
+---
+
 # 第 318 轮（2026-08-14）：英文版国际化上线生产复测（PR #328 i18n 架构 + #329 英文 SEO 着陆页，已合并）——发现 1×P2（/en/studio 可见中文混杂），其余判据 PASS
 
 **环境**：生产 https://www.seatmark.cn ，匿名（无登录、无注册、不发邮件）。部署判定：轮询约 6 分钟后 `curl /en` 预渲染 HTML 出现 `<html lang="en">`。计划 test-plan-round318.md；浏览器部分全程录屏。
@@ -979,6 +1012,28 @@ cat 仍走 URL（点「考试」→ ?cat=exam；直开 ?cat=exam 卡片=31）；
 **T5 常规**：交互会话 pageerror=0；136 请求标记串（张伟264）命中 0；storage 清理、context 全关、常驻 Chrome 未动、lighthouse 临时 Chrome 随进程退出 — passed
 
 **结论**：自 r233 以来合入的 #259/#261/#265/#267 无性能代价；home 中值回升至 97 佐证 91–98 波动带。无 P 级发现。计划：`test-plan-round264.md`。产物：`/home/ubuntu/r264_lighthouse/`、`/home/ubuntu/r264_dl/paste100.zip`、`/home/ubuntu/r264_reqs.json`；截图 `/home/ubuntu/screenshots/r264_import40.png`、`r264_paste100_hint.png`、`r264_paste100_imported.png`。
+
+---
+
+# 第 266 轮（2026-08-11）：#270 导入面板空闲预取 xlsx 分包线上复测（生产）⚠️ 主判据 PASS（空闲预取 0.36s 即拉取、首导 0.132s 热量级、竞态导入正常、回归全过），但发现 **1 个 P3**：预取网络失败后（失败本身静默）后续导入被浏览器模块缓存钉死——恢复网络重试 0 次网络请求、toast 直露英文错误「Failed to fetch dynamically imported module…」，需刷新页面才能导入
+
+**部署确认**：entry hash 翻转 `index-C2ENcB-P.js`（r264）→ `index-BC7trUVn.js`（轮询第 2 分钟命中）。环境：CDP 29229 全新 incognito context。代码依据：`DataImportPanel.vue:134-144`（onMounted 后 `requestIdleCallback(()=>import('xlsx').catch(()=>{}),{timeout:3000})`，Safari 兜底 setTimeout 1500ms）。脚本 `/home/ubuntu/r266_run.py`、`r266_t3b.py`、`r266_t3c.py`。
+
+**T1 阳性（主判据）**：全新 context 打开 /studio 无任何交互，load 后 **0.36s** 即见 `vendor-xlsx-CKwrMZHi.js` 网络拉取（r264 对照：直到导入才拉取——可区分判据）；随后首次导入 r113_40.xlsx **0.132s**（判据 ≤0.2s；r264 冷路径 0.17–1.5s），导入期间无新 chunk 拉取 — passed
+
+**T2 竞态（打开后立即导入）**：DOM ready 即注入文件（不等空闲）→ 无 pageerror、toast「已读取 40 条数据」0.139s、「共 40 条」— passed
+
+**T3 预取失败与恢复**：
+- 失败静默（阻断 `vendor-xlsx*` 请求模拟预取网络失败）：预取被 abort，pageerror=0（`.catch` 生效）、页面正常 — passed
+- **恢复后导入不可用（P3）**：解除阻断后导入 → toast「Excel 导入失败 Failed to fetch dynamically imported module: …vendor-xlsx-CKwrMZHi.js」，且重试期间 vendor-xlsx **网络请求 0 次**——Chrome 对同 URL 动态 import 失败做模块级缓存，`import('xlsx')` 永久 reject，直到**刷新页面**（刷新后导入 0.094s 正常）。真离线复现（CDP offline 6s 后恢复）同样导入失败。最小复现：打开 /studio 时短暂断网 3s（覆盖预取窗口）→ 恢复网络 → 导入任意 xlsx → 失败且重试无效 — **failed（P3）**
+- 附带观察（P4，非 #270 引入）：真离线窗口内路由守卫 `router/index.ts:166` `await import('@/utils/seo')` 无 catch，产生 pageerror「Failed to fetch dynamically imported module: …seo-*.js」——离线时既有动态导入链路的裸错误。
+- P3 定级理由：#270 把 xlsx chunk 拉取提前到页面打开后 3s 内的空闲窗口，**放大了瞬时网络抖动的暴露面**——修复前失败发生在用户主动导入时（可感知、重试常伴随刷新），修复后页面打开时的一次抖动会静默埋雷，之后网络已恢复仍导入失败且 toast 直露英文技术错误、无「请刷新重试」引导。建议：import 失败时带时间戳 query 重试一次（绕开模块缓存），或 catch 后提示「网络异常，请刷新页面后重试」。
+
+**T4 回归（Regression）**：粘贴 3 行（张伟266-*）「共 3 条」— passed；双 sheet roster231.xlsx 导入成功「共 3 条」+逐张 PNG zip 3 张 0 空白 — passed；注记：本轮页面未出现 sheet 切换按钮（S2 marker 不在 DOM），sheet 切换判据**未测**（r231/r232 已验过该链路），如实记录。
+
+**T5 常规**：交互会话 pageerror 仅上述 T3 离线 seo 观察项（预取路径本身 0）；请求标记串（张伟266）命中 0；storage 清理、context 全关、常驻 Chrome 未动 — passed
+
+**结论**：#270 主目标达成（预取生效、冷导入降至热量级、竞态安全），但预取失败后的恢复路径不成立（P3，复现与建议见上）。计划：`test-plan-round266.md`。产物：`/home/ubuntu/r266_dl/`、`/home/ubuntu/r266_reqs.json`、`r266_reqs_t3b.json`；截图 `/home/ubuntu/screenshots/r266_t1_imported.png`、`r266_t2_race.png`、`r266_t3_failtoast.png`、`r266_t3_reload_ok.png`、`r266_t4_sheet.png`。
 
 ---
 
