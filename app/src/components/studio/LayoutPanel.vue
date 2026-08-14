@@ -5,6 +5,7 @@ import FontPicker from '@/components/studio/FontPicker.vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import NumberField from '@/components/ui/NumberField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
+import { t } from '@/i18n'
 import { useTemplateLibrary } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -102,20 +103,20 @@ const labelPaperSlug = computed({
 
 /** 纸型选项按适配度降序：推荐置顶加徽标，不适配排后并提示原因 */
 const labelPaperOptions = computed<SelectOption[]>(() => [
-  { value: 'none', label: '不使用纸型（自由排版）' },
+  { value: 'none', label: t('不使用纸型（自由排版）') },
   ...rankPapersForTemplate(designTemplate.value).map(({ spec: p, fit }, index) => {
     const compatible = isPaperCompatible(workspace.template, p)
     const poor = fit.level === 'marginal' || fit.level === 'incompatible'
     return {
       value: p.slug,
       label: p.name,
-      hint: compatible ? `${p.labelWidth} × ${p.labelHeight} mm` : '与当前整页/折叠模板不兼容',
+      hint: compatible ? `${p.labelWidth} × ${p.labelHeight} mm` : t('与当前整页/折叠模板不兼容'),
       disabled: !compatible,
       badge:
         index === 0 && fit.level === 'recommended'
-          ? '推荐'
+          ? t('推荐')
           : poor
-            ? FIT_LEVEL_LABELS[fit.level]
+            ? t(FIT_LEVEL_LABELS[fit.level])
             : undefined,
       badgeTone: (poor ? (fit.level === 'incompatible' ? 'danger' : 'warning') : 'positive') as
         | 'positive'
@@ -134,7 +135,7 @@ const paperOptions = computed<SelectOption[]>(() => {
   if (isCustomPaper.value) {
     options.push({
       value: 'custom',
-      label: `自定义（${workspace.template.page.paperWidth} × ${workspace.template.page.paperHeight}）`,
+      label: `${t('自定义')}（${workspace.template.page.paperWidth} × ${workspace.template.page.paperHeight}）`,
       disabled: true,
     })
   }
@@ -185,22 +186,22 @@ function onCenterLayout() {
 <template>
   <section class="panel-card">
     <div class="panel-head">
-      <h2 class="section-title"><span class="step-chip">4</span>页面与版式</h2>
+      <h2 class="section-title"><span class="step-chip">4</span>{{ t('页面与版式') }}</h2>
       <button
         type="button"
         class="btn btn-secondary btn-sm"
         @click="emit('openDesigner', workspace.template)"
       >
-        打开可视化设计器
+        {{ t('打开可视化设计器') }}
       </button>
     </div>
 
     <div class="grid grid-cols-2 gap-2.5">
       <div class="col-span-2">
         <label class="field-label">
-          按不干胶纸型选择
+          {{ t('按不干胶纸型选择') }}
           <RouterLink to="/papers" class="ml-1 font-normal text-brand-600 hover:underline">
-            查看纸型库
+            {{ t('查看纸型库') }}
           </RouterLink>
         </label>
         <SelectField v-model="labelPaperSlug" :options="labelPaperOptions" />
@@ -220,7 +221,7 @@ function onCenterLayout() {
             <path d="M8 1.5 9.9 5.6l4.4.5-3.3 3 1 4.4L8 11.2l-4 2.3 1-4.4-3.3-3 4.4-.5z" />
           </svg>
           <span>
-            推荐纸型：
+            {{ t('推荐纸型：') }}
             <button
               type="button"
               class="cursor-pointer font-semibold text-brand-600 hover:underline"
@@ -228,24 +229,24 @@ function onCenterLayout() {
             >
               {{ recommendedPaper.spec.name }}
             </button>
-            ，{{ recommendedPaper.fit.reason }}
+            ，{{ t(recommendedPaper.fit.reason) }}
           </span>
         </p>
       </div>
       <div class="col-span-2">
-        <label class="field-label">纸张规格</label>
+        <label class="field-label">{{ t('纸张规格') }}</label>
         <SelectField v-model="paperId" :options="paperOptions" />
       </div>
       <div>
-        <label class="field-label">中文字体</label>
-        <FontPicker v-model="templateFontZh" lang="zh" default-label="宋体（系统默认）" />
+        <label class="field-label">{{ t('中文字体') }}</label>
+        <FontPicker v-model="templateFontZh" lang="zh" :default-label="t('宋体（系统默认）')" />
       </div>
       <div>
-        <label class="field-label">西文字体（英文/数字）</label>
-        <FontPicker v-model="templateFontEn" lang="en" default-label="跟随中文字体" />
+        <label class="field-label">{{ t('西文字体（英文/数字）') }}</label>
+        <FontPicker v-model="templateFontEn" lang="en" :default-label="t('跟随中文字体')" />
       </div>
       <div>
-        <label class="field-label">标签宽 (mm)</label>
+        <label class="field-label">{{ t('标签宽 (mm)') }}</label>
         <NumberField
           aria-label="标签宽 (mm)"
           :model-value="workspace.template.label.width"
@@ -256,7 +257,7 @@ function onCenterLayout() {
         />
       </div>
       <div>
-        <label class="field-label">标签高 (mm)</label>
+        <label class="field-label">{{ t('标签高 (mm)') }}</label>
         <NumberField
           aria-label="标签高 (mm)"
           :model-value="workspace.template.label.height"
@@ -267,7 +268,7 @@ function onCenterLayout() {
         />
       </div>
       <div>
-        <label class="field-label">列数</label>
+        <label class="field-label">{{ t('列数') }}</label>
         <NumberField
           aria-label="列数"
           :model-value="workspace.template.page.cols"
@@ -277,7 +278,7 @@ function onCenterLayout() {
         />
       </div>
       <div>
-        <label class="field-label">行数</label>
+        <label class="field-label">{{ t('行数') }}</label>
         <NumberField
           aria-label="行数"
           :model-value="workspace.template.page.rows"
@@ -287,7 +288,7 @@ function onCenterLayout() {
         />
       </div>
       <div>
-        <label class="field-label">横向间距 (mm)</label>
+        <label class="field-label">{{ t('横向间距 (mm)') }}</label>
         <NumberField
           aria-label="横向间距 (mm)"
           :model-value="workspace.template.page.gapX"
@@ -298,7 +299,7 @@ function onCenterLayout() {
         />
       </div>
       <div>
-        <label class="field-label">纵向间距 (mm)</label>
+        <label class="field-label">{{ t('纵向间距 (mm)') }}</label>
         <NumberField
           aria-label="纵向间距 (mm)"
           :model-value="workspace.template.page.gapY"
@@ -309,7 +310,7 @@ function onCenterLayout() {
         />
       </div>
       <div>
-        <label class="field-label">左右边距 (mm)</label>
+        <label class="field-label">{{ t('左右边距 (mm)') }}</label>
         <NumberField
           aria-label="左右边距 (mm)"
           :model-value="workspace.template.page.marginLeft"
@@ -320,7 +321,7 @@ function onCenterLayout() {
         />
       </div>
       <div>
-        <label class="field-label">上下边距 (mm)</label>
+        <label class="field-label">{{ t('上下边距 (mm)') }}</label>
         <NumberField
           aria-label="上下边距 (mm)"
           :model-value="workspace.template.page.marginTop"
@@ -336,10 +337,10 @@ function onCenterLayout() {
       <CheckboxField
         v-model="workspace.template.showLabelBorder"
         class="text-xs font-semibold text-slate-600"
-        label="显示标签边框"
+        :label="t('显示标签边框')"
       />
       <button type="button" class="btn btn-ghost btn-sm" @click="onCenterLayout">
-        阵列居中（自动均分边距）
+        {{ t('阵列居中（自动均分边距）') }}
       </button>
     </div>
 
@@ -347,10 +348,10 @@ function onCenterLayout() {
       v-if="hasOverflow"
       class="mt-3 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs leading-4 text-red-700"
     >
-      当前排版超出 {{ currentPaperLabel }} 纸面：
-      <template v-if="overflow.x > 0">横向超出 {{ overflow.x }}mm；</template>
-      <template v-if="overflow.y > 0">纵向超出 {{ overflow.y }}mm；</template>
-      请减小标签尺寸、行列数或边距，或换更大的纸张。
+      {{ t('当前排版超出纸面') }}（{{ currentPaperLabel }}）：
+      <template v-if="overflow.x > 0">{{ t('横向超出') }} {{ overflow.x }}mm；</template>
+      <template v-if="overflow.y > 0">{{ t('纵向超出') }} {{ overflow.y }}mm；</template>
+      {{ t('请减小标签尺寸、行列数或边距，或换更大的纸张。') }}
     </p>
   </section>
 </template>

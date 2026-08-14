@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import { useDragScroll } from '@/composables/useDragScroll'
+import { t } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { compareCellText, dedupeDataRows, downloadSampleExcel, parsePastedRoster } from '@/utils/excel'
@@ -230,9 +231,9 @@ async function onDownloadSample() {
 <template>
   <section class="panel-card">
     <div class="panel-head">
-      <h2 class="section-title"><span class="step-chip">2</span>导入数据</h2>
+      <h2 class="section-title"><span class="step-chip">2</span>{{ t('导入数据') }}</h2>
       <button type="button" class="btn btn-ghost btn-sm" @click="onDownloadSample">
-        下载样例 Excel
+        {{ t('下载样例 Excel') }}
       </button>
     </div>
 
@@ -253,16 +254,16 @@ async function onDownloadSample() {
           XLSX
         </span>
         <p class="text-sm text-slate-600">
-          <strong class="text-brand-600">点击选择</strong> 或拖拽 Excel 到此处
+          <strong class="text-brand-600">{{ t('点击选择') }}</strong> {{ t('或拖拽 Excel 到此处') }}
         </p>
-        <p class="text-xs text-slate-600">第一行默认作为表头，支持 .xlsx / .xls / .csv；不确定格式可先下载样例 Excel</p>
+        <p class="text-xs text-slate-600">{{ t('第一行默认作为表头，支持 .xlsx / .xls / .csv；不确定格式可先下载样例 Excel') }}</p>
       </div>
       <div class="mt-3 grid grid-cols-2 gap-2">
         <button type="button" class="btn btn-ghost btn-sm" @click="openPasteDialog">
-          没有文件？粘贴名单
+          {{ t('没有文件？粘贴名单') }}
         </button>
         <button type="button" class="btn btn-ghost btn-sm" @click="workspace.useDemoData()">
-          先用演示数据体验
+          {{ t('先用演示数据体验') }}
         </button>
       </div>
     </template>
@@ -276,7 +277,7 @@ async function onDownloadSample() {
               v-if="workspace.isDemoData"
               class="ml-1 shrink-0 rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-bold text-brand-700"
             >
-              演示数据
+              {{ t('演示数据') }}
             </span>
           </p>
           <p class="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-slate-600">
@@ -297,19 +298,19 @@ async function onDownloadSample() {
                 </select>
               </label>
             </template>
-            <template v-else>工作表「{{ workspace.excel.sheetName }}」</template>
+            <template v-else>{{ t('工作表') }}「{{ workspace.excel.sheetName }}」</template>
             ·
             <span class="whitespace-nowrap"
-              >共 <strong class="text-brand-600">{{ workspace.excel.rows.length }}</strong> 条数据</span
+              >{{ t('共') }} <strong class="text-brand-600">{{ workspace.excel.rows.length }}</strong> {{ t('条数据') }}</span
             >
           </p>
         </div>
         <div class="flex shrink-0 gap-1.5">
           <button type="button" class="btn btn-secondary btn-sm" @click="fileInput?.click()">
-            重新上传
+            {{ t('重新上传') }}
           </button>
           <button type="button" class="btn btn-danger btn-sm" @click="workspace.clearData()">
-            清空
+            {{ t('清空') }}
           </button>
         </div>
       </div>
@@ -318,13 +319,13 @@ async function onDownloadSample() {
         v-if="workspace.isViewCustomized"
         class="mt-2 flex items-center gap-2 rounded-lg border border-brand-100 bg-brand-50/70 px-2.5 py-1.5 text-[11px] leading-4 text-brand-700"
       >
-        <span class="min-w-0 flex-1">排版顺序：{{ viewSummary }}</span>
+        <span class="min-w-0 flex-1">{{ t('排版顺序：') }}{{ viewSummary }}</span>
         <button
           type="button"
           class="shrink-0 cursor-pointer font-bold transition-colors hover:text-brand-900 hover:underline"
           @click="workspace.resetDataView()"
         >
-          恢复原序
+          {{ t('恢复原序') }}
         </button>
       </p>
 
@@ -362,21 +363,21 @@ async function onDownloadSample() {
       </div>
       <div class="mt-1.5 flex items-center justify-between">
         <button type="button" class="btn btn-ghost btn-sm -ml-2" @click="openDataViewer">
-          查看全部数据（可筛选排序）
+          {{ t('查看全部数据（可筛选排序）') }}
         </button>
         <p v-if="workspace.displayRows.length > 5" class="text-[11px] text-slate-600">
-          仅展示前 5 条，共 {{ workspace.displayRows.length }} 条
+          {{ t('仅展示前 5 条') }}，{{ t('共') }} {{ workspace.displayRows.length }} {{ t('条') }}
         </p>
       </div>
     </template>
 
-    <ModalDialog :open="pasteOpen" title="粘贴名单导入" size="md" @close="pasteOpen = false">
+    <ModalDialog :open="pasteOpen" :title="t('粘贴名单导入')" size="md" @close="pasteOpen = false">
       <p class="text-xs text-slate-600">
-        从 Excel/WPS 直接复制区域粘贴（自动分列），或粘贴微信、文档里整理的名单（每行一条，多列可用逗号、顿号或空格分隔），也可直接上传 .txt 文本名单。数据不出浏览器。
+        {{ t('从 Excel/WPS 直接复制区域粘贴（自动分列），或粘贴微信、文档里整理的名单（每行一条，多列可用逗号、顿号或空格分隔），也可直接上传 .txt 文本名单。数据不出浏览器。') }}
       </p>
       <div class="mt-2 flex items-center justify-between gap-2">
         <button type="button" class="btn btn-ghost btn-sm -ml-2" @click="txtInput?.click()">
-          上传 TXT 文件
+          {{ t('上传 TXT 文件') }}
         </button>
         <input
           ref="txtInput"
@@ -387,7 +388,7 @@ async function onDownloadSample() {
           @change="onTxtChange"
         />
         <CheckboxField v-model="pasteDedupe" class="shrink-0 text-xs text-slate-600">
-          自动去重重复行
+          {{ t('自动去重重复行') }}
         </CheckboxField>
       </div>
       <textarea
@@ -412,12 +413,12 @@ async function onDownloadSample() {
           :model-value="pasteParsed.headerDetected"
           @update:model-value="togglePasteHeader"
         >
-          首行是表头
+          {{ t('首行是表头') }}
         </CheckboxField>
       </div>
       <template #actions>
         <button type="button" class="btn btn-secondary btn-md" @click="pasteOpen = false">
-          取消
+          {{ t('取消') }}
         </button>
         <button
           type="button"
@@ -425,14 +426,14 @@ async function onDownloadSample() {
           :disabled="!pasteParsed.rows.length"
           @click="confirmPaste"
         >
-          导入名单
+          {{ t('导入名单') }}
         </button>
       </template>
     </ModalDialog>
 
     <ModalDialog
       :open="dataViewerOpen"
-      :title="`全部数据 · ${workspace.excel.fileName}`"
+      :title="`${t('全部数据')} · ${workspace.excel.fileName}`"
       size="xl"
       @close="dataViewerOpen = false"
     >
@@ -441,10 +442,10 @@ async function onDownloadSample() {
           v-model="dataQuery"
           type="text"
           class="input-field max-w-60"
-          placeholder="搜索任意列（仅查看，不影响排版）…"
+          :placeholder="t('搜索任意列（仅查看，不影响排版）…')"
         />
         <span class="text-xs text-slate-600">
-          {{ viewRows.length }} / {{ workspace.excel.rows.length }} 条
+          {{ viewRows.length }} / {{ workspace.excel.rows.length }} {{ t('条') }}
         </span>
         <button
           v-if="workspace.isViewCustomized"
@@ -452,10 +453,10 @@ async function onDownloadSample() {
           class="btn btn-ghost btn-sm"
           @click="workspace.resetDataView()"
         >
-          清除筛选与排序
+          {{ t('清除筛选与排序') }}
         </button>
         <span class="ml-auto hidden text-[11px] text-slate-600 sm:inline">
-          点击列名排序、漏斗筛选，标签将按当前顺序排版
+          {{ t('点击列名排序、漏斗筛选，标签将按当前顺序排版') }}
         </span>
       </div>
 
@@ -554,7 +555,7 @@ async function onDownloadSample() {
                 :colspan="workspace.excel.headers.length + 1"
                 class="px-2.5 py-8 text-center text-slate-600"
               >
-                没有匹配的数据，请调整搜索或列筛选条件
+                {{ t('没有匹配的数据，请调整搜索或列筛选条件') }}
               </td>
             </tr>
           </tbody>
@@ -563,7 +564,7 @@ async function onDownloadSample() {
 
       <template #actions>
         <button type="button" class="btn btn-secondary btn-md" @click="dataViewerOpen = false">
-          关闭
+          {{ t('关闭') }}
         </button>
       </template>
     </ModalDialog>
@@ -577,23 +578,23 @@ async function onDownloadSample() {
         :style="{ left: `${filterPos.x}px`, top: `${filterPos.y}px` }"
       >
         <div class="border-b border-slate-100 p-2">
-          <p class="px-1 pb-1.5 text-[11px] font-bold text-slate-600">筛选「{{ filterColumn }}」</p>
+          <p class="px-1 pb-1.5 text-[11px] font-bold text-slate-600">{{ t('筛选') }}「{{ filterColumn }}」</p>
           <input
             v-model="filterQuery"
             type="text"
             class="input-field !py-1 text-xs"
-            placeholder="搜索取值…"
+            :placeholder="t('搜索取值…')"
           />
         </div>
         <div class="flex items-center gap-1 border-b border-slate-100 px-2 py-1">
           <button type="button" class="btn btn-ghost btn-sm !px-1.5" @click="draftSelectAll(true)">
-            全选
+            {{ t('全选') }}
           </button>
           <button type="button" class="btn btn-ghost btn-sm !px-1.5" @click="draftSelectAll(false)">
-            清空
+            {{ t('清空') }}
           </button>
           <span class="ml-auto text-[10px] text-slate-600">
-            已选 {{ filterDraft.size }}/{{ distinctValues.length }}
+            {{ t('已选') }} {{ filterDraft.size }}/{{ distinctValues.length }}
           </span>
         </div>
         <div class="max-h-56 overflow-y-auto p-1.5">
@@ -605,19 +606,19 @@ async function onDownloadSample() {
             @update:model-value="toggleDraftValue(item.value)"
           >
             <span class="min-w-0 flex-1 truncate" :class="{ 'text-slate-600 italic': !item.value }">
-              {{ item.value || '(空白)' }}
+              {{ item.value || t('(空白)') }}
             </span>
             <span class="shrink-0 text-[10px] text-slate-600">{{ item.count }}</span>
           </CheckboxField>
           <p v-if="!shownValues.length" class="px-2 py-4 text-center text-xs text-slate-600">
-            没有匹配「{{ filterQuery }}」的取值
+            {{ t('没有匹配的取值') }}
           </p>
         </div>
         <div class="flex justify-end gap-1.5 border-t border-slate-100 p-2">
           <button type="button" class="btn btn-ghost btn-sm" @click="filterColumn = null">
-            取消
+            {{ t('取消') }}
           </button>
-          <button type="button" class="btn btn-primary btn-sm" @click="applyFilter">应用</button>
+          <button type="button" class="btn btn-primary btn-sm" @click="applyFilter">{{ t('应用') }}</button>
         </div>
       </div>
     </Teleport>

@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { useIsPhone } from '@/composables/useMediaQuery'
+import { t, useI18n } from '@/i18n'
 
 import TemplateDesigner from '@/components/designer/TemplateDesigner.vue'
 import DataImportPanel from '@/components/studio/DataImportPanel.vue'
@@ -26,6 +27,7 @@ import { evaluatePaperFit, FIT_LEVEL_LABELS } from '@/utils/paperFit'
 import { takeSeatingHandoff } from '@/utils/seating'
 import { decodeSharedTemplate, extractSharePayload } from '@/utils/share'
 
+const { locale } = useI18n()
 const route = useRoute()
 const workspace = useWorkspaceStore()
 const library = useTemplateLibrary()
@@ -189,7 +191,7 @@ onMounted(() => {
 
 <template>
   <div class="mx-auto w-full max-w-[1480px] px-4 py-5">
-    <h1 class="sr-only">SeatMark 座签工坊：批量生成桌牌 / 座签 / 席位卡</h1>
+    <h1 class="sr-only">{{ locale === 'en' ? 'SeatMark Studio: batch-generate place cards / seating labels / name tags' : 'SeatMark 座签工坊：批量生成桌牌 / 座签 / 席位卡' }}</h1>
     <!-- 移动端分段切换：跟随页面吸顶，随时在设置与预览之间翻面 -->
     <div v-if="isMobile" class="sticky top-14 z-30 -mx-4 mb-3 bg-slate-50/90 px-4 py-2 backdrop-blur">
       <div class="flex rounded-lg border border-slate-200 bg-white p-1 shadow-card">
@@ -216,7 +218,7 @@ onMounted(() => {
           >
             <path :d="tab.icon" />
           </svg>
-          {{ tab.label }}
+          {{ t(tab.label) }}
         </button>
       </div>
     </div>
@@ -259,31 +261,31 @@ onMounted(() => {
 
     <ModalDialog
       :open="!!sharedTemplate"
-      title="收到一个分享模板"
+      :title="t('收到一个分享模板')"
       @close="sharedTemplate = null"
     >
       <p>
-        对方分享了模板
+        {{ t('对方分享了模板') }}
         <strong class="text-slate-800">“{{ sharedTemplate?.name }}”</strong>
         （{{ sharedTemplate?.label.width }} × {{ sharedTemplate?.label.height }} mm，
-        {{ (sharedTemplate?.page.cols ?? 0) * (sharedTemplate?.page.rows ?? 0) }} 枚/页，
-        {{ sharedTemplate?.fields.length }} 个字段）。
+        {{ (sharedTemplate?.page.cols ?? 0) * (sharedTemplate?.page.rows ?? 0) }} {{ t('枚/页') }}，
+        {{ sharedTemplate?.fields.length }} {{ t('个字段') }}）。
       </p>
       <p class="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
-        SeatMark 座签是免费的在线批量制签工具：上传 Excel 名单即可批量生成座位标签 / 桌牌席卡，排版精确到毫米。选「保存并应用」即可一键开始，名单数据全程只在你的浏览器本地处理。
+        {{ t('SeatMark 座签是免费的在线批量制签工具：上传 Excel 名单即可批量生成座位标签 / 桌牌席卡，排版精确到毫米。选「保存并应用」即可一键开始，名单数据全程只在你的浏览器本地处理。') }}
       </p>
       <p class="mt-2 text-xs text-slate-600">
-        模板完全由链接本身携带，没有经过任何服务器。
+        {{ t('模板完全由链接本身携带，没有经过任何服务器。') }}
       </p>
       <template #actions>
         <button type="button" class="btn btn-ghost btn-md" @click="sharedTemplate = null">
-          忽略
+          {{ t('忽略') }}
         </button>
         <button type="button" class="btn btn-secondary btn-md" @click="useSharedOnce">
-          仅本次使用
+          {{ t('仅本次使用') }}
         </button>
         <button type="button" class="btn btn-primary btn-md" @click="saveShared">
-          保存并应用
+          {{ t('保存并应用') }}
         </button>
       </template>
     </ModalDialog>

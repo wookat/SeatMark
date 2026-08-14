@@ -5,6 +5,8 @@ import {
   type RouteRecordRaw,
 } from 'vue-router'
 
+import { localeFromPath, setLocale } from '@/i18n'
+
 export const routes: RouteRecordRaw[] = [
   {
     path: '/',
@@ -101,6 +103,19 @@ export const routes: RouteRecordRaw[] = [
     name: 'privacy',
     component: () => import('@/views/PrivacyView.vue'),
   },
+]
+
+/** /en 前缀英文路由：同一份组件镜像生成，meta.locale 标记语言 */
+const enRoutes: RouteRecordRaw[] = routes.map((route) => ({
+  ...route,
+  path: route.path === '/' ? '/en' : `/en${route.path}`,
+  name: `en-${String(route.name)}`,
+  meta: { ...route.meta, locale: 'en' },
+}))
+
+const allRoutes: RouteRecordRaw[] = [
+  ...routes,
+  ...enRoutes,
   {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
@@ -110,12 +125,12 @@ export const routes: RouteRecordRaw[] = [
 
 /** SSR/预渲染环境无 window，使用内存路由 */
 export function createAppRouter() {
-  return createRouter({
+  const router = createRouter({
     history:
       typeof window === 'undefined'
         ? createMemoryHistory(import.meta.env.BASE_URL)
         : createWebHistory(import.meta.env.BASE_URL),
-    routes,
+    routes: allRoutes,
     scrollBehavior(to, _from, savedPosition) {
       // 仅落地页锚点走定位滚动；工坊的分享 hash（#t=...）不是选择器，必须排除
       if (/^#[a-z][\w-]*$/.test(to.hash)) {
@@ -131,6 +146,13 @@ export function createAppRouter() {
       return { top: 0 }
     },
   })
+
+  // 进入目标路由前按 /en 前缀切换 locale（英文字典首次进入时懒加载；预渲染同样生效）
+  router.beforeEach(async (to) => {
+    await setLocale(localeFromPath(to.path))
+  })
+
+  return router
 }
 
 /**

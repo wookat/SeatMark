@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { TEMPLATE_COUNT } from '@/data/templateMeta'
 
 import ModalDialog from '@/components/ui/ModalDialog.vue'
+import { localePath, t } from '@/i18n'
 import { PRICING_FAQS } from '@/data/seo'
 import { useAuthStore } from '@/stores/auth'
 import { QUOTA_ANON_DAILY, QUOTA_USER_DAILY } from '@/stores/quota'
@@ -27,53 +28,53 @@ interface Plan {
 
 const PLANS = computed<Plan[]>(() => [
   {
-    name: '免费版',
+    name: t('免费版'),
     price: '¥0',
-    priceUnit: '/月',
+    priceUnit: t('/月'),
     badge: null,
-    tagline: '个人日常制签',
+    tagline: t('个人日常制签'),
     features: [
-      '带水印导出 / 打印不限次数（页脚角标，不遮挡内容）',
-      `无水印导出每日 ${QUOTA_ANON_DAILY} 次（免费登录即升为每日 ${QUOTA_USER_DAILY} 次）`,
-      '分享链接每被点开 1 次即得 1 次无水印导出',
-      `全部 ${TEMPLATE_COUNT} 款内置模板与设计器`,
-      'Excel 名单批量导入、A4 / A5 / A3 排版',
-      '数据全程浏览器本地处理',
+      t('带水印导出 / 打印不限次数（页脚角标，不遮挡内容）'),
+      `${t('无水印导出每日')} ${QUOTA_ANON_DAILY} ${t('次（免费登录即升为每日')} ${QUOTA_USER_DAILY} ${t('次）')}`,
+      t('分享链接每被点开 1 次即得 1 次无水印导出'),
+      `${t('全部')} ${TEMPLATE_COUNT} ${t('款内置模板与设计器')}`,
+      t('Excel 名单批量导入、A4 / A5 / A3 排版'),
+      t('数据全程浏览器本地处理'),
     ],
     highlight: false,
     cta: 'signup',
   },
   {
-    name: '专业版',
+    name: t('专业版'),
     price: '¥14.5',
-    priceUnit: '/月',
+    priceUnit: t('/月'),
     originalPrice: '¥29',
-    badge: '限时 5 折 · 注册送 7 天',
-    tagline: '考务与会务重度用户',
+    badge: t('限时 5 折 · 注册送 7 天'),
+    tagline: t('考务与会务重度用户'),
     features: [
-      '新用户注册即送 7 天专业版试用',
-      '邀请好友注册，双方各送 7 天，可累计叠加',
-      '无水印导出 / 打印不限次数',
-      '照片批量核验与覆盖率统计',
-      '自定义模板云端同步与跨设备找回',
-      '支持兑换码开通，天数可叠加',
+      t('新用户注册即送 7 天专业版试用'),
+      t('邀请好友注册，双方各送 7 天，可累计叠加'),
+      t('无水印导出 / 打印不限次数'),
+      t('照片批量核验与覆盖率统计'),
+      t('自定义模板云端同步与跨设备找回'),
+      t('支持兑换码开通，天数可叠加'),
     ],
     highlight: true,
     cta: 'pro-trial',
   },
   {
-    name: '团队版',
+    name: t('团队版'),
     price: '¥49.5',
-    priceUnit: '/月',
+    priceUnit: t('/月'),
     originalPrice: '¥99',
-    badge: '限时 5 折 · 可预订',
-    tagline: '学校 / 机构多人协作',
+    badge: t('限时 5 折 · 可预订'),
+    tagline: t('学校 / 机构多人协作'),
     features: [
-      '含专业版全部功能',
-      '团队成员共享配额与模板',
-      '模板分享链接团队分发',
-      '机构商用授权',
-      '优先反馈响应',
+      t('含专业版全部功能'),
+      t('团队成员共享配额与模板'),
+      t('模板分享链接团队分发'),
+      t('机构商用授权'),
+      t('优先反馈响应'),
     ],
     highlight: false,
     cta: 'team-reserve',
@@ -98,7 +99,7 @@ function openReserve() {
 async function submitReserve() {
   reserveError.value = ''
   if (!isValidEmail(reserveEmail.value.trim())) {
-    reserveError.value = '请输入正确的邮箱地址'
+    reserveError.value = t('请输入正确的邮箱地址')
     return
   }
   reserving.value = true
@@ -112,9 +113,9 @@ async function submitReserve() {
       },
     })
     reserved.value = true
-    toast.success('预订登记成功', '团队版支付开通后我们会第一时间邮件通知你')
+    toast.success(t('预订登记成功'), t('团队版支付开通后我们会第一时间邮件通知你'))
   } catch (err) {
-    reserveError.value = err instanceof ApiError ? err.message : '提交失败，请稍后再试'
+    reserveError.value = err instanceof ApiError ? err.message : t('提交失败，请稍后再试')
   } finally {
     reserving.value = false
   }
@@ -126,14 +127,14 @@ async function submitReserve() {
     <div class="text-center">
       <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Pricing</p>
       <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-        定价方案
+        {{ t('定价方案') }}
       </h1>
       <p class="mx-auto mt-4 max-w-xl text-sm leading-6 text-slate-600">
-        带水印导出与打印完全不限次数；无水印导出每天 {{ QUOTA_ANON_DAILY }} 次（登录后
-        {{ QUOTA_USER_DAILY }} 次），分享可再送次数。
+        {{ t('带水印导出与打印完全不限次数；无水印导出每天') }} {{ QUOTA_ANON_DAILY }} {{ t('次（登录后') }}
+        {{ QUOTA_USER_DAILY }} {{ t('次），分享可再送次数。') }}
       </p>
       <p class="mx-auto mt-1.5 max-w-xl text-sm leading-6 text-slate-600">
-        注册即送 7 天专业版；邀请好友注册，双方各送 7 天，可累计叠加；专业版可用兑换码开通。
+        {{ t('注册即送 7 天专业版；邀请好友注册，双方各送 7 天，可累计叠加；专业版可用兑换码开通。') }}
       </p>
     </div>
 
@@ -167,7 +168,7 @@ async function submitReserve() {
             v-if="plan.cta === 'pro-trial'"
             class="mb-1 ml-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700"
           >
-            注册送 7 天
+            {{ t('注册送 7 天') }}
           </span>
         </div>
 
@@ -190,17 +191,17 @@ async function submitReserve() {
 
         <RouterLink
           v-if="plan.cta === 'signup'"
-          :to="auth.user ? '/studio' : '/account'"
+          :to="localePath(auth.user ? '/studio' : '/account')"
           class="btn btn-secondary btn-md mt-6 w-full"
         >
-          免费开始使用
+          {{ t('免费开始使用') }}
         </RouterLink>
         <RouterLink
           v-else-if="plan.cta === 'pro-trial'"
-          :to="auth.user ? '/account#redeem' : '/account'"
+          :to="localePath(auth.user ? '/account#redeem' : '/account')"
           class="btn btn-primary btn-md mt-6 w-full"
         >
-          {{ auth.user ? '使用兑换码开通 / 延长' : '注册领 7 天试用' }}
+          {{ auth.user ? t('使用兑换码开通 / 延长') : t('注册领 7 天试用') }}
         </RouterLink>
         <button
           v-else
@@ -208,34 +209,34 @@ async function submitReserve() {
           class="btn btn-secondary btn-md mt-6 w-full"
           @click="openReserve"
         >
-          预订登记（免费）
+          {{ t('预订登记（免费）') }}
         </button>
       </div>
     </div>
 
     <p class="mt-6 text-center text-xs text-slate-600">
-      在线支付通道开通前，专业版通过兑换码开通（<RouterLink to="/account#redeem" class="font-semibold text-brand-600 hover:underline">去兑换</RouterLink>）；团队版预订登记不收取任何费用；所有名单数据仅在浏览器本地处理，不会上传服务器。
+      {{ t('在线支付通道开通前，专业版通过兑换码开通') }}（<RouterLink :to="localePath('/account#redeem')" class="font-semibold text-brand-600 hover:underline">{{ t('去兑换') }}</RouterLink>）；{{ t('团队版预订登记不收取任何费用；所有名单数据仅在浏览器本地处理，不会上传服务器。') }}
     </p>
 
     <!-- FAQ -->
     <section class="mx-auto mt-14 max-w-3xl">
-      <h2 class="text-center text-2xl font-bold tracking-tight text-slate-900">定价常见问题</h2>
+      <h2 class="text-center text-2xl font-bold tracking-tight text-slate-900">{{ t('定价常见问题') }}</h2>
       <div class="mt-6 grid gap-4">
         <div
           v-for="faq in PRICING_FAQS"
           :key="faq.q"
           class="rounded-lg border border-slate-200 bg-white p-5"
         >
-          <h3 class="text-sm font-bold text-slate-900">{{ faq.q }}</h3>
-          <p class="mt-2 text-sm leading-6 text-slate-600">{{ faq.a }}</p>
+          <h3 class="text-sm font-bold text-slate-900">{{ t(faq.q) }}</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-600">{{ t(faq.a) }}</p>
         </div>
       </div>
     </section>
 
     <!-- CTA -->
     <div class="mt-12 text-center">
-      <RouterLink :to="auth.user ? '/studio' : '/account'" class="btn btn-primary btn-lg">
-        {{ auth.user ? '进入标签工坊' : '开始免费试用' }}
+      <RouterLink :to="localePath(auth.user ? '/studio' : '/account')" class="btn btn-primary btn-lg">
+        {{ auth.user ? t('进入标签工坊') : t('开始免费试用') }}
         <svg
           class="size-4"
           viewBox="0 0 24 24"
@@ -249,19 +250,19 @@ async function submitReserve() {
         </svg>
       </RouterLink>
       <p class="mt-3 text-xs text-slate-600">
-        还不确定？先看看<RouterLink to="/guides" class="font-semibold text-brand-600 hover:underline">教程中心</RouterLink>或<RouterLink to="/templates" class="font-semibold text-brand-600 hover:underline">模板库</RouterLink>
+        {{ t('还不确定？先看看') }}<RouterLink :to="localePath('/guides')" class="font-semibold text-brand-600 hover:underline">{{ t('教程中心') }}</RouterLink>{{ t('或') }}<RouterLink :to="localePath('/templates')" class="font-semibold text-brand-600 hover:underline">{{ t('模板库') }}</RouterLink>
       </p>
     </div>
 
     <!-- 团队版预订弹窗 -->
-    <ModalDialog :open="reserveOpen" title="预订团队版" size="md" @close="reserveOpen = false">
+    <ModalDialog :open="reserveOpen" :title="t('预订团队版')" size="md" @close="reserveOpen = false">
       <template v-if="!reserved">
         <p class="leading-6">
-          团队版 ¥99/月，支付通道即将开通。留下邮箱与团队规模，开通后我们第一时间通知你，预订用户享首批优惠。
+          {{ t('团队版 ¥99/月，支付通道即将开通。留下邮箱与团队规模，开通后我们第一时间通知你，预订用户享首批优惠。') }}
         </p>
         <form class="mt-4 grid gap-3" novalidate @submit.prevent="submitReserve">
           <label class="grid gap-1.5">
-            <span class="text-sm font-semibold text-slate-700">联系邮箱</span>
+            <span class="text-sm font-semibold text-slate-700">{{ t('联系邮箱') }}</span>
             <input
               v-model="reserveEmail"
               type="email"
@@ -271,28 +272,28 @@ async function submitReserve() {
             />
           </label>
           <label class="grid gap-1.5">
-            <span class="text-sm font-semibold text-slate-700">团队规模（选填）</span>
+            <span class="text-sm font-semibold text-slate-700">{{ t('团队规模（选填）') }}</span>
             <input
               v-model="reserveTeamSize"
               type="text"
               maxlength="50"
-              placeholder="如：5-10 人 / 一所学校"
+              :placeholder="t('如：5-10 人 / 一所学校')"
               class="h-10 rounded border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
             />
           </label>
           <label class="grid gap-1.5">
-            <span class="text-sm font-semibold text-slate-700">备注（选填）</span>
+            <span class="text-sm font-semibold text-slate-700">{{ t('备注（选填）') }}</span>
             <textarea
               v-model="reserveNote"
               rows="2"
               maxlength="500"
-              placeholder="使用场景或其他需求"
+              :placeholder="t('使用场景或其他需求')"
               class="rounded border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
             />
           </label>
           <p v-if="reserveError" class="text-sm font-medium text-red-600">{{ reserveError }}</p>
           <button type="submit" class="btn btn-primary btn-md w-full" :disabled="reserving">
-            {{ reserving ? '提交中...' : '提交预订登记' }}
+            {{ reserving ? t('提交中...') : t('提交预订登记') }}
           </button>
         </form>
       </template>
@@ -303,12 +304,12 @@ async function submitReserve() {
               <path d="m5 13 4 4 10-11" />
             </svg>
           </span>
-          <p class="mt-3 text-sm font-bold text-slate-900">预订登记成功</p>
+          <p class="mt-3 text-sm font-bold text-slate-900">{{ t('预订登记成功') }}</p>
           <p class="mt-1 text-sm leading-6 text-slate-600">
-            团队版支付开通后我们会邮件通知 {{ reserveEmail }}，感谢支持。
+            {{ t('团队版支付开通后我们会邮件通知') }} {{ reserveEmail }}
           </p>
           <button type="button" class="btn btn-secondary btn-sm mt-4" @click="reserveOpen = false">
-            关闭
+            {{ t('关闭') }}
           </button>
         </div>
       </template>

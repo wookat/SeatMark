@@ -8,6 +8,7 @@ import CheckboxField from '@/components/ui/CheckboxField.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
+import { t } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useCalibrationStore } from '@/stores/calibration'
 import { QUOTA_USER_DAILY, useQuotaStore } from '@/stores/quota'
@@ -78,15 +79,15 @@ const duplexGuideOpen = ref(false)
 const previewContainer = ref<HTMLElement | null>(null)
 const { width: containerWidth } = useElementSize(previewContainer)
 
-const ZOOM_OPTIONS: SelectOption[] = [
-  { value: 'fit', label: '适应宽度' },
-  { value: 'fitLabel', label: '适应单枚' },
+const ZOOM_OPTIONS = computed<SelectOption[]>(() => [
+  { value: 'fit', label: t('适应宽度') },
+  { value: 'fitLabel', label: t('适应单枚') },
   { value: '0.5', label: '50%' },
   { value: '0.75', label: '75%' },
   { value: '1', label: '100%' },
   { value: '1.5', label: '150%' },
   { value: '2', label: '200%' },
-]
+])
 
 /** 小屏（<sm）整页适应宽度会把姓名缩到不可读，默认改为「适应单枚」；桌面端仍默认整页 */
 const zoomMode = ref(
@@ -193,7 +194,7 @@ watch(
 )
 
 const PNG_PRESET_OPTIONS = computed<SelectOption[]>(() => [
-  { value: 'custom', label: '自定义宽度（高度按模板比例）' },
+  { value: 'custom', label: t('自定义宽度（高度按模板比例）') },
   ...EINK_PRESETS.map((p) => ({ value: p.id, label: p.label })),
 ])
 
@@ -206,15 +207,15 @@ watch(pngPreset, (preset) => {
   pngMonochrome.value = true
 })
 
-const PNG_NAME_OPTIONS: SelectOption[] = [
-  { value: 'seq', label: '序号命名（前缀-001.png）' },
-  { value: 'field', label: '按名单字段命名（如 张三-第1考场.png）' },
-]
+const PNG_NAME_OPTIONS = computed<SelectOption[]>(() => [
+  { value: 'seq', label: t('序号命名（前缀-001.png）') },
+  { value: 'field', label: t('按名单字段命名（如 张三-第1考场.png）') },
+])
 
-const PNG_UNIT_OPTIONS: SelectOption[] = [
-  { value: 'label', label: '按标签逐张导出（每一张标签一张 PNG，推荐）' },
-  { value: 'page', label: '按整页导出（每页纸张一张 PNG）' },
-]
+const PNG_UNIT_OPTIONS = computed<SelectOption[]>(() => [
+  { value: 'label', label: t('按标签逐张导出（每一张标签一张 PNG，推荐）') },
+  { value: 'page', label: t('按整页导出（每页纸张一张 PNG）') },
+])
 
 /** 逐标签导出的总枚数（跳过裁切排序等产生的空位） */
 const pngTotalLabels = computed(() =>
@@ -239,8 +240,8 @@ const pngNameTemplateValid = computed(
 )
 
 const PNG_SIZE_OPTIONS = computed<SelectOption[]>(() => [
-  { value: 'standard', label: '标准清晰度（300dpi，小标签自动提清）' },
-  { value: 'exact', label: isEinkTemplate.value ? '精确像素（电子墨水屏 800×480）' : '精确像素（自定义宽度）' },
+  { value: 'standard', label: t('标准清晰度（300dpi，小标签自动提清）') },
+  { value: 'exact', label: isEinkTemplate.value ? t('精确像素（电子墨水屏 800×480）') : t('精确像素（自定义宽度）') },
 ])
 
 const pngExactWidthValid = computed(() => isValidExactPixelWidth(pngExactWidth.value))
@@ -764,8 +765,8 @@ async function doMobilePrint() {
  */
 const exportBadge = computed(() =>
   quota.remaining > 0
-    ? { text: `今日剩余 ${quota.remaining} 次`, cls: 'bg-emerald-100 text-emerald-700' }
-    : { text: '带水印免费', cls: 'bg-sky-100 text-sky-700' },
+    ? { text: `${t('今日剩余')} ${quota.remaining} ${t('次')}`, cls: 'bg-emerald-100 text-emerald-700' }
+    : { text: t('带水印免费'), cls: 'bg-sky-100 text-sky-700' },
 )
 const exportBadgeTitle = computed(
   () =>
@@ -801,13 +802,13 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           v-if="workspace.excel.rows.length"
           class="rounded-full bg-brand-50 px-2.5 py-1 font-bold text-brand-700"
         >
-          {{ workspace.excel.rows.length }} 个标签
+          {{ workspace.excel.rows.length }} {{ t('个标签') }}
         </span>
         <span
           v-if="workspace.totalPages > 0"
           class="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-600"
         >
-          {{ workspace.totalPages }} 页
+          {{ workspace.totalPages }} {{ t('页') }}
         </span>
         <span class="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-600">
           {{ currentPaperLabel }}
@@ -876,7 +877,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           :aria-expanded="displayOptionsOpen"
           @click="displayOptionsOpen = !displayOptionsOpen"
         >
-          显示选项<span
+          {{ t('显示选项') }}<span
             v-if="displayOptionsActiveCount"
             class="ml-0.5 rounded-full bg-brand-100 px-1.5 text-[10px] font-bold text-brand-700"
           >{{ displayOptionsActiveCount }}</span>
@@ -900,13 +901,13 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         <CheckboxField
           v-model="workspace.showCutLines"
           class="text-xs font-semibold text-slate-600"
-          label="裁切线"
+          :label="t('裁切线')"
         />
         <CheckboxField
           v-model="workspace.highlightMissing"
           tone="amber"
           class="text-xs font-semibold text-slate-600"
-          label="高亮缺失"
+          :label="t('高亮缺失')"
         />
         <span
           v-if="workspace.totalPages > 1 || workspace.cutStackSort"
@@ -916,7 +917,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             v-model="workspace.cutStackSort"
             class="text-xs font-semibold text-slate-600"
             :title="HINTS.cutSort!.text"
-            label="裁切排序"
+            :label="t('裁切排序')"
           />
           <button
             type="button"
@@ -935,7 +936,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             v-model="workspace.showMirror"
             class="text-xs font-semibold text-slate-600"
             :title="HINTS.mirror!.text"
-            label="对折双联（镜像）"
+            :label="t('对折双联（镜像）')"
           />
           <button
             type="button"
@@ -958,7 +959,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 17 17 3l4 4L7 21H3v-4zM14 6l4 4M9 11l1.5 1.5M11.5 8.5 13 10" />
           </svg>
-          打印校准<span
+          {{ t('打印校准') }}<span
             v-if="calibrationStore.active"
             class="ml-0.5 size-1.5 rounded-full bg-emerald-500"
             aria-label="校准已生效"
@@ -983,7 +984,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           >
             <path d="M7 8V3h10v5M7 17H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3m-10-3h10v7H7v-7z" />
           </svg>
-          打印<span class="hidden sm:inline"> / 矢量 PDF</span>
+          {{ t('打印') }}<span class="hidden sm:inline"> / {{ t('矢量 PDF') }}</span>
         </button>
         <button
           type="button"
@@ -1003,7 +1004,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           >
             <path d="M12 4v12m0 0 5-5m-5 5-5-5M4 20h16" />
           </svg>
-          图片版 PDF<span class="hidden sm:inline">（推荐）</span>
+          {{ t('图片版 PDF') }}<span class="hidden sm:inline">{{ t('（推荐）') }}</span>
           <span
             v-if="!sharePromptVisible"
             class="absolute -top-2.5 -right-2 rounded-full px-1.5 py-px text-[9px] font-bold ring-1 ring-white"
@@ -1031,7 +1032,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             <circle cx="8.5" cy="8.5" r="1.5" />
             <path d="m21 15-5-5L5 21" />
           </svg>
-          图片 PNG
+          {{ t('图片 PNG') }}
         </button>
       </div>
     </div>
@@ -1069,10 +1070,10 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           class="btn btn-primary btn-sm"
           @click="copyReferralLink"
         >
-          复制分享链接
+          {{ t('复制分享链接') }}
         </button>
         <RouterLink v-else to="/account" class="btn btn-primary btn-sm" @click="dismissSharePrompt">
-          {{ sharePromptWatermarked ? '免费登录去水印' : '免费登录解锁' }}
+          {{ sharePromptWatermarked ? t('免费登录去水印') : t('免费登录解锁') }}
         </RouterLink>
         <button
           type="button"
@@ -1105,16 +1106,16 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
               :style="{ animationDelay: `${n * 80}ms` }"
             ></div>
           </div>
-          <h3 class="mt-4 text-sm font-bold text-slate-800">还没有名单数据</h3>
+          <h3 class="mt-4 text-sm font-bold text-slate-800">{{ t('还没有名单数据') }}</h3>
           <p class="mt-1.5 text-xs leading-5 text-slate-600">
-            在左侧「导入数据」上传 Excel 后，这里会实时显示按毫米排版的真实打印效果
+            {{ t('在左侧「导入数据」上传 Excel 后，这里会实时显示按毫米排版的真实打印效果') }}
           </p>
           <button
             type="button"
             class="btn btn-secondary btn-sm mt-3"
             @click="workspace.useDemoData()"
           >
-            先用演示数据看看效果
+            {{ t('先用演示数据看看效果') }}
           </button>
         </div>
       </div>
@@ -1131,8 +1132,8 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             </svg>
           </span>
           <p class="text-xs leading-5 text-slate-600">
-            <strong class="text-slate-800">小技巧：单张覆写</strong><br />
-            点击预览中任意一张标签，可单独修改这一张的内容，不影响名单数据。
+            <strong class="text-slate-800">{{ t('小技巧：单张覆写') }}</strong><br />
+            {{ t('点击预览中任意一张标签，可单独修改这一张的内容，不影响名单数据。') }}
           </p>
           <button
             type="button"
@@ -1171,12 +1172,12 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
 
     <ModalDialog
       :open="exportChoiceOpen"
-      :title="pendingAction === 'pdf' ? '导出图片版 PDF（推荐）' : pendingAction === 'png' ? '导出图片（PNG）' : '打印 / 矢量 PDF'"
+      :title="pendingAction === 'pdf' ? t('导出图片版 PDF（推荐）') : pendingAction === 'png' ? t('导出图片（PNG）') : t('打印 / 矢量 PDF')"
       size="md"
       @close="exportChoiceOpen = false"
     >
       <div v-if="pendingAction === 'png'" class="mb-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
-        <label class="field-label" for="png-unit">成图单位</label>
+        <label class="field-label" for="png-unit">{{ t('成图单位') }}</label>
         <SelectField id="png-unit" v-model="pngExportUnit" size="sm" :options="PNG_UNIT_OPTIONS" />
         <p class="mt-1.5 text-xs leading-5 text-slate-600">
           {{
@@ -1185,16 +1186,16 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
               : '按整页导出：每页纸张（含多枚标签）合成一张 PNG'
           }}
         </p>
-        <label class="field-label mt-3">输出尺寸</label>
+        <label class="field-label mt-3">{{ t('输出尺寸') }}</label>
         <SelectField v-model="pngSizeMode" size="sm" :options="PNG_SIZE_OPTIONS" />
         <template v-if="pngSizeMode === 'exact'">
-          <label class="field-label mt-2" for="png-preset">分辨率预设（电子墨水屏）</label>
+          <label class="field-label mt-2" for="png-preset">{{ t('分辨率预设（电子墨水屏）') }}</label>
           <SelectField id="png-preset" v-model="pngPresetId" size="sm" :options="PNG_PRESET_OPTIONS" />
           <div
             v-if="!pngPreset"
             class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600"
           >
-            <label class="font-semibold" for="png-exact-width">宽度（px）</label>
+            <label class="font-semibold" for="png-exact-width">{{ t('宽度（px）') }}</label>
             <input
               id="png-exact-width"
               v-model.number="pngExactWidth"
@@ -1219,13 +1220,13 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         <CheckboxField
           v-model="pngMonochrome"
           class="mt-2 text-xs font-semibold text-slate-600"
-          label="纯黑白输出（电子墨水屏推荐）"
+          :label="t('纯黑白输出（电子墨水屏推荐）')"
         />
         <p class="mt-2 text-xs leading-5 text-slate-600">
           单张直接下载 PNG，多张自动打包为 zip；{{ isEinkTemplate ? '电子座签模板默认精确 800×480 像素 + 纯黑白，可直接导入电子桌牌系统。' : '需要精确像素（如电子墨水屏）时选「精确像素」，可用分辨率预设或自定义宽度。' }}
         </p>
         <template v-if="pngExportUnit === 'label' ? pngTotalLabels > 1 : workspace.totalPages > 1">
-          <label class="field-label mt-3" for="png-name-mode">zip 内文件命名</label>
+          <label class="field-label mt-3" for="png-name-mode">{{ t('zip 内文件命名') }}</label>
           <SelectField id="png-name-mode" v-model="pngNameMode" size="sm" :options="PNG_NAME_OPTIONS" />
           <div v-if="pngNameMode === 'field'" class="mt-2 text-xs text-slate-600">
             <input
@@ -1237,7 +1238,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
               aria-label="文件命名模板"
             />
             <div v-if="workspace.excel.headers.length" class="mt-1.5 flex flex-wrap items-center gap-1.5">
-              <span class="text-slate-600">点击插入字段：</span>
+              <span class="text-slate-600">{{ t('点击插入字段：') }}</span>
               <button
                 v-for="header in workspace.excel.headers"
                 :key="header"
@@ -1261,17 +1262,17 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         v-if="pendingAction === 'pdf'"
         class="mb-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600"
       >
-        图片版 PDF：每页渲染为高清图片后合成，所见即所得、任何设备打开都一致；文字不可选中，需要矢量文字请改用「打印 / 矢量 PDF」。
+        {{ t('图片版 PDF：每页渲染为高清图片后合成，所见即所得、任何设备打开都一致；文字不可选中，需要矢量文字请改用「打印 / 矢量 PDF」。') }}
       </p>
       <p
         v-else-if="pendingAction === 'print'"
         class="mb-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600"
       >
         <template v-if="isMobile">
-          手机浏览器的打印预览容易出现空白：将先生成打印用 PDF，再调起系统分享面板，在面板中选「打印」或用 PDF 应用打开后打印。
+          {{ t('手机浏览器的打印预览容易出现空白：将先生成打印用 PDF，再调起系统分享面板，在面板中选「打印」或用 PDF 应用打开后打印。') }}
         </template>
         <template v-else>
-          打印 / 矢量 PDF：调起浏览器打印对话框，目标打印机选「另存为 PDF」即得到文字可选中的矢量 PDF，也可直接连打印机输出。
+          {{ t('打印 / 矢量 PDF：调起浏览器打印对话框，目标打印机选「另存为 PDF」即得到文字可选中的矢量 PDF，也可直接连打印机输出。') }}
         </template>
       </p>
       <details
@@ -1299,7 +1300,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           小验证：目标打印机先选「另存为 PDF」，导出的 PDF 是彩色就说明页面没问题，剩下的是打印机设置。
         </p>
       </details>
-      <p class="leading-6">选择导出方式<span class="text-xs text-slate-500">（点击即开始导出，可随时取消，取消不扣次数）</span>：</p>
+      <p class="leading-6">{{ t('选择导出方式') }}<span class="text-xs text-slate-500">{{ t('（点击即开始导出，可随时取消，取消不扣次数）') }}</span>：</p>
       <p
         v-if="pendingAction === 'pdf' && exportEstimate"
         class="mt-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600"
@@ -1322,7 +1323,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             v-if="quota.remaining <= 0"
             class="absolute top-2 right-2 rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-600"
           >
-            今日 0 次
+            {{ t('今日 0 次') }}
           </span>
           <span
             class="flex size-8 shrink-0 items-center justify-center rounded-lg text-white"
@@ -1333,9 +1334,9 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             </svg>
           </span>
           <span>
-            <span class="block text-sm font-bold text-slate-900">无水印导出（今日剩余 {{ quota.remaining }} 次）</span>
+            <span class="block text-sm font-bold text-slate-900">{{ t('无水印导出') }}（{{ t('今日剩余') }} {{ quota.remaining }} {{ t('次') }}）</span>
             <span class="mt-0.5 block text-xs leading-5 text-slate-600">
-              {{ quota.remaining > 0 ? '页面不叠加任何标识' : (auth.isLoggedIn ? '今日已用完，分享链接每被点开 1 次即得 1 次，或明日 0 点恢复' : '今日已用完，登录后每天 3 次，还可分享送次数') }}
+              {{ quota.remaining > 0 ? t('页面不叠加任何标识') : (auth.isLoggedIn ? t('今日已用完，分享链接每被点开 1 次即得 1 次，或明日 0 点恢复') : t('今日已用完，登录后每天 3 次，还可分享送次数')) }}
             </span>
           </span>
         </button>
@@ -1350,9 +1351,9 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             </svg>
           </span>
           <span>
-            <span class="block text-sm font-bold text-slate-900">带水印导出（不限次数）</span>
+            <span class="block text-sm font-bold text-slate-900">{{ t('带水印导出（不限次数）') }}</span>
             <span class="mt-0.5 block text-xs leading-5 text-slate-600">
-              每张标签底边叠加细线签名式品牌水印（细线 + seatmark.cn 小字，配色随模板自适应），不遮挡姓名等核心内容
+              {{ t('每张标签底边叠加细线签名式品牌水印（细线 + seatmark.cn 小字，配色随模板自适应），不遮挡姓名等核心内容') }}
             </span>
           </span>
         </button>
@@ -1364,16 +1365,16 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
 
     <ModalDialog
       :open="editRow != null"
-      title="单张覆写：只改这一张标签"
+      :title="t('单张覆写：只改这一张标签')"
       size="md"
       @close="editRow = null"
     >
       <p class="text-xs leading-5 text-slate-600">
-        修改只影响这一张标签，不改动名单数据；重新导入名单时覆写会自动清除并提示。
+        {{ t('修改只影响这一张标签，不改动名单数据；重新导入名单时覆写会自动清除并提示。') }}
       </p>
       <div class="mt-3 grid gap-2.5">
         <div v-for="field in workspace.mappableFields" :key="field.id">
-          <label class="field-label">{{ field.label || field.id }}</label>
+          <label class="field-label">{{ t(field.label || field.id) }}</label>
           <input v-model="editValues[field.id]" type="text" class="input-field w-full" />
         </div>
       </div>
@@ -1384,10 +1385,10 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           class="btn btn-secondary btn-sm mr-auto text-amber-600"
           @click="clearEditOne"
         >
-          清除本张覆写
+          {{ t('清除本张覆写') }}
         </button>
-        <button type="button" class="btn btn-secondary btn-sm" @click="editRow = null">取消</button>
-        <button type="button" class="btn btn-primary btn-sm" @click="saveEditOne">保存覆写</button>
+        <button type="button" class="btn btn-secondary btn-sm" @click="editRow = null">{{ t('取消') }}</button>
+        <button type="button" class="btn btn-primary btn-sm" @click="saveEditOne">{{ t('保存覆写') }}</button>
       </div>
     </ModalDialog>
 
@@ -1401,11 +1402,11 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
 
     <ModalDialog
       :open="hintKey != null"
-      :title="hintKey ? HINTS[hintKey]!.title : ''"
+      :title="hintKey ? t(HINTS[hintKey]!.title) : ''"
       size="md"
       @close="hintKey = null"
     >
-      <p class="text-sm leading-6 text-slate-600">{{ hintKey ? HINTS[hintKey]!.text : '' }}</p>
+      <p class="text-sm leading-6 text-slate-600">{{ hintKey ? t(HINTS[hintKey]!.text) : '' }}</p>
     </ModalDialog>
 
     <Teleport to="body">
