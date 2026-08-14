@@ -1342,7 +1342,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             </svg>
           </span>
           <span>
-            <span class="block text-sm font-bold text-slate-900">{{ t('无水印导出') }}（{{ t('今日剩余') }} {{ quota.remaining }} {{ t('次') }}）</span>
+            <span class="block text-sm font-bold text-slate-900">{{ t('无水印导出（今日剩余 {n} 次）').replace('{n}', String(quota.remaining)) }}</span>
             <span class="mt-0.5 block text-xs leading-5 text-slate-600">
               {{ quota.remaining > 0 ? t('页面不叠加任何标识') : (auth.isLoggedIn ? t('今日已用完，分享链接每被点开 1 次即得 1 次，或明日 0 点恢复') : t('今日已用完，登录后每天 3 次，还可分享送次数')) }}
             </span>
