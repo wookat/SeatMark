@@ -26,6 +26,13 @@ const NAMES = [
   '何平', '高翔', '林芳', '罗斌', '郑爽', '梁波', '谢宇', '宋健',
 ]
 
+/** 与 NAMES 逐一对应的拼音英文名（姓全大写 + 名首字母大写），供双语模板演示 */
+const EN_NAMES = [
+  'ZHANG Wei', 'WANG Fang', 'LI Na', 'LIU Yang', 'CHEN Jing', 'YANG Fan', 'ZHAO Lei', 'HUANG Min',
+  'ZHOU Jie', 'WU Xia', 'XU Qiang', 'SUN Li', 'MA Chao', 'ZHU Lin', 'HU Jun', 'GUO Ying',
+  'HE Ping', 'GAO Xiang', 'LIN Fang', 'LUO Bin', 'ZHENG Shuang', 'LIANG Bo', 'XIE Yu', 'SONG Jian',
+]
+
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
 function buildRows(count: number, make: (i: number) => DataRow): DataRow[] {
@@ -127,9 +134,10 @@ const meetingDataset: DemoDataset = {
   id: 'meeting',
   name: '会议办公',
   fileName: '会议演示数据.xlsx',
-  headers: ['姓名', '单位', '职务', '部门', '工号', '桌号', '座位号'],
+  headers: ['姓名', '英文名', '单位', '职务', '部门', '工号', '桌号', '座位号'],
   rows: buildRows(18, (i) => ({
     姓名: NAMES[i % NAMES.length]!,
+    英文名: EN_NAMES[i % EN_NAMES.length]!,
     单位: ['星汉智能科技有限公司', '华建集团', '云启数据研究院', '中新传媒中心'][i % 4]!,
     职务: ['首席技术官', '总经理', '市场总监', '产品负责人', '高级顾问', '研究员'][i % 6]!,
     部门: ['技术部', '市场部', '战略发展部', '人力资源部'][i % 4]!,
@@ -177,10 +185,12 @@ const hospitalDataset: DemoDataset = {
   id: 'hospital',
   name: '医院床头',
   fileName: '医院演示数据.xlsx',
-  headers: ['姓名', '床号', '科室', '病房号', '医生', '护士', '护理等级'],
+  headers: ['姓名', '床号', '座位号', '科室', '病房号', '医生', '护士', '护理等级', '过敏史'],
   rows: buildRows(18, (i) => ({
     姓名: NAMES[i % NAMES.length]!,
     床号: pad2(i + 1),
+    座位号: pad2(i + 1),
+    过敏史: ['无', '青霉素过敏', '无', '头孢过敏', '无', '磺胺类过敏'][i % 6]!,
     科室: ['呼吸内科', '骨科', '心内科', '普外科'][i % 4]!,
     病房号: `${3 + Math.floor(i / 6)}0${(i % 6) + 1}`,
     医生: ['王医生', '李医生', '赵医生'][i % 3]!,
@@ -280,6 +290,25 @@ const restaurantDataset: DemoDataset = {
   })),
 }
 
+/** 零售生鲜：价签 / 货架签等 */
+const retailDataset: DemoDataset = {
+  id: 'retail',
+  name: '零售价签',
+  fileName: '零售价签演示数据.xlsx',
+  headers: ['品名', '单价', '产地', '规格', '日期', '编号'],
+  rows: buildRows(12, (i) => ({
+    品名: [
+      '红富士苹果', '崂山黄瓜', '普通白菜', '精品草莓', '沙糖橘', '本地番茄',
+      '青尾大虾', '三文鱼切片', '土雞蛋', '鲜牛肉', '金针菇', '山药',
+    ][i]!,
+    单价: `¥${['6.98', '3.58', '1.98', '19.9', '8.8', '4.58', '39.9', '29.9', '15.8', '45.8', '2.98', '7.98'][i]!}/500g`,
+    产地: ['山东烟台', '山东崂山', '本地', '丹东', '广西', '本地', '湛江', '智利进口', '本地散养', '内蒙古', '福建', '河南焦作'][i]!,
+    规格: ['精品', '一级', '普通', '精品', '一级', '普通'][i % 6]!,
+    日期: `2026-08-${pad2((i % 4) + 1)}`,
+    编号: `SP${String(1001 + i)}`,
+  })),
+}
+
 /** 电竞赛事：选手席牌 / 赛位牌等 */
 const esportsDataset: DemoDataset = {
   id: 'esports',
@@ -341,6 +370,7 @@ export const DEMO_DATASETS: readonly DemoDataset[] = [
   esportsDataset,
   serviceDataset,
   restaurantDataset,
+  retailDataset,
 ]
 
 const DATASET_BY_ID = new Map(DEMO_DATASETS.map((d) => [d.id, d]))
@@ -406,6 +436,11 @@ export const TEMPLATE_DEMO_DATASET_OVERRIDES: Record<string, string> = {
   dishLabel: 'restaurant',
   drinkCup: 'restaurant',
   takeoutShelf: 'restaurant',
+  dinerReserve: 'restaurant',
+  // 医疗（补充）
+  infusionSeat: 'hospital',
+  // 零售生鲜
+  freshPrice: 'retail',
   // 电竞赛事
   esportsSeat: 'esports',
   techEsportsSeat: 'esports',

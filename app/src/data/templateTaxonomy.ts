@@ -270,7 +270,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'life-medical',
       name: '医疗健康',
-      templateIds: ['clinicDoor', 'wardBed', 'clinicQueue', 'medCabinet', 'sampleRack', 'postpartumBed', 'freeClinicDesk'],
+      templateIds: ['clinicDoor', 'wardBed', 'clinicQueue', 'medCabinet', 'sampleRack', 'postpartumBed', 'freeClinicDesk', 'infusionSeat'],
     },
     {
       id: 'life-gov',
@@ -280,7 +280,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'life-food',
       name: '餐饮门店',
-      templateIds: ['reservedTable', 'privateRoomDoor', 'takeoutShelf', 'dishLabel', 'drinkCup'],
+      templateIds: ['reservedTable', 'privateRoomDoor', 'takeoutShelf', 'dishLabel', 'drinkCup', 'dinerReserve'],
     },
     {
       id: 'life-storage',
@@ -303,6 +303,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'petCageCard',
         'drivingStudentPlate',
         'showroomPrice',
+        'freshPrice',
       ],
     },
     {
