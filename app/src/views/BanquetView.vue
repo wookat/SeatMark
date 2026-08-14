@@ -1040,6 +1040,13 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         >
           <h2 class="banquet-sheet-title">{{ title || '宴会座位表' }}</h2>
           <div class="banquet-sheet-body">
+            <!-- 外层盒取缩放后的实际尺寸，flex 居中才不会按未缩放的布局盒溢出页面 -->
+            <div
+              :style="{
+                width: `${VENUE_WIDTH * exportScale}mm`,
+                height: `${VENUE_HEIGHT * exportScale}mm`,
+              }"
+            >
             <div
               class="origin-top-left"
               :style="{
@@ -1091,6 +1098,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
                   </span>
                 </div>
               </div>
+            </div>
             </div>
           </div>
           <div v-if="exportColors && groups.length" class="banquet-sheet-legend">
