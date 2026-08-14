@@ -1,3 +1,27 @@
+# 第 313 轮（2026-08-14）：PR #322 生产复测（/banquet 首次 PNG 导出损坏修复：data-export-ink + rebuildHost 兜底）——全部判据 PASS，3 次冷启动+2 次连发均无坏图；兜底失败分支 untested（生产不可注入）
+
+**环境**：生产 https://www.seatmark.cn ，全程匿名。部署确认：新 bundle `index-DlKjKpQ8.js`（旧 `index-DQa2HNr9.js`），`BanquetView-B8IarNdU.js` 含 `data-export-ink` 标记；main=6ef6355。计划 test-plan-round313.md，全程录屏。导出原始物存 `/home/ubuntu/r313/`。
+
+## T1 冷启动首次 PNG 导出 ×3（复现 #312 P2 场景）——PASS
+每次：CDP 清 localStorage → 硬刷新 /banquet → 用演示名单（48 人 3 组）→ 一键自动分配 → A4 横向首次导出 PNG（带水印，忽略空桌弹窗继续）。
+- 3/3 次产出 3509×2481、首个非白列均为 **284**（#312 坏图为 1）、8 桌圆桌图形完整、底边水印在、无静默坏图、无「页面渲染不完整」报错（`/home/ubuntu/r313/cold{1,2,3}.png`、`cold1_small.png`）。
+- 判读口径（如实标注）：原缺陷为偶发，3 次通过证明「未复现且交付物全部健康」，不构成概率意义上的彻底修复证明；rebuildHost 兜底重渲/连续失败报错分支生产无法强制注入——untested（有单测 pdfExport.spec.ts 覆盖，运行时未实证）。
+
+## T2 同会话连续 PNG ×2——PASS
+- 两次均首个非白列 284、图形完整（`seq4.png`、`seq5.png`）。
+
+## T3 PDF 回归（改走 exportPagedPdf({getPage, rebuildHost}) 新路径）——PASS
+- A4 横 PDF：841.89×595.276 pts，栅格左缘完整含全部桌形（`a4l.pdf`/`a4l-1.png`）。
+- A3 纵 PDF：不报错，841.89×1190.55 pts（`a3p.pdf`/`a3p-1.png`）。
+- A3 横 + 导出带分组颜色 PDF：1190.55×841.89 pts，宾客芯片按组着色（蓝/红/青三组）+ 底部「分组图例」三色点齐全（`a3l_colors.pdf`/`a3lc-1.png`/`a3lc_legend.png`）。
+
+## T4 /studio 整页 PNG 冒烟（domExpectsRightInk 选择器扩展回归）——PASS
+- 标准考场版 + 演示数据（26 条 2 页）带水印按整页导出：zip 两页 2481×3509，p1 非白 676k/右 40% 区 258k、p2 稀疏尾页右 40% 区 47k（水印墨迹在），导出成功无「页面渲染不完整」误报（`studio/` 解包、`studio_p1_small.png`）。
+
+**收尾**：localStorage/sessionStorage 已清。注：pageerror 判据以「全部导出成功产出+无 UI 报错弹窗」佐证，未挂全程异常监听器（导出期 UI 无任何错误提示）。
+
+---
+
 # 第 312 轮（2026-08-14）：PR #320+#321 生产复测（/banquet 宴会座位表生成器 + /studio TXT/去重 + 互链）——T1/T3/T4/T5 全 PASS；T2 发现 1×P2：A4 横向 PNG 首次导出渲染损坏（重试成功，疑似偶发/竞态）
 
 **环境**：生产 https://www.seatmark.cn ，全程匿名（带水印导出）。部署确认：新 bundle `index-DQa2HNr9.js`，`x-seatmark-rev: r304`（本轮未改边缘函数）；main=e309d85（特性提交 c4aaff7）。计划 test-plan-round312.md，全程录屏。导出原始物存 `/home/ubuntu/r312/`。
