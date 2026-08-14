@@ -1,3 +1,36 @@
+# 第 315 轮（2026-08-14）：PR #324 生产复测（www.seatmark.cn，X-SeatMark-Rev=r314 实测确认）——注册/登录/找回密码全链路 PASS；⚠️ 2 项注记：重置邮件实际由 noreply@seatmark.cn 经腾讯 qcloudmail 发出（非约定的 Resend seatmark@zalize.com）；reset-password 出现 1 次 raw 545 且**前端未自动重试**、用户可见「服务暂时不可用，请重试」需手动再点一次
+
+**环境**：生产 https://www.seatmark.cn ，`x-seatmark-rev: r314`（curl 实测）。真实收信邮箱：mail.tm 临时邮箱 r315seatmark@emalupe.com（API 轮询收信）。全 UI 操作 + 录屏；计划 test-plan-round315.md。发码全轮仅 1 次（节省 IP 日限 20 的共享额度）。
+
+## T1 注册链路——PASS（含 1 个执行注记）
+- 两次密码不一致：确认密码框下即时红字「两次输入的密码不一致」，提交被拦，performance 证实 **0 次 POST /api/auth/register**。
+- 验证码答对（4+3 填 7）提交：注册成功自动登录，个人中心显示「专业版会员 · 2026/8/21 到期」（7 天专业版到账）。
+- 执行注记：注册表单上的「答错验证码」分支因操作序误提交了正确答案而未在注册口径实测；同一服务端校验路径已在 T2 登录口径实测（答错 400 + 自动换题），且第 314 轮本地已在注册口径实测过。
+
+## T2 登录链路——PASS
+- 答错验证码（4−2 填 99）：HTTP 400，红字「验证码不正确或已过期，请重试」，题面**自动换新题**（4−2→9+1）。
+- 新题答对 + 正确密码：toast「登录成功」，累计登录 2 次；登出后重登验证通过（后续 T3 中又完成登出/重登多次）。
+
+## T3 找回密码全链路（真实邮件，重点）——PASS + 2 项注记
+- 忘记密码？→「找回密码」页，填邮箱 + 答对验证题（6+9=15）→ 发送：POST /api/auth/reset-code **200**，toast「验证码已发送」，60s 重发倒计时；**生产未回填 devCode（输入框保持为空，无泄漏）**。
+- 邮件送达：**约 15–30 秒内**到达（远小于 10 分钟限），主题「【SeatMark 座签】重置密码验证码 866529」。⚠️ **发件通道与约定不符**：From = `noreply@seatmark.cn`，Received 链为 `qcloudmail.com`（腾讯云 SES），**不是 Resend seatmark@zalize.com**。原始邮件存档 /home/ubuntu/r315/reset_email.eml。
+- 填 6 位码 + 新密码两次输入：先故意不一致 → 红字「两次输入的密码不一致」被拦；改一致后提交 → **第 1 次 raw 545**，用户可见红字「服务暂时不可用，请重试」（⚠️ 前端未自动重试，需手动再点）；手动重试后 200，toast「密码已重置…已为你自动登录」进入个人中心。
+- 登出后旧密码 + 答对验证码：红字「邮箱或密码不正确」，login 状态序列实测 **[400, 200, 401]**（对应答错验证码/正常登录/旧密码 401）。
+- 新密码登录：成功，累计登录 5 次。
+- raw 口径全序列：captcha 全 200；register 200；login 400/200/401/200；reset-code 200；reset-password **545→200**。
+
+## T4 390px 移动端 + pageerror + 冒烟（Regression）——PASS
+- CDP 390×844：登录表单与「找回密码」表单 scrollWidth=390=innerWidth 无横向溢出，errs=0（截图 /home/ubuntu/r315/mob390_login.png、mob390_reset.png）。
+- 冒烟：/studio?demo=1 桌面版 26 标签 2 页正常渲染、导出按钮齐备；/banquet 8 桌画布与四步流程正常；390 移动版两页 scrollWidth=390，无 JS 错误（/banquet 仅 1 条良性「ResizeObserver loop completed with undelivered notifications」浏览器提示，非 pageerror）。
+
+## 结论与建议
+1. ⚠️ **P2（配置口径）**：重置邮件走的是腾讯云 SES（noreply@seatmark.cn），与「Resend seatmark@zalize.com」的约定不符——若这是有意的通道优先级（TENCENT_SES 配置存在时优先），请确认口径；否则需检查生产环境变量。
+2. ⚠️ **P3（体验）**：reset-password 遇 545 时前端未自动重试（登录/注册口径据称有重试），用户需手动再点一次；建议 reset-password 也接入自动重试。
+3. 功能主链路（注册赠 7 天、验证码、确认密码、找回密码收码重置、旧密码 401）全部实证通过。
+4. 收尾：已登出、浏览器 localStorage/sessionStorage 已清；测试账号 r315seatmark@emalupe.com（新密码 NewProd315!pass）留存于生产，如需可后台清理。
+
+---
+
 # 第 314 轮（2026-08-14）：PR #324 本地端到端测试（登录注册加固：注册/重置确认密码 + 找回密码邮件重置码 + 表单算术验证码）——全部判据 PASS；生产复测（X-SeatMark-Rev=r314、Resend seatmark@zalize.com 发信）待合并部署后另行执行
 
 **环境**：本地 vite dev http://localhost:5173（分支 devin/1786716467-auth-hardening @39339c2，`env -u RESEND_API_KEY -u TENCENT_SES_SECRET_ID -u TENCENT_SES_SECRET_KEY npm run dev`，memory KV、devCode 可用；`/api/auth/captcha` 已返回 `x-seatmark-rev: r314`）。全 UI 操作 + 录屏；测试账号 r314user@test.cn（memory 存储，服务重启即消失）。计划 test-plan-round314.md。

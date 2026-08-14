@@ -170,12 +170,30 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function resetPassword(email: string, code: string, password: string): Promise<SessionUser> {
-    const data = await apiFetch<{ user: SessionUser }>('/api/auth/reset-password', {
-      method: 'POST',
-      body: { email, code, password },
-    })
-    user.value = data.user
-    return data.user
+    let lastError: unknown
+    let sawGatewayError = false
+    for (let attempt = 0; attempt < 5; attempt++) {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 600 * attempt))
+      try {
+        const data = await apiFetch<{ user: SessionUser }>('/api/auth/reset-password', {
+          method: 'POST',
+          body: { email, code, password },
+        })
+        user.value = data.user
+        return data.user
+      } catch (err) {
+        lastError = err
+        if (!(err instanceof ApiError) || err.status < 500) {
+          // 网关 5xx 时服务端可能已完成重置并消费了重置码，重试会得到 400；此时引导直接用新密码登录
+          if (sawGatewayError && err instanceof ApiError && err.status === 400) {
+            throw new ApiError(400, '重置可能已生效，请直接用新密码登录', err.data)
+          }
+          throw err
+        }
+        sawGatewayError = true
+      }
+    }
+    throw lastError
   }
 
   async function redeem(code: string): Promise<{ days?: number; already?: boolean; pro: ProStatus }> {
