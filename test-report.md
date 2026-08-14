@@ -1,3 +1,32 @@
+# 第 314 轮（2026-08-14）：PR #324 本地端到端测试（登录注册加固：注册/重置确认密码 + 找回密码邮件重置码 + 表单算术验证码）——全部判据 PASS；生产复测（X-SeatMark-Rev=r314、Resend seatmark@zalize.com 发信）待合并部署后另行执行
+
+**环境**：本地 vite dev http://localhost:5173（分支 devin/1786716467-auth-hardening @39339c2，`env -u RESEND_API_KEY -u TENCENT_SES_SECRET_ID -u TENCENT_SES_SECRET_KEY npm run dev`，memory KV、devCode 可用；`/api/auth/captcha` 已返回 `x-seatmark-rev: r314`）。全 UI 操作 + 录屏；测试账号 r314user@test.cn（memory 存储，服务重启即消失）。计划 test-plan-round314.md。
+
+## T1 注册——PASS
+- 两次密码不一致：确认密码框下即时红字「两次输入的密码不一致」；提交仍被拦，performance 资源计数证实 **0 次 POST /api/auth/register**。
+- 验证码答错（1+4 填 9）：POST /api/auth/register 400，表单红字「验证码不正确或已过期，请重试」，题面**自动换新题**（1+4→3−3）。
+- 新题答对提交：toast「注册成功…7 天专业版」，自动登录进入个人中心（专业版会员 · 2026/8/21 到期）。
+
+## T2 登录（验证码 + 换题重试）——PASS
+- 登出后登录表单验证问题自动重新取题。
+- 答错（4+8 填 99）：400 红字 + 题面自动更新（→8−6）；点「换一题」题面再变（→4+1）。
+- 新题答对 + 正确密码：登录成功，累计登录 2 次。
+
+## T3 找回密码全链路——PASS
+- 登录页「忘记密码？」→ 标题「找回密码」，仅邮箱+验证问题+「发送重置验证码」。
+- 答对发送：POST /api/auth/reset-code 200，toast「验证码已发送（若该邮箱已注册…）」防枚举文案；**devCode 六位数字自动回填**（419980）；重发按钮「58s 后重发」倒计时生效。
+- 新密码两次输入不一致：红字「两次输入的密码不一致」；改一致后 POST /api/auth/reset-password 200，toast「密码已重置…已为你自动登录」，进入个人中心（累计登录 3）。
+- 登出后旧密码 + 正确验证码登录：**HTTP 401**「邮箱或密码不正确」（performance responseStatus 实测 [400,200,401] 依次对应错验证码/成功/旧密码）。
+- 新密码登录：成功（累计登录 4）。
+
+## T4 390px 移动端 + pageerror——PASS
+- CDP 390×844 仿真：登录表单与找回密码发码后表单 scrollWidth=390=innerWidth，无横向溢出；devCode 在移动端同样自动回填（437280）；window error/unhandledrejection 监听全程 **0 条**（桌面会话同样 0）。
+- 截图 `/home/ubuntu/r314/mob390_login.png`、`mob390_reset.png`。
+
+## 未测/延后（如实标注）
+- 生产判据（X-SeatMark-Rev=r314 上线、重置邮件由 Resend seatmark@zalize.com 发出、真实邮箱收信）——等合并部署后按用户通知复测。
+- 重置码尝试上限（CODE_MAX_ATTEMPTS）、429 频控、验证码 5 分钟过期等分支仅有单测覆盖，本轮 UI 未逐一实测。
+
 # 第 313 轮（2026-08-14）：PR #322 生产复测（/banquet 首次 PNG 导出损坏修复：data-export-ink + rebuildHost 兜底）——全部判据 PASS，3 次冷启动+2 次连发均无坏图；兜底失败分支 untested（生产不可注入）
 
 **环境**：生产 https://www.seatmark.cn ，全程匿名。部署确认：新 bundle `index-DlKjKpQ8.js`（旧 `index-DQa2HNr9.js`），`BanquetView-B8IarNdU.js` 含 `data-export-ink` 标记；main=6ef6355。计划 test-plan-round313.md，全程录屏。导出原始物存 `/home/ubuntu/r313/`。
