@@ -6,7 +6,7 @@
  *   POST /api/auth/verify        校验验证码，签发 httpOnly JWT 会话
  *   POST /api/auth/register      邮箱+密码注册（已有验证码账号未设密码时可补设），签发会话
  *   POST /api/auth/login         邮箱+密码登录（连续失败限流），签发会话
- *   GET  /api/auth/captcha       表单验证码（算术题+签名令牌），注册/登录/重置密码需携带
+ *   GET  /api/auth/captcha       表单验证码（图片字符+签名令牌），注册/登录/重置密码需携带
  *   POST /api/auth/reset-code    找回密码：向邮箱发送重置验证码（防枚举）
  *   POST /api/auth/reset-password 找回密码：验重置码+设新密码，成功即登录
  *   GET  /api/auth/me            当前登录用户（含配额/分享状态）
@@ -557,9 +557,38 @@ async function sendCodeMail(env, email, code, kind = 'login') {
   return { configured: false, delivered: false }
 }
 
-// ---------- 图形验证（算术题，无状态签名令牌） ----------
+// ---------- 图形验证（图片字符，无状态签名令牌） ----------
+/** 答案不区分大小写；字符集排除易混淆的 0/O/1/I/L 等 */
+const CAPTCHA_CHARSET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'
+const CAPTCHA_LENGTH = 4
+
 async function captchaAnswerHash(answer, secret) {
-  return sha256Hex(`captcha:${String(answer).trim()}:${secret}`)
+  return sha256Hex(`captcha:${String(answer).trim().toUpperCase()}:${secret}`)
+}
+
+/** 生成扭曲字符 SVG 验证码图片（边缘运行时无 canvas，用 SVG 绘制） */
+function captchaSvg(code) {
+  const width = 132
+  const height = 44
+  const rand = (min, max) => min + Math.random() * (max - min)
+  const palette = ['#334155', '#1d4ed8', '#0f766e', '#7c3aed', '#b45309']
+  const pick = () => palette[Math.floor(Math.random() * palette.length)]
+  let parts = `<rect width="${width}" height="${height}" fill="#f8fafc"/>`
+  for (let i = 0; i < 3; i++) {
+    parts += `<path d="M0 ${rand(6, height - 6).toFixed(1)} Q ${(width / 2).toFixed(1)} ${rand(0, height).toFixed(1)}, ${width} ${rand(6, height - 6).toFixed(1)}" stroke="${pick()}" stroke-opacity="0.35" fill="none" stroke-width="1.2"/>`
+  }
+  for (let i = 0; i < 14; i++) {
+    parts += `<circle cx="${rand(2, width - 2).toFixed(1)}" cy="${rand(2, height - 2).toFixed(1)}" r="${rand(0.6, 1.4).toFixed(1)}" fill="${pick()}" fill-opacity="0.4"/>`
+  }
+  const step = width / (code.length + 1)
+  for (let i = 0; i < code.length; i++) {
+    const x = step * (i + 1) + rand(-3, 3)
+    const y = height / 2 + rand(-4, 4)
+    const rotate = rand(-24, 24).toFixed(1)
+    const size = rand(21, 26).toFixed(1)
+    parts += `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" transform="rotate(${rotate} ${x.toFixed(1)} ${y.toFixed(1)})" font-family="Georgia, 'Times New Roman', serif" font-size="${size}" font-weight="700" fill="${pick()}" text-anchor="middle" dominant-baseline="central">${code[i]}</text>`
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${parts}</svg>`
 }
 
 /** 验证表单验证码：令牌为服务端签名 JWT，无需存储；5 分钟内有效 */
@@ -617,7 +646,7 @@ async function handleRequest(context) {
 
   const { kv, storage, blobStore } = await getStorage(env)
   // Rev 标记仅用于部署观测：探针可确认线上边缘函数版本，改动本文件时递增
-  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r314' }
+  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r316' }
 
   /**
    * 非关键写入移出响应关键路径：平台支持 waitUntil 时响应先行、写入后台完成
@@ -686,22 +715,23 @@ async function handleRequest(context) {
   }
 
   // ----- 认证 -----
-  // 表单验证码：算术题 + 签名令牌（无存储，5 分钟有效），注册/登录/重置密码均需携带
+  // 表单验证码：图片字符 + 签名令牌（无存储，5 分钟有效），注册/登录/重置密码均需携带
   if (path === '/api/auth/captcha' && method === 'GET') {
-    const a = 1 + Math.floor(Math.random() * 9)
-    const b = 1 + Math.floor(Math.random() * 9)
-    const plus = Math.random() < 0.5
-    const [x, y] = plus || a >= b ? [a, b] : [b, a]
-    const answer = plus ? x + y : x - y
+    let code = ''
+    for (let i = 0; i < CAPTCHA_LENGTH; i++) {
+      code += CAPTCHA_CHARSET[Math.floor(Math.random() * CAPTCHA_CHARSET.length)]
+    }
     const token = await signJwt(
       {
         typ: 'captcha',
-        cap: await captchaAnswerHash(answer, getSecret(env)),
+        cap: await captchaAnswerHash(code, getSecret(env)),
         exp: Math.floor(Date.now() / 1000) + CAPTCHA_TTL_SECONDS,
       },
       getSecret(env),
     )
-    return json({ question: `${x} ${plus ? '+' : '−'} ${y} = ?`, token }, 200, storageHeader)
+    const svgBytes = new TextEncoder().encode(captchaSvg(code))
+    const image = `data:image/svg+xml;base64,${btoa(String.fromCharCode(...svgBytes))}`
+    return json({ image, token }, 200, storageHeader)
   }
 
   if (path === '/api/auth/code' && method === 'POST') {

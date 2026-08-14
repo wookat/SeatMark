@@ -54,7 +54,8 @@ export function pendingInviteCode(): string {
 }
 
 export interface Captcha {
-  question: string
+  /** 验证码图片（data:image/svg+xml;base64,...） */
+  image: string
   token: string
 }
 
