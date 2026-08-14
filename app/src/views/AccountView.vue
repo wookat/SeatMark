@@ -21,8 +21,8 @@ const mode = ref<'login' | 'register' | 'reset'>('login')
 const submitting = ref(false)
 const formError = ref('')
 
-// 表单验证码（服务端算术题，防机器人）
-const captchaQuestion = ref('')
+// 表单验证码（服务端图片字符，防机器人）
+const captchaImage = ref('')
 const captchaToken = ref('')
 const captchaAnswer = ref('')
 const captchaLoading = ref(false)
@@ -32,10 +32,10 @@ async function refreshCaptcha() {
   captchaAnswer.value = ''
   try {
     const data = await auth.fetchCaptcha()
-    captchaQuestion.value = data.question
+    captchaImage.value = data.image
     captchaToken.value = data.token
   } catch {
-    captchaQuestion.value = ''
+    captchaImage.value = ''
     captchaToken.value = ''
   } finally {
     captchaLoading.value = false
@@ -66,7 +66,7 @@ function validateCommon(emailValue: string): boolean {
     return false
   }
   if (!captchaAnswer.value.trim()) {
-    formError.value = '请先回答验证问题'
+    formError.value = '请输入图片验证码'
     return false
   }
   return true
@@ -405,34 +405,48 @@ function formatDate(iso: string | null | undefined): string {
             </p>
           </label>
 
-          <!-- 防机器人验证问题（重置第二步不需要） -->
+          <!-- 防机器人图片验证码（重置第二步不需要） -->
           <label v-if="mode !== 'reset' || !resetCodeSent" class="grid gap-1.5">
-            <span class="text-sm font-semibold text-slate-700">验证问题</span>
+            <span class="text-sm font-semibold text-slate-700">图片验证码</span>
             <div class="flex items-center gap-2">
-              <span
-                class="flex h-10 shrink-0 items-center rounded border border-slate-200 bg-slate-50 px-3 font-mono text-sm font-semibold text-slate-800"
+              <button
+                type="button"
+                class="flex h-10 w-[132px] shrink-0 items-center justify-center overflow-hidden rounded border border-slate-200 bg-slate-50"
+                :disabled="captchaLoading"
+                aria-label="点击更换验证码图片"
+                title="看不清？点击换一张"
+                @click="refreshCaptcha"
               >
-                {{ captchaLoading ? '加载中...' : captchaQuestion || '加载失败' }}
-              </span>
+                <img
+                  v-if="captchaImage && !captchaLoading"
+                  :src="captchaImage"
+                  alt="验证码图片"
+                  class="h-full w-full object-contain"
+                />
+                <span v-else class="text-xs text-slate-500">{{
+                  captchaLoading ? '加载中...' : '加载失败'
+                }}</span>
+              </button>
               <input
                 v-model="captchaAnswer"
                 type="text"
-                inputmode="numeric"
-                maxlength="3"
+                maxlength="6"
                 required
                 autocomplete="off"
-                placeholder="答案"
-                aria-label="验证问题答案"
+                autocapitalize="characters"
+                spellcheck="false"
+                placeholder="图中字符，不分大小写"
+                aria-label="图片验证码"
                 class="h-10 w-full min-w-0 rounded border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
               />
               <button
                 type="button"
                 class="btn btn-secondary btn-sm h-10 shrink-0"
                 :disabled="captchaLoading"
-                aria-label="换一题"
+                aria-label="换一张"
                 @click="refreshCaptcha"
               >
-                换一题
+                换一张
               </button>
             </div>
           </label>

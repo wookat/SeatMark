@@ -58,15 +58,17 @@ function createMockBlobStore(): MockBlobStore & { data: Map<string, string> } {
   }
 }
 
-/** 获取并解答一道表单验证码（算术题），供注册/登录/重置密码请求携带 */
+/** 获取并解答一张图片验证码（从 SVG 文本节点还原字符），供注册/登录/重置密码请求携带 */
 async function solvedCaptcha(env: Env = {}) {
   const request = new Request('https://www.seatmark.cn/api/auth/captcha', { method: 'GET' })
   const response: Response = await onRequest({ request, env })
-  const data = (await response.json()) as { question: string; token: string }
-  const m = /(\d+)\s*([+−])\s*(\d+)/.exec(data.question)
-  if (!m) throw new Error(`无法解析验证问题：${data.question}`)
-  const answer = m[2] === '+' ? Number(m[1]) + Number(m[3]) : Number(m[1]) - Number(m[3])
-  return { captchaToken: data.token, captchaAnswer: String(answer) }
+  const data = (await response.json()) as { image: string; token: string }
+  const b64 = data.image.replace(/^data:image\/svg\+xml;base64,/, '')
+  const svg = Buffer.from(b64, 'base64').toString('utf-8')
+  const answer = [...svg.matchAll(/<text [^>]*>([^<])<\/text>/g)].map((m) => m[1]).join('')
+  if (answer.length !== 4) throw new Error(`无法解析验证码图片字符：${svg}`)
+  // 混合大小写作答验证不区分大小写
+  return { captchaToken: data.token, captchaAnswer: answer.toLowerCase() }
 }
 
 const CAPTCHA_PATHS = ['/api/auth/register', '/api/auth/login', '/api/auth/reset-code']
