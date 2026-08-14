@@ -1,3 +1,32 @@
+# 第 310 轮（2026-08-14）：PR #317 生产上线复测（双语英文名修复 + 3 款新模板 + 225 计数）——全部判据 PASS，无 P1/P2 回归；新观察 1×P3（retail 演示数据「土雞蛋」为繁体「雞」）
+
+**环境**：生产 https://www.seatmark.cn ，全程匿名（带水印导出）。部署确认：`index.html` 引用新 bundle `index-CLPzfp2I.js`（旧 `index-BDLw0dx-.js`），`x-seatmark-rev: r304` 保持（本轮未改边缘函数）；main=f1ba201。浏览器硬刷新绕过 SW 缓存。计划 test-plan-round310.md，全程录屏。
+
+## T1 双语英文名修复（修第 309 轮 P2）——PASS
+- /studio?template=tentBilingual：首次打开残留旧本地演示数据（仍显示 CHEN Jiaming）——属本地持久化数据非产品缺陷；UI「清空」后 ?demo=1 重载，数据表新增「英文名」列，预览逐卡：张伟→ZHANG Wei、王芳→WANG Fang、李娜→LI Na、刘洋→LIU Yang、陈静→CHEN Jing，与中文名拼音逐行对应，无任何两卡重复（`ss_bd0ca642.png`、`ss_zoom_0d32544c.png`）。
+- 带水印导出逐张 PNG（zip 10 张，2245×1536）抽 001/003/010 放大：ZHANG Wei / LI Na / WU Xia 逐卡不同，字形完整、底边水印细线存活（`/home/ubuntu/r310/tent_crop_*.png`、`tent_wm_001.png`；原始 `/home/ubuntu/r310/tent/`）。
+
+## T2 三款新模板——PASS
+- /templates 拼音搜索 shengxian/yuding/shuye 各命中生鲜价签/预订席位卡/输液座位签，缩略图无溢出错位（`ss_34dd594f.png`、`ss_705efb53.png`、`ss_260d9a4c.png`）。
+- 详情页 /templates/freshPrice、/templates/dinerReserve、/templates/infusionSeat 均可打开，标题/尺寸（60×36 / 90×55 / 70×40）/描述/FAQ/SEO 内容与源码一致（`ss_fc97346f.png`、`ss_b944a516.png`、`ss_03cc0b8a.png`）。
+- Studio 预览逐卡字段变化，无固定回退值：
+  - freshPrice：零售演示 12 行，品名/单价（红字特大）/产地/日期逐卡不同，4/4 字段自动匹配（`ss_b6246f41.png`）；
+  - dinerReserve：餐饮演示 12 行，宾客/时间人数/桌号逐卡不同，「RESERVED · 已预订」题头正常（`ss_bfba4ad1.png`）；
+  - infusionSeat：医院演示 18 行含新列，座位号 01–12 反白、过敏史红字（无/青霉素/头孢/磺胺类）逐卡变化，4/4 字段匹配（`ss_a7648ec7.png`）。
+- 每款带水印逐张 PNG 导出抽查放大：字形完整、裁切线存在、水印细线「SeatMark 座签 · seatmark.cn」存活、无丢线：fresh 001/009（1000×600，`/home/ubuntu/r310/fresh_*.png`）、diner 001/006（1063×650，`diner_*.png`）、infusion 002/004（1000×572，`inf_*.png`）。原始 zip 解包在 `/home/ubuntu/r310/{fresh,diner,inf}/`。
+
+## T3 计数 225——PASS
+- 首页统计带「225 款 内置专业模板」、hero 文案「225 款内置模板」、「查看更多模板（还有 220 款）」（`ss_170b32a2.png`）；/templates「全部 225」（`ss_4d51b2be.png`）；/studio 左栏「浏览全部 225 款模板」。未见 222 残留。
+
+## T4 回归：医院数据集新列不破坏 wardBed——PASS
+- /studio?template=wardBed：数据表含新「座位号」「过敏史」列后，床号 01–10 反白仍正确映射、5/5 字段自动匹配（床号/护理等级/姓名/主管医生/责任护士），无空值/错位（`ss_7271f6bc.png`）。
+
+## 硬判据与观察项
+- 上述页面 pageerror=0（console 仅残留上一会话 print throw-stub 的「Error: stub」，非本轮页面错误）；无横向溢出异常。
+- 新观察 P3：retail 演示数据第 9 行「土雞蛋」使用繁体「雞」，与全站简体口径不一致，建议改为「土鸡蛋」（`/home/ubuntu/r310/fresh_009.png`）。
+
+---
+
 # 第 309 轮（2026-08-14）：全站视觉审计 + 222 款模板全量质检 + 导出物像素级检查 + 覆盖面盘点——硬判据全 PASS（18 路由 × 3 宽度 54 组无横向溢出、pageerror=0；222 缩略图无 P1；导出物字形/裁切线/水印细线/反白全存活），发现 1×P2（双语模板英文名固定样例）+ 6×P3 精调点，无 P1
 
 **环境**：生产 https://www.seatmark.cn ，全程匿名（带水印导出）。计划 test-plan-round309.md，全程录屏。方法：CDP 设备仿真三宽度整页截图 + scrollWidth/pageerror 采集；/templates 六分类长截图切片逐款肉眼扫描；12 款代表模板 /studio 实际预览；标准考场版（逐张 PNG/整页 PNG/图片版 PDF）、深蓝会议桌牌（逐张 PNG）、照片核验版（逐张 PNG）、双语会议桌牌（打印/矢量 PDF，throw-stub 保活法）导出后 PIL/pdftoppm 放大逐像素检查。
