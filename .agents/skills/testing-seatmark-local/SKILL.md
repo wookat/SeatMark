@@ -45,3 +45,9 @@ description: How to run and test SeatMark locally (vite dev server with edge-fun
 - Register and reset show a confirm-password field with inline red 「两次输入的密码不一致」; mismatched submit sends no network request (verify via `performance.getEntriesByType('resource')` counts; `r.responseStatus` gives HTTP codes for asserting 400/401 without devtools).
 - Password reset: 忘记密码？ on the login form → email + captcha → 发送重置验证码 (`POST /api/auth/reset-code`, anti-enumeration toast, 60s resend cooldown). With no mail channel configured (start dev with `env -u RESEND_API_KEY -u TENCENT_SES_SECRET_ID -u TENCENT_SES_SECRET_KEY npm run dev`) the response includes `devCode` which the UI auto-fills into the 邮件验证码 input. Then new password ×2 → 重置密码并登录 auto-logs in; old password afterwards returns 401 邮箱或密码不正确.
 - Since #324 the edge function rev is r314 (check any /api response header `x-seatmark-rev`).
+
+## Image captcha (post-#326, rev r316)
+- `GET /api/auth/captcha` returns `{image: "data:image/svg+xml;base64,...", token}` (4 chars, charset excludes 0/O/1/I/L; answer is case-insensitive; server keeps only a hash, answer never sent to client).
+- To answer in tests, decode the page's current img src and extract chars in order: `atob(document.querySelector('form img').src.split(',')[1])` then regex `/>([2-9A-Z])<\/text>/g`. Must read the SAME img the page holds (token must match).
+- Refresh paths: 「换一张」button AND clicking the image itself both refresh; a wrong answer (e.g. "0000", impossible since charset lacks 0) returns 400 and the frontend auto-swaps the image.
+- Note: after an error message appears, the submit button shifts down ~25px — re-locate it before clicking.
