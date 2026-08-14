@@ -1,3 +1,42 @@
+# 第 318 轮（2026-08-14）：英文版国际化上线生产复测（PR #328 i18n 架构 + #329 英文 SEO 着陆页，已合并）——发现 1×P2（/en/studio 可见中文混杂），其余判据 PASS
+
+**环境**：生产 https://www.seatmark.cn ，匿名（无登录、无注册、不发邮件）。部署判定：轮询约 6 分钟后 `curl /en` 预渲染 HTML 出现 `<html lang="en">`。计划 test-plan-round318.md；浏览器部分全程录屏。
+
+## 升级项
+
+- ⚠️ **P2：/en/studio 英文界面仍有大量可见中文**——首次使用引导「三步拿到成品 / 选模板 / 导入名单 / 导出打印」、演示数据字段（座位号/考场/姓名等表头与标签内容为演示数据本身可接受，但引导与说明文案不应为中文）、PNG 导出弹窗内多段中文说明（「按标签逐张导出：共 26 张标签…」「单张直接下载 PNG…」「注册即送 7 天专业版试用…」）、导出后顶栏「想去除页脚水印？…」提示与预览 tooltip「点击可单张覆写…」均为中文。核心控件（按钮/标签栏）已英文，导出成功 toast 已英文（'PNG images exported (26 labels zipped)'）。建议补全 `locales/en.ts` 对 Studio 引导、导出弹窗说明、水印提示条、tooltip 的覆盖。
+- P3 观察：/en/banquet 「Venue layout」五个布局预设按钮（圆桌宴会/长桌宴会/主桌+圆桌/U 形会议/教室课桌）与画布桌名（1号桌…）仍为中文；/en 页脚 Guides 四条教程链接为中文标题（指向中文 guides，或属有意）。
+- 环境注记：录屏中途浏览器 CDP 一度无响应，重启浏览器后继续；本地 xdotool 无法直接键入中文，中文对照用例改用剪贴板粘贴完成（不影响判定）。390 仿真中 innerWidth 报 417（本机缩放所致），判据以 scrollWidth==innerWidth（无横向溢出）为准。
+
+## T1 /en 预渲染 SEO（curl 口径）——PASS
+- `/en`：`<html lang="en">`；英文 title/description；canonical=`https://www.seatmark.cn/en`；hreflang zh-CN(`/`)/en(`/en`)/x-default；og:locale=en_US；JSON-LD 存在。
+- `/en/studio` `/en/pricing` `/en/seating` `/en/banquet`：均 lang=en、各自 canonical、三组 hreflang、英文 metadata、无 noindex。
+- 对照 `/`：lang=zh-CN、中文 title、og:locale=zh_CN。
+- 未本地化镜像 `/en/templates`：`robots: noindex, follow`（注：页面呈现为品牌 404、canonical=/404，符合 noindex 判据但形态是 404 而非中文镜像）。
+- sitemap.xml：340 个 URL，含 5 个 /en 核心页 loc，含 30 个 `xhtml:link rel="alternate"`。原文 /tmp/sm318.xml。
+
+## T2 /en 首页渲染 + 语言切换（UI）——PASS
+- /en 整页英文 hero、按钮，hero 演示数据 Emma Johnson / Liam Smith 等（截图 ss_8ebb8321.png、ss_zoom_f7716302.png）。
+- EN↔中文切换：URL / 与 /en 互切、UI 语言随切、`seatmark.locale` zh↔en；刷新 /en 后保持英文（ss_8e44c19e.png）。中文首页回归张伟/王芳（ss_2c9a6e20.png）。
+
+## T3 /en 核心页 UI + Studio 英文导出 toast——部分 FAIL（如上 P2）
+- /en/pricing、/en/seating 首屏标题与核心控件英文——PASS（ss_0db3ef67.png、ss_21c8cb20.png）。
+- /en/studio：核心控件英文但可见中文混杂——**FAIL（P2）**（ss_9aca67a9.png、导出弹窗 ss_f5ecd850.png）。
+- Studio PNG 导出（带水印）成功：toast 'PNG images exported (26 labels zipped)' 英文——PASS（ss_8a8c231f.png；zip 26 张、单张 1000×534 已核验）。注：录屏中第一次点击导出按钮未生效（无请求/无下载），重开弹窗第二次点击立即成功——判为操作误点，未见产品缺陷证据。
+
+## T4 /en/banquet 西文姓名不拆分——PASS
+- 粘贴 `Alice Wang\nBob Li` → 「Guests added: 2」，roster 两行 Alice Wang / Bob Li（ss_018f63b2.png）。
+- 中文对照 `张伟 王芳`（同行空格）→ 仍拆为 2 位（ss_4f984f4a.png），行为不变。
+
+## T5 中文站回归（Regression）——PASS
+- / 中文首页正常（ss_2c9a6e20.png）。
+- 中文 /studio?demo=1：26 标签 2 页，PNG 导出（带水印）成功，toast「PNG 图片已生成（26 张标签打包为 zip）」中文（ss_2ae3ee20.png）。
+
+## T6 390px + pageerror——PASS
+- CDP 390×844：/en 与 /en/banquet 均 scrollWidth==innerWidth（无横向溢出）；error/unhandledrejection：/en 0 条，/en/banquet 仅 1 条良性 ResizeObserver 提示（非 pageerror）。截图 /tmp/r318/mob390_en_home.png、mob390_en_banquet.png。
+
+**收尾**：浏览器 localStorage/sessionStorage 已清；录屏 rec-b9839ae4-0d52-4142-b8e7-e193d67c8945-edited.mp4。
+
 # 第 316 轮（2026-08-14）：PR #326 图片验证码——本地端到端（分支 devin/1786737138-image-captcha @e84f8bc）+ 生产追加复测（合并部署后 x-seatmark-rev: r316）——全部判据 PASS
 
 **环境**：本地 vite dev + edge middleware（`env -u RESEND_API_KEY -u TENCENT_SES_SECRET_ID -u TENCENT_SES_SECRET_KEY npm run dev`，memory KV，devCode 可用），本地 `/api/auth/captcha` 实测返回 `{image: data:image/svg+xml;base64,…, token}` 且 rev 头 **r316**。测试中途 PR #326 合并，轮询生产至 `x-seatmark-rev: r316` 后追加生产复测。取答案法：解码页面 img src 的 base64 SVG，正则提取 4 个 `<text>` 字符（答案不下发，服务端仅存哈希）。计划 test-plan-round316.md；全程录屏。
