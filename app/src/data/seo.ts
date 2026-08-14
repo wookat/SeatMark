@@ -19,6 +19,39 @@ export interface PageSeo {
   jsonLd: Record<string, unknown>[]
   /** robots 指令（账号/管理页 noindex），未设置时不输出 robots meta */
   robots?: string
+  /** html lang（默认 zh-CN） */
+  lang?: 'en'
+  /** hreflang 备选链接（含自身与 x-default） */
+  alternates?: { hreflang: string; path: string }[]
+}
+
+/** 已提供英文版内容的中文路径（/en 前缀镜像可被索引并互挂 hreflang） */
+const EN_LOCALIZED_BASES = ['/', '/studio', '/pricing', '/seating', '/banquet'] as const
+
+function enPathOf(base: string): string {
+  return base === '/' ? '/en' : `/en${base}`
+}
+
+function hreflangFor(base: string): { hreflang: string; path: string }[] {
+  return [
+    { hreflang: 'zh-CN', path: base },
+    { hreflang: 'en', path: enPathOf(base) },
+    { hreflang: 'x-default', path: base },
+  ]
+}
+
+const SOFTWARE_APP_JSONLD_EN: Record<string, unknown> = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'SeatMark',
+  alternateName: 'Seating chart, place card & name tag batch generator',
+  url: `${SITE_ORIGIN}/en`,
+  description:
+    'Free online seating chart maker and place card generator: upload an Excel guest list to batch-create wedding seating charts, place cards, table tent cards, name tags, badges and classroom seating labels. Millimetre-accurate print layouts (A4/A5/A3), visual template designer, PDF export — all data processed locally in your browser, no sign-up required.',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  inLanguage: 'en',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'CNY' },
 }
 
 const SOFTWARE_APP_JSONLD: Record<string, unknown> = {
@@ -60,12 +93,16 @@ function faqJsonLd(faqs: { q: string; a: string }[]): Record<string, unknown> {
   }
 }
 
-function howToJsonLd(name: string, steps: readonly { name: string; text: string }[]): Record<string, unknown> {
+function howToJsonLd(
+  name: string,
+  steps: readonly { name: string; text: string }[],
+  inLanguage = 'zh-CN',
+): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'HowTo',
     name,
-    inLanguage: 'zh-CN',
+    inLanguage,
     step: steps.map((s, i) => ({
       '@type': 'HowToStep',
       position: i + 1,
@@ -112,13 +149,119 @@ export async function resolveSeo(path: string): Promise<PageSeo> {
   const clean = path.split('?')[0]!.split('#')[0]!
   const p = clean !== '/' && clean.endsWith('/') ? clean.slice(0, -1) : clean
 
-  // /en 前缀路由：先复用对应中文路由的 SEO 数据，canonical 指向 /en 自身
-  // （英文 meta 文案与 hreflang 在着陆页批次补齐）
+  // /en 前缀路由：已英文化的核心页返回英文 meta + 互挂 hreflang；
+  // 其余未翻译镜像页 noindex 且 canonical 指回中文原页，避免重复内容被索引。
   if (p === '/en' || p.startsWith('/en/')) {
     const base = p === '/en' ? '/' : p.slice(3)
+    const enSeo = resolveEnSeo(base)
+    if (enSeo) return enSeo
     const seo = await resolveSeo(base)
-    return { ...seo, path: p }
+    return { ...seo, lang: 'en', robots: 'noindex, follow' }
   }
+
+  if ((EN_LOCALIZED_BASES as readonly string[]).includes(p)) {
+    const seo = await resolveZhSeo(p)
+    return { ...seo, alternates: hreflangFor(p) }
+  }
+
+  return resolveZhSeo(p)
+}
+
+/** 已英文化核心页的英文 SEO 数据 */
+function resolveEnSeo(base: string): PageSeo | null {
+  if (!(EN_LOCALIZED_BASES as readonly string[]).includes(base)) return null
+  const path = enPathOf(base)
+  const common = { path, lang: 'en' as const, alternates: hreflangFor(base) }
+
+  if (base === '/') {
+    return {
+      ...common,
+      title: 'Seating Chart Maker & Place Card Generator | SeatMark',
+      description:
+        'Free seating chart maker & place card generator. Upload an Excel list to batch-print wedding seating charts, place cards and name tags. Data stays in your browser.',
+      jsonLd: [SOFTWARE_APP_JSONLD_EN],
+    }
+  }
+
+  if (base === '/studio') {
+    return {
+      ...common,
+      title: 'Make Place Cards, Table Tents & Name Tags Online | SeatMark',
+      description:
+        'Pick a template, upload your Excel list and batch-generate print-ready place cards, table tents and name tags. A4/A5/A3, PDF export, all local in your browser.',
+      jsonLd: [SOFTWARE_APP_JSONLD_EN],
+    }
+  }
+
+  if (base === '/pricing') {
+    return {
+      ...common,
+      title: 'Pricing: 7-Day Pro Trial on Sign-up | SeatMark',
+      description:
+        'Unlimited watermarked export for free; watermark-free 1/day (3 after sign-in). 7-day Pro trial on sign-up; invite friends for more. Data never leaves the browser.',
+      jsonLd: [
+        SOFTWARE_APP_JSONLD_EN,
+        breadcrumb([
+          { name: 'Home', path: '/en' },
+          { name: 'Pricing', path: '/en/pricing' },
+        ]),
+      ],
+    }
+  }
+
+  if (base === '/seating') {
+    return {
+      ...common,
+      title: 'Classroom Seating Chart Maker — Free & Printable | SeatMark',
+      description:
+        'Paste your student roster, set rows, columns and aisles, then print an A4 classroom seating chart. One click turns the roster into desk labels. All in your browser.',
+      jsonLd: [
+        SOFTWARE_APP_JSONLD_EN,
+        howToJsonLd(
+          'Make and print a classroom seating chart online',
+          [
+            { name: 'Paste the roster', text: 'Paste student names into the list box, one per line.' },
+            { name: 'Set the room layout', text: 'Set rows and columns, click column gaps to add aisles, and mark the podium.' },
+            { name: 'Preview and print', text: 'Check the A4 landscape seating chart, then print or save as PDF.' },
+            { name: 'Generate desk labels', text: 'Carry the same roster into the Studio to batch-generate desk name labels.' },
+          ],
+          'en',
+        ),
+        breadcrumb([
+          { name: 'Home', path: '/en' },
+          { name: 'Classroom Seating Chart', path: '/en/seating' },
+        ]),
+      ],
+    }
+  }
+
+  // base === '/banquet'
+  return {
+    ...common,
+    title: 'Wedding Seating Chart Maker — Free Table Plan Tool | SeatMark',
+    description:
+      'Paste your guest list, group guests, pick round or long table layouts, auto-assign seats and export a print-ready A4/A3 seating chart. Guest list stays in your browser.',
+    jsonLd: [
+      SOFTWARE_APP_JSONLD_EN,
+      howToJsonLd(
+        'Make and print a banquet seating chart online',
+        [
+          { name: 'Paste the guest list', text: 'Paste or upload names line by line with auto-deduplication; group guests and color-code the groups.' },
+          { name: 'Pick a venue layout', text: 'Choose round tables, long tables, head table or U-shape presets; drag tables and add entrance, stage or dance-floor markers.' },
+          { name: 'Auto-assign seats', text: 'One click seats guests, keeping groups at the same table; drag names between tables to fine-tune.' },
+          { name: 'Check and export', text: 'Automatic checks for unassigned guests, empty tables and overlaps; export a high-res A4/A3 PNG or PDF to print.' },
+        ],
+        'en',
+      ),
+      breadcrumb([
+        { name: 'Home', path: '/en' },
+        { name: 'Wedding Seating Chart', path: '/en/banquet' },
+      ]),
+    ],
+  }
+}
+
+async function resolveZhSeo(p: string): Promise<PageSeo> {
 
   if (p === '/' || p === '') {
     return {
@@ -562,7 +705,7 @@ export async function resolveSeo(path: string): Promise<PageSeo> {
  * 预渲染仅为了静态托管下直接访问路径时能命中 HTML 文件。
  */
 export function appShellPaths(): string[] {
-  return ['/account', '/admin']
+  return ['/account', '/admin', '/en/account', '/en/admin']
 }
 
 /** 需要构建期预渲染的全部路径（同时是 sitemap 的路径清单）；仅构建脚本使用 */
@@ -591,5 +734,6 @@ export async function prerenderPaths(): Promise<string[]> {
     '/banquet',
     '/terms',
     '/privacy',
+    ...EN_LOCALIZED_BASES.map((base) => enPathOf(base)),
   ]
 }

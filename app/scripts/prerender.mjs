@@ -38,6 +38,7 @@ function applyHead(html, seo) {
   const description = escapeAttr(seo.description)
 
   let out = html
+    .replace(/<html lang="[^"]*"/, `<html lang="${seo.lang === 'en' ? 'en' : 'zh-CN'}"`)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${title}</title>`)
     .replace(
       /<meta\s+name="description"[\s\S]*?\/>/,
@@ -67,6 +68,17 @@ function applyHead(html, seo) {
     // 移除模板中的静态 JSON-LD，改为按路由注入
     .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>\n?/, '')
 
+  if (seo.lang === 'en') {
+    out = out
+      .replace(
+        /<meta\s+name="keywords"[\s\S]*?\/>/,
+        '<meta name="keywords" content="seating chart maker,place card generator,wedding seating chart,place cards,escort cards,name tags,table tent cards,name badges,classroom seating chart,seating chart template,Excel batch print,SeatMark" />',
+      )
+      .replace(/<meta property="og:locale"[^>]*\/>/, '<meta property="og:locale" content="en_US" />')
+      .replace(/<meta property="og:site_name"[^>]*\/>/, '<meta property="og:site_name" content="SeatMark" />')
+      .replace(/<meta\s+name="author"[^>]*\/>/, '<meta name="author" content="SeatMark" />')
+  }
+
   if (seo.robots) {
     if (/<meta\s+name="robots"[^>]*\/>/.test(out)) {
       out = out.replace(/<meta\s+name="robots"[^>]*\/>/, `<meta name="robots" content="${escapeAttr(seo.robots)}" />`)
@@ -75,10 +87,14 @@ function applyHead(html, seo) {
     }
   }
 
+  const hreflangTags = (seo.alternates ?? [])
+    .map((alt) => `<link rel="alternate" hreflang="${alt.hreflang}" href="${SITE_ORIGIN}${alt.path === '/' ? '/' : alt.path}" />`)
+    .join('\n    ')
   const jsonLdTags = seo.jsonLd
     .map((data) => `<script type="application/ld+json" data-route-jsonld>${safeJsonLd(data)}</script>`)
     .join('\n    ')
-  return out.replace('</head>', `    ${jsonLdTags}\n  </head>`)
+  const headExtras = [hreflangTags, jsonLdTags].filter(Boolean).join('\n    ')
+  return out.replace('</head>', `    ${headExtras}\n  </head>`)
 }
 
 /** 将挂载点内容（含启动骨架）整体替换为预渲染正文 */
@@ -97,7 +113,7 @@ for (const path of [...paths, ...shellPaths]) {
   let html = applyHead(template, seo)
 
   // /studio 与应用壳为纯交互应用，保持 SPA 挂载即可；其余路由注入正文
-  if (path !== '/studio' && !shellPaths.includes(path)) {
+  if (path !== '/studio' && path !== '/en/studio' && !shellPaths.includes(path)) {
     const appHtml = await render(path)
     html = replaceAppMount(html, appHtml)
   }
@@ -122,17 +138,24 @@ for (const path of [...paths, ...shellPaths]) {
 const today = new Date().toISOString().slice(0, 10)
 const priorities = (p) => (p === '/' ? '1.0' : p === '/studio' ? '0.9' : p.split('/').length > 2 ? '0.7' : '0.8')
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${paths
-  .map(
-    (p) => `  <url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${(await Promise.all(
+  paths.map(async (p) => {
+    const seo = await resolveSeo(p)
+    const alternates = (seo.alternates ?? [])
+      .map(
+        (alt) =>
+          `\n    <xhtml:link rel="alternate" hreflang="${alt.hreflang}" href="${SITE_ORIGIN}${alt.path === '/' ? '/' : alt.path}" />`,
+      )
+      .join('')
+    return `  <url>
     <loc>${SITE_ORIGIN}${p === '/' ? '/' : p}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>${priorities(p)}</priority>
-  </url>`,
-  )
-  .join('\n')}
+    <priority>${priorities(p)}</priority>${alternates}
+  </url>`
+  }),
+)).join('\n')}
 </urlset>
 `
 writeFileSync(join(distDir, 'sitemap.xml'), sitemap)

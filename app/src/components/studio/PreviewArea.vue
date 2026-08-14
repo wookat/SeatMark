@@ -533,8 +533,8 @@ async function doExportPdf() {
     })
     await consumeQuotaAfterSuccess()
     toast.success(
-      '图片版 PDF 已生成',
-      `每页为 ${rasterDpi(scale)}dpi 高清栅格，放大打印仍清晰；文字需可选中请用「打印 / 矢量 PDF」`,
+      t('图片版 PDF 已生成'),
+      t('每页为 {dpi}dpi 高清栅格，放大打印仍清晰；文字需可选中请用「打印 / 矢量 PDF」').replace('{dpi}', String(rasterDpi(scale))),
     )
     maybeShowSharePrompt()
   } catch (err) {
@@ -649,12 +649,20 @@ async function doExportPng() {
     const unitCount = perLabel ? pngTotalLabels.value : pageCount
     const unitWord = perLabel ? '张标签' : '页'
     toast.success(
-      unitCount === 1 ? 'PNG 图片已生成' : `PNG 图片已生成（${unitCount} ${unitWord}打包为 zip）`,
+      unitCount === 1
+        ? t('PNG 图片已生成')
+        : t('PNG 图片已生成（{n} {unit}打包为 zip）')
+            .replace('{n}', String(unitCount))
+            .replace('{unit}', t(unitWord)),
       exact
-        ? `每${unitWord}精确 ${exactW}×${pngExactHeight.value} 像素${pngMonochrome.value ? '、纯黑白' : ''}，可直接导入电子桌牌系统`
+        ? t('每{unit}精确 {w}×{h} 像素{mono}，可直接导入电子桌牌系统')
+            .replace('{unit}', t(unitWord))
+            .replace('{w}', String(exactW))
+            .replace('{h}', String(pngExactHeight.value))
+            .replace('{mono}', pngMonochrome.value ? t('、纯黑白') : '')
         : perLabel
-          ? '每一张标签单独成图（尺寸=标签实际尺寸×清晰度），可直接逐张打印或屏显'
-          : '每页一张高清 PNG，可直接用于屏显或二次编辑',
+          ? t('每一张标签单独成图（尺寸=标签实际尺寸×清晰度），可直接逐张打印或屏显')
+          : t('每页一张高清 PNG，可直接用于屏显或二次编辑'),
     )
     maybeShowSharePrompt()
   } catch (err) {
@@ -696,8 +704,8 @@ async function doPrint() {
   unmountHost()
   await consumeQuotaAfterSuccess()
   toast.info(
-    '已调起浏览器打印',
-    `彩色打印三步：勾选「背景图形」、颜色选「彩色」、打印机首选项关闭灰度/省墨；目标打印机选「另存为 PDF」即可导出矢量 PDF；直接打印请用 ${currentPaperLabel.value} 纸张、无边距、缩放 100%`,
+    t('已调起浏览器打印'),
+    t('彩色打印三步：勾选「背景图形」、颜色选「彩色」、打印机首选项关闭灰度/省墨；目标打印机选「另存为 PDF」即可导出矢量 PDF；直接打印请用 {paper} 纸张、无边距、缩放 100%').replace('{paper}', currentPaperLabel.value),
   )
   maybeShowSharePrompt()
 }
@@ -740,10 +748,10 @@ async function doMobilePrint() {
     }
     await consumeQuotaAfterSuccess()
     toast.success(
-      '打印 PDF 已生成',
+      t('打印 PDF 已生成'),
       delivery === 'shared'
-        ? '在分享面板选「打印」或用 PDF 应用打开后打印即可'
-        : '已打开 / 下载 PDF，用系统 PDF 查看器的打印功能输出即可',
+        ? t('在分享面板选「打印」或用 PDF 应用打开后打印即可')
+        : t('已打开 / 下载 PDF，用系统 PDF 查看器的打印功能输出即可'),
     )
     maybeShowSharePrompt()
   } catch (err) {
