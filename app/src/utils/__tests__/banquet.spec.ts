@@ -50,6 +50,16 @@ describe('parseBanquetGuests', () => {
     expect(duplicates).toEqual(['张伟', '张伟'])
   })
 
+  it('西文全名不按空格拆分', () => {
+    expect(parseBanquetGuests('Alice Wang\nBob Smith, Carol Lee\n张伟 李娜').names).toEqual([
+      'Alice Wang',
+      'Bob Smith',
+      'Carol Lee',
+      '张伟',
+      '李娜',
+    ])
+  })
+
   it('忽略空行、全角空格与不可见字符', () => {
     expect(parseBanquetGuests('\n　张伟 \u200b\n\n 李娜\u00a0\n').names).toEqual(['张伟', '李娜'])
   })

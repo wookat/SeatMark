@@ -42,7 +42,24 @@ const vReveal: Directive<HTMLElement, number | undefined> = {
 }
 
 const heroTemplate = standardTemplate
-const heroRows = makeDemoRows(24).rows
+
+const HERO_EN_NAMES = [
+  'Emma Johnson', 'Liam Smith', 'Olivia Brown', 'Noah Davis', 'Ava Wilson', 'Mason Clark',
+  'Sophia Lewis', 'Ethan Walker', 'Mia Hall', 'Lucas Young', 'Isabella King', 'Henry Wright',
+  'Amelia Scott', 'Jack Green', 'Harper Adams', 'Leo Baker', 'Ella Nelson', 'Owen Carter',
+  'Grace Mitchell', 'Ryan Perez', 'Chloe Roberts', 'Caleb Turner', 'Lily Phillips', 'Nathan Campbell',
+]
+
+/** 英文站首屏演示行：英文姓名与英文考场名，其余字段与中文演示一致 */
+const heroRowsEn: DataRow[] = HERO_EN_NAMES.map((name, i) => ({
+  姓名: name,
+  考场: `Room ${Math.floor(i / 12) + 1}`,
+  座位号: String((i % 12) + 1).padStart(2, '0'),
+  准考证号: String(2026061001 + i),
+}))
+
+const heroRowsZh = makeDemoRows(24).rows
+const heroRows = computed(() => (locale.value === 'en' ? heroRowsEn : heroRowsZh))
 
 const HERO_MAPPING: Record<string, string> = {
   seatNo: '座位号',

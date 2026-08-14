@@ -37,6 +37,19 @@ export async function applySeo(path: string): Promise<void> {
   }
   canonical.href = `${SITE_ORIGIN}${seo.path}`
 
+  // hreflang 备选链接：先移除上个路由注入的，再写入当前路由的
+  document.head
+    .querySelectorAll('link[data-route-hreflang]')
+    .forEach((el) => el.remove())
+  for (const alt of seo.alternates ?? []) {
+    const link = document.createElement('link')
+    link.rel = 'alternate'
+    link.hreflang = alt.hreflang
+    link.href = `${SITE_ORIGIN}${alt.path}`
+    link.dataset.routeHreflang = ''
+    document.head.appendChild(link)
+  }
+
   // 页面级 JSON-LD：先移除上个路由注入的，再写入当前路由的
   document.head
     .querySelectorAll('script[data-route-jsonld]')

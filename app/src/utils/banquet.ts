@@ -61,6 +61,7 @@ export const VENUE_HEIGHT = 297
 /**
  * 解析宾客名单文本（逐行粘贴或 TXT 内容）：
  * 每行一位宾客；同一行内也允许用逗号/顿号/分号/制表符分隔多位。
+ * 空格仅在不含拉丁字母的片段内视为分隔符，避免拆散 "Alice Wang" 这类西文姓名。
  * 自动去除空白行、全角空格与重复姓名（保留首次出现顺序）。
  */
 export function parseBanquetGuests(text: string): { names: string[]; duplicates: string[] } {
@@ -71,7 +72,8 @@ export function parseBanquetGuests(text: string): { names: string[]; duplicates:
     const tokens = line
       .replace(/[\u200b\ufeff]/g, '')
       .replace(/[\u00a0\u3000]/g, ' ')
-      .split(/[\s,，、;；\t]+/)
+      .split(/[,，、;；\t]+/)
+      .flatMap((part) => (/[A-Za-z]/.test(part) ? [part] : part.split(/\s+/)))
       .map((s) => s.trim())
       .filter(Boolean)
     for (const t of tokens) {
