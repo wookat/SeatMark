@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { useI18n } from '@/i18n'
 import { useLoadingStore } from '@/stores/loading'
 import BrandMark from '@/components/ui/BrandMark.vue'
 
+const { t } = useI18n()
 const { loading } = useLoadingStore()
 </script>
 
@@ -23,14 +25,14 @@ const { loading } = useLoadingStore()
           ></span>
           <BrandMark class="size-5 text-brand-600" />
         </div>
-        <p class="text-sm font-semibold text-slate-700">{{ loading.text || '处理中...' }}</p>
+        <p class="text-sm font-semibold text-slate-700">{{ loading.text || t('处理中...') }}</p>
         <button
           v-if="loading.onCancel"
           type="button"
           class="btn btn-secondary btn-sm"
           @click="loading.onCancel?.()"
         >
-          取消导出
+          {{ t('取消导出') }}
         </button>
       </div>
     </div>

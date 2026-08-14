@@ -1,3 +1,32 @@
+# 第 320 轮（2026-08-14）：生产冒烟（#331+#332 已上线：主包 index-BkPOReaF.js、英文分包 en-DLc9LKHc.js）——T1/T2/T3 全部 PASS；P3-1 半角括号修复实证闭环；P3-2 全角冒号复现并定位到 PreviewArea.vue:1311
+
+**环境**：生产 https://www.seatmark.cn ，匿名（无登录、无发信），全程录屏。计划 test-plan-round320.md。
+
+## 升级项 / 观察
+
+- ✅ **P3-1 闭环（#332）**：生产无水印导出按钮已为半角 **"Export without watermark (left today: 1)"**（ss_adb16b6b.png）。
+- ⚠️ **P3-2 复现 + 定位**：PNG 导出弹窗内原句（照录）：`Choose an export method (starts immediately on click; cancel anytime — cancelled runs are not counted)：` —— 句尾为全角中文冒号。来源：`app/src/components/studio/PreviewArea.vue:1311`，模板中 `{{ t('选择导出方式') }}...` 之后硬编码了 t() 之外的 `：`，故英文下原样输出。修法：把冒号并入可翻译键或改 `{{ locale==='en' ? ':' : '：' }}`。截图 ss_zoom_d0595fe6.png。
+- P3 新观察①：/en/studio 点击导出后的**进度浮层为中文**「正在准备页面… / 取消导出」（ss_e9b78da6.png），未接 t()。
+- P3 新观察②：/en/banquet 侧栏 `Roster（0 guests / 80 seats）`、画布下 `Unassigned guests（0）` 使用全角括号（DOM 照录），与 #332 修复口径同类。
+- 执行注记：首次 PNG 导出「正在准备页面…」持续约 90 秒后才完成（zip 已落盘 619KB，判为冷启动字体加载慢，非失败）；第 2、3 次导出均数秒内完成。toast 截图为第 3 次导出捕获。
+
+## T1 生产 /en/studio（清 localStorage）——PASS
+- 首次引导卡全英文：Three steps to a finished print / Pick a template / Import list / Export & print（ss_d3cc4a05.png）。
+- PNG 导出弹窗：无水印按钮半角 `(left today: 1)` ✅（ss_adb16b6b.png）；P3-2 全角冒号复现（如上）。
+- 带水印 PNG 导出成功：toast **'PNG images exported (26 labels zipped)'** 英文（ss_06bb7683.png），zip 落盘 ~/Downloads（619KB×3）。
+
+## T2 生产 /en/banquet（清 seatmark.banquet-state.v1）——PASS
+- 五预设卡英文：Round-table banquet / Long-table banquet / Head table + rounds / U-shape meeting / Classroom desks（ss_ba98d02e.png）。
+- 应用 Round-table banquet → 桌名 Table 1…Table 8，toast 'Venue preset applied' 英文（ss_99d1196e.png）。
+
+## T3 中文回归（Regression，冒烟）——PASS
+- /studio?demo=1：全中文界面、导出按钮「图片版 PDF（推荐）/ 图片 PNG」、预览正常（ss_951f7390.png）。
+- /banquet：预设卡中文（圆桌宴会…）；清 banquet 状态后默认桌名「1号桌…8号桌」（ss_49325bda.png）。注：清状态前画布显示英文会话遗留的 Table 1…（localStorage 持久化不迁移，属预期）。
+
+**收尾**：浏览器存储已清；录屏 rec-b89021f7-9ac3-4dfe-9d80-6402280890c8-edited.mp4。
+
+---
+
 # 第 319 轮（2026-08-14）：PR #331 英文补全复测（/en/studio 英文化收尾 + /en/banquet 预设/桌名英文化，已合并）——**生产 >20 分钟未部署新前端包，按预案改用本地 build 预览验证**：全部功能判据 PASS，另记 2×P3 英文标点/空格瑕疵
 
 **环境**：生产轮询超时（详下），改用本地 build 预览 `http://localhost:4319`（`cd app && npm run build && npm run preview -- --port 4319`，构建自 origin/main 含 #331 提交 4e507da）。计划 test-plan-round319.md；浏览器部分全程录屏。

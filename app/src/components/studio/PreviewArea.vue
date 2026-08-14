@@ -506,7 +506,7 @@ async function consumeQuotaAfterSuccess() {
 async function doExportPdf() {
   const abort = new AbortController()
   const cancel = () => abort.abort()
-  workspace.setLoading(true, '正在准备页面...', cancel)
+  workspace.setLoading(true, t('正在准备页面...'), cancel)
   try {
     const pageCount = workspace.totalPages
     // 渲染倍率按标签物理尺寸自适应：大尺寸桌牌降档避免过采样
@@ -516,7 +516,7 @@ async function doExportPdf() {
       signal: abort.signal,
       // 分页分批：每次只挂载并栅格化一页，60+ 页任务内存占用恒定
       getPage: async (i) => {
-        workspace.setLoading(true, `正在渲染第 ${i + 1}/${pageCount} 页...`, cancel)
+        workspace.setLoading(true, t('正在渲染第 {i}/{n} 页...').replace('{i}', String(i + 1)).replace('{n}', String(pageCount)), cancel)
         await mountHost(i)
         const el = hostRef.value?.querySelector<HTMLElement>('.sheet-page')
         if (!el) throw new Error('页面节点未挂载')
@@ -529,7 +529,7 @@ async function doExportPdf() {
       calibration: calibrationStore.active ? calibrationStore.calibration : undefined,
       fileName: defaultPdfFileName(exportNamePrefix.value),
       onProgress: (done, total) =>
-        workspace.setLoading(true, `已完成 ${done}/${total} 页，正在写入 PDF...`, cancel),
+        workspace.setLoading(true, t('已完成 {done}/{total} 页，正在写入 PDF...').replace('{done}', String(done)).replace('{total}', String(total)), cancel),
     })
     await consumeQuotaAfterSuccess()
     toast.success(
@@ -540,7 +540,7 @@ async function doExportPdf() {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     if (message === EXPORT_CANCELLED_MESSAGE) {
-      toast.info('已取消导出', '本次未扣除无水印次数，可随时重新导出')
+      toast.info(t('已取消导出'), t('本次未扣除无水印次数，可随时重新导出'))
     } else {
       toast.danger('PDF 生成失败', `${message}；本次未扣除无水印次数，可直接重试`)
     }
@@ -557,7 +557,7 @@ async function doExportPng() {
   }
   const abort = new AbortController()
   const cancel = () => abort.abort()
-  workspace.setLoading(true, '正在准备页面...', cancel)
+  workspace.setLoading(true, t('正在准备页面...'), cancel)
   try {
     const pageCount = workspace.totalPages
     const exact = pngSizeMode.value === 'exact'
@@ -614,7 +614,7 @@ async function doExportPng() {
       pageCount,
       signal: abort.signal,
       getPage: async (i) => {
-        workspace.setLoading(true, `正在渲染第 ${i + 1}/${pageCount} 页...`, cancel)
+        workspace.setLoading(true, t('正在渲染第 {i}/{n} 页...').replace('{i}', String(i + 1)).replace('{n}', String(pageCount)), cancel)
         await mountHost(i)
         const el = hostRef.value?.querySelector<HTMLElement>('.sheet-page')
         if (!el) throw new Error('页面节点未挂载')
@@ -668,7 +668,7 @@ async function doExportPng() {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     if (message === EXPORT_CANCELLED_MESSAGE) {
-      toast.info('已取消导出', '本次未扣除无水印次数，可随时重新导出')
+      toast.info(t('已取消导出'), t('本次未扣除无水印次数，可随时重新导出'))
     } else {
       toast.danger('PNG 生成失败', `${message}；本次未扣除无水印次数，可直接重试`)
     }
@@ -692,7 +692,7 @@ async function doPrint() {
     await doMobilePrint()
     return
   }
-  workspace.setLoading(true, `正在准备 ${workspace.totalPages} 页打印内容...`)
+  workspace.setLoading(true, t('正在准备 {n} 页打印内容...').replace('{n}', String(workspace.totalPages)))
   try {
     await mountHost()
   } finally {
@@ -717,7 +717,7 @@ async function doPrint() {
 async function doMobilePrint() {
   const abort = new AbortController()
   const cancel = () => abort.abort()
-  workspace.setLoading(true, '正在准备页面...', cancel)
+  workspace.setLoading(true, t('正在准备页面...'), cancel)
   try {
     const pageCount = workspace.totalPages
     const fileName = defaultPdfFileName(exportNamePrefix.value)
@@ -725,7 +725,7 @@ async function doMobilePrint() {
       pageCount,
       signal: abort.signal,
       getPage: async (i) => {
-        workspace.setLoading(true, `正在渲染第 ${i + 1}/${pageCount} 页...`, cancel)
+        workspace.setLoading(true, t('正在渲染第 {i}/{n} 页...').replace('{i}', String(i + 1)).replace('{n}', String(pageCount)), cancel)
         await mountHost(i)
         const el = hostRef.value?.querySelector<HTMLElement>('.sheet-page')
         if (!el) throw new Error('页面节点未挂载')
@@ -738,7 +738,7 @@ async function doMobilePrint() {
       fileName,
       output: 'blob',
       onProgress: (done, total) =>
-        workspace.setLoading(true, `已完成 ${done}/${total} 页，正在生成 PDF...`, cancel),
+        workspace.setLoading(true, t('已完成 {done}/{total} 页，正在生成 PDF...').replace('{done}', String(done)).replace('{total}', String(total)), cancel),
     })
     if (!blob) throw new Error('PDF 生成失败')
     const delivery = await deliverPdfForMobilePrint(blob, fileName)
@@ -757,7 +757,7 @@ async function doMobilePrint() {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     if (message === EXPORT_CANCELLED_MESSAGE) {
-      toast.info('已取消导出', '本次未扣除无水印次数，可随时重新导出')
+      toast.info(t('已取消导出'), t('本次未扣除无水印次数，可随时重新导出'))
     } else {
       toast.danger('打印 PDF 生成失败', `${message}；本次未扣除无水印次数，可直接重试`)
     }
@@ -1308,7 +1308,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           {{ t('小验证：目标打印机先选「另存为 PDF」，导出的 PDF 是彩色就说明页面没问题，剩下的是打印机设置。') }}
         </p>
       </details>
-      <p class="leading-6">{{ t('选择导出方式') }}<span class="text-xs text-slate-500">{{ t('（点击即开始导出，可随时取消，取消不扣次数）') }}</span>：</p>
+      <p class="leading-6">{{ t('选择导出方式') }}<span class="text-xs text-slate-500">{{ t('（点击即开始导出，可随时取消，取消不扣次数）') }}</span>{{ t('：') }}</p>
       <p
         v-if="pendingAction === 'pdf' && exportEstimate"
         class="mt-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600"
