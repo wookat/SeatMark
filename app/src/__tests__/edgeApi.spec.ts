@@ -58,11 +58,33 @@ function createMockBlobStore(): MockBlobStore & { data: Map<string, string> } {
   }
 }
 
+/** 获取并解答一道表单验证码（算术题），供注册/登录/重置密码请求携带 */
+async function solvedCaptcha(env: Env = {}) {
+  const request = new Request('https://www.seatmark.cn/api/auth/captcha', { method: 'GET' })
+  const response: Response = await onRequest({ request, env })
+  const data = (await response.json()) as { question: string; token: string }
+  const m = /(\d+)\s*([+−])\s*(\d+)/.exec(data.question)
+  if (!m) throw new Error(`无法解析验证问题：${data.question}`)
+  const answer = m[2] === '+' ? Number(m[1]) + Number(m[3]) : Number(m[1]) - Number(m[3])
+  return { captchaToken: data.token, captchaAnswer: String(answer) }
+}
+
+const CAPTCHA_PATHS = ['/api/auth/register', '/api/auth/login', '/api/auth/reset-code']
+
 async function call(
   method: string,
   url: string,
   { body, env = {}, cookie }: { body?: unknown; env?: Env; cookie?: string } = {},
 ) {
+  // 需携带验证码的认证路径：未显式传入时自动解答并注入（各用例聚焦自身断言）
+  if (
+    body &&
+    typeof body === 'object' &&
+    !('captchaToken' in (body as Record<string, unknown>)) &&
+    CAPTCHA_PATHS.some((p) => url.includes(p))
+  ) {
+    body = { ...(body as Record<string, unknown>), ...(await solvedCaptcha(env)) }
+  }
   const headers = new Headers()
   if (body !== undefined) headers.set('Content-Type', 'application/json')
   if (cookie) headers.set('Cookie', cookie)
@@ -206,6 +228,104 @@ describe('/api/auth/register 与 /api/auth/login 密码登录', () => {
     })
     expect(response.status).toBe(429)
     expect(data.error).toBe('失败次数过多，请 15 分钟后再试')
+  })
+})
+
+describe('表单验证码与找回密码', () => {
+  const PASSWORD = 'reset-secret-99'
+
+  it('验证码答错时注册/登录被拒（400 + captcha 标记）', async () => {
+    const cap = await solvedCaptcha()
+    const wrong = { captchaToken: cap.captchaToken, captchaAnswer: '999' }
+    const { response, data } = await call('POST', 'https://www.seatmark.cn/api/auth/register', {
+      body: { email: 'cap-wrong@example.com', password: PASSWORD, ...wrong },
+    })
+    expect(response.status).toBe(400)
+    expect(data.captcha).toBe(true)
+
+    const { response: loginRes } = await call('POST', 'https://www.seatmark.cn/api/auth/login', {
+      body: { email: 'cap-wrong@example.com', password: PASSWORD, ...wrong },
+    })
+    expect(loginRes.status).toBe(400)
+  })
+
+  it('缺验证码令牌时被拒', async () => {
+    const { response } = await call('POST', 'https://www.seatmark.cn/api/auth/register', {
+      body: { email: 'cap-none@example.com', password: PASSWORD, captchaToken: '', captchaAnswer: '' },
+    })
+    expect(response.status).toBe(400)
+  })
+
+  it('找回密码全链路：发码→验码设新密码→新密码可登录，旧密码失效', async () => {
+    const email = 'reset-user@example.com'
+    await call('POST', 'https://www.seatmark.cn/api/auth/register', {
+      body: { email, password: PASSWORD },
+    })
+    // 本地开发未配邮件：重置码以 devCode 回显
+    const { response: codeRes, data: codeData } = await call(
+      'POST',
+      'http://localhost:5173/api/auth/reset-code',
+      { body: { email } },
+    )
+    expect(codeRes.status).toBe(200)
+    expect(String(codeData.devCode)).toMatch(/^\d{6}$/)
+
+    const newPassword = 'brand-new-pass-7'
+    const { response: resetRes, data: resetData } = await call(
+      'POST',
+      'https://www.seatmark.cn/api/auth/reset-password',
+      { body: { email, code: codeData.devCode, password: newPassword } },
+    )
+    expect(resetRes.status).toBe(200)
+    expect((resetData.user as Record<string, unknown>).email).toBe(email)
+    expect(resetRes.headers.get('Set-Cookie')).toContain('sm_session=')
+
+    const { response: oldRes } = await call('POST', 'https://www.seatmark.cn/api/auth/login', {
+      body: { email, password: PASSWORD },
+    })
+    expect(oldRes.status).toBe(401)
+    const { response: newRes } = await call('POST', 'https://www.seatmark.cn/api/auth/login', {
+      body: { email, password: newPassword },
+    })
+    expect(newRes.status).toBe(200)
+  })
+
+  it('未注册邮箱发重置码同样返回 ok（防枚举）且不落码', async () => {
+    const { response, data } = await call(
+      'POST',
+      'http://localhost:5173/api/auth/reset-code',
+      { body: { email: 'ghost@example.com' } },
+    )
+    expect(response.status).toBe(200)
+    expect(data.ok).toBe(true)
+    expect(data.devCode).toBeUndefined()
+
+    const { response: resetRes } = await call(
+      'POST',
+      'https://www.seatmark.cn/api/auth/reset-password',
+      { body: { email: 'ghost@example.com', code: '123456', password: PASSWORD } },
+    )
+    expect(resetRes.status).toBe(400)
+  })
+
+  it('重置码错误达上限后作废', async () => {
+    const email = 'reset-lock@example.com'
+    await call('POST', 'https://www.seatmark.cn/api/auth/register', {
+      body: { email, password: PASSWORD },
+    })
+    const { data: codeData } = await call('POST', 'http://localhost:5173/api/auth/reset-code', {
+      body: { email },
+    })
+    for (let i = 0; i < 5; i++) {
+      const wrongCode = codeData.devCode === '000000' ? '111111' : '000000'
+      await call('POST', 'https://www.seatmark.cn/api/auth/reset-password', {
+        body: { email, code: wrongCode, password: PASSWORD },
+      })
+    }
+    const { response } = await call('POST', 'https://www.seatmark.cn/api/auth/reset-password', {
+      body: { email, code: codeData.devCode, password: PASSWORD },
+    })
+    expect(response.status).toBe(429)
   })
 })
 

@@ -53,6 +53,17 @@ export function pendingInviteCode(): string {
   }
 }
 
+export interface Captcha {
+  question: string
+  token: string
+}
+
+/** 表单验证码作答（随注册/登录/重置密码请求携带） */
+export interface CaptchaInput {
+  captchaToken: string
+  captchaAnswer: string
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<SessionUser | null>(null)
   /** 首次 /api/auth/me 是否已返回（避免登录态闪烁） */
@@ -88,12 +99,20 @@ export const useAuthStore = defineStore('auth', () => {
     return data.user
   }
 
-  async function register(email: string, password: string): Promise<SessionUser> {
+  async function fetchCaptcha(): Promise<Captcha> {
+    return apiFetch<Captcha>('/api/auth/captcha')
+  }
+
+  async function register(
+    email: string,
+    password: string,
+    captcha: CaptchaInput,
+  ): Promise<SessionUser> {
     try {
       const inviteCode = pendingInviteCode()
       const data = await apiFetch<{ user: SessionUser }>('/api/auth/register', {
         method: 'POST',
-        body: inviteCode ? { email, password, inviteCode } : { email, password },
+        body: inviteCode ? { email, password, inviteCode, ...captcha } : { email, password, ...captcha },
       })
       user.value = data.user
       try {
@@ -106,7 +125,7 @@ export const useAuthStore = defineStore('auth', () => {
       // 边缘网关 5xx 时服务端注册可能已完成（账号已建），自动改走登录收尾
       if (err instanceof ApiError && err.status >= 500) {
         try {
-          return await login(email, password)
+          return await login(email, password, captcha)
         } catch (loginErr) {
           // 登录侧凭据类 4xx 说明注册确实未落库，回抛原始注册错误（可重试提示）
           throw loginErr instanceof ApiError && loginErr.status < 500 ? err : loginErr
@@ -116,14 +135,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function login(email: string, password: string): Promise<SessionUser> {
+  async function login(
+    email: string,
+    password: string,
+    captcha: CaptchaInput,
+  ): Promise<SessionUser> {
     let lastError: unknown
     for (let attempt = 0; attempt < 5; attempt++) {
       if (attempt > 0) await new Promise((r) => setTimeout(r, 600 * attempt))
       try {
         const data = await apiFetch<{ user: SessionUser }>('/api/auth/login', {
           method: 'POST',
-          body: { email, password },
+          body: { email, password, ...captcha },
         })
         user.value = data.user
         return data.user
@@ -134,6 +157,25 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
     throw lastError
+  }
+
+  async function sendResetCode(
+    email: string,
+    captcha: CaptchaInput,
+  ): Promise<{ delivery: string; devCode?: string }> {
+    return apiFetch<{ delivery: string; devCode?: string }>('/api/auth/reset-code', {
+      method: 'POST',
+      body: { email, ...captcha },
+    })
+  }
+
+  async function resetPassword(email: string, code: string, password: string): Promise<SessionUser> {
+    const data = await apiFetch<{ user: SessionUser }>('/api/auth/reset-password', {
+      method: 'POST',
+      body: { email, code, password },
+    })
+    user.value = data.user
+    return data.user
   }
 
   async function redeem(code: string): Promise<{ days?: number; already?: boolean; pro: ProStatus }> {
@@ -153,5 +195,19 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, ready, isLoggedIn, refresh, sendCode, verify, register, login, logout, redeem }
+  return {
+    user,
+    ready,
+    isLoggedIn,
+    refresh,
+    sendCode,
+    verify,
+    fetchCaptcha,
+    register,
+    login,
+    sendResetCode,
+    resetPassword,
+    logout,
+    redeem,
+  }
 })
