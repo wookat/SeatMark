@@ -6,6 +6,9 @@
  *   POST /api/auth/verify        校验验证码，签发 httpOnly JWT 会话
  *   POST /api/auth/register      邮箱+密码注册（已有验证码账号未设密码时可补设），签发会话
  *   POST /api/auth/login         邮箱+密码登录（连续失败限流），签发会话
+ *   GET  /api/auth/captcha       表单验证码（算术题+签名令牌），注册/登录/重置密码需携带
+ *   POST /api/auth/reset-code    找回密码：向邮箱发送重置验证码（防枚举）
+ *   POST /api/auth/reset-password 找回密码：验重置码+设新密码，成功即登录
  *   GET  /api/auth/me            当前登录用户（含配额/分享状态）
  *   POST /api/auth/logout        退出登录
  *   GET  /api/account/templates  拉取云端模板
@@ -67,6 +70,7 @@ const PBKDF2_ITERATIONS = 100000
 const LOGIN_FAIL_LIMIT = 10
 const LOGIN_FAIL_WINDOW_MS = 15 * 60 * 1000
 const REGISTER_IP_DAILY_LIMIT = 20
+const CAPTCHA_TTL_SECONDS = 5 * 60
 const TEMPLATES_MAX_BYTES = 512 * 1024
 
 // ---------- 会员与兑换码 ----------
@@ -457,9 +461,17 @@ function mailFrom(env) {
   return (env && env.MAIL_FROM) || 'SeatMark <noreply@seatmark.cn>'
 }
 
-async function sendCodeMailTencent(env, email, code) {
-  const subject = `【SeatMark 座签】登录验证码 ${code}`
-  const text = `你的登录验证码是：${code}，10 分钟内有效。如非本人操作请忽略本邮件。`
+/** 验证码邮件用途文案：login 登录 / reset 重置密码 */
+function codeMailCopy(kind, code) {
+  const label = kind === 'reset' ? '重置密码验证码' : '登录验证码'
+  return {
+    subject: `【SeatMark 座签】${label} ${code}`,
+    text: `你的${label}是：${code}，10 分钟内有效。如非本人操作请忽略本邮件。`,
+  }
+}
+
+async function sendCodeMailTencent(env, email, code, kind) {
+  const { subject, text } = codeMailCopy(kind, code)
   const templateId = Number(env.TENCENT_SES_TEMPLATE_ID)
   const payloadObj = {
     FromEmailAddress: mailFrom(env),
@@ -515,7 +527,8 @@ async function sendCodeMailTencent(env, email, code) {
   }
 }
 
-async function sendCodeMailResend(env, email, code) {
+async function sendCodeMailResend(env, email, code, kind) {
+  const { subject, text } = codeMailCopy(kind, code)
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -526,8 +539,8 @@ async function sendCodeMailResend(env, email, code) {
       body: JSON.stringify({
         from: mailFrom(env),
         to: [email],
-        subject: `【SeatMark 座签】登录验证码 ${code}`,
-        text: `你的登录验证码是：${code}，10 分钟内有效。如非本人操作请忽略本邮件。`,
+        subject,
+        text,
       }),
     })
     return { configured: true, delivered: res.ok }
@@ -537,11 +550,24 @@ async function sendCodeMailResend(env, email, code) {
 }
 
 /** 发送优先级：腾讯云 SES → Resend → 未配置 */
-async function sendCodeMail(env, email, code) {
+async function sendCodeMail(env, email, code, kind = 'login') {
   const channel = mailChannel(env)
-  if (channel === 'tencent-ses') return sendCodeMailTencent(env, email, code)
-  if (channel === 'resend') return sendCodeMailResend(env, email, code)
+  if (channel === 'tencent-ses') return sendCodeMailTencent(env, email, code, kind)
+  if (channel === 'resend') return sendCodeMailResend(env, email, code, kind)
   return { configured: false, delivered: false }
+}
+
+// ---------- 图形验证（算术题，无状态签名令牌） ----------
+async function captchaAnswerHash(answer, secret) {
+  return sha256Hex(`captcha:${String(answer).trim()}:${secret}`)
+}
+
+/** 验证表单验证码：令牌为服务端签名 JWT，无需存储；5 分钟内有效 */
+async function verifyCaptcha(env, token, answer) {
+  if (typeof token !== 'string' || answer === undefined || answer === null) return false
+  const payload = await verifyJwt(token, getSecret(env))
+  if (!payload || payload.typ !== 'captcha' || typeof payload.cap !== 'string') return false
+  return payload.cap === (await captchaAnswerHash(answer, getSecret(env)))
 }
 
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
@@ -591,7 +617,7 @@ async function handleRequest(context) {
 
   const { kv, storage, blobStore } = await getStorage(env)
   // Rev 标记仅用于部署观测：探针可确认线上边缘函数版本，改动本文件时递增
-  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r304' }
+  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r314' }
 
   /**
    * 非关键写入移出响应关键路径：平台支持 waitUntil 时响应先行、写入后台完成
@@ -660,6 +686,24 @@ async function handleRequest(context) {
   }
 
   // ----- 认证 -----
+  // 表单验证码：算术题 + 签名令牌（无存储，5 分钟有效），注册/登录/重置密码均需携带
+  if (path === '/api/auth/captcha' && method === 'GET') {
+    const a = 1 + Math.floor(Math.random() * 9)
+    const b = 1 + Math.floor(Math.random() * 9)
+    const plus = Math.random() < 0.5
+    const [x, y] = plus || a >= b ? [a, b] : [b, a]
+    const answer = plus ? x + y : x - y
+    const token = await signJwt(
+      {
+        typ: 'captcha',
+        cap: await captchaAnswerHash(answer, getSecret(env)),
+        exp: Math.floor(Date.now() / 1000) + CAPTCHA_TTL_SECONDS,
+      },
+      getSecret(env),
+    )
+    return json({ question: `${x} ${plus ? '+' : '−'} ${y} = ?`, token }, 200, storageHeader)
+  }
+
   if (path === '/api/auth/code' && method === 'POST') {
     const body = await readBody()
     const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
@@ -774,6 +818,9 @@ async function handleRequest(context) {
         storageHeader,
       )
     }
+    if (!(await verifyCaptcha(env, body?.captchaToken, body?.captchaAnswer))) {
+      return json({ error: '验证码不正确或已过期，请重试', captcha: true }, 400, storageHeader)
+    }
 
     const ip = clientIp(request)
     const regKey = `rl:reg:${await sha256Hex(ip)}:${today()}`
@@ -839,6 +886,9 @@ async function handleRequest(context) {
     if (!isValidEmail(email) || typeof password !== 'string' || !password) {
       return json({ error: '邮箱或密码格式不正确' }, 400, storageHeader)
     }
+    if (!(await verifyCaptcha(env, body?.captchaToken, body?.captchaAnswer))) {
+      return json({ error: '验证码不正确或已过期，请重试', captcha: true }, 400, storageHeader)
+    }
 
     // 连续失败限流（按邮箱，15 分钟窗口）
     const failKey = `pwfail:${email}`
@@ -876,6 +926,127 @@ async function handleRequest(context) {
     // 登录统计更新与限流计数清零都非关键：后台完成，响应不等 Blob 写回；无失败记录时不白写
     if (failsRaw) await deferWrite(() => kv.delete(failKey))
     await deferWrite(() => putUser(kv, user))
+
+    const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
+    const token = await signJwt({ sub: email, exp }, getSecret(env))
+    return json(
+      { ok: true, user: await publicUser(kv, email, env, user, deferWrite) },
+      200,
+      { ...storageHeader, 'Set-Cookie': sessionCookie(token) },
+    )
+  }
+
+  // 找回密码第一步：向邮箱发送重置验证码（防枚举：未注册邮箱同样返回 ok，只是不发信）
+  if (path === '/api/auth/reset-code' && method === 'POST') {
+    const body = await readBody()
+    const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
+    if (!isValidEmail(email)) return json({ error: '邮箱格式不正确' }, 400, storageHeader)
+    if (!(await verifyCaptcha(env, body?.captchaToken, body?.captchaAnswer))) {
+      return json({ error: '验证码不正确或已过期，请重试', captcha: true }, 400, storageHeader)
+    }
+
+    const ip = clientIp(request)
+    const ipKey = `rl:ip:${await sha256Hex(ip)}:${today()}`
+    const ipCount = await getCounter(kv, ipKey)
+    if (ipCount >= CODE_IP_DAILY_LIMIT) {
+      return json({ error: '请求过于频繁，请明天再试' }, 429, storageHeader)
+    }
+
+    const resetKey = `reset:${email}`
+    const existingRaw = await kv.get(resetKey)
+    if (existingRaw) {
+      try {
+        const existing = JSON.parse(existingRaw)
+        if (Date.now() - existing.sentAt < CODE_RESEND_INTERVAL_MS) {
+          return json({ error: '发送太频繁，请稍后再试' }, 429, storageHeader)
+        }
+      } catch {
+        // 记录损坏则直接覆盖
+      }
+    }
+
+    await kv.put(ipKey, String(ipCount + 1))
+
+    const user = await getUser(kv, email)
+    if (!user || !user.passwordHash) {
+      // 防邮箱枚举：不透露该邮箱是否已注册，直接返回成功但不发信
+      return json({ ok: true, delivery: 'email' }, 200, storageHeader)
+    }
+
+    const code = String(Math.floor(100000 + Math.random() * 900000))
+    await kv.put(
+      resetKey,
+      JSON.stringify({ code, sentAt: Date.now(), exp: Date.now() + CODE_TTL_MS, attempts: 0 }),
+    )
+
+    const { configured, delivered, errorCode } = await sendCodeMail(env, email, code, 'reset')
+    if (delivered) return json({ ok: true, delivery: 'email' }, 200, storageHeader)
+    if (!configured) {
+      if (isLocalDev(url, env)) {
+        return json({ ok: true, delivery: 'stub', devCode: code }, 200, storageHeader)
+      }
+      return json({ error: '邮件服务未配置，请联系管理员' }, 503, storageHeader)
+    }
+    return json({ error: '验证码发送失败，请稍后再试' }, 502, {
+      ...storageHeader,
+      ...(errorCode ? { 'X-SeatMark-Mail-Error': String(errorCode).slice(0, 64) } : {}),
+    })
+  }
+
+  // 找回密码第二步：验重置码 + 设新密码，成功后直接登录
+  if (path === '/api/auth/reset-password' && method === 'POST') {
+    const body = await readBody()
+    const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
+    const code = typeof body?.code === 'string' ? body.code.trim() : ''
+    const password = typeof body?.password === 'string' ? body.password : ''
+    if (!isValidEmail(email) || !/^\d{6}$/.test(code)) {
+      return json({ error: '邮箱或验证码格式不正确' }, 400, storageHeader)
+    }
+    if (!isValidPassword(password)) {
+      return json(
+        { error: `密码长度需在 ${PASSWORD_MIN_LENGTH}–${PASSWORD_MAX_LENGTH} 位之间` },
+        400,
+        storageHeader,
+      )
+    }
+
+    const resetKey = `reset:${email}`
+    const raw = await kv.get(resetKey)
+    if (!raw) return json({ error: '验证码已过期，请重新获取' }, 400, storageHeader)
+    let record
+    try {
+      record = JSON.parse(raw)
+    } catch {
+      return json({ error: '验证码已过期，请重新获取' }, 400, storageHeader)
+    }
+    if (record.exp < Date.now()) {
+      await kv.delete(resetKey)
+      return json({ error: '验证码已过期，请重新获取' }, 400, storageHeader)
+    }
+    if (record.attempts >= CODE_MAX_ATTEMPTS) {
+      await kv.delete(resetKey)
+      return json({ error: '尝试次数过多，请重新获取验证码' }, 429, storageHeader)
+    }
+    if (record.code !== code) {
+      record.attempts += 1
+      await kv.put(resetKey, JSON.stringify(record))
+      return json({ error: '验证码不正确' }, 400, storageHeader)
+    }
+
+    const user = await getUser(kv, email)
+    if (!user) {
+      await kv.delete(resetKey)
+      return json({ error: '该邮箱尚未注册' }, 404, storageHeader)
+    }
+    const now = new Date().toISOString()
+    user.passwordHash = await hashPassword(password)
+    user.passwordSetAt = now
+    user.lastLoginAt = now
+    user.loginCount = (user.loginCount || 0) + 1
+    await putUser(kv, user)
+    // 重置成功后后台清理：重置码作废 + 登录失败计数归零
+    await deferWrite(() => kv.delete(resetKey))
+    await deferWrite(() => kv.delete(`pwfail:${email}`))
 
     const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
     const token = await signJwt({ sub: email, exp }, getSecret(env))

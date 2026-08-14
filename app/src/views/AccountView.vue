@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 import { useAuthStore } from '@/stores/auth'
 import { QUOTA_ANON_DAILY, QUOTA_USER_DAILY, useQuotaStore } from '@/stores/quota'
@@ -13,16 +13,112 @@ const quota = useQuotaStore()
 const library = useTemplateLibrary()
 const toast = useToastStore()
 
-// ---------- 登录表单（邮箱 + 密码） ----------
+// ---------- 登录表单（邮箱 + 密码 + 验证码） ----------
 const email = ref('')
 const password = ref('')
-const mode = ref<'login' | 'register'>('login')
+const confirmPassword = ref('')
+const mode = ref<'login' | 'register' | 'reset'>('login')
 const submitting = ref(false)
 const formError = ref('')
+
+// 表单验证码（服务端算术题，防机器人）
+const captchaQuestion = ref('')
+const captchaToken = ref('')
+const captchaAnswer = ref('')
+const captchaLoading = ref(false)
+
+async function refreshCaptcha() {
+  captchaLoading.value = true
+  captchaAnswer.value = ''
+  try {
+    const data = await auth.fetchCaptcha()
+    captchaQuestion.value = data.question
+    captchaToken.value = data.token
+  } catch {
+    captchaQuestion.value = ''
+    captchaToken.value = ''
+  } finally {
+    captchaLoading.value = false
+  }
+}
+
+onMounted(() => {
+  if (!auth.user) void refreshCaptcha()
+})
+
+function switchMode(next: 'login' | 'register' | 'reset') {
+  mode.value = next
+  formError.value = ''
+  password.value = ''
+  confirmPassword.value = ''
+  resetCodeSent.value = false
+  resetCode.value = ''
+  void refreshCaptcha()
+}
+
+function captchaInput() {
+  return { captchaToken: captchaToken.value, captchaAnswer: captchaAnswer.value.trim() }
+}
+
+function validateCommon(emailValue: string): boolean {
+  if (!isValidEmail(emailValue)) {
+    formError.value = '请输入正确的邮箱地址'
+    return false
+  }
+  if (!captchaAnswer.value.trim()) {
+    formError.value = '请先回答验证问题'
+    return false
+  }
+  return true
+}
+
+// 找回密码：发码状态与 60s 重发倒计时
+const resetCode = ref('')
+const resetCodeSent = ref(false)
+const resetSending = ref(false)
+const resendCooldown = ref(0)
+let cooldownTimer: ReturnType<typeof setInterval> | null = null
+
+function startCooldown(seconds = 60) {
+  resendCooldown.value = seconds
+  if (cooldownTimer) clearInterval(cooldownTimer)
+  cooldownTimer = setInterval(() => {
+    resendCooldown.value -= 1
+    if (resendCooldown.value <= 0 && cooldownTimer) {
+      clearInterval(cooldownTimer)
+      cooldownTimer = null
+    }
+  }, 1000)
+}
+
+async function onSendResetCode() {
+  formError.value = ''
+  const emailValue = email.value.trim().toLowerCase()
+  if (!validateCommon(emailValue)) return
+  resetSending.value = true
+  try {
+    const data = await auth.sendResetCode(emailValue, captchaInput())
+    resetCodeSent.value = true
+    startCooldown()
+    if (data.devCode) resetCode.value = data.devCode
+    toast.success('验证码已发送', '若该邮箱已注册，重置验证码将在几分钟内送达，请同时检查垃圾邮件')
+  } catch (err) {
+    formError.value = err instanceof ApiError ? err.message : '发送失败，请稍后再试'
+    if (err instanceof ApiError && err.status === 400) void refreshCaptcha()
+  } finally {
+    resetSending.value = false
+  }
+}
 
 async function onSubmit() {
   formError.value = ''
   const emailValue = email.value.trim().toLowerCase()
+  if (mode.value === 'reset' && !resetCodeSent.value) {
+    await onSendResetCode()
+    return
+  }
+  // 重置第二步只验重置码（验证问题已在发码时校验过）
+  if (mode.value !== 'reset' && !validateCommon(emailValue)) return
   if (!isValidEmail(emailValue)) {
     formError.value = '请输入正确的邮箱地址'
     return
@@ -31,27 +127,54 @@ async function onSubmit() {
     formError.value = '密码至少 8 位'
     return
   }
+  if (
+    (mode.value === 'register' || mode.value === 'reset') &&
+    password.value !== confirmPassword.value
+  ) {
+    formError.value = '两次输入的密码不一致'
+    return
+  }
+  if (mode.value === 'reset' && !/^\d{6}$/.test(resetCode.value.trim())) {
+    formError.value = '请输入邮件中的 6 位验证码'
+    return
+  }
   submitting.value = true
   try {
     if (mode.value === 'register') {
-      await auth.register(emailValue, password.value)
+      await auth.register(emailValue, password.value, captchaInput())
       toast.success('注册成功', '已赠送 7 天专业版试用：无水印导出不限次与云端模板同步已生效')
+    } else if (mode.value === 'reset') {
+      await auth.resetPassword(emailValue, resetCode.value.trim(), password.value)
+      toast.success('密码已重置', '新密码已生效，已为你自动登录')
     } else {
-      await auth.login(emailValue, password.value)
+      await auth.login(emailValue, password.value, captchaInput())
       toast.success('登录成功', '无水印导出额度与云端模板同步已生效')
     }
     password.value = ''
+    confirmPassword.value = ''
   } catch (err) {
     formError.value =
       err instanceof ApiError
         ? err.message
         : mode.value === 'register'
           ? '注册失败，请稍后再试'
-          : '登录失败，请稍后再试'
+          : mode.value === 'reset'
+            ? '重置失败，请稍后再试'
+            : '登录失败，请稍后再试'
+    // 验证码错误或已过期：换一题重试
+    if (err instanceof ApiError && err.status === 400) void refreshCaptcha()
   } finally {
     submitting.value = false
   }
 }
+
+// 登出后回到登录表单时验证码已过期，重新取题
+watch(
+  () => auth.user,
+  (user, prev) => {
+    if (!user && prev) void refreshCaptcha()
+  },
+)
 
 // ---------- 云端模板 ----------
 const syncing = ref(false)
@@ -193,11 +316,16 @@ function formatDate(iso: string | null | undefined): string {
       <div class="mx-auto max-w-md">
         <div class="text-center">
           <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            {{ mode === 'register' ? '注册 SeatMark' : '登录 SeatMark' }}
+            {{ mode === 'register' ? '注册 SeatMark' : mode === 'reset' ? '找回密码' : '登录 SeatMark' }}
           </h1>
           <p class="mt-2 text-sm leading-6 text-slate-600">
-            邮箱 + 密码登录。新用户注册即送 7 天专业版试用（无水印导出不限次）；免费版每日
-            {{ QUOTA_USER_DAILY }} 次无水印导出（未登录 {{ QUOTA_ANON_DAILY }} 次）；自定义模板云端同步与跨设备找回；带水印导出/打印始终不限次数。
+            <template v-if="mode === 'reset'">
+              输入注册邮箱获取重置验证码，验证后设置新密码即可重新登录。
+            </template>
+            <template v-else>
+              邮箱 + 密码登录。新用户注册即送 7 天专业版试用（无水印导出不限次）；免费版每日
+              {{ QUOTA_USER_DAILY }} 次无水印导出（未登录 {{ QUOTA_ANON_DAILY }} 次）；自定义模板云端同步与跨设备找回；带水印导出/打印始终不限次数。
+            </template>
           </p>
         </div>
 
@@ -214,43 +342,156 @@ function formatDate(iso: string | null | undefined): string {
             />
           </label>
 
-          <label class="grid gap-1.5">
-            <span class="text-sm font-semibold text-slate-700">密码</span>
+          <!-- 找回密码：重置验证码（发码后展示） -->
+          <label v-if="mode === 'reset' && resetCodeSent" class="grid gap-1.5">
+            <span class="text-sm font-semibold text-slate-700">邮件验证码</span>
+            <div class="flex gap-2">
+              <input
+                v-model="resetCode"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                required
+                autocomplete="one-time-code"
+                placeholder="邮件中的 6 位验证码"
+                class="h-10 min-w-0 flex-1 rounded border border-slate-300 px-3 text-sm tracking-widest text-slate-900 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+              />
+              <button
+                type="button"
+                class="btn btn-secondary btn-sm h-10 shrink-0"
+                :disabled="resetSending || resendCooldown > 0"
+                @click="onSendResetCode"
+              >
+                {{ resendCooldown > 0 ? `${resendCooldown}s 后重发` : '重新发送' }}
+              </button>
+            </div>
+          </label>
+
+          <label v-if="mode !== 'reset' || resetCodeSent" class="grid gap-1.5">
+            <span class="text-sm font-semibold text-slate-700">{{ mode === 'reset' ? '新密码' : '密码' }}</span>
             <input
               v-model="password"
               type="password"
               required
               minlength="8"
               maxlength="72"
-              :autocomplete="mode === 'register' ? 'new-password' : 'current-password'"
-              :placeholder="mode === 'register' ? '至少 8 位' : '请输入密码'"
+              :autocomplete="mode === 'login' ? 'current-password' : 'new-password'"
+              :placeholder="mode === 'login' ? '请输入密码' : '至少 8 位'"
               class="h-10 rounded border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
             />
           </label>
 
+          <!-- 注册/重置：确认密码，避免手滑设错 -->
+          <label
+            v-if="mode === 'register' || (mode === 'reset' && resetCodeSent)"
+            class="grid gap-1.5"
+          >
+            <span class="text-sm font-semibold text-slate-700">确认密码</span>
+            <input
+              v-model="confirmPassword"
+              type="password"
+              required
+              minlength="8"
+              maxlength="72"
+              autocomplete="new-password"
+              placeholder="再次输入密码"
+              class="h-10 rounded border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            />
+            <p
+              v-if="confirmPassword && confirmPassword !== password"
+              class="text-xs font-medium text-red-600"
+            >
+              两次输入的密码不一致
+            </p>
+          </label>
+
+          <!-- 防机器人验证问题（重置第二步不需要） -->
+          <label v-if="mode !== 'reset' || !resetCodeSent" class="grid gap-1.5">
+            <span class="text-sm font-semibold text-slate-700">验证问题</span>
+            <div class="flex items-center gap-2">
+              <span
+                class="flex h-10 shrink-0 items-center rounded border border-slate-200 bg-slate-50 px-3 font-mono text-sm font-semibold text-slate-800"
+              >
+                {{ captchaLoading ? '加载中...' : captchaQuestion || '加载失败' }}
+              </span>
+              <input
+                v-model="captchaAnswer"
+                type="text"
+                inputmode="numeric"
+                maxlength="3"
+                required
+                autocomplete="off"
+                placeholder="答案"
+                aria-label="验证问题答案"
+                class="h-10 w-full min-w-0 rounded border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+              />
+              <button
+                type="button"
+                class="btn btn-secondary btn-sm h-10 shrink-0"
+                :disabled="captchaLoading"
+                aria-label="换一题"
+                @click="refreshCaptcha"
+              >
+                换一题
+              </button>
+            </div>
+          </label>
+
           <p v-if="formError" class="text-sm font-medium text-red-600">{{ formError }}</p>
 
-          <button type="submit" class="btn btn-primary btn-md w-full" :disabled="submitting">
+          <button
+            type="submit"
+            class="btn btn-primary btn-md w-full"
+            :disabled="submitting || resetSending"
+          >
             {{
               mode === 'register'
                 ? submitting
                   ? '注册中...'
                   : '注册并登录'
-                : submitting
-                  ? '登录中...'
-                  : '登录'
+                : mode === 'reset'
+                  ? resetCodeSent
+                    ? submitting
+                      ? '重置中...'
+                      : '重置密码并登录'
+                    : resetSending
+                      ? '发送中...'
+                      : '发送重置验证码'
+                  : submitting
+                    ? '登录中...'
+                    : '登录'
             }}
           </button>
 
           <p class="text-center text-sm text-slate-600">
-            {{ mode === 'register' ? '已有账号？' : '还没有账号？' }}
-            <button
-              type="button"
-              class="font-semibold text-brand-600 hover:text-brand-700"
-              @click="mode = mode === 'register' ? 'login' : 'register'; formError = ''"
-            >
-              {{ mode === 'register' ? '去登录' : '免费注册' }}
-            </button>
+            <template v-if="mode === 'login'">
+              还没有账号？
+              <button
+                type="button"
+                class="font-semibold text-brand-600 hover:text-brand-700"
+                @click="switchMode('register')"
+              >
+                免费注册
+              </button>
+              <span class="mx-1.5 text-slate-300">|</span>
+              <button
+                type="button"
+                class="font-semibold text-brand-600 hover:text-brand-700"
+                @click="switchMode('reset')"
+              >
+                忘记密码？
+              </button>
+            </template>
+            <template v-else>
+              {{ mode === 'register' ? '已有账号？' : '想起密码了？' }}
+              <button
+                type="button"
+                class="font-semibold text-brand-600 hover:text-brand-700"
+                @click="switchMode('login')"
+              >
+                去登录
+              </button>
+            </template>
           </p>
         </form>
 
