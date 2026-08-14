@@ -1,3 +1,33 @@
+# 第 316 轮（2026-08-14）：PR #326 图片验证码——本地端到端（分支 devin/1786737138-image-captcha @e84f8bc）+ 生产追加复测（合并部署后 x-seatmark-rev: r316）——全部判据 PASS
+
+**环境**：本地 vite dev + edge middleware（`env -u RESEND_API_KEY -u TENCENT_SES_SECRET_ID -u TENCENT_SES_SECRET_KEY npm run dev`，memory KV，devCode 可用），本地 `/api/auth/captcha` 实测返回 `{image: data:image/svg+xml;base64,…, token}` 且 rev 头 **r316**。测试中途 PR #326 合并，轮询生产至 `x-seatmark-rev: r316` 后追加生产复测。取答案法：解码页面 img src 的 base64 SVG，正则提取 4 个 `<text>` 字符（答案不下发，服务端仅存哈希）。计划 test-plan-round316.md；全程录屏。
+
+## T1 图片渲染与刷新（本地 /account）——PASS
+- 验证码行变为「图片验证码」：132×44 SVG 图片（扭曲字符+干扰线/噪点）正常渲染，placeholder「图中字符，不分大小写」，按钮「换一张」。
+- 点「换一张」：图片内容变化（WTKU→…→TZ5F）；点图片本身：再次变化（→7F7T）。两条刷新路径均实证。
+
+## T2 注册：答错 400 自动换图 / 小写答对——PASS
+- 故意填 "0000"（字符集不含 0，必错）：raw **POST /api/auth/register 400**，红字「验证码不正确或已过期，请重试」，图片**自动换新**（RRPJ→9C4P）。
+- 解码新图答案 9C4P，**以小写 9c4p** 提交：注册成功 toast，自动登录个人中心「专业版会员 · 2026/8/21 到期」——不区分大小写实证。
+
+## T3 登录 + 找回密码 devCode——PASS
+- 登出后登录：小写 uh3d（图为 UH3D）+ 正确密码 → 登录成功（累计登录 2）。
+- 忘记密码→发码：先答错 "0000" → raw **reset-code 400** + 图片自动换新（→FD5S）——发码链路仍带图片验证码校验；再以小写 fd5s 答对 → reset-code 200、toast「验证码已发送」、**devCode 157917 六位自动回填**、60s 倒计时。
+- 新密码 ×2 → 重置成功 toast「密码已重置…已为你自动登录」（累计登录 3）。本地未配邮件，全程无真实邮件发送。
+
+## T4 390px + pageerror——PASS
+- CDP 390×844：登录表单与找回密码表单 scrollWidth=390=innerWidth（验证码行图片+输入框+换一张不溢出）；error/unhandledrejection = 0。
+
+## T5 生产追加复测（www.seatmark.cn，r316）——PASS
+- 轮询约 2 分钟后生产 captcha 端点 rev 头 r314→**r316**，返回 image 字段。
+- 生产 /account：图片验证码渲染；换一张（DN7P→6R6S）与点图（→AHJX）均刷新。
+- r315seatmark@emalupe.com 答错 "0000"：raw login 400 + 图片自动换新（→ZH3P）；小写 zh3p + NewProd315!pass → 登录成功（累计登录 6）。未触发找回密码发码（节省额度，上轮已验）。
+- 生产 390px 登录/找回表单：scrollWidth=390、errs=0。
+
+**收尾**：本地与生产均已登出、浏览器存储已清。本地测试账号 r316user@test.cn 存于 memory KV（dev server 重启即消失）。
+
+---
+
 # 第 315 轮（2026-08-14）：PR #324 生产复测（www.seatmark.cn，X-SeatMark-Rev=r314 实测确认）——注册/登录/找回密码全链路 PASS；⚠️ 2 项注记：重置邮件实际由 noreply@seatmark.cn 经腾讯 qcloudmail 发出（非约定的 Resend seatmark@zalize.com）；reset-password 出现 1 次 raw 545 且**前端未自动重试**、用户可见「服务暂时不可用，请重试」需手动再点一次
 
 **环境**：生产 https://www.seatmark.cn ，`x-seatmark-rev: r314`（curl 实测）。真实收信邮箱：mail.tm 临时邮箱 r315seatmark@emalupe.com（API 轮询收信）。全 UI 操作 + 录屏；计划 test-plan-round315.md。发码全轮仅 1 次（节省 IP 日限 20 的共享额度）。
