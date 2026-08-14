@@ -1,3 +1,35 @@
+# 第 312 轮（2026-08-14）：PR #320+#321 生产复测（/banquet 宴会座位表生成器 + /studio TXT/去重 + 互链）——T1/T3/T4/T5 全 PASS；T2 发现 1×P2：A4 横向 PNG 首次导出渲染损坏（重试成功，疑似偶发/竞态）
+
+**环境**：生产 https://www.seatmark.cn ，全程匿名（带水印导出）。部署确认：新 bundle `index-DQa2HNr9.js`，`x-seatmark-rev: r304`（本轮未改边缘函数）；main=e309d85（特性提交 c4aaff7）。计划 test-plan-round312.md，全程录屏。导出原始物存 `/home/ubuntu/r312/`。
+
+## T1 /banquet 四步全流程——PASS
+- 粘贴多行名单（含 2 条重复）→「添加到名单（自动去重）」toast 提示去重、列表条数正确；「上传 TXT 名单」（`/home/ubuntu/r312/guests.txt`，含 1 条与现有重复）入列去重正确（`ss_bbb6c0fd.png`、`ss_eeeb5c43.png`）。
+- 自定义分组：男方亲友 #E11D48 / 女方亲友 #4F46E5，HEX 可改、宾客可逐个指派（`ss_zoom_d049706b.png`）。
+- 五种布局预设全部点击生成（圆桌/长桌/主桌+圆桌/U 形/教室）；主桌改名「贵宾主桌」、座位数改 6；添加入口/舞台/舞池标记；Pointer 拖动 5 号桌位置改变（`ss_129f896d.png`、`ss_cc189209.png`）。
+- 一键自动分配：7/7 上桌、同组尽量聚集主桌；拖拽王芳到 2 号桌微调成功；陈静可拖回「未安排」区撤下（`ss_68eeeeca.png`、`ss_5bbe972c.png`、`ss_57fe7545.png`）。
+- localStorage `seatmark.banquet-state.v1` 存在（len=1994，keys 含 guests/groups/tables/markers/paper 等），刷新后状态保留（`ss_c47f105d.png`）。
+
+## T2 导出口径（#321 回归）——含 1×P2
+- ⚠️ **P2：A4 横向 PNG 首次导出渲染损坏**——3509×2481 尺寸正确但全部文字挤在左缘、无任何餐桌图形（`/home/ubuntu/r312/a4_landscape.png`、`a4png_full_small.png`）。同状态**立即重试第二次导出完全正常**（`a4_landscape_retry.png`：标题/舞台/主桌/6 圆桌/入口/底边水印/边距均正确，首个非白列 284——左缘不裁切）。疑似偶发渲染竞态（如字体/布局未就绪即截图），建议排查导出前等待逻辑。
+- A4 横向 PDF：841.89×595.276 pts（A4 横），栅格化正确、左缘完整、水印在（`a4_landscape.pdf`/`a4pdf-1.png`）。
+- **A3 纵向 PDF：不报错、成功产出** 841.89×1190.55 pts（A3 纵），内容完整（`a3_portrait.pdf`/`a3pdf-1.png`）——#321 两缺陷（左缘裁切、A3 纵失败）在 PDF 通道均未复现。
+- 勾选「导出带分组颜色」PDF：宾客芯片红/靛按组着色、底部含「分组图例：●男方亲友 ●女方亲友」（`a4_landscape_colors.pdf`、`a4color_chips.png`、`a4color_legend.png`）。
+
+## T3 导出前检查弹窗——PASS
+- 构造 1 名未安排（陈静）+5 张空桌 → 点导出：弹窗「导出前检查发现问题」列出「未安排的宾客（1）陈静」「空桌（5）1/3/4/5/6号桌」；「返回修改」阻断导出；此前已验证「忽略问题，继续导出」可继续（`ss_c6fa5927.png`、`ss_394b7edc.png`）。
+
+## T4 移动端 390px——PASS
+- CDP 390×844 仿真：四步区块完整可用、scrollWidth 390≤innerWidth 390 无横向溢出、pageerror=0（`/home/ubuntu/r312/mob390_{top,mid,bot}.png`）。
+- 测试注记：390 仿真期间本机 Chrome 一度崩溃重启（自动化环境问题，非生产页面错误；重启后同判据复测通过）。重启换 profile 导致本地 banquet 状态丢失属测试环境现象，持久化判据此前已过。
+
+## T5 /studio 与 /seating 回归——PASS
+- /studio「粘贴名单导入」弹窗：含「上传 TXT 文件」按钮与「自动去重重复行」开关（默认开）；开时粘贴 5 行（2 重复）提示「识别到 3 条数据…已去重 2 条」，导入后预览 3 枚；关时同样 5 行识别到 5 条（保留重复）；TXT 上传追加 3 行识别到 8 条（`ss_446fff6b.png`、`ss_zoom_81eaac95.png`、`ss_0080aa4b.png`）。
+- /seating 顶部互链「要排婚宴、年会圆桌？用 宴会座位表生成器」点击跳转 /banquet 成功；/banquet 顶部反向链接「教室座位表打印」、页脚含 /banquet 入口；/seating 演示名单 48 人渲染正常无回归（`ss_50a06d0f.png`、`ss_d3160524.png`）。
+
+**收尾**：浏览器 localStorage/sessionStorage 已清（`seatmark.seating-state.v1` 等），结束于匿名页面。
+
+---
+
 # 第 310 轮（2026-08-14）：PR #317 生产上线复测（双语英文名修复 + 3 款新模板 + 225 计数）——全部判据 PASS，无 P1/P2 回归；新观察 1×P3（retail 演示数据「土雞蛋」为繁体「雞」）
 
 **环境**：生产 https://www.seatmark.cn ，全程匿名（带水印导出）。部署确认：`index.html` 引用新 bundle `index-CLPzfp2I.js`（旧 `index-BDLw0dx-.js`），`x-seatmark-rev: r304` 保持（本轮未改边缘函数）；main=f1ba201。浏览器硬刷新绕过 SW 缓存。计划 test-plan-round310.md，全程录屏。

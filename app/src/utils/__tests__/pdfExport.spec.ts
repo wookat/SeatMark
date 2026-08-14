@@ -574,6 +574,20 @@ describe('导出稳定性防线', () => {
     expect(domExpectsRightInk(page)).toBe(true)
   })
 
+  it('domExpectsRightInk：data-export-ink 标记的内容盒横贯页面 → 预期右侧有墨', () => {
+    const page = document.createElement('div')
+    Object.defineProperty(page, 'getBoundingClientRect', {
+      value: () => ({ left: 0, right: 1000, width: 1000, top: 0, bottom: 100, height: 100 }),
+    })
+    const venue = document.createElement('div')
+    venue.setAttribute('data-export-ink', '')
+    Object.defineProperty(venue, 'getBoundingClientRect', {
+      value: () => ({ left: 50, right: 950, width: 900, top: 0, bottom: 100, height: 100 }),
+    })
+    page.appendChild(venue)
+    expect(domExpectsRightInk(page)).toBe(true)
+  })
+
   it('isCanvasBlank：零尺寸画布视为空白', () => {
     const canvas = document.createElement('canvas')
     canvas.width = 0
