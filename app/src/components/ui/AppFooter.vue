@@ -11,6 +11,7 @@ const GROUPS = [
       { label: '模板库', to: '/templates' },
       { label: '定价（注册送 7 天专业版）', to: '/pricing' },
       { label: '教室座位表打印', to: '/seating' },
+      { label: '宴会座位表生成器', to: '/banquet' },
       { label: '不干胶纸型库', to: '/papers' },
       { label: '模板设计器', to: '/studio?design=new' },
       { label: '演示数据体验', to: '/studio?demo=1' },

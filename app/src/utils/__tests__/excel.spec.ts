@@ -1,6 +1,25 @@
 import { describe, expect, it } from 'vitest'
 
-import { makeDemoRows, parseExcelFile, parsePastedRoster } from '@/utils/excel'
+import { dedupeDataRows, makeDemoRows, parseExcelFile, parsePastedRoster } from '@/utils/excel'
+
+describe('dedupeDataRows', () => {
+  it('去除完全重复的行并保留首次出现顺序', () => {
+    const headers = ['姓名', '班级']
+    const rows = [
+      { 姓名: '张伟', 班级: '一班' },
+      { 姓名: '李娜', 班级: '一班' },
+      { 姓名: '张伟', 班级: '一班' },
+      { 姓名: '张伟', 班级: '二班' },
+    ]
+    const out = dedupeDataRows(rows, headers)
+    expect(out.removed).toBe(1)
+    expect(out.rows.map((r) => `${r['姓名']}-${r['班级']}`)).toEqual([
+      '张伟-一班',
+      '李娜-一班',
+      '张伟-二班',
+    ])
+  })
+})
 
 describe('parsePastedRoster', () => {
   it('Excel 复制的 TSV：首行含列名关键词时作为表头', () => {

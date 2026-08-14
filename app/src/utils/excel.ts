@@ -257,6 +257,22 @@ export function parsePastedRoster(text: string, firstRowHeader?: boolean): Paste
   return { headers, rows, headerDetected }
 }
 
+/** 按整行取值去重（保留首次出现顺序），返回去重后的行与移除条数 */
+export function dedupeDataRows(
+  rows: DataRow[],
+  headers: string[],
+): { rows: DataRow[]; removed: number } {
+  const seen = new Set<string>()
+  const out: DataRow[] = []
+  for (const row of rows) {
+    const key = headers.map((h) => String(row[h] ?? '')).join('\u0000')
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(row)
+  }
+  return { rows: out, removed: rows.length - out.length }
+}
+
 /** 生成一批演示数据，便于用户上传前先体验完整流程 */
 export function makeDemoRows(count = 30): { headers: string[]; rows: DataRow[] } {
   const rows: DataRow[] = []

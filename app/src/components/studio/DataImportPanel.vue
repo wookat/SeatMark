@@ -6,7 +6,7 @@ import ModalDialog from '@/components/ui/ModalDialog.vue'
 import { useDragScroll } from '@/composables/useDragScroll'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { compareCellText, downloadSampleExcel, parsePastedRoster } from '@/utils/excel'
+import { compareCellText, dedupeDataRows, downloadSampleExcel, parsePastedRoster } from '@/utils/excel'
 
 const workspace = useWorkspaceStore()
 const toast = useToastStore()
@@ -171,10 +171,29 @@ const pasteOpen = ref(false)
 const pasteText = ref('')
 /** 用户手动指定首行是否为表头；null 表示跟随关键词自动识别 */
 const pasteHeaderOverride = ref<boolean | null>(null)
+/** 导入时是否自动去除完全重复的行 */
+const pasteDedupe = ref(true)
+const txtInput = ref<HTMLInputElement | null>(null)
 
-const pasteParsed = computed(() =>
-  parsePastedRoster(pasteText.value, pasteHeaderOverride.value ?? undefined),
-)
+const pasteParsed = computed(() => {
+  const parsed = parsePastedRoster(pasteText.value, pasteHeaderOverride.value ?? undefined)
+  if (!pasteDedupe.value) return { ...parsed, removed: 0 }
+  const { rows, removed } = dedupeDataRows(parsed.rows, parsed.headers)
+  return { ...parsed, rows, removed }
+})
+
+function onTxtChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    const text = typeof reader.result === 'string' ? reader.result : ''
+    pasteText.value = pasteText.value.trim() ? `${pasteText.value}\n${text}` : text
+  }
+  reader.readAsText(file)
+}
 
 function togglePasteHeader(value: boolean) {
   pasteHeaderOverride.value = value
@@ -183,6 +202,7 @@ function togglePasteHeader(value: boolean) {
 function openPasteDialog() {
   pasteText.value = ''
   pasteHeaderOverride.value = null
+  pasteDedupe.value = true
   pasteOpen.value = true
 }
 
@@ -194,9 +214,10 @@ function confirmPaste() {
   }
   workspace.applyDataset('粘贴的名单', parsed.headers, parsed.rows)
   pasteOpen.value = false
+  const dedupeNote = parsed.removed ? `，已去重 ${parsed.removed} 条` : ''
   toast.success(
     `已导入 ${parsed.rows.length} 条数据`,
-    parsed.headerDetected ? '首行已识别为表头' : '未检测到表头，首列已按「姓名」处理',
+    (parsed.headerDetected ? '首行已识别为表头' : '未检测到表头，首列已按「姓名」处理') + dedupeNote,
   )
 }
 
@@ -351,8 +372,24 @@ async function onDownloadSample() {
 
     <ModalDialog :open="pasteOpen" title="粘贴名单导入" size="md" @close="pasteOpen = false">
       <p class="text-xs text-slate-600">
-        从 Excel/WPS 直接复制区域粘贴（自动分列），或粘贴微信、文档里整理的名单（每行一条，多列可用逗号、顿号或空格分隔）。数据不出浏览器。
+        从 Excel/WPS 直接复制区域粘贴（自动分列），或粘贴微信、文档里整理的名单（每行一条，多列可用逗号、顿号或空格分隔），也可直接上传 .txt 文本名单。数据不出浏览器。
       </p>
+      <div class="mt-2 flex items-center justify-between gap-2">
+        <button type="button" class="btn btn-ghost btn-sm -ml-2" @click="txtInput?.click()">
+          上传 TXT 文件
+        </button>
+        <input
+          ref="txtInput"
+          type="file"
+          accept=".txt,text/plain"
+          class="hidden"
+          aria-label="上传 TXT 名单文件"
+          @change="onTxtChange"
+        />
+        <CheckboxField v-model="pasteDedupe" class="shrink-0 text-xs text-slate-600">
+          自动去重重复行
+        </CheckboxField>
+      </div>
       <textarea
         v-model="pasteText"
         rows="10"
@@ -368,7 +405,7 @@ async function onDownloadSample() {
         class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600"
       >
         <span class="min-w-0">
-          识别到 <strong class="text-brand-600">{{ pasteParsed.rows.length }}</strong> 条数据、{{ pasteParsed.headers.length }} 列（{{ pasteParsed.headerDetected ? `首行为表头：${pasteParsed.headers.join('、')}` : '未检测到表头，首列将按「姓名」处理' }}）
+          识别到 <strong class="text-brand-600">{{ pasteParsed.rows.length }}</strong> 条数据、{{ pasteParsed.headers.length }} 列（{{ pasteParsed.headerDetected ? `首行为表头：${pasteParsed.headers.join('、')}` : '未检测到表头，首列将按「姓名」处理' }}）<template v-if="pasteParsed.removed">，已去重 <strong class="text-amber-600">{{ pasteParsed.removed }}</strong> 条</template>
         </span>
         <CheckboxField
           class="shrink-0"
