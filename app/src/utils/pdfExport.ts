@@ -203,6 +203,27 @@ export function settleWithin<T>(promise: Promise<T>, ms: number): Promise<T | un
   ])
 }
 
+/** 样式表预热等待上限：预热只能拖慢截图，不允许永久挂起导出 */
+export const STYLESHEET_PREWARM_WAIT_MS = 10_000
+
+/**
+ * 把页面引用的外部样式表预热进 HTTP 缓存：栅格化引擎克隆整个文档时
+ * 克隆体会重新发起样式表请求，未命中缓存/缓慢时样式未生效即被快照，
+ * 产出空白标签。预热后克隆体的请求直接命中缓存，样式同步生效。
+ */
+export async function prewarmStylesheets(): Promise<void> {
+  if (typeof document === 'undefined' || typeof fetch !== 'function') return
+  const links = Array.from(
+    document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][href]'),
+  )
+  if (!links.length) return
+  await Promise.allSettled(
+    links.map((link) =>
+      fetch(link.href, { cache: 'force-cache' }).then((res) => res.arrayBuffer()),
+    ),
+  )
+}
+
 /** 字体就绪等待上限：在线字体加载卡死时 document.fonts.ready 可能永不落定 */
 export const FONTS_READY_WAIT_MS = 3_000
 /** 图片 decode / load 等待上限：失效的图片源不应拖死整次导出 */
@@ -698,6 +719,9 @@ export function createPageRenderer(
         neutralizeSyntheticBoldRareGlyphs(el)
         await rasterizeRtlText(el)
         await rasterizeJustifiedText(el)
+        // 克隆文档会重新请求样式表：每次尝试前预热（已缓存时几乎零成本，
+        // 重试时再给慢网下的样式表一次下载机会）
+        await settleWithin(prewarmStylesheets(), STYLESHEET_PREWARM_WAIT_MS)
         throwIfCancelled()
         const canvas = await html2canvas(el, {
           scale,
