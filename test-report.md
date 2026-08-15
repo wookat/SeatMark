@@ -1,3 +1,32 @@
+# 第 322 轮（2026-08-15）：生产冒烟（#334 已上线：主包 index-DVSiEyAv.js、英文分包 en-iz1eJJyY.js）——T1–T6 全部判据 PASS；观察②（偶发空白标签导出失败）本轮未复现
+
+**环境**：生产 https://www.seatmark.cn ，全程录屏。计划 test-plan-round322.md。前置：轮询确认新包上线（旧 index-B2uT6OYC.js / en-fStX4_se.js → 新 **index-DVSiEyAv.js / en-iz1eJJyY.js**）。T3 分享复制按登录门槛使用既有账号 r315seatmark@emalupe.com（不注册、不发信，SVG 验证码解码登录），其余匿名；结束后已登出并清存储。
+
+## 升级项 / 观察
+
+- 观察②（321 轮偶发空白标签导出失败）：本轮多次 PNG 导出（英文带水印 ×4+、中文无水印 ×1）**均未复现**——仅说明本轮有限冒烟中未触发，不构成已修复的证据。
+- 执行注记：/en/studio 首次 PNG 导出 toast 存续时间短，为捕获截图重复导出数次（多个 zip 落盘）；登录消耗验证码 1 次（AMGW，小写输入通过，佐证不分大小写）。
+
+## T1 新英文分包错误类键（curl 替代验证）—— PASS
+- en-iz1eJJyY.js 含 **'PNG generation failed'、'rendered blank'、'just retry'** 各 ≥1 处（含 'PDF generation failed' / 'Print PDF generation failed'）。UI 侧本轮未偶发导出失败，无法顺带截图英文错误 toast（见观察②）。
+
+## T2 /en/studio 单张覆写英文 toast —— PASS
+- 清 localStorage 后 /en/studio?demo=1 点第一张标签 → 覆写弹窗（ss_7ffb7943.png）→ 改姓名保存 → toast **'Single-label override saved'** + 英文描述，标签显示覆写与 badge（ss_f53469e6.png）。
+
+## T3 /en/studio 分享链接复制英文 toast（登录）—— PASS
+- r315 账号登录（图片验证码小写通过）→ 带水印导出触发英文分享条 'Got your print — finding it useful?'（ss_82f74eba.png）→ 点 'Copy share link' → toast **'Share link copied' / 'Send to colleagues or group chats — each click earns 1 watermark-free export'**（ss_3f6f341f.png）。
+
+## T4 /en/studio PNG 导出成功链路回归 —— PASS
+- 英文进度浮层 'Preparing pages...' + 'Cancel export'；toast **'PNG images exported (26 labels zipped)'** 英文（ss_459a926c.png），zip 落盘 ~/Downloads（619–635KB 多份）。
+
+## T5 中文 /studio 回归 —— PASS
+- 语言切换器切回中文（locale 记忆会把 /studio 重定向回 /en，需经切换器）；单张覆写保存 → toast **「单张覆写已保存」**中文（ss_ecd955fe.png）；PNG 导出弹窗全中文含全角「：」，导出 toast **「PNG 图片已生成（26 张标签打包为 zip）」**（ss_1f4c4912.png）；点「复制分享链接」→ toast **「分享链接已复制」**中文（ss_dcd5ea47.png）。
+
+## T6 390px /en/studio（CDP 390×844）—— PASS
+- scrollWidth==innerWidth==390，pageerror **0**（/tmp/r322/mob390_en_studio.png）。
+
+**收尾**：r315 账号已登出（ss_fcb7fe15.png 显示「登录」入口）、localStorage/sessionStorage 已清；录屏 rec-dafa6049-d581-4f13-824b-7120576c7985-edited.mp4。
+
 # 第 321 轮（2026-08-15）：生产冒烟（#333 已上线：主包 index-B2uT6OYC.js、英文分包 en-fStX4_se.js）——T1–T5 全部判据 PASS（第 320 轮 3 个英文 P3 全部闭环）；另记 1 次偶发 PNG 空白标签导出失败（重试成功）与首次取消延迟注记
 
 **环境**：生产 https://www.seatmark.cn ，匿名（无登录、无发信），全程录屏。计划 test-plan-round321.md。前置：轮询确认新包上线（旧 index-BkPOReaF.js → 新 index-B2uT6OYC.js；英文分包 en-fStX4_se.js，curl 验证含新键 'Export cancelled' / 'Preparing pages' / 'Cancel export' 各 1 处）。
