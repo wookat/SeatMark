@@ -480,21 +480,24 @@ async function exportPerLabelPng(
 
   /**
    * 渲染一页并切出全部标签：任一标签切出为空白（整页非空但局部
-   * 未绘制的渲染竞态）则整页重渲一次，仍空白按渲染失败报错，
+   * 未绘制的渲染竞态）则整页重渲一次；重渲仍空白且提供了 rebuildHost
+   * 时重建离屏容器做最后一次重渲，仍空白才按渲染失败报错，
    * 与整页导出「绝不静默输出空白页」同一标准
    */
   const renderAndCutPage = async (
     pageIndex: number,
     labels: LabelExportItem[],
   ): Promise<HTMLCanvasElement[]> => {
+    const maxAttempts = options.rebuildHost ? 3 : 2
     for (let attempt = 0; ; attempt++) {
+      if (attempt === 2) await options.rebuildHost?.()
       const canvas = await renderPage(pageIndex)
       const outputs = labels.map((label) => cutLabel(canvas, label.rect))
       releaseCanvas(canvas)
       const blankIndex = outputs.findIndex((o) => isCanvasBlank(o))
       if (blankIndex < 0) return outputs
       for (const o of outputs) releaseCanvas(o)
-      if (attempt >= 1) {
+      if (attempt >= maxAttempts - 1) {
         throw new Error(`第 ${pageIndex + 1}/${pageCount} 页第 ${blankIndex + 1} 枚标签渲染为空白`)
       }
     }
