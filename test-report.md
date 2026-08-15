@@ -1,3 +1,36 @@
+# 第 326 轮（2026-08-15）：生产复测（#338 已上线：主包 **index-Cqyd8a4A.js**，导出分包 **pngExport-atdqJbj3.js** 已含 preload 预热、`force-cache` 已移除）——**核心判据全部 PASS：预热缓存命中实证 + 慢网 3/3 成功 + 全速竞态 10/10 成功**
+
+**环境**：生产 https://www.seatmark.cn ，匿名（不登录、不注册、不发信），CDP 复用第 324/325 轮实验器（/home/ubuntu/r326.py）+ UI 录屏。计划 test-plan-round326.md。前置：轮询约 5 分钟确认新包上线（index-T85w1BUG.js → **index-Cqyd8a4A.js**），curl 证实 pngExport-atdqJbj3.js 含 `preload` 且不再含 `force-cache`。CSS 产物哈希不变（index-Bzv-VhCV.css，仍 `<link rel="stylesheet" crossorigin>` + CDN `Vary: Origin`）。
+
+## T1 缓存命中实证 —— PASS（直接判据成立）
+- 清缓存全速导出的网络时间线（/tmp/r326/net_T3_1.jsonl）：同一 index-Bzv-VhCV.css 共 3 次请求，均带 `Origin: https://www.seatmark.cn`：
+  1. 预热 preload（initiator=script）：走网络下载，38ms，eo-cache-status: Cache Hit；
+  2. 页 1 克隆文档 Stylesheet：**requestServedFromCache=true**，耗时 0.0s；
+  3. 页 2 克隆文档 Stylesheet：**requestServedFromCache=true**，耗时 0.0s。
+- 40KB/s 场景（net_T2_1.jsonl）同构：预热下载 658ms 后两次克隆请求均 servedFromCache=true。
+- 对比第 325 轮：预热 fetch 无 Origin → 克隆请求永不命中（fromDiskCache=false、慢网 ERR_ABORTED）。**#338 复制 crossorigin 的 preload 与克隆 link 同缓存键，预热确实生效。**
+
+## T2 清缓存 + 40KB/s+300ms ×3 —— PASS（修复前 3/3 失败 → 本轮 3/3 成功）
+- 三次均成功 toast「PNG 图片已生成（26 张标签打包为 zip）」，无「渲染为空白」；耗时 23.4s / 10.5s / 10.6s。
+
+## T3 清缓存全速竞态 ×10 —— PASS（修复前 9 成 1 败 → 本轮 10/10 成功）
+- 十次均成功，耗时 4.3–5.8s，无一失败。原始数据 /tmp/r326/runs.json。
+
+## T4 正常 /studio?demo=1 UI 逐标签导出回归 —— PASS
+- UI 点「图片 PNG」→ 带水印导出：toast「PNG 图片已生成（26 张标签打包为 zip）」在屏（ss_250617e7.png），zip 落盘 618KB。
+- 26 张 PNG（1000×534）全量 PIL 校验 **0 张空白**（灰度极值差 >200）；首/中/尾抽样拼图 r326_png_samples.png。
+
+## T5 pageerror —— PASS（维持基线）
+- 13 次 CDP 实验每 tab 恒 1 条已知基线 pageerror（同 324/325 轮，来源未定位），无新增。
+
+## 产物
+- 录屏：/home/ubuntu/screencasts/rec-739f8081-022f-424e-973b-a0edda49ae6e/rec-739f8081-022f-424e-973b-a0edda49ae6e-edited.mp4
+- 截图：ss_250617e7.png（成功 toast+下载列表）、r326_png_samples.png（抽样非空白）
+- 原始数据：/tmp/r326/（runs.json、net_T2_1-3.jsonl、net_T3_1.jsonl）；脚本 /home/ubuntu/r326.py
+- 收尾：缓存/存储已清、限速已还原、匿名无残留。
+
+---
+
 # 第 325 轮（2026-08-15）：生产复测（#337 已上线：主包 **index-T85w1BUG.js**，导出分包 **pngExport-C68qmTQ7.js** 已含 `force-cache` 预热代码）——**核心判据 FAIL：样式表预热未消除空白标签失败**；根因已定位（`Vary: Origin` 缓存键不匹配）；正常导出回归与页脚双语判据 PASS
 
 **环境**：生产 https://www.seatmark.cn ，匿名（不登录、不注册、不发信），CDP 实验 + UI 录屏。计划 test-plan-round325.md。前置：轮询约 6 分钟确认新包上线（index-4ETA6GYE.js → **index-T85w1BUG.js**），并 curl 证实 pngExport-C68qmTQ7.js 含 `force-cache` 与 `link[rel="stylesheet"][href]`（修复代码确已部署且随导出实际执行——网络时间线可见每次渲染尝试前的预热 Fetch 请求）。
