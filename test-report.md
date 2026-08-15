@@ -1,3 +1,26 @@
+# 第 323 轮（2026-08-15）：生产轻量回归（#335 已上线：主包 **index-4ETA6GYE.js**）——逐标签 PNG 导出 T1–T3 全部判据 PASS；空白标签失败未出现（0/78 张空白）
+
+**环境**：生产 https://www.seatmark.cn ，匿名（不登录、不注册、不发信），全程录屏。计划 test-plan-round323.md。变更：#335 纯 utils 层（pngExport.ts renderAndCutPage 重渲仍空白时经 rebuildHost 重建离屏容器再渲最后一次，maxAttempts 2→3），无 UI/文案变化。前置：轮询约 4 分钟确认新包上线（旧 index-DVSiEyAv.js → 新 **index-4ETA6GYE.js**）。
+
+## 观察 / 注记
+
+- 观察②（321 轮偶发空白标签导出失败）：本轮共 3 次逐标签 PNG 导出（中文无水印 ×1、中文带水印 ×1、英文带水印 ×1），**均未出现**「渲染为空白」失败 toast；3 个 zip 共 78 张 PNG 逐张用 PIL 校验，**0 张空白**（灰度极值差均 >200，非白像素占比约 7.7–8.4%）。仅为本轮有限冒烟证据，不构成兜底已彻底修复的证明。
+- 执行注记：中文首次（无水印）导出「正在准备页面...」浮层持续约 90 秒（冷启动字体加载，同 320/321 轮特征），成功 toast 存续短未被首次截图捕获；随即用带水印导出（数秒完成）在屏捕获中文 toast。后续英文导出亦数秒完成。
+
+## T1 中文 /studio?demo=1 逐标签 PNG 导出 —— PASS
+- 无水印导出：zip 落盘（标准考场版-20260815-004818.zip，490KB），`unzip` 26 张 PNG（1000×534），抽 001/013/026 三张 + 全量 26 张 PIL 校验全部非空白。
+- 带水印导出：toast **「PNG 图片已生成（26 张标签打包为 zip）」** 在屏捕获（ss_99d57083.png），第二 zip 落盘（005107.zip，617KB），26 张同样全部非空白。
+
+## T2 /en/studio?demo=1 英文 PNG 导出回归 —— PASS
+- 带水印导出 toast **'PNG images exported (26 labels zipped)'** 英文（ss_45dfa8d4.png），zip 落盘（005232.zip，617KB），26 张全部非空白。
+
+## T3 运行时错误 —— PASS
+- 全程浏览器 console 无 error 级条目，pageerror 0；无空白标签失败 toast。
+
+产物：录屏 rec-833a0b7f-3b5f-4e20-b4f6-e02ac16ea627-edited.mp4；抽样拼图 /home/ubuntu/screenshots/r323_png_samples.png。收尾：浏览器存储已清，匿名无账号残留。
+
+---
+
 # 第 322 轮（2026-08-15）：生产冒烟（#334 已上线：主包 index-DVSiEyAv.js、英文分包 en-iz1eJJyY.js）——T1–T6 全部判据 PASS；观察②（偶发空白标签导出失败）本轮未复现
 
 **环境**：生产 https://www.seatmark.cn ，全程录屏。计划 test-plan-round322.md。前置：轮询确认新包上线（旧 index-B2uT6OYC.js / en-fStX4_se.js → 新 **index-DVSiEyAv.js / en-iz1eJJyY.js**）。T3 分享复制按登录门槛使用既有账号 r315seatmark@emalupe.com（不注册、不发信，SVG 验证码解码登录），其余匿名；结束后已登出并清存储。
