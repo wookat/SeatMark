@@ -1,3 +1,35 @@
+# 第 321 轮（2026-08-15）：生产冒烟（#333 已上线：主包 index-B2uT6OYC.js、英文分包 en-fStX4_se.js）——T1–T5 全部判据 PASS（第 320 轮 3 个英文 P3 全部闭环）；另记 1 次偶发 PNG 空白标签导出失败（重试成功）与首次取消延迟注记
+
+**环境**：生产 https://www.seatmark.cn ，匿名（无登录、无发信），全程录屏。计划 test-plan-round321.md。前置：轮询确认新包上线（旧 index-BkPOReaF.js → 新 index-B2uT6OYC.js；英文分包 en-fStX4_se.js，curl 验证含新键 'Export cancelled' / 'Preparing pages' / 'Cancel export' 各 1 处）。
+
+## 升级项 / 观察
+
+- ⚠️ **偶发导出失败（非本轮变更引入，需关注）**：/en/studio 一次带水印 PNG 导出报中文错误 toast「PNG 生成失败：第 1/2 页第 2 枚标签渲染为空白；本次未扣除无水印次数，可直接重试」（ss_e45de839.png）；随后重试成功 'PNG images exported (26 labels zipped)'。另注意：**该错误 toast 本身在英文界面下仍为中文**（未接 t()，可作下一轮 P3）。
+- 执行注记：首次点击 Cancel export 后浮层持续约 60–90 秒才消失（与 320 轮首次导出冷启动特征一致）；第二次取消即时生效并弹 'Export cancelled'。
+- P3 观察（非 #333 范围）：错误类 toast（如上「PNG 生成失败…」）未英文化。
+
+## T1 /en/studio 导出弹窗句尾半角冒号 —— PASS
+- 清 localStorage 后开 /en/studio?demo=1，PNG 导出弹窗句为 `Choose an export method (starts immediately on click; cancel anytime — cancelled runs are not counted):` —— 句尾**半角 ':'**（ss_zoom_609d6506.png）。320 轮 P3-2 闭环。
+
+## T2 /en/studio 英文进度浮层 + 取消 —— PASS
+- 带水印 PNG 导出触发浮层：**'Preparing pages...'**，取消按钮 **'Cancel export'**（ss_61f41b1e.png）。320 轮 P3 观察①闭环。
+- 点 Cancel export → toast **'Export cancelled / No watermark-free quota was used — export again anytime'**（ss_72e77c19.png）。（首次取消延迟见注记）
+- 完整导出回归：'PNG images exported (26 labels zipped)'（一次偶发失败后重试成功，见升级项）。
+
+## T3 /en/banquet 半角括号（清 seatmark.banquet-state.v1）—— PASS
+- 侧栏 **'Roster (0 guests / 80 seats)'**（ss_86c3bdd9.png）、画布下 **'Unassigned guests (0)'**（ss_zoom_e9d2bb52.png）均半角。320 轮 P3 观察②闭环。
+
+## T4 中文回归（Regression）—— PASS
+- /studio?demo=1：导出弹窗「选择导出方式（点击即开始导出，可随时取消，取消不扣次数）：」**全角冒号+括号**（ss_zoom_0f0ce2b3.png）；浮层「正在渲染第 1/2 页... / 取消导出」中文（ss_998e1ab2.png）；取消 toast「已取消导出 本次未扣除无水印次数，可随时重新导出」（ss_bde3f919.png）。
+- /banquet（清状态）：「名单（0 人 / 80 座）」「未安排宾客（0）」**全角括号**保持（ss_zoom_848b064f.png）。
+
+## T5 390px + pageerror（CDP 390×844）—— PASS
+- /en/studio sw==iw=417、errs 0；/en/banquet sw==iw=417、仅 1 条良性 ResizeObserver；/studio?demo=1 sw==iw=390、errs 0；/banquet sw==iw=390、仅良性 ResizeObserver。截图 /tmp/r321/mob390_*.png。
+
+**收尾**：浏览器存储已清；录屏 rec-b9f97187-ca28-4dfe-afe1-4189bcaf929c-edited.mp4。
+
+---
+
 # 第 320 轮（2026-08-14）：生产冒烟（#331+#332 已上线：主包 index-BkPOReaF.js、英文分包 en-DLc9LKHc.js）——T1/T2/T3 全部 PASS；P3-1 半角括号修复实证闭环；P3-2 全角冒号复现并定位到 PreviewArea.vue:1311
 
 **环境**：生产 https://www.seatmark.cn ，匿名（无登录、无发信），全程录屏。计划 test-plan-round320.md。

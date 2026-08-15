@@ -361,9 +361,9 @@ async function copyReferralLink() {
   const code = auth.user?.share.code
   if (!code) return
   if (await copyToClipboard(`https://www.seatmark.cn/?ref=${code}`)) {
-    toast.success('分享链接已复制', '发给同事或群聊，每被点开 1 次即得 1 次无水印导出')
+    toast.success(t('分享链接已复制'), t('发给同事或群聊，每被点开 1 次即得 1 次无水印导出'))
   } else {
-    toast.warning('复制失败', '可到个人中心手动复制专属分享链接')
+    toast.warning(t('复制失败'), t('可到个人中心手动复制专属分享链接'))
   }
   dismissSharePrompt()
 }
@@ -410,8 +410,8 @@ function saveEditOne() {
   workspace.setRowOverride(row, override)
   editRow.value = null
   toast.success(
-    Object.keys(override).length ? '单张覆写已保存' : '内容与名单一致，未保留覆写',
-    '覆写只影响这一张标签；重新导入名单时会自动清除并提示',
+    Object.keys(override).length ? t('单张覆写已保存') : t('内容与名单一致，未保留覆写'),
+    t('覆写只影响这一张标签；重新导入名单时会自动清除并提示'),
   )
 }
 
@@ -503,6 +503,18 @@ async function consumeQuotaAfterSuccess() {
   await quota.tryConsume()
 }
 
+/** 导出错误信息按当前语言本地化：带序号的空白标签错误走插值 key，其余直接查字典（未命中回退原文） */
+function localizeExportError(message: string): string {
+  const blank = message.match(/^第 (\d+)\/(\d+) 页第 (\d+) 枚标签渲染为空白$/)
+  if (blank) {
+    return t('第 {p}/{pc} 页第 {k} 枚标签渲染为空白')
+      .replace('{p}', blank[1])
+      .replace('{pc}', blank[2])
+      .replace('{k}', blank[3])
+  }
+  return t(message)
+}
+
 async function doExportPdf() {
   const abort = new AbortController()
   const cancel = () => abort.abort()
@@ -542,7 +554,7 @@ async function doExportPdf() {
     if (message === EXPORT_CANCELLED_MESSAGE) {
       toast.info(t('已取消导出'), t('本次未扣除无水印次数，可随时重新导出'))
     } else {
-      toast.danger('PDF 生成失败', `${message}；本次未扣除无水印次数，可直接重试`)
+      toast.danger(t('PDF 生成失败'), `${localizeExportError(message)}${t('；本次未扣除无水印次数，可直接重试')}`)
     }
   } finally {
     workspace.setLoading(false)
@@ -552,7 +564,7 @@ async function doExportPdf() {
 
 async function doExportPng() {
   if (pngSizeMode.value === 'exact' && !pngPreset.value && !pngExactWidthValid.value) {
-    toast.warning('像素宽度无效', `请输入 ${MIN_EXACT_PIXEL_WIDTH}–${MAX_EXACT_PIXEL_WIDTH} 之间的整数像素宽度`)
+    toast.warning(t('像素宽度无效'), t('请输入 {min}–{max} 之间的整数像素宽度').replace('{min}', String(MIN_EXACT_PIXEL_WIDTH)).replace('{max}', String(MAX_EXACT_PIXEL_WIDTH)))
     return
   }
   const abort = new AbortController()
@@ -670,7 +682,7 @@ async function doExportPng() {
     if (message === EXPORT_CANCELLED_MESSAGE) {
       toast.info(t('已取消导出'), t('本次未扣除无水印次数，可随时重新导出'))
     } else {
-      toast.danger('PNG 生成失败', `${message}；本次未扣除无水印次数，可直接重试`)
+      toast.danger(t('PNG 生成失败'), `${localizeExportError(message)}${t('；本次未扣除无水印次数，可直接重试')}`)
     }
   } finally {
     workspace.setLoading(false)
@@ -743,7 +755,7 @@ async function doMobilePrint() {
     if (!blob) throw new Error('PDF 生成失败')
     const delivery = await deliverPdfForMobilePrint(blob, fileName)
     if (delivery === 'cancelled') {
-      toast.info('已取消分享', '本次未扣除无水印次数，可随时重新打印')
+      toast.info(t('已取消分享'), t('本次未扣除无水印次数，可随时重新打印'))
       return
     }
     await consumeQuotaAfterSuccess()
@@ -759,7 +771,7 @@ async function doMobilePrint() {
     if (message === EXPORT_CANCELLED_MESSAGE) {
       toast.info(t('已取消导出'), t('本次未扣除无水印次数，可随时重新导出'))
     } else {
-      toast.danger('打印 PDF 生成失败', `${message}；本次未扣除无水印次数，可直接重试`)
+      toast.danger(t('打印 PDF 生成失败'), `${localizeExportError(message)}${t('；本次未扣除无水印次数，可直接重试')}`)
     }
   } finally {
     workspace.setLoading(false)
