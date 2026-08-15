@@ -26,7 +26,8 @@ const GROUPS = computed(() => [
     title: t('教程'),
     links: [
       { label: t('教程中心'), to: localePath('/guides') },
-      ...footerGuideLinks,
+      // 精选教程正文目前只有中文，英文站页脚只保留教程中心入口
+      ...(locale.value === 'en' ? [] : footerGuideLinks),
     ],
   },
   {
