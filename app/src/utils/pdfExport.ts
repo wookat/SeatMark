@@ -212,14 +212,32 @@ export const STYLESHEET_PREWARM_WAIT_MS = 10_000
  * 产出空白标签。预热后克隆体的请求直接命中缓存，样式同步生效。
  */
 export async function prewarmStylesheets(): Promise<void> {
-  if (typeof document === 'undefined' || typeof fetch !== 'function') return
+  if (typeof document === 'undefined') return
   const links = Array.from(
     document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][href]'),
   )
   if (!links.length) return
-  await Promise.allSettled(
-    links.map((link) =>
-      fetch(link.href, { cache: 'force-cache' }).then((res) => res.arrayBuffer()),
+  // 必须用 <link rel="preload"> 而非 fetch：样式表 link 带 crossorigin 时请求
+  // 携带 Origin 头，而 CDN 对 CSS 响应 Vary: Origin——fetch 预热（无 Origin）
+  // 与克隆 link 的请求缓存键不同，永不命中；preload 复制 crossorigin 后同键
+  await Promise.all(
+    links.map(
+      (link) =>
+        new Promise<void>((resolve) => {
+          const preload = document.createElement('link')
+          preload.rel = 'preload'
+          preload.setAttribute('as', 'style')
+          preload.href = link.href
+          const crossorigin = link.getAttribute('crossorigin')
+          if (crossorigin !== null) preload.setAttribute('crossorigin', crossorigin)
+          const done = () => {
+            preload.remove()
+            resolve()
+          }
+          preload.onload = done
+          preload.onerror = done
+          document.head.appendChild(preload)
+        }),
     ),
   )
 }

@@ -1,3 +1,37 @@
+# 第 325 轮（2026-08-15）：生产复测（#337 已上线：主包 **index-T85w1BUG.js**，导出分包 **pngExport-C68qmTQ7.js** 已含 `force-cache` 预热代码）——**核心判据 FAIL：样式表预热未消除空白标签失败**；根因已定位（`Vary: Origin` 缓存键不匹配）；正常导出回归与页脚双语判据 PASS
+
+**环境**：生产 https://www.seatmark.cn ，匿名（不登录、不注册、不发信），CDP 实验 + UI 录屏。计划 test-plan-round325.md。前置：轮询约 6 分钟确认新包上线（index-4ETA6GYE.js → **index-T85w1BUG.js**），并 curl 证实 pngExport-C68qmTQ7.js 含 `force-cache` 与 `link[rel="stylesheet"][href]`（修复代码确已部署且随导出实际执行——网络时间线可见每次渲染尝试前的预热 Fetch 请求）。
+
+## T1 空白标签修复验证 —— FAIL（修复无效，非工具局限）
+
+| 场景 | 324 轮（修复前） | 325 轮（修复后） | 判定 |
+|---|---|---|---|
+| 清缓存 + 40KB/s+300ms | 2/2 失败 | **3/3 失败**（28.7s / 11.6s / 12.0s，均「第 1/2 页第 2 枚标签渲染为空白」） | FAIL |
+| 清缓存 + 全速竞态 | 约 1/2 失败 | **1/10 失败**（race-2 于第 2/2 页第 2 枚空白，其余 9 次成功） | FAIL（有改善但未稳定全成） |
+| 屏蔽 index-*.css | 2/2 失败 | 1/1 失败 | 预期内工具局限（预热 fetch 同被屏蔽，net_T1c.jsonl 可证） |
+
+**根因定位（网络时间线实证，/tmp/r325/net_T1a2_2.jsonl、net_T1b2_5.jsonl）**：
+- 生产 HTML 的样式表为 `<link rel="stylesheet" crossorigin href="/assets/index-Bzv-VhCV.css">`（Vite 默认加 `crossorigin`）→ 该请求**带 `Origin: https://www.seatmark.cn` 请求头**；克隆文档里的同款 link 请求亦带 Origin。
+- 预热 `fetch(href, {cache:'force-cache'})` 为同源 GET，**不带 Origin 头**（另带 Sentry 注入的 sentry-trace/baggage 头）。
+- CSS 响应头含 **`Vary: Origin, Access-Control-Request-Headers, Access-Control-Request-Method`**（EdgeOne）→ HTTP 缓存按 Origin 头分键：预热存下的是「无 Origin」变体，克隆 link 要的是「有 Origin」变体，**缓存键不匹配，预热对克隆请求无效**。实测中每次渲染尝试预热 Fetch 都发出（且都走网络：fromDiskCache=false、eo-cache-status 从 Miss 变 Hit），随后克隆的 Stylesheet 请求仍走网络，慢网下在 html2canvas 销毁克隆 iframe 前未完成（net::ERR_ABORTED）→ 快照空白。全速下网络 CSS 约 60–110ms 通常赶得上，故 9/10 成功——成功靠的是网络快，不是预热。
+- 对照实验证明机制本身可行：同 tab 内手工 `fetch(force-cache)` → iframe `<link>`（**不带 crossorigin**）可命中缓存（transfer 0）——问题只在 crossorigin/Vary 组合上。
+- **修复方向建议**（供裁量）：① 预热改用与 link 同键的请求——`document.head` 中插入 `<link rel="preload" as="style" crossorigin>` 并等其 onload；或 ② html2canvas onclone 回调里等待克隆文档 `styleSheets` 就绪/直接把已解析 CSS 文本内联成 `<style>`；或 ③ 去掉构建产物 link 的 crossorigin（Vite `build.assetsInlineLimit` 无关，需 `html.crossorigin` 相关配置）/让 CDN 不对 css 发 `Vary: Origin`。
+
+## T2 中文 /studio?demo=1 正常逐标签 PNG 导出回归 —— PASS
+- UI 带水印导出：toast **「PNG 图片已生成（26 张标签打包为 zip）」** 在屏（ss_d601df29.png），zip 落盘（标准考场版-20260815-165826.zip，604KB），26 张 PNG（1000×534）PIL 全量校验 **0 张空白**；抽样拼图 r325_png_samples.png。
+
+## T3 页脚教程组 —— PASS
+- /en（英文站）页脚 Guides 组仅 **'Guide center'** 一条，无中文长标题（ss_4aa15f82.png、zoom ss_zoom_f39f4f28.png）。
+- 中文站页脚「教程」组：教程中心 + 4 篇精选教程链接均保持（ss_9c757770.png、zoom ss_zoom_8f8a60f7.png）。
+
+## T4 pageerror
+- CDP 实验各 tab 均记录 pageerror=1（与 324 轮相同的每次页面加载 1 条基线，成功/失败运行无差异，来源未定位）；除基线外无新增 error。
+
+## 产物
+- 录屏 rec-e95b8865-…-edited.mp4；原始数据 /tmp/r325/（runs.json、runs_b2.json、net_T1a.jsonl、net_T1a2_*.jsonl、net_T1b2_*.jsonl、net_T1c.jsonl）；失败截图 r325_T1a.png、r325_T1a2_fail_2.png、r325_T1a2_fail_3.png、r325_T1c.png。
+
+---
+
 # 第 323 轮（2026-08-15）：生产轻量回归（#335 已上线：主包 **index-4ETA6GYE.js**）——逐标签 PNG 导出 T1–T3 全部判据 PASS；空白标签失败未出现（0/78 张空白）
 
 **环境**：生产 https://www.seatmark.cn ，匿名（不登录、不注册、不发信），全程录屏。计划 test-plan-round323.md。变更：#335 纯 utils 层（pngExport.ts renderAndCutPage 重渲仍空白时经 rebuildHost 重建离屏容器再渲最后一次，maxAttempts 2→3），无 UI/文案变化。前置：轮询约 4 分钟确认新包上线（旧 index-DVSiEyAv.js → 新 **index-4ETA6GYE.js**）。
