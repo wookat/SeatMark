@@ -1,3 +1,33 @@
+# 第 327 轮（2026-08-22）：生产复测（#340 定价下调为限时 0 折免费，纯文案/数值；主包 **index-ENIXHFow.js** 已核验部署）——**全部判据 PASS；1 条既有观察：/en/pricing 定价 FAQ 整段仍为中文（非本 PR 回归）**
+
+**环境**：生产 https://www.seatmark.cn ，匿名（不登录、不注册、不发信、不提交表单），UI 录屏 + curl/CDP 辅助。计划 test-plan-round327.md。前置：生产 HTML 引用 assets/index-ENIXHFow.js，与用户告知一致。
+
+## T1 中文 /pricing（1280 + 390）—— PASS
+- 专业版卡：**¥0/月** + 划线原价 **¥19/月** + 徽章「限时 0 折免费 · 注册送 7 天」；团队版卡：**¥0/月** + 划线 **¥49/月** + 徽章「限时 0 折免费 · 可预订」（截图 ss_71a8ffa2 / ss_zoom_6459e11e / ss_zoom_cf737b97）。
+- 团队版「预订登记（免费）」弹窗文案完整命中：「团队版原价 ¥49/月，限时 0 折免费。留下邮箱与团队规模，开通后我们第一时间通知你，预订用户享首批优惠。」（ss_395de657，仅查看未提交）。
+- 390×844 仿真：sw==iw==390 无横向溢出（/tmp/r327/mob390_pricing.png）。
+
+## T2 英文 /en/pricing —— PASS（卡片/徽章/弹窗），另记 1 条既有观察
+- 徽章 'Free for a limited time · 7-day trial on sign-up' / 'Free for a limited time · reservable'；¥0/mo + 划线 ¥19/mo、¥49/mo（ss_fa05d00f）。
+- 团队弹窗 'Team plan is normally ¥49/mo — free for a limited time. Leave your email and team size — we'll notify you first, and early sign-ups get launch discounts.'（ss_7c294e2a，未提交）。
+- ⚠️ 观察（既有，非 #340 回归）：/en/pricing 的「Pricing FAQ」六条问答**整段中文**在英文站可见（ss_f4ae8783）。核查 en.ts 从未包含这些 FAQ 键（t(faq.q) 无英文翻译回退中文），#340 仅更新了其中两条中文答案，属既有本地化缺口。
+
+## T3 SEO/JSON-LD（curl）—— PASS
+- title：「定价：注册送 7 天专业版，限时 0 折免费 - SeatMark 座签」含「限时 0 折免费」。
+- `<script type="application/ld+json" data-route-jsonld>` 中三个 Offer price 均为 "0"；专业版/团队版 name 含「限时 0 折免费」，description 含「原价 ¥19/月」「原价 ¥49/月」。
+
+## T4 /vs/chuangkit 价格行 —— PASS
+- 对比表价格行：「带水印导出免费不限次；专业版原价 ¥19/月，限时 0 折免费」（ss_92e0d175 / ss_zoom_0ff22d38）。
+
+## T5 pageerror —— PASS（无 JS 异常）
+- CDP fresh tab 采集 /pricing、/en/pricing、/vs/chuangkit：**Runtime.exceptionThrown 0 条**；Log error 级仅 2–3 条 `net::ERR_BLOCKED_BY_CLIENT` 资源加载失败（本机浏览器拦截第三方资源所致，非页面 JS 错误；与既往「每 tab 1 条基线」同类环境噪声）。
+
+## 收尾
+- 未注册、未登录、未提交任何表单、未发信；localStorage/sessionStorage 已清；临时 tab 已关。
+- 录屏：/home/ubuntu/screencasts/rec-4810a691-e257-4b4a-b8a4-ba258694bbcc/rec-4810a691-e257-4b4a-b8a4-ba258694bbcc-edited.mp4
+
+---
+
 # 第 326 轮（2026-08-15）：生产复测（#338 已上线：主包 **index-Cqyd8a4A.js**，导出分包 **pngExport-atdqJbj3.js** 已含 preload 预热、`force-cache` 已移除）——**核心判据全部 PASS：预热缓存命中实证 + 慢网 3/3 成功 + 全速竞态 10/10 成功**
 
 **环境**：生产 https://www.seatmark.cn ，匿名（不登录、不注册、不发信），CDP 复用第 324/325 轮实验器（/home/ubuntu/r326.py）+ UI 录屏。计划 test-plan-round326.md。前置：轮询约 5 分钟确认新包上线（index-T85w1BUG.js → **index-Cqyd8a4A.js**），curl 证实 pngExport-atdqJbj3.js 含 `preload` 且不再含 `force-cache`。CSS 产物哈希不变（index-Bzv-VhCV.css，仍 `<link rel="stylesheet" crossorigin>` + CDN `Vary: Origin`）。
