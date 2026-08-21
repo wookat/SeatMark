@@ -93,7 +93,7 @@ export const vsPages: VsPage[] = [
       {
         dimension: '价格',
         competitor: '免费导出带水印；个人会员约 ¥139 起/年',
-        seatmark: '带水印导出免费不限次；专业版 ¥29/月，Beta 期间限时免费',
+        seatmark: '带水印导出免费不限次；专业版原价 ¥19/月，限时 0 折免费',
       },
     ],
     faqs: [
@@ -227,7 +227,7 @@ export const vsPages: VsPage[] = [
       {
         dimension: '价格与水印',
         competitor: '带全页水印的预览 PDF 免费；无水印导出需登录，一次性套餐 $12.9 起',
-        seatmark: '带水印导出免登录免费不限次（水印仅页边小字角标）；无水印每日限次，专业版 ¥29/月 Beta 限免',
+        seatmark: '带水印导出免登录免费不限次（水印仅页边小字角标）；无水印每日限次，专业版原价 ¥19/月限时 0 折免费',
       },
     ],
     faqs: [
@@ -294,7 +294,7 @@ export const vsPages: VsPage[] = [
       {
         dimension: '价格',
         competitor: '免费版可用；高级版 ¥168/年',
-        seatmark: '带水印导出免费不限次；专业版 ¥29/月，Beta 期间限时免费',
+        seatmark: '带水印导出免费不限次；专业版原价 ¥19/月，限时 0 折免费',
       },
     ],
     faqs: [

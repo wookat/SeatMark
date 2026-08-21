@@ -46,10 +46,10 @@ const PLANS = computed<Plan[]>(() => [
   },
   {
     name: t('专业版'),
-    price: '¥14.5',
+    price: '¥0',
     priceUnit: t('/月'),
-    originalPrice: '¥29',
-    badge: t('限时 5 折 · 注册送 7 天'),
+    originalPrice: '¥19',
+    badge: t('限时 0 折免费 · 注册送 7 天'),
     tagline: t('考务与会务重度用户'),
     features: [
       t('新用户注册即送 7 天专业版试用'),
@@ -64,10 +64,10 @@ const PLANS = computed<Plan[]>(() => [
   },
   {
     name: t('团队版'),
-    price: '¥49.5',
+    price: '¥0',
     priceUnit: t('/月'),
-    originalPrice: '¥99',
-    badge: t('限时 5 折 · 可预订'),
+    originalPrice: '¥49',
+    badge: t('限时 0 折免费 · 可预订'),
     tagline: t('学校 / 机构多人协作'),
     features: [
       t('含专业版全部功能'),
@@ -258,7 +258,7 @@ async function submitReserve() {
     <ModalDialog :open="reserveOpen" :title="t('预订团队版')" size="md" @close="reserveOpen = false">
       <template v-if="!reserved">
         <p class="leading-6">
-          {{ t('团队版 ¥99/月，支付通道即将开通。留下邮箱与团队规模，开通后我们第一时间通知你，预订用户享首批优惠。') }}
+          {{ t('团队版原价 ¥49/月，限时 0 折免费。留下邮箱与团队规模，开通后我们第一时间通知你，预订用户享首批优惠。') }}
         </p>
         <form class="mt-4 grid gap-3" novalidate @submit.prevent="submitReserve">
           <label class="grid gap-1.5">
