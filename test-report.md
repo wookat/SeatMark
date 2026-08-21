@@ -1,3 +1,23 @@
+# 第 328 轮（2026-08-22）：生产轻量复测（#341 /en/pricing 定价 FAQ 六条英文化；主包 **index-DN3c42Hg.js** 已核验部署）——**全部判据 PASS，第 327 轮既有观察闭环**
+
+**环境**：生产 https://www.seatmark.cn ，匿名（不登录、不注册、不发信、不提交表单），UI 录屏 + CDP pageerror 采集。计划 test-plan-round328.md。前置：curl 证实生产 HTML 引用 assets/index-DN3c42Hg.js；源码 en.ts L451–462 已含六条 FAQ q/a 译文。
+
+## T1 /en/pricing FAQ 全英文 —— PASS
+- 六条问答全部英文可见（ss_f41db32a）：'What is the difference between watermarked and watermark-free exports?' / 'What if I run out of watermark-free exports?' / 'Do I need an account to use SeatMark?' / 'Is my roster data safe?' / 'How do I activate Pro?' / 'How do I buy the Team plan?'。
+- 定价口径命中：Pro 答案含 **'Pro is free for a limited time (normally ¥19/mo)'**；Team 答案含 **'The Team plan is free for a limited time (normally ¥49/mo)'**。除 ¥ 金额外 FAQ 区无中文字符。
+
+## T2 Regression 中文 /pricing FAQ —— PASS
+- 六条中文问答保持（ss_05b8ee69）：「专业版限时 0 折免费（原价 ¥19/月）…」「团队版限时 0 折免费（原价 ¥49/月）…」等文案不变。
+
+## T3 pageerror —— PASS
+- CDP fresh tab：/pricing 与 /en/pricing 均 **Runtime.exceptionThrown 0 条**；error 级日志仅各 2 条 `net::ERR_BLOCKED_BY_CLIENT` 资源拦截（本机浏览器环境噪声，同 327 轮口径）。
+
+## 收尾
+- 未注册、未登录、未提交表单、未发信；localStorage/sessionStorage 已清；临时 tab 已关。
+- 录屏：/home/ubuntu/screencasts/rec-bee8fa98-06e3-4ef9-907b-dee0beffe89f/rec-bee8fa98-06e3-4ef9-907b-dee0beffe89f-edited.mp4
+
+---
+
 # 第 327 轮（2026-08-22）：生产复测（#340 定价下调为限时 0 折免费，纯文案/数值；主包 **index-ENIXHFow.js** 已核验部署）——**全部判据 PASS；1 条既有观察：/en/pricing 定价 FAQ 整段仍为中文（非本 PR 回归）**
 
 **环境**：生产 https://www.seatmark.cn ，匿名（不登录、不注册、不发信、不提交表单），UI 录屏 + curl/CDP 辅助。计划 test-plan-round327.md。前置：生产 HTML 引用 assets/index-ENIXHFow.js，与用户告知一致。
