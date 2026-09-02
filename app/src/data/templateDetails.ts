@@ -20,8 +20,8 @@ export interface TemplateDetail {
   useCases: string[]
   /** 打印/使用建议 */
   tips: string[]
-  /** 常见问题（页面展示 + FAQPage JSON-LD） */
-  faqs?: { q: string; a: string }[]
+  /** 常见问题（页面展示 + FAQPage JSON-LD）；guide 为可选的延伸阅读教程 slug */
+  faqs?: { q: string; a: string; guide?: string }[]
 }
 
 /** 所有模板通用的使用步骤（模板详情页展示 + HowTo JSON-LD） */

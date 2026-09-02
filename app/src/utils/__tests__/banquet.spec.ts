@@ -2,9 +2,14 @@ import { describe, expect, it } from 'vitest'
 
 import {
   autoAssignGuests,
+  buildDemoGuestNames,
   buildVenuePreset,
+  countAssignedGuests,
+  findDuplicateGuestNames,
   findOverlaps,
   parseBanquetGuests,
+  snapshotTables,
+  summarizeAssignments,
   validateBanquet,
   type BanquetGuest,
   type BanquetTable,
@@ -137,6 +142,60 @@ describe('validateBanquet', () => {
     expect(issues.emptyTables).toEqual(['B', 'C'])
     expect(issues.overlaps).toEqual([['A', 'B']])
     expect(issues.overCapacity).toEqual(['A'])
+    expect(issues.duplicateNames).toEqual([])
+  })
+
+  it('同名但不同 id 的宾客计入 duplicateNames', () => {
+    const guests: BanquetGuest[] = [
+      { id: 'a', name: '张伟', groupId: null },
+      { id: 'b', name: '张伟 ', groupId: null },
+      { id: 'c', name: '李娜', groupId: null },
+    ]
+    expect(findDuplicateGuestNames(guests)).toEqual(['张伟'])
+    expect(validateBanquet(guests, []).duplicateNames).toEqual(['张伟'])
+  })
+})
+
+describe('buildDemoGuestNames', () => {
+  it('48 个演示姓名互不重复且确定', () => {
+    const names = buildDemoGuestNames(48)
+    expect(names).toHaveLength(48)
+    expect(new Set(names).size).toBe(48)
+    expect(buildDemoGuestNames(48)).toEqual(names)
+    for (const n of names) expect(n).toMatch(/^[\u4e00-\u9fa5]{3}$/)
+  })
+
+  it('更大数量仍不重复', () => {
+    const names = buildDemoGuestNames(300)
+    expect(new Set(names).size).toBe(names.length)
+    expect(names.length).toBe(300)
+  })
+})
+
+describe('安排统计与快照', () => {
+  it('countAssignedGuests / summarizeAssignments 统计已安排、未安排与空桌', () => {
+    const t1 = table('A', 4)
+    const t2 = table('B', 4)
+    t1.guestIds = ['g1', 'g2', 'stale']
+    const guests = ['g1', 'g2', 'g3'].map((id) => guest(id))
+    expect(countAssignedGuests([t1, t2])).toBe(3)
+    expect(summarizeAssignments(guests, [t1, t2])).toEqual({
+      assigned: 2,
+      unassigned: 1,
+      emptyTables: 1,
+    })
+  })
+
+  it('snapshotTables 快照不受后续清空影响，恢复后 guestIds 一致', () => {
+    const tables = [table('A', 4), table('B', 4)]
+    tables[0]!.guestIds = ['g1', 'g2']
+    tables[1]!.guestIds = ['g3']
+    const snapshot = snapshotTables(tables)
+    for (const t of tables) t.guestIds = []
+    expect(countAssignedGuests(tables)).toBe(0)
+    const restored = snapshotTables(snapshot)
+    expect(restored.map((t) => t.guestIds)).toEqual([['g1', 'g2'], ['g3']])
+    expect(restored[0]!.guestIds).not.toBe(snapshot[0]!.guestIds)
   })
 })
 

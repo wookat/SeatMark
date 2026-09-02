@@ -292,7 +292,8 @@ export const templateDetailsRound4: TemplateDetail[] = [
       },
       {
         q: '需要双面牌怎么打印？',
-        a: '同一页打两枚相同内容（名单里同队复制一行），裁切后背对背粘贴即成双面牌。',
+        a: '这款模板每页含两张单面牌；若用双面桌牌座，先打印一张测试页确认正反方向再批量打印。',
+        guide: 'double-sided-tent-card-print',
       },
     ],
   },
@@ -725,7 +726,8 @@ export const templateDetailsRound4: TemplateDetail[] = [
       },
       {
         q: '需要双面台签怎么做？',
-        a: '同一人名单里复制一行打两枚，背对背粘贴；或选折叠桌牌类模板自带镜像上半区。',
+        a: '这款模板每页含两张单面牌；若用双面桌牌座，先打印一张测试页确认正反方向再批量打印；或选折叠桌牌类模板自带镜像上半区。',
+        guide: 'double-sided-tent-card-print',
       },
     ],
   },

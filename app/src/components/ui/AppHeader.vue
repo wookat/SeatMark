@@ -59,7 +59,11 @@ const SECTIONS = computed(() => [
     class="no-print sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur-md"
   >
     <div class="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4">
-      <RouterLink :to="localePath('/')" class="group flex min-w-0 items-center gap-2.5">
+      <RouterLink
+        :to="localePath('/')"
+        class="group flex min-w-0 items-center gap-2.5 max-md:min-h-11 max-md:min-w-11"
+        :aria-label="t('返回首页')"
+      >
         <BrandMark class="size-8 shrink-0 text-brand-600" />
         <span class="truncate text-base font-bold tracking-tight text-slate-900">
           <template v-if="locale === 'en'">Seat<span class="text-brand-600">Mark</span></template>
@@ -108,7 +112,7 @@ const SECTIONS = computed(() => [
         </RouterLink>
         <RouterLink
           :to="localePath('/templates')"
-          class="btn btn-ghost btn-sm"
+          class="btn btn-ghost btn-sm max-md:min-h-11 max-md:min-w-11"
           :class="{
             'bg-slate-100 text-brand-600':
               routeName === 'templates' || routeName === 'template-detail',
@@ -118,7 +122,7 @@ const SECTIONS = computed(() => [
         </RouterLink>
         <RouterLink
           :to="localePath('/guides')"
-          class="btn btn-ghost btn-sm"
+          class="btn btn-ghost btn-sm max-md:min-h-11 max-md:min-w-11"
           :class="{
             'bg-slate-100 text-brand-600':
               routeName === 'guides' || routeName === 'guide-article',
@@ -143,7 +147,7 @@ const SECTIONS = computed(() => [
 
         <RouterLink
           :to="switchTarget"
-          class="btn btn-ghost btn-sm"
+          class="btn btn-ghost btn-sm max-md:min-h-11 max-md:min-w-11"
           :aria-label="locale === 'en' ? '切换到中文' : 'Switch to English'"
           :title="locale === 'en' ? '中文' : 'English'"
           @click="onSwitchLocale"
@@ -158,7 +162,7 @@ const SECTIONS = computed(() => [
         <RouterLink
           v-if="!auth.user"
           :to="localePath('/account')"
-          class="btn btn-ghost btn-sm"
+          class="btn btn-ghost btn-sm max-md:min-h-11 max-md:min-w-11"
           :class="{ 'bg-slate-100 text-brand-600': routeName === 'account' }"
         >
           {{ t('登录') }}
@@ -166,12 +170,16 @@ const SECTIONS = computed(() => [
         <div v-else ref="menuRef" class="relative">
           <button
             type="button"
-            class="flex size-8 cursor-pointer items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700"
+            class="group/avatar flex cursor-pointer items-center justify-center max-md:min-h-11 max-md:min-w-11"
             :aria-expanded="menuOpen"
             :aria-label="t('账号菜单')"
             @click.stop="menuOpen = !menuOpen"
           >
-            {{ avatarLetter }}
+            <span
+              class="flex size-8 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white transition-colors group-hover/avatar:bg-brand-700"
+            >
+              {{ avatarLetter }}
+            </span>
           </button>
           <Transition
             enter-active-class="transition duration-150"

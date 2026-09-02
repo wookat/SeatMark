@@ -33,7 +33,11 @@
  *   PUT  /api/admin/announcement 公告配置（管理员）
  *
  * 环境变量（EdgeOne Pages 控制台配置）：
- * - AUTH_SECRET      JWT 签名密钥（必配，未配置时使用开发默认值并在响应头标记）
+ * - AUTH_SECRET      JWT 签名密钥（必配）。仅开发环境（SEATMARK_DEV=1 或 localhost）允许缺省用
+ *                    dev 默认值；线上缺失时认证/管理/需会话的路由一律 503 {code:'auth_secret_missing'}，
+ *                    响应头 X-SeatMark-Auth 标记 configured / dev-default / missing
+ * - SEATMARK_DEV     置 1 表示开发环境（允许 devCode 回显、dev 默认密钥、内存存储）
+ * - ALLOW_MEMORY_STORAGE  置 1 允许 KV/Blob 均不可用时降级内存（默认线上不允许，见 _storage.js）
  * - ADMIN_EMAILS     管理员邮箱白名单，逗号分隔（未配置则管理端全部 403）
  * - TENCENT_SES_SECRET_ID    腾讯云 SES SecretId（配置后优先走腾讯云 SES 发送验证码）
  * - TENCENT_SES_SECRET_KEY   腾讯云 SES SecretKey
@@ -45,12 +49,18 @@
  * 存储三级后备（见 _storage.js）：
  * - KV 绑定（变量名 seatmark_kv）优先；
  * - 未绑定时降级 EdgeOne Pages Blob（@edgeone/pages-blob，自动创建、持久化、强一致读）；
- * - 两者皆不可用时降级进程内存（数据不持久，仅本地联调）。
+ * - 两者皆不可用时：开发环境/ALLOW_MEMORY_STORAGE=1 降级进程内存；否则写接口 503
+ *   {code:'storage_unavailable'}，只读接口照常响应，health 报告 storage:'unavailable'。
  * 云端模板（tpl:）体积大，Blob 可用时优先存 Blob，读取兼容 KV 存量数据。
  */
 
-import { getStorage, probeBlob } from './_storage.js'
-import { withSecurityHeaders } from './_security.js'
+import { getStorage, probeBlob, StorageUnavailableError, unavailableKv } from './_storage.js'
+import {
+  isDevEnvironment,
+  randomDigits,
+  randomInt,
+  withSecurityHeaders,
+} from './_security.js'
 
 // ---------- 配额与裂变参数（前端 quota.ts 与此保持一致；计数对象为无水印导出，带水印不限次） ----------
 const QUOTA_ANON_DAILY = 1
@@ -155,9 +165,25 @@ async function verifyJwt(token, secret) {
   }
 }
 
-function getSecret(env) {
-  return (env && env.AUTH_SECRET) || 'seatmark-dev-secret-do-not-use-in-prod'
+const DEV_AUTH_SECRET = 'seatmark-dev-secret-do-not-use-in-prod'
+
+/**
+ * 解析 JWT 签名密钥：已配置用配置值；仅开发环境允许回落 dev 默认值；
+ * 否则返回 null，由路由层对需要密钥的路径 fail-closed。
+ */
+export function getAuthSecret(env, hostname) {
+  if (env && typeof env.AUTH_SECRET === 'string' && env.AUTH_SECRET) {
+    return { secret: env.AUTH_SECRET, mode: 'configured' }
+  }
+  if (isDevEnvironment(env, hostname)) return { secret: DEV_AUTH_SECRET, mode: 'dev-default' }
+  return { secret: null, mode: 'missing' }
 }
+
+/** 无需 JWT 密钥也能安全服务的公开路径（不读会话、不签令牌） */
+const NO_SECRET_PATHS = new Set(['/api/share/tpl', '/api/announcement', '/api/team/reserve'])
+
+/** 存储不可用时仍可响应的非 GET 路径（不落库） */
+const STORAGE_FREE_WRITE_PATHS = new Set(['/api/auth/captcha', '/api/auth/logout'])
 
 function parseCookies(request) {
   const raw = request.headers.get('Cookie') || ''
@@ -169,10 +195,10 @@ function parseCookies(request) {
   return out
 }
 
-async function currentUserEmail(request, env) {
+async function currentUserEmail(request, authSecret) {
   const token = parseCookies(request)[SESSION_COOKIE]
-  if (!token) return null
-  const payload = await verifyJwt(token, getSecret(env))
+  if (!token || !authSecret) return null
+  const payload = await verifyJwt(token, authSecret)
   return payload && typeof payload.sub === 'string' ? payload.sub : null
 }
 
@@ -298,10 +324,9 @@ function proStatus(user) {
 }
 
 function randomRedeemCode() {
-  const bytes = crypto.getRandomValues(new Uint8Array(12))
   let s = ''
   for (let i = 0; i < 12; i++) {
-    s += REDEEM_ALPHABET[bytes[i] % REDEEM_ALPHABET.length]
+    s += REDEEM_ALPHABET[randomInt(REDEEM_ALPHABET.length)]
     if (i === 3 || i === 7) s += '-'
   }
   return `SM-${s}`
@@ -570,6 +595,7 @@ async function captchaAnswerHash(answer, secret) {
 function captchaSvg(code) {
   const width = 132
   const height = 44
+  // 装饰底纹/噪点/字符摆动仅影响视觉，非安全用途，Math.random 即可（答案字符由 randomInt 选取）
   const rand = (min, max) => min + Math.random() * (max - min)
   const palette = ['#334155', '#1d4ed8', '#0f766e', '#7c3aed', '#b45309']
   const pick = () => palette[Math.floor(Math.random() * palette.length)]
@@ -592,18 +618,16 @@ function captchaSvg(code) {
 }
 
 /** 验证表单验证码：令牌为服务端签名 JWT，无需存储；5 分钟内有效 */
-async function verifyCaptcha(env, token, answer) {
+async function verifyCaptcha(authSecret, token, answer) {
   if (typeof token !== 'string' || answer === undefined || answer === null) return false
-  const payload = await verifyJwt(token, getSecret(env))
+  const payload = await verifyJwt(token, authSecret)
   if (!payload || payload.typ !== 'captcha' || typeof payload.cap !== 'string') return false
-  return payload.cap === (await captchaAnswerHash(answer, getSecret(env)))
+  return payload.cap === (await captchaAnswerHash(answer, authSecret))
 }
-
-const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
 
 /** 是否本地开发环境：仅此时允许在邮件未配置的情况下把 devCode 返回给前端 */
 function isLocalDev(url, env) {
-  return LOCAL_HOSTNAMES.has(url.hostname) || Boolean(env && env.DEV)
+  return isDevEnvironment(env, url.hostname)
 }
 
 /**
@@ -626,6 +650,13 @@ export async function onRequest(context) {
   try {
     return withSecurityHeaders(await handleRequest(context))
   } catch (err) {
+    if (err instanceof StorageUnavailableError) {
+      return withSecurityHeaders(
+        json({ error: '服务端存储未就绪，请稍后重试', code: err.code }, 503, {
+          'X-SeatMark-Storage': 'unavailable',
+        }),
+      )
+    }
     console.error(
       '[seatmark-api] 未捕获异常:',
       context?.request?.method,
@@ -644,9 +675,51 @@ async function handleRequest(context) {
 
   if (method === 'OPTIONS') return new Response(null, { status: 204 })
 
-  const { kv, storage, blobStore } = await getStorage(env)
+  let kv
+  let storage
+  let blobStore
+  try {
+    ;({ kv, storage, blobStore } = await getStorage(env, { hostname: url.hostname }))
+  } catch (err) {
+    if (!(err instanceof StorageUnavailableError)) throw err
+    // 持久化存储全部缺失：只读接口继续服务，任何写入在下方守卫或 kv.put 处 fail-closed
+    kv = unavailableKv()
+    storage = 'unavailable'
+    blobStore = null
+  }
+  const { secret: authSecret, mode: authMode } = getAuthSecret(env, url.hostname)
   // Rev 标记仅用于部署观测：探针可确认线上边缘函数版本，改动本文件时递增
-  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r316' }
+  const storageHeader = {
+    'X-SeatMark-Storage': storage,
+    'X-SeatMark-Auth': authMode,
+    'X-SeatMark-Rev': 'r356',
+  }
+
+  if (storage === 'unavailable' && method !== 'GET' && !STORAGE_FREE_WRITE_PATHS.has(path)) {
+    return json(
+      { error: '服务端存储未就绪，请稍后重试', code: 'storage_unavailable' },
+      503,
+      storageHeader,
+    )
+  }
+
+  if (!authSecret) {
+    if (path === '/api/admin/health' && method === 'GET') {
+      // 密钥缺失时无法校验管理员会话：只报告配置缺口本身（与响应头信息等价），不暴露其他状态
+      return json(
+        { error: '服务端未配置 AUTH_SECRET', code: 'auth_secret_missing', authSecretConfigured: false },
+        503,
+        storageHeader,
+      )
+    }
+    if (!NO_SECRET_PATHS.has(path)) {
+      return json(
+        { error: '服务端未配置 AUTH_SECRET，请联系管理员', code: 'auth_secret_missing' },
+        503,
+        storageHeader,
+      )
+    }
+  }
 
   /**
    * 非关键写入移出响应关键路径：平台支持 waitUntil 时响应先行、写入后台完成
@@ -719,15 +792,15 @@ async function handleRequest(context) {
   if (path === '/api/auth/captcha' && method === 'GET') {
     let code = ''
     for (let i = 0; i < CAPTCHA_LENGTH; i++) {
-      code += CAPTCHA_CHARSET[Math.floor(Math.random() * CAPTCHA_CHARSET.length)]
+      code += CAPTCHA_CHARSET[randomInt(CAPTCHA_CHARSET.length)]
     }
     const token = await signJwt(
       {
         typ: 'captcha',
-        cap: await captchaAnswerHash(code, getSecret(env)),
+        cap: await captchaAnswerHash(code, authSecret),
         exp: Math.floor(Date.now() / 1000) + CAPTCHA_TTL_SECONDS,
       },
-      getSecret(env),
+      authSecret,
     )
     const svgBytes = new TextEncoder().encode(captchaSvg(code))
     const image = `data:image/svg+xml;base64,${btoa(String.fromCharCode(...svgBytes))}`
@@ -761,7 +834,7 @@ async function handleRequest(context) {
       }
     }
 
-    const code = String(Math.floor(100000 + Math.random() * 900000))
+    const code = randomDigits(6)
     await kv.put(
       codeKey,
       JSON.stringify({ code, sentAt: Date.now(), exp: Date.now() + CODE_TTL_MS, attempts: 0 }),
@@ -826,7 +899,7 @@ async function handleRequest(context) {
     await putUser(kv, user)
 
     const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
-    const token = await signJwt({ sub: email, exp }, getSecret(env))
+    const token = await signJwt({ sub: email, exp }, authSecret)
     // 会话签发成功后才消费验证码：中途实例异常时码仍有效，用户重试同一码即可
     await deferWrite(() => kv.delete(codeKey))
     return json(
@@ -848,7 +921,7 @@ async function handleRequest(context) {
         storageHeader,
       )
     }
-    if (!(await verifyCaptcha(env, body?.captchaToken, body?.captchaAnswer))) {
+    if (!(await verifyCaptcha(authSecret, body?.captchaToken, body?.captchaAnswer))) {
       return json({ error: '验证码不正确或已过期，请重试', captcha: true }, 400, storageHeader)
     }
 
@@ -901,7 +974,7 @@ async function handleRequest(context) {
     await putUser(kv, user)
 
     const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
-    const token = await signJwt({ sub: email, exp }, getSecret(env))
+    const token = await signJwt({ sub: email, exp }, authSecret)
     return json(
       { ok: true, user: await publicUser(kv, email, env, user, deferWrite) },
       200,
@@ -916,7 +989,7 @@ async function handleRequest(context) {
     if (!isValidEmail(email) || typeof password !== 'string' || !password) {
       return json({ error: '邮箱或密码格式不正确' }, 400, storageHeader)
     }
-    if (!(await verifyCaptcha(env, body?.captchaToken, body?.captchaAnswer))) {
+    if (!(await verifyCaptcha(authSecret, body?.captchaToken, body?.captchaAnswer))) {
       return json({ error: '验证码不正确或已过期，请重试', captcha: true }, 400, storageHeader)
     }
 
@@ -958,7 +1031,7 @@ async function handleRequest(context) {
     await deferWrite(() => putUser(kv, user))
 
     const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
-    const token = await signJwt({ sub: email, exp }, getSecret(env))
+    const token = await signJwt({ sub: email, exp }, authSecret)
     return json(
       { ok: true, user: await publicUser(kv, email, env, user, deferWrite) },
       200,
@@ -971,7 +1044,7 @@ async function handleRequest(context) {
     const body = await readBody()
     const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
     if (!isValidEmail(email)) return json({ error: '邮箱格式不正确' }, 400, storageHeader)
-    if (!(await verifyCaptcha(env, body?.captchaToken, body?.captchaAnswer))) {
+    if (!(await verifyCaptcha(authSecret, body?.captchaToken, body?.captchaAnswer))) {
       return json({ error: '验证码不正确或已过期，请重试', captcha: true }, 400, storageHeader)
     }
 
@@ -1003,7 +1076,7 @@ async function handleRequest(context) {
       return json({ ok: true, delivery: 'email' }, 200, storageHeader)
     }
 
-    const code = String(Math.floor(100000 + Math.random() * 900000))
+    const code = randomDigits(6)
     await kv.put(
       resetKey,
       JSON.stringify({ code, sentAt: Date.now(), exp: Date.now() + CODE_TTL_MS, attempts: 0 }),
@@ -1079,7 +1152,7 @@ async function handleRequest(context) {
     await deferWrite(() => kv.delete(`pwfail:${email}`))
 
     const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
-    const token = await signJwt({ sub: email, exp }, getSecret(env))
+    const token = await signJwt({ sub: email, exp }, authSecret)
     return json(
       { ok: true, user: await publicUser(kv, email, env, user, deferWrite) },
       200,
@@ -1088,7 +1161,7 @@ async function handleRequest(context) {
   }
 
   if (path === '/api/auth/me' && method === 'GET') {
-    const email = await currentUserEmail(request, env)
+    const email = await currentUserEmail(request, authSecret)
     if (!email) return json({ user: null }, 200, storageHeader)
     return json({ user: await publicUser(kv, email, env) }, 200, storageHeader)
   }
@@ -1099,7 +1172,7 @@ async function handleRequest(context) {
 
   // ----- 账号注销（删除与账号关联的全部个人信息） -----
   if (path === '/api/account/delete' && method === 'POST') {
-    const email = await currentUserEmail(request, env)
+    const email = await currentUserEmail(request, authSecret)
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
     const shareCode = await kv.get(`share:owner:${email}`)
     await kv.delete(`user:${email}`)
@@ -1121,7 +1194,7 @@ async function handleRequest(context) {
 
   // ----- 云端模板 -----
   if (path === '/api/account/templates') {
-    const email = await currentUserEmail(request, env)
+    const email = await currentUserEmail(request, authSecret)
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
 
     if (method === 'GET') {
@@ -1166,7 +1239,7 @@ async function handleRequest(context) {
 
   // ----- 配额 -----
   if (path === '/api/quota' && method === 'GET') {
-    const email = await currentUserEmail(request, env)
+    const email = await currentUserEmail(request, authSecret)
     if (!email) {
       return json(
         { anonymous: true, limit: QUOTA_ANON_DAILY, loggedInLimit: QUOTA_USER_DAILY },
@@ -1178,7 +1251,7 @@ async function handleRequest(context) {
   }
 
   if (path === '/api/quota/consume' && method === 'POST') {
-    const email = await currentUserEmail(request, env)
+    const email = await currentUserEmail(request, authSecret)
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
     const status = await quotaStatus(kv, email)
     if (status.remaining <= 0) {
@@ -1195,7 +1268,7 @@ async function handleRequest(context) {
 
   // ----- 兑换码 -----
   if (path === '/api/redeem' && method === 'POST') {
-    const email = await currentUserEmail(request, env)
+    const email = await currentUserEmail(request, authSecret)
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
 
     // IP 日限频：防暴力枚举兑换码
@@ -1251,7 +1324,7 @@ async function handleRequest(context) {
 
   // ----- 分享裂变 -----
   if (path === '/api/share/mine' && method === 'GET') {
-    const email = await currentUserEmail(request, env)
+    const email = await currentUserEmail(request, authSecret)
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
     return json(await shareStats(kv, email), 200, storageHeader)
   }
@@ -1264,7 +1337,7 @@ async function handleRequest(context) {
     if (!owner) return json({ error: '分享码无效' }, 400, storageHeader)
 
     // 访问者本人打开自己的链接不计数
-    const visitor = await currentUserEmail(request, env)
+    const visitor = await currentUserEmail(request, authSecret)
     if (visitor && visitor === owner) return json({ ok: true, counted: false }, 200, storageHeader)
 
     // IP + 日去重
@@ -1335,7 +1408,7 @@ async function handleRequest(context) {
     if (teamSize.length > 50 || note.length > 500) {
       return json({ error: '内容过长' }, 400, storageHeader)
     }
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const id = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
     await kv.put(
       `reserve:${id}`,
       JSON.stringify({ email, teamSize, note, createdAt: new Date().toISOString() }),
@@ -1356,7 +1429,7 @@ async function handleRequest(context) {
 
   // ----- 管理端 -----
   if (path.startsWith('/api/admin/')) {
-    const email = await currentUserEmail(request, env)
+    const email = await currentUserEmail(request, authSecret)
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
     if (!isAdmin(email, env)) return json({ error: '无管理权限' }, 403, storageHeader)
 
@@ -1368,7 +1441,7 @@ async function handleRequest(context) {
           storage,
           mailConfigured: mailChannel(env) !== 'none',
           mailChannel: mailChannel(env),
-          authSecretConfigured: Boolean(env && env.AUTH_SECRET),
+          authSecretConfigured: authMode === 'configured',
         },
         200,
         storageHeader,
@@ -1515,7 +1588,7 @@ async function handleRequest(context) {
       if (!Number.isInteger(count) || count < 1 || count > REDEEM_BATCH_MAX) {
         return json({ error: `数量需为 1–${REDEEM_BATCH_MAX} 的整数` }, 400, storageHeader)
       }
-      const batch = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      const batch = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
       const createdAt = new Date().toISOString()
       const codes = []
       const hashes = []

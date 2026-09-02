@@ -28,6 +28,9 @@ export interface PageSeo {
 /** 已提供英文版内容的中文路径（/en 前缀镜像可被索引并互挂 hreflang） */
 const EN_LOCALIZED_BASES = ['/', '/studio', '/pricing', '/seating', '/banquet'] as const
 
+/** 仅页面框架英文化的列表页：英文 title/description，但正文仍为中文，故 noindex 且不挂 hreflang */
+const EN_FRAMED_BASES = ['/templates', '/guides'] as const
+
 function enPathOf(base: string): string {
   return base === '/' ? '/en' : `/en${base}`
 }
@@ -156,6 +159,8 @@ export async function resolveSeo(path: string): Promise<PageSeo> {
     const enSeo = resolveEnSeo(base)
     if (enSeo) return enSeo
     const seo = await resolveSeo(base)
+    const framed = resolveEnFramedSeo(base)
+    if (framed) return { ...seo, ...framed, lang: 'en', robots: 'noindex, follow' }
     return { ...seo, lang: 'en', robots: 'noindex, follow' }
   }
 
@@ -165,6 +170,24 @@ export async function resolveSeo(path: string): Promise<PageSeo> {
   }
 
   return resolveZhSeo(p)
+}
+
+function resolveEnFramedSeo(base: string): Pick<PageSeo, 'title' | 'description'> | null {
+  if (base === '/templates') {
+    return {
+      title: 'Template Library: Place Cards, Seat Labels & Badges | SeatMark',
+      description:
+        'Browse free templates for seat labels, place cards, table tents, name tags and badges. Template names are in Chinese; the Studio UI is available in English.',
+    }
+  }
+  if (base === '/guides') {
+    return {
+      title: 'Guides: Printing Seat Labels, Place Cards & Name Tags | SeatMark',
+      description:
+        'How-to guides for batch-printing seat labels, place cards and name tags from Excel. Guides are currently in Chinese; the Studio UI is available in English.',
+    }
+  }
+  return null
 }
 
 /** 已英文化核心页的英文 SEO 数据 */
@@ -735,5 +758,6 @@ export async function prerenderPaths(): Promise<string[]> {
     '/terms',
     '/privacy',
     ...EN_LOCALIZED_BASES.map((base) => enPathOf(base)),
+    ...EN_FRAMED_BASES.map((base) => enPathOf(base)),
   ]
 }

@@ -50,20 +50,22 @@ function dismiss() {
     <span class="min-w-0">{{ announcement.text }}</span>
     <button
       type="button"
-      class="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-white/15"
+      class="group/close -my-3 -mr-3 flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center"
       aria-label="关闭公告"
       @click="dismiss"
     >
-      <svg
-        class="size-3.5"
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.8"
-        stroke-linecap="round"
-      >
-        <path d="m4 4 8 8m0-8-8 8" />
-      </svg>
+      <span class="flex size-5 items-center justify-center rounded group-hover/close:bg-white/15">
+        <svg
+          class="size-3.5"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        >
+          <path d="m4 4 8 8m0-8-8 8" />
+        </svg>
+      </span>
     </button>
   </div>
 </template>

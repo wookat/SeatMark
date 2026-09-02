@@ -1,5 +1,14 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+
 import { LEGAL_UPDATED_AT, OPERATOR_NAME } from '@/data/site'
+import { clearLocalData } from '@/utils/localData'
+
+const clearedCount = ref<number | null>(null)
+
+function onClearLocalData() {
+  clearedCount.value = clearLocalData()
+}
 </script>
 
 <template>
@@ -24,8 +33,9 @@ import { LEGAL_UPDATED_AT, OPERATOR_NAME } from '@/data/site'
         <path d="M9 12l2 2 4-4" />
       </svg>
       <p class="text-sm leading-6 font-medium text-emerald-800">
-        核心承诺：你导入的 Excel 名单与照片<strong>全部在浏览器本地解析和排版，不会上传到任何服务器</strong>，
-        我们无法接触这些数据。页面关闭后名单数据即清空，核心制签功能可完全离线使用。
+        核心承诺：你导入的 Excel 名单、照片与座位安排<strong>仅在浏览器本地解析和排版，不会发送到我们的服务器</strong>；
+        只有你主动使用账号、反馈、AI 设计等可选功能时，对应的少量信息（见二、三节）才会发往服务端。
+        名单在工坊中仅保留到关闭标签页；座位表/宴会页的草稿与自定义模板会保存在本机浏览器内，可在下文「清除本地数据」一键删除。核心制签功能可离线使用。
       </p>
     </div>
 
@@ -44,11 +54,17 @@ import { LEGAL_UPDATED_AT, OPERATOR_NAME } from '@/data/site'
         <ul class="mt-2 list-disc space-y-1.5 pl-5">
           <li>
             <strong>名单与照片：</strong>Excel 解析、照片匹配、标签排版、PDF 生成全部由浏览器内的
-            JavaScript 完成，数据只存在于你设备的内存中，不经过网络传输，我们的服务器不会接收、存储这些数据。
+            JavaScript 完成，不经过网络传输，我们的服务器不会接收、存储这些数据。照片只存在于内存；
+            工坊已导入的名单会暂存在本标签页的 sessionStorage，以便刷新不丢，关闭标签页即自动清除。
           </li>
           <li>
-            <strong>自定义模板：</strong>保存的自定义模板存储在你浏览器的
-            localStorage 中，仅保存模板版式（不含名单数据），清除浏览器数据即可删除。
+            <strong>座位表与宴会布局草稿：</strong>教室座位表、宴会座位图页面会把你输入的姓名与桌位安排保存在本机浏览器的
+            localStorage 中（键名以 <code>seatmark.</code> 开头），关闭页面后仍会保留，直到你清除。这些数据同样不会发送到服务器；
+            在公用电脑上使用后请用下方「清除本地数据」删除。
+          </li>
+          <li>
+            <strong>自定义模板与偏好：</strong>保存的自定义模板、打印校准值与界面偏好存储在你浏览器的
+            localStorage 中，仅保存模板版式与设置（不含名单数据）。本服务目前不使用 IndexedDB。
           </li>
           <li>
             <strong>模板分享链接：</strong>分享链接将模板版式压缩编码在 URL 片段（# 后的部分）中，
@@ -109,7 +125,20 @@ import { LEGAL_UPDATED_AT, OPERATOR_NAME } from '@/data/site'
             <strong>Cookie：</strong>仅在你登录后用于保存会话凭证；未登录状态下本服务自身不使用 Cookie 追踪你的身份。
           </li>
           <li>
-            <strong>本地存储（localStorage）：</strong>用于保存你的自定义模板与界面偏好，数据保留在你的设备上，不会发送到服务器。
+            <strong>本地存储（localStorage / sessionStorage）：</strong>用于保存自定义模板、界面偏好、未登录时的当日导出计数，
+            以及座位表/宴会页的草稿与工坊名单暂存（见第一节），数据保留在你的设备上，不会发送到服务器。
+          </li>
+          <li>
+            <strong>清除本地数据：</strong>点击下方按钮将删除本站写入这台浏览器的全部本地数据（名单暂存、座位/宴会草稿、自定义模板、偏好）；
+            登录状态请在账号页退出。云端已同步的模板不受影响。
+            <span class="mt-2 flex flex-wrap items-center gap-2">
+              <button type="button" class="btn btn-secondary btn-sm" @click="onClearLocalData">
+                清除本地数据
+              </button>
+              <span v-if="clearedCount !== null" class="text-xs text-emerald-700" role="status">
+                已清除 {{ clearedCount }} 项本地数据，刷新页面后生效。
+              </span>
+            </span>
           </li>
           <li>
             <strong>访问统计：</strong>我们使用 Google Analytics 与百度统计收集匿名的页面访问数据（如访问量、页面停留时长、设备类型），
@@ -147,7 +176,7 @@ import { LEGAL_UPDATED_AT, OPERATOR_NAME } from '@/data/site'
           <li>本服务面向考务、教学、会务等场景的成年工作人员，不以未成年人为目标用户。若你未满 14 周岁，请勿注册账号；请在监护人同意与陪同下使用本服务。</li>
           <li>
             考务名单常涉及学生（含未成年人）的姓名、考号、照片等个人信息。本服务采用<strong>本地化处理架构</strong>：
-            这些信息全程在名单管理者自己的浏览器中处理，不上传服务器、不经过网络传输，从技术上避免了学生个人信息的对外收集与存储，
+            这些信息全程在名单管理者自己的浏览器中处理，不发送到我们的服务器，从技术上避免了学生个人信息的对外收集与存储，
             符合《个人信息保护法》第二十八条对未成年人个人信息作为敏感个人信息从严保护的立法精神与《儿童个人信息网络保护规定》的要求。
           </li>
           <li>

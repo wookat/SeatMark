@@ -18,8 +18,17 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const distDir = join(root, 'dist')
 
-const { render, resolveSeo, prerenderPaths, appShellPaths, SITE_ORIGIN, guides, templateDetails, defaultTemplates } =
-  await import(join(root, 'dist-ssr', 'entry-server.js'))
+const {
+  render,
+  resolveSeo,
+  prerenderPaths,
+  appShellPaths,
+  SITE_ORIGIN,
+  guides,
+  templateDetails,
+  defaultTemplates,
+  quotaFaqAnswer,
+} = await import(join(root, 'dist-ssr', 'entry-server.js'))
 
 const template = readFileSync(join(distDir, 'index.html'), 'utf-8')
 
@@ -137,11 +146,14 @@ for (const path of [...paths, ...shellPaths]) {
 // ---------- sitemap.xml（与预渲染路径同源） ----------
 const today = new Date().toISOString().slice(0, 10)
 const priorities = (p) => (p === '/' ? '1.0' : p === '/studio' ? '0.9' : p.split('/').length > 2 ? '0.7' : '0.8')
+// noindex 的预渲染页（如仅框架英文化的 /en/templates、/en/guides）不进 sitemap
+const sitemapEntries = (
+  await Promise.all(paths.map(async (p) => ({ p, seo: await resolveSeo(p) })))
+).filter(({ seo }) => !(seo.robots ?? '').includes('noindex'))
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${(await Promise.all(
-  paths.map(async (p) => {
-    const seo = await resolveSeo(p)
+${sitemapEntries
+  .map(({ p, seo }) => {
     const alternates = (seo.alternates ?? [])
       .map(
         (alt) =>
@@ -154,19 +166,19 @@ ${(await Promise.all(
     <changefreq>weekly</changefreq>
     <priority>${priorities(p)}</priority>${alternates}
   </url>`
-  }),
-)).join('\n')}
+  })
+  .join('\n')}
 </urlset>
 `
 writeFileSync(join(distDir, 'sitemap.xml'), sitemap)
-console.log(`sitemap.xml generated with ${paths.length} urls`)
+console.log(`sitemap.xml generated with ${sitemapEntries.length} urls`)
 
 // ---------- llms.txt / llms-full.txt（与教程、模板数据同源，构建期自动同步新页面） ----------
 const templateItems = templateDetails
   .map((d) => ({ detail: d, template: defaultTemplates.find((t) => t.id === d.slug) }))
   .filter((item) => !!item.template)
 
-const SITE_INTRO = `> SeatMark（${SITE_ORIGIN}）是一款免费的在线批量标签生成工具：上传 Excel 名单即可批量生成考场座位标签（座签/桌贴）、考号贴、会议桌牌/台签/席卡、门贴门牌、学生证、工作证、胸卡出入证等打印页。毫米级精确排版（A4/A5/A3），支持照片核验、可视化模板设计器与 PDF 导出。所有数据仅在用户浏览器本地处理，不上传服务器，可离线使用，无需注册。Beta 期间全部功能限时免费。`
+const SITE_INTRO = `> SeatMark（${SITE_ORIGIN}）是一款免费的在线批量标签生成工具：上传 Excel 名单即可批量生成考场座位标签（座签/桌贴）、考号贴、会议桌牌/台签/席卡、门贴门牌、学生证、工作证、胸卡出入证等打印页。毫米级精确排版（A4/A5/A3），支持照片核验、可视化模板设计器与 PDF 导出。名单、照片与排版数据仅在用户浏览器本地处理，不上传服务器，排版与导出可离线使用，无需注册。限时 0 折免费。`
 
 const llmsTxt = `# SeatMark 座签
 
@@ -220,13 +232,13 @@ ${SITE_INTRO}
 答：不需要。打开 ${SITE_ORIGIN}/studio 即可使用全部功能；登录仅用于领取更高的每日生成配额与模板云端同步。
 
 **问：名单数据会不会泄露？**
-答：不会。Excel 解析、排版、照片匹配、PDF 生成全部在用户浏览器本地完成，不上传任何服务器，断网也能使用。详见 ${SITE_ORIGIN}/guides/data-privacy-offline-usage
+答：Excel 解析、排版、照片匹配、PDF 生成全部在用户浏览器本地完成，名单与照片不上传服务器，断网也能排版导出；仅登录、反馈与 AI 设计请求会发送到服务端。详见 ${SITE_ORIGIN}/guides/data-privacy-offline-usage
 
 **问：打印出来尺寸不对怎么办？**
 答：打印时缩放必须选「实际大小 / 100%」，不要选「适应页面」；详见 ${SITE_ORIGIN}/guides/print-margin-calibration
 
 **问：收费吗？**
-答：Beta 期间全部功能免费，未登录每天 3 次生成、登录后每天 10 次；正式收费前会提前公告。详见 ${SITE_ORIGIN}/pricing
+答：${quotaFaqAnswer(SITE_ORIGIN)}
 
 ## 全部教程（共 ${guides.length} 篇）
 

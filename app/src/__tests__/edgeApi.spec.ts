@@ -1,21 +1,43 @@
 /**
  * edge-functions/api/[[default]].js 的桩测试：
- * 直接调用 onRequest（内存 KV 降级），覆盖本轮新增的
- * devCode 环境限制与 /api/admin/health 健康检查。
+ * 直接调用 onRequest，覆盖 devCode 环境限制、/api/admin/health 健康检查、
+ * AUTH_SECRET / 存储 fail-closed 与 CSPRNG 验证码。
+ *
+ * 默认 env（BASE_ENV）模拟“已配置密钥 + 允许内存存储”的联调环境，
+ * fail-closed 用例通过 raw: true 绕过默认值模拟线上配置缺失。
  */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore JS 模块无类型声明
 import { onRequest } from '../../../edge-functions/api/[[default]].js'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore JS 模块无类型声明
+import { onRequest as onFeedbackRequest } from '../../../edge-functions/api/feedback.js'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore JS 模块无类型声明
+import { onRequest as onAiDesignRequest } from '../../../edge-functions/api/ai-design.js'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore JS 模块无类型声明
+import { isDevEnvironment, randomDigits, randomInt } from '../../../edge-functions/api/_security.js'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore JS 模块无类型声明
+import { StorageUnavailableError, getStorage } from '../../../edge-functions/api/_storage.js'
 
 interface Env {
   AUTH_SECRET?: string
   ADMIN_EMAILS?: string
   RESEND_API_KEY?: string
   DEV?: string
+  SEATMARK_DEV?: string
+  ALLOW_MEMORY_STORAGE?: string
+  FEEDBACK_WEBHOOK?: string
+  ALERT_WEBHOOK?: string
   seatmark_blob?: MockBlobStore
 }
+
+/** 默认联调环境：密钥已配置，允许内存存储（否则非 localhost 的写接口会 fail-closed） */
+const BASE_ENV: Env = { AUTH_SECRET: 'test-secret', ALLOW_MEMORY_STORAGE: '1' }
 
 /** 与 @edgeone/pages-blob Store 同接口子集的内存模拟 */
 interface MockBlobStore {
@@ -61,7 +83,7 @@ function createMockBlobStore(): MockBlobStore & { data: Map<string, string> } {
 /** 获取并解答一张图片验证码（从 SVG 文本节点还原字符），供注册/登录/重置密码请求携带 */
 async function solvedCaptcha(env: Env = {}) {
   const request = new Request('https://www.seatmark.cn/api/auth/captcha', { method: 'GET' })
-  const response: Response = await onRequest({ request, env })
+  const response: Response = await onRequest({ request, env: { ...BASE_ENV, ...env } })
   const data = (await response.json()) as { image: string; token: string }
   const b64 = data.image.replace(/^data:image\/svg\+xml;base64,/, '')
   const svg = Buffer.from(b64, 'base64').toString('utf-8')
@@ -76,8 +98,14 @@ const CAPTCHA_PATHS = ['/api/auth/register', '/api/auth/login', '/api/auth/reset
 async function call(
   method: string,
   url: string,
-  { body, env = {}, cookie }: { body?: unknown; env?: Env; cookie?: string } = {},
+  {
+    body,
+    env = {},
+    cookie,
+    raw = false,
+  }: { body?: unknown; env?: Env; cookie?: string; raw?: boolean } = {},
 ) {
+  if (!raw) env = { ...BASE_ENV, ...env }
   // 需携带验证码的认证路径：未显式传入时自动解答并注入（各用例聚焦自身断言）
   if (
     body &&
@@ -98,6 +126,264 @@ async function call(
   const response: Response = await onRequest({ request, env })
   return { response, data: (await response.json()) as Record<string, unknown> }
 }
+
+describe('_security.js CSPRNG 与开发环境判定', () => {
+  it('randomDigits(6) 恒为 6 位数字字符串', () => {
+    for (let i = 0; i < 500; i++) expect(randomDigits(6)).toMatch(/^\d{6}$/)
+    expect(randomDigits(1)).toMatch(/^\d$/)
+    expect(() => randomDigits(0)).toThrow(RangeError)
+  })
+
+  it('randomInt 返回 [0, max) 内的整数，非法参数报错', () => {
+    expect(randomInt(1)).toBe(0)
+    for (let i = 0; i < 1000; i++) {
+      const v = randomInt(7)
+      expect(Number.isInteger(v)).toBe(true)
+      expect(v).toBeGreaterThanOrEqual(0)
+      expect(v).toBeLessThan(7)
+    }
+    expect(() => randomInt(0)).toThrow(RangeError)
+    expect(() => randomInt(2.5)).toThrow(RangeError)
+  })
+
+  it('10k 次采样各值频率在合理区间（无明显模偏差）', () => {
+    const max = 10
+    const n = 10000
+    const counts = new Array<number>(max).fill(0)
+    for (let i = 0; i < n; i++) counts[randomInt(max)]!++
+    // 期望 1000/值，标准差≈ 30；±200 ≈ 6.7σ，假阳概率可忽略
+    for (const c of counts) {
+      expect(c).toBeGreaterThan(800)
+      expect(c).toBeLessThan(1200)
+    }
+  })
+
+  it('isDevEnvironment：SEATMARK_DEV=1 / DEV / localhost 为真，线上域名为假', () => {
+    expect(isDevEnvironment({ SEATMARK_DEV: '1' }, 'www.seatmark.cn')).toBe(true)
+    expect(isDevEnvironment({ DEV: '1' }, 'www.seatmark.cn')).toBe(true)
+    expect(isDevEnvironment({}, 'localhost')).toBe(true)
+    expect(isDevEnvironment({}, '127.0.0.1')).toBe(true)
+    expect(isDevEnvironment({}, 'www.seatmark.cn')).toBe(false)
+    expect(isDevEnvironment(undefined, 'www.seatmark.cn')).toBe(false)
+  })
+})
+
+describe('AUTH_SECRET fail-closed', () => {
+  it('线上缺 AUTH_SECRET：认证/管理/需会话路由 503 auth_secret_missing，响应头标记 missing', async () => {
+    const env: Env = { ALLOW_MEMORY_STORAGE: '1' }
+    for (const [method, path] of [
+      ['GET', '/api/auth/captcha'],
+      ['POST', '/api/auth/login'],
+      ['GET', '/api/auth/me'],
+      ['GET', '/api/quota'],
+      ['GET', '/api/admin/reservations'],
+    ] as const) {
+      const { response, data } = await call(method, `https://www.seatmark.cn${path}`, {
+        env,
+        raw: true,
+        body: method === 'POST' ? { email: 'x@example.com', password: 'p' } : undefined,
+      })
+      expect(response.status, path).toBe(503)
+      expect(data.code, path).toBe('auth_secret_missing')
+      expect(response.headers.get('X-SeatMark-Auth')).toBe('missing')
+    }
+  })
+
+  it('线上缺 AUTH_SECRET：/api/admin/health 仍报告 authSecretConfigured=false', async () => {
+    const { response, data } = await call('GET', 'https://www.seatmark.cn/api/admin/health', {
+      env: { ALLOW_MEMORY_STORAGE: '1' },
+      raw: true,
+    })
+    expect(response.status).toBe(503)
+    expect(data.authSecretConfigured).toBe(false)
+    expect(data.code).toBe('auth_secret_missing')
+  })
+
+  it('线上缺 AUTH_SECRET：不依赖密钥的公开接口（公告/短链）照常可用', async () => {
+    const { response } = await call('GET', 'https://www.seatmark.cn/api/announcement', {
+      env: { ALLOW_MEMORY_STORAGE: '1' },
+      raw: true,
+    })
+    expect(response.status).toBe(200)
+    expect(response.headers.get('X-SeatMark-Auth')).toBe('missing')
+  })
+
+  it('开发环境（localhost / SEATMARK_DEV=1）缺 AUTH_SECRET 时放行并标记 dev-default', async () => {
+    const { response } = await call('GET', 'http://localhost:5173/api/auth/captcha', {
+      env: {},
+      raw: true,
+    })
+    expect(response.status).toBe(200)
+    expect(response.headers.get('X-SeatMark-Auth')).toBe('dev-default')
+
+    const { response: flagRes } = await call('GET', 'https://www.seatmark.cn/api/auth/captcha', {
+      env: { SEATMARK_DEV: '1' },
+      raw: true,
+    })
+    expect(flagRes.status).toBe(200)
+    expect(flagRes.headers.get('X-SeatMark-Auth')).toBe('dev-default')
+  })
+
+  it('已配置 AUTH_SECRET 时响应头标记 configured', async () => {
+    const { response } = await call('GET', 'https://www.seatmark.cn/api/auth/captcha')
+    expect(response.status).toBe(200)
+    expect(response.headers.get('X-SeatMark-Auth')).toBe('configured')
+  })
+})
+
+describe('存储 fail-closed（无 KV/Blob）', () => {
+  const prodEnv: Env = { AUTH_SECRET: 'test-secret' }
+
+  it('getStorage 线上无持久化存储时抛 StorageUnavailableError，开发/显式开关时降级内存', async () => {
+    await expect(getStorage({}, { hostname: 'www.seatmark.cn' })).rejects.toBeInstanceOf(
+      StorageUnavailableError,
+    )
+    expect((await getStorage({}, { hostname: 'localhost' })).storage).toBe('memory')
+    expect((await getStorage({ SEATMARK_DEV: '1' }, { hostname: 'www.seatmark.cn' })).storage).toBe(
+      'memory',
+    )
+    expect(
+      (await getStorage({ ALLOW_MEMORY_STORAGE: '1' }, { hostname: 'www.seatmark.cn' })).storage,
+    ).toBe('memory')
+  })
+
+  it('线上写接口（登录/发码/兑换/预约）返回 503 storage_unavailable，响应头标记 unavailable', async () => {
+    for (const [path, body] of [
+      ['/api/auth/code', { email: 'a@example.com' }],
+      ['/api/auth/login', { email: 'a@example.com', password: 'pw', captchaToken: 't', captchaAnswer: 'x' }],
+      ['/api/redeem', { code: 'ABCDEFGHJKMN' }],
+      ['/api/team/reserve', { email: 'a@example.com' }],
+    ] as const) {
+      const { response, data } = await call('POST', `https://www.seatmark.cn${path}`, {
+        body,
+        env: prodEnv,
+        raw: true,
+      })
+      expect(response.status, path).toBe(503)
+      expect(data.code, path).toBe('storage_unavailable')
+      expect(response.headers.get('X-SeatMark-Storage')).toBe('unavailable')
+    }
+  })
+
+  it('线上只读接口照常响应：验证码出图、公告、匿名配额、未登录 me', async () => {
+    for (const path of ['/api/auth/captcha', '/api/announcement', '/api/quota', '/api/auth/me']) {
+      const { response } = await call('GET', `https://www.seatmark.cn${path}`, {
+        env: prodEnv,
+        raw: true,
+      })
+      expect(response.status, path).toBe(200)
+      expect(response.headers.get('X-SeatMark-Storage')).toBe('unavailable')
+    }
+  })
+
+  it('线上存储不可用时 /api/admin/health 未登录仍 401，管理员会话下报告 storage=unavailable', async () => {
+    const { response } = await call('GET', 'https://www.seatmark.cn/api/admin/health', {
+      env: prodEnv,
+      raw: true,
+    })
+    expect(response.status).toBe(401)
+
+    // 用开发环境签发管理员会话（同一 AUTH_SECRET），再以线上无存储环境读 health
+    const adminEnv: Env = { AUTH_SECRET: 'test-secret', ADMIN_EMAILS: 'ops@example.com' }
+    const { data: codeData } = await call('POST', 'http://localhost:5173/api/auth/code', {
+      body: { email: 'ops@example.com' },
+      env: adminEnv,
+    })
+    const { response: verifyRes } = await call('POST', 'http://localhost:5173/api/auth/verify', {
+      body: { email: 'ops@example.com', code: codeData.devCode },
+      env: adminEnv,
+    })
+    const cookie = (verifyRes.headers.get('Set-Cookie') || '').split(';')[0]
+    const { response: healthRes, data } = await call(
+      'GET',
+      'https://www.seatmark.cn/api/admin/health',
+      { env: adminEnv, cookie, raw: true },
+    )
+    expect(healthRes.status).toBe(200)
+    expect(data.storage).toBe('unavailable')
+    expect(data.kvBound).toBe(false)
+    expect(data.authSecretConfigured).toBe(true)
+  })
+
+  it('ALLOW_MEMORY_STORAGE=1 时线上写接口与现状一致（内存降级）', async () => {
+    const { response } = await call('POST', 'https://www.seatmark.cn/api/team/reserve', {
+      body: { email: 'mem@example.com' },
+      env: { AUTH_SECRET: 'test-secret', ALLOW_MEMORY_STORAGE: '1' },
+      raw: true,
+    })
+    expect(response.status).toBe(200)
+    expect(response.headers.get('X-SeatMark-Storage')).toBe('memory')
+  })
+
+  it('/api/feedback 线上无存储时 503，不再静默报成功', async () => {
+    const request = new Request('https://www.seatmark.cn/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'bug', content: '测试' }),
+    })
+    const response: Response = await onFeedbackRequest({ request, env: {} })
+    expect(response.status).toBe(503)
+    expect(((await response.json()) as { code: string }).code).toBe('storage_unavailable')
+  })
+})
+
+describe('webhook 未配置时不外发请求', () => {
+  it('/api/feedback 无 FEEDBACK_WEBHOOK：只落库，不调用 fetch', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    try {
+      const request = new Request('http://localhost:5173/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'suggestion', content: '希望支持更多模板' }),
+      })
+      const response: Response = await onFeedbackRequest({ request, env: {} })
+      expect(response.status).toBe(200)
+      expect(fetchSpy).not.toHaveBeenCalled()
+    } finally {
+      fetchSpy.mockRestore()
+    }
+  })
+
+  it('/api/feedback 配置 FEEDBACK_WEBHOOK 时才推送', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 200 }))
+    try {
+      const request = new Request('http://localhost:5173/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'bug', content: '导出报错' }),
+      })
+      await onFeedbackRequest({
+        request,
+        env: { FEEDBACK_WEBHOOK: 'https://open.feishu.cn/open-apis/bot/v2/hook/test' },
+      })
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      expect(String(fetchSpy.mock.calls[0]![0])).toContain('open.feishu.cn')
+    } finally {
+      fetchSpy.mockRestore()
+    }
+  })
+
+  it('/api/ai-design 无密钥且无 ALERT_WEBHOOK：上游失败不会向任何 webhook 发告警', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('upstream down', { status: 500 }))
+    try {
+      const request = new Request('https://www.seatmark.cn/api/ai-design', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] }),
+      })
+      await onAiDesignRequest({ request, env: { DEEPSEEK_API_KEY: 'sk-test' } })
+      const hosts = fetchSpy.mock.calls.map((c) => new URL(String(c[0])).hostname)
+      expect(hosts.some((h) => h.endsWith('weixin.qq.com'))).toBe(false)
+      expect(hosts.some((h) => h.includes('webhook'))).toBe(false)
+    } finally {
+      fetchSpy.mockRestore()
+    }
+  })
+})
 
 describe('/api/auth/code devCode 环境限制', () => {
   it('本地开发（localhost）未配邮件时返回 devCode', async () => {

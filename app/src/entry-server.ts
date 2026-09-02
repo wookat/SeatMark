@@ -12,6 +12,7 @@ import { createAppRouter } from '@/router'
 
 export { defaultTemplates } from '@/data/defaultTemplates'
 export { guides } from '@/data/guides'
+export { quotaFaqAnswer } from '@/data/llmsFaq'
 export { appShellPaths, prerenderPaths, resolveSeo, SITE_ORIGIN } from '@/data/seo'
 export { templateDetails } from '@/data/templateDetails'
 

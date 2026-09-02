@@ -116,7 +116,7 @@ const page = computed(() => findVsPage(String(route.params.slug ?? '')))
     >
       <div>
         <h2 class="text-base font-bold text-white">亲自对比一下最直观</h2>
-        <p class="mt-1 text-sm text-brand-100">免费、免登录，上传名单几秒出打印页，名单不出浏览器。</p>
+        <p class="mt-1 text-sm text-brand-100">免费、免登录，上传名单即生成打印页，名单不出浏览器。</p>
       </div>
       <RouterLink
         to="/studio"
