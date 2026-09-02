@@ -58,7 +58,7 @@ const SECTIONS = computed(() => [
   <header
     class="no-print sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur-md"
   >
-    <div class="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4">
+    <div class="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 sm:gap-3">
       <RouterLink
         :to="localePath('/')"
         class="group flex min-w-0 items-center gap-2.5 max-md:min-h-11 max-md:min-w-11"
@@ -66,7 +66,7 @@ const SECTIONS = computed(() => [
       >
         <BrandMark class="size-8 shrink-0 text-brand-600" />
         <span class="truncate text-base font-bold tracking-tight text-slate-900">
-          <template v-if="locale === 'en'">Seat<span class="text-brand-600">Mark</span></template>
+          <template v-if="locale === 'en'"><span class="hidden sm:inline">Seat<span class="text-brand-600">Mark</span></span></template>
           <template v-else><span class="hidden sm:inline">SeatMark </span><span class="text-brand-600">座签</span></template>
         </span>
       </RouterLink>
@@ -86,7 +86,7 @@ const SECTIONS = computed(() => [
         </a>
       </nav>
 
-      <nav class="ml-auto flex shrink-0 items-center gap-1.5">
+      <nav class="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
         <span
           class="hidden items-center gap-1 rounded bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200 md:inline-flex"
         >
@@ -112,7 +112,7 @@ const SECTIONS = computed(() => [
         </RouterLink>
         <RouterLink
           :to="localePath('/templates')"
-          class="btn btn-ghost btn-sm max-md:min-h-11 max-md:min-w-11"
+          class="btn btn-ghost btn-sm max-md:min-h-11 max-md:min-w-11 max-sm:px-1.5"
           :class="{
             'bg-slate-100 text-brand-600':
               routeName === 'templates' || routeName === 'template-detail',
@@ -122,7 +122,7 @@ const SECTIONS = computed(() => [
         </RouterLink>
         <RouterLink
           :to="localePath('/guides')"
-          class="btn btn-ghost btn-sm max-md:min-h-11 max-md:min-w-11"
+          class="btn btn-ghost btn-sm max-md:min-h-11 max-md:min-w-11 max-sm:px-1.5"
           :class="{
             'bg-slate-100 text-brand-600':
               routeName === 'guides' || routeName === 'guide-article',
@@ -139,10 +139,20 @@ const SECTIONS = computed(() => [
         </RouterLink>
         <RouterLink
           :to="localePath('/studio')"
-          class="btn btn-sm"
-          :class="routeName === 'studio' ? 'btn-secondary text-brand-600' : 'btn-primary'"
+          class="btn btn-sm max-sm:px-2"
+          :class="[
+            routeName === 'studio' ? 'btn-secondary text-brand-600' : 'btn-primary',
+            // 英文「In progress」状态标签在 <sm 放不下：它不是操作入口，移动端英文直接隐藏
+            { 'max-sm:hidden': routeName === 'studio' && locale === 'en' },
+          ]"
         >
-          {{ routeName === 'studio' ? t('正在制作中') : t('开始制作') }}
+          <template v-if="locale === 'en'">
+            <span class="sm:hidden">Start</span>
+            <span class="hidden sm:inline">{{
+              routeName === 'studio' ? t('正在制作中') : t('开始制作')
+            }}</span>
+          </template>
+          <template v-else>{{ routeName === 'studio' ? t('正在制作中') : t('开始制作') }}</template>
         </RouterLink>
 
         <RouterLink
@@ -162,7 +172,7 @@ const SECTIONS = computed(() => [
         <RouterLink
           v-if="!auth.user"
           :to="localePath('/account')"
-          class="btn btn-ghost btn-sm max-md:min-h-11 max-md:min-w-11"
+          class="btn btn-ghost btn-sm max-md:min-h-11 max-md:min-w-11 max-sm:px-1.5"
           :class="{ 'bg-slate-100 text-brand-600': routeName === 'account' }"
         >
           {{ t('登录') }}

@@ -1017,6 +1017,8 @@ export const en: Record<string, string> = {
   '在全部分类中找到': 'Found in all categories:',
   '款': 'template(s)',
   '没有匹配': 'No templates match',
+  '“': ' "',
+  '”': '"',
   '的模板，换个关键词试试，或在设计器里从空白新建。': '. Try another keyword or start from a blank template in the designer.',
   '清除搜索条件': 'Clear search',
   '也许这些模板能满足需求': 'You might like these templates',

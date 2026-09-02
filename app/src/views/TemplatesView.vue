@@ -251,7 +251,7 @@ const recommendedItems = computed(() => {
       class="mt-10 rounded-lg border border-slate-200 bg-slate-50 p-8 text-center"
     >
       <p class="text-sm text-slate-600">
-        {{ tr('没有匹配') }}“{{ searchQuery }}”{{ tr('的模板，换个关键词试试，或在设计器里从空白新建。') }}
+        {{ tr('没有匹配') }}{{ tr('“') }}{{ searchQuery }}{{ tr('”') }}{{ tr('的模板，换个关键词试试，或在设计器里从空白新建。') }}
       </p>
       <div class="mt-3 flex flex-wrap items-center justify-center gap-4">
         <button
