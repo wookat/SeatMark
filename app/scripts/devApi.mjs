@@ -68,6 +68,9 @@ function devEnv() {
     ADMIN_EMAILS: process.env.ADMIN_EMAILS || 'admin@seatmark.cn',
     RESEND_API_KEY: process.env.RESEND_API_KEY || '',
     FEEDBACK_WEBHOOK: process.env.FEEDBACK_WEBHOOK || '',
+    ALERT_WEBHOOK: process.env.ALERT_WEBHOOK || '',
+    // 本地联调放行内存存储（生产 memory 降级时持久化写入路由 fail closed 503）
+    SEATMARK_ALLOW_MEMORY_STORAGE: '1',
   }
 }
 

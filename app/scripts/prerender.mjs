@@ -18,8 +18,22 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const distDir = join(root, 'dist')
 
-const { render, resolveSeo, prerenderPaths, appShellPaths, SITE_ORIGIN, guides, templateDetails, defaultTemplates } =
-  await import(join(root, 'dist-ssr', 'entry-server.js'))
+const {
+  render,
+  resolveSeo,
+  prerenderPaths,
+  appShellPaths,
+  isSitemapEligible,
+  SITE_ORIGIN,
+  guides,
+  templateDetails,
+  defaultTemplates,
+  QUOTA_ANON_DAILY,
+  QUOTA_USER_DAILY,
+  PRICING_SUMMARY,
+  PRO_ORIGINAL_PRICE,
+  TEAM_ORIGINAL_PRICE,
+} = await import(join(root, 'dist-ssr', 'entry-server.js'))
 
 const template = readFileSync(join(distDir, 'index.html'), 'utf-8')
 
@@ -134,14 +148,16 @@ for (const path of [...paths, ...shellPaths]) {
   console.log('prerendered /404 -> dist/404.html')
 }
 
-// ---------- sitemap.xml（与预渲染路径同源） ----------
+// ---------- sitemap.xml（与预渲染路径同源；noindex 页不进） ----------
 const today = new Date().toISOString().slice(0, 10)
 const priorities = (p) => (p === '/' ? '1.0' : p === '/studio' ? '0.9' : p.split('/').length > 2 ? '0.7' : '0.8')
+const sitemapEntries = (
+  await Promise.all(paths.map(async (p) => ({ p, seo: await resolveSeo(p) })))
+).filter(({ seo }) => isSitemapEligible(seo))
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${(await Promise.all(
-  paths.map(async (p) => {
-    const seo = await resolveSeo(p)
+${sitemapEntries
+  .map(({ p, seo }) => {
     const alternates = (seo.alternates ?? [])
       .map(
         (alt) =>
@@ -154,19 +170,20 @@ ${(await Promise.all(
     <changefreq>weekly</changefreq>
     <priority>${priorities(p)}</priority>${alternates}
   </url>`
-  }),
-)).join('\n')}
+  })
+  .join('\n')}
 </urlset>
 `
 writeFileSync(join(distDir, 'sitemap.xml'), sitemap)
-console.log(`sitemap.xml generated with ${paths.length} urls`)
+console.log(`sitemap.xml generated with ${sitemapEntries.length} urls`)
 
 // ---------- llms.txt / llms-full.txt（与教程、模板数据同源，构建期自动同步新页面） ----------
 const templateItems = templateDetails
   .map((d) => ({ detail: d, template: defaultTemplates.find((t) => t.id === d.slug) }))
   .filter((item) => !!item.template)
 
-const SITE_INTRO = `> SeatMark（${SITE_ORIGIN}）是一款免费的在线批量标签生成工具：上传 Excel 名单即可批量生成考场座位标签（座签/桌贴）、考号贴、会议桌牌/台签/席卡、门贴门牌、学生证、工作证、胸卡出入证等打印页。毫米级精确排版（A4/A5/A3），支持照片核验、可视化模板设计器与 PDF 导出。所有数据仅在用户浏览器本地处理，不上传服务器，可离线使用，无需注册。Beta 期间全部功能限时免费。`
+// 配额与定价文案单一来源：QUOTA_* 来自 stores/quota.ts，PRICING_SUMMARY 来自 entry-server.ts
+const SITE_INTRO = `> SeatMark（${SITE_ORIGIN}）是一款免费的在线批量标签生成工具：上传 Excel 名单即可批量生成考场座位标签（座签/桌贴）、考号贴、会议桌牌/台签/席卡、门贴门牌、学生证、工作证、胸卡出入证等打印页。毫米级精确排版（A4/A5/A3），支持照片核验、可视化模板设计器与 PDF 导出。所有数据仅在用户浏览器本地处理，不上传服务器，可离线使用，无需注册。${PRICING_SUMMARY}。`
 
 const llmsTxt = `# SeatMark 座签
 
@@ -186,7 +203,7 @@ ${SITE_INTRO}
 - [标签工坊（在线生成）](${SITE_ORIGIN}/studio)
 - [模板库](${SITE_ORIGIN}/templates)
 - [教程中心](${SITE_ORIGIN}/guides)
-- [定价（Beta 期间免费）](${SITE_ORIGIN}/pricing)
+- [定价（专业版原价 ${PRO_ORIGINAL_PRICE}、团队版 ${TEAM_ORIGINAL_PRICE}，限时 0 折免费）](${SITE_ORIGIN}/pricing)
 - [工具对比（vs 创客贴 / WPS 邮件合并 / placecard.us / Canva）](${SITE_ORIGIN}/vs)
 - [桌牌在线生成](${SITE_ORIGIN}/desk-card-generator)
 - [姓名卡片批量生成器](${SITE_ORIGIN}/name-card-batch)
@@ -226,7 +243,7 @@ ${SITE_INTRO}
 答：打印时缩放必须选「实际大小 / 100%」，不要选「适应页面」；详见 ${SITE_ORIGIN}/guides/print-margin-calibration
 
 **问：收费吗？**
-答：Beta 期间全部功能免费，未登录每天 3 次生成、登录后每天 10 次；正式收费前会提前公告。详见 ${SITE_ORIGIN}/pricing
+答：${PRICING_SUMMARY}；正式收费前会提前公告。详见 ${SITE_ORIGIN}/pricing
 
 ## 全部教程（共 ${guides.length} 篇）
 
@@ -255,3 +272,15 @@ ${templateItems
 `
 writeFileSync(join(distDir, 'llms-full.txt'), llmsFullTxt)
 console.log(`llms-full.txt generated (${templateItems.length} templates)`)
+
+// 构建期断言：llms 文案中的配额次数必须与 quota.ts 常量一致，且不残留 Beta 期旧文案
+for (const [name, text] of [['llms.txt', llmsTxt], ['llms-full.txt', llmsFullTxt]]) {
+  const expected = [`未登录每天 ${QUOTA_ANON_DAILY} 次`, `登录后每天 ${QUOTA_USER_DAILY} 次`]
+  for (const needle of expected) {
+    if (!text.includes(needle)) throw new Error(`${name} 缺少配额文案「${needle}」`)
+  }
+  if (/Beta 期间|3 次生成|每天 10 次/.test(text)) {
+    throw new Error(`${name} 残留旧的 Beta 配额文案`)
+  }
+}
+console.log('llms quota copy matches quota.ts constants')

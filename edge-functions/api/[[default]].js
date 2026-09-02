@@ -46,6 +46,9 @@
  * - KV 绑定（变量名 seatmark_kv）优先；
  * - 未绑定时降级 EdgeOne Pages Blob（@edgeone/pages-blob，自动创建、持久化、强一致读）；
  * - 两者皆不可用时降级进程内存（数据不持久，仅本地联调）。
+ *   内存降级下涉及持久化写入的路由（验证码/注册/登录/配额扣减/兑换/分享计次/限流计数）
+ *   一律 fail closed 返回 503 {error:'storage_unavailable'}，仅 SEATMARK_ALLOW_MEMORY_STORAGE=1
+ *   （本地 dev 中间件 / Vitest）时放行；只读端点不受影响。
  * 云端模板（tpl:）体积大，Blob 可用时优先存 Blob，读取兼容 KV 存量数据。
  */
 
@@ -72,6 +75,30 @@ const LOGIN_FAIL_WINDOW_MS = 15 * 60 * 1000
 const REGISTER_IP_DAILY_LIMIT = 20
 const CAPTCHA_TTL_SECONDS = 5 * 60
 const TEMPLATES_MAX_BYTES = 512 * 1024
+
+/** 存储降级 memory 时必须 fail closed 的持久化写入路由（path → 受限方法） */
+const MEMORY_UNSAFE_ROUTES = {
+  '/api/auth/code': ['POST'],
+  '/api/auth/verify': ['POST'],
+  '/api/auth/register': ['POST'],
+  '/api/auth/login': ['POST'],
+  '/api/auth/reset-code': ['POST'],
+  '/api/auth/reset-password': ['POST'],
+  '/api/account/delete': ['POST'],
+  '/api/account/templates': ['PUT'],
+  '/api/quota/consume': ['POST'],
+  '/api/redeem': ['POST'],
+  '/api/share/visit': ['POST'],
+  '/api/share/tpl': ['POST'],
+  '/api/team/reserve': ['POST'],
+  '/api/admin/codes': ['POST'],
+  '/api/admin/announcement': ['PUT'],
+}
+
+function isMemoryUnsafeRoute(path, method) {
+  const methods = MEMORY_UNSAFE_ROUTES[path]
+  return Boolean(methods && methods.includes(method))
+}
 
 // ---------- 会员与兑换码 ----------
 const TRIAL_DAYS_REGISTER = 7
@@ -646,7 +673,22 @@ async function handleRequest(context) {
 
   const { kv, storage, blobStore } = await getStorage(env)
   // Rev 标记仅用于部署观测：探针可确认线上边缘函数版本，改动本文件时递增
-  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r316' }
+  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r355' }
+
+  // 内存降级跨 isolate 不一致且不持久：验证码、配额、兑换、限流等写入会静默丢失，
+  // 生产必须 fail closed；仅显式放行（本地 dev / 测试）时允许
+  if (
+    storage === 'memory' &&
+    !(env && env.SEATMARK_ALLOW_MEMORY_STORAGE === '1') &&
+    isMemoryUnsafeRoute(path, method)
+  ) {
+    console.error(
+      '[seatmark-api] 存储降级 memory 且未放行，拒绝持久化写入:',
+      method,
+      path,
+    )
+    return json({ error: 'storage_unavailable' }, 503, storageHeader)
+  }
 
   /**
    * 非关键写入移出响应关键路径：平台支持 waitUntil 时响应先行、写入后台完成

@@ -241,6 +241,7 @@ export const en: Record<string, string> = {
     'Click headers to sort, funnels to filter — labels are laid out in the current order',
   '点击插入字段：': 'Click to insert a field:',
   '点击选择': 'Click to choose',
+  '拆分分组': 'Split groups',
   '点击预览中任意一张标签，可单独修改这一张的内容，不影响名单数据。':
     'Click any label in the preview to edit just that one, without changing your list data.',
   '照片匹配': 'Photo matching',
@@ -541,6 +542,7 @@ export const en: Record<string, string> = {
   '服务器上与你账号关联的个人信息已删除': 'Personal data linked to your account has been deleted from our servers',
   '未分组': 'Ungrouped',
   '未命名': 'Unnamed',
+  '未安排': 'Unassigned',
   '未安排宾客': 'Unassigned guests',
   '未安排的宾客': 'Unassigned guests',
   '本次带分组颜色输出': 'Exported with group colors this time',
@@ -583,6 +585,8 @@ export const en: Record<string, string> = {
   '添加到名单（自动去重）': 'Add to list (auto-dedupe)',
   '清空安排': 'Clear assignments',
   '点击或拖拽与另一排交换': 'click or drag to swap with another row',
+  '点击查看未安排宾客': 'Click to view unassigned guests',
+  '点击高亮空桌': 'Click to highlight empty tables',
   '点另一排把手交换': 'click another row handle to swap',
   '照片批量核验与覆盖率统计': 'Batch photo verification and coverage stats',
   '班级 / 考场标题': 'Class / exam room title',
@@ -862,8 +866,10 @@ export const en: Record<string, string> = {
   '2 列 × 6 行，整块墨色座位号区与利落的左对齐信息列，远看醒目近看克制。': '2 × 6 grid; solid ink seat-number block with clean left-aligned info column — bold from afar, restrained up close.',
 
   // ---------- Studio 首次使用引导 ----------
-  '三步拿到成品': 'Three steps to a finished print',
+  '四步拿到成品': 'Four steps to a finished print',
   '选模板': 'Pick a template',
+  '核对字段映射与版式': 'Check field mapping & layout',
+  '导入后自动匹配，一般无需改动': 'Matched automatically after import — usually no changes needed',
   '默认已选好，可随时更换': 'A default is preselected — switch anytime',
   '名单已就绪': 'Your list is ready',
   '上传 Excel 或先用演示数据': 'Upload an Excel file or try the demo data',

@@ -14,12 +14,18 @@ const visible = computed(() => !studioGuideDismissed.value)
 
 const hasRows = computed(() => workspace.excel.rows.length > 0)
 
+/** 四步与左侧面板 step-chip 编号 1 选择模板 / 2 导入数据 / 3 字段映射 / 4 页面与版式 一一对应 */
 const steps = computed(() => [
   { title: t('选模板'), desc: t('默认已选好，可随时更换'), done: true },
   {
     title: t('导入名单'),
     desc: hasRows.value ? t('名单已就绪') : t('上传 Excel 或先用演示数据'),
     done: hasRows.value,
+  },
+  {
+    title: t('核对字段映射与版式'),
+    desc: t('导入后自动匹配，一般无需改动'),
+    done: false,
   },
   { title: t('导出打印'), desc: t('预览面板工具栏导出 PDF / 打印'), done: false },
 ])
@@ -40,7 +46,7 @@ function tryDemo() {
     aria-label="首次使用引导"
   >
     <div class="flex items-start justify-between gap-2">
-      <p class="text-sm font-bold text-slate-900">{{ t('三步拿到成品') }}</p>
+      <p class="text-sm font-bold text-slate-900">{{ t('四步拿到成品') }}</p>
       <button
         type="button"
         class="cursor-pointer rounded p-1 text-slate-600 transition-colors hover:bg-white hover:text-slate-600"

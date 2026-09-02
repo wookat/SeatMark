@@ -259,7 +259,7 @@ const FAQS = computed(() => [
             class="mt-4 text-3xl leading-tight font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl"
           >
             <template v-if="locale === 'en'">
-              Upload a spreadsheet, batch-create<br />
+              Upload a spreadsheet, batch-create <br />
               <span class="text-brand-600"><span class="whitespace-nowrap">seating charts</span> · <span class="whitespace-nowrap">place cards</span> · <span class="whitespace-nowrap">name tags</span></span>
             </template>
             <template v-else>
@@ -305,7 +305,10 @@ const FAQS = computed(() => [
               {{ t('用演示数据先试试') }}
             </RouterLink>
           </div>
-          <div class="mt-5 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+          <div
+            v-if="locale !== 'en'"
+            class="mt-5 flex flex-wrap items-center gap-2 text-xs text-slate-600"
+          >
             <span class="font-semibold">{{ t('快捷入口：') }}</span>
             <RouterLink
               v-for="chip in [

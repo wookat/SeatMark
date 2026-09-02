@@ -5,7 +5,15 @@ import {
   type RouteRecordRaw,
 } from 'vue-router'
 
-import { localeFromPath, setLocale } from '@/i18n'
+import { localeFromPath, setLocale, stripLocalePrefix } from '@/i18n'
+
+/** 仅有中文正文的内容站详情路由：/en 镜像直接回到中文路径，避免英文外壳包中文正文 */
+const EN_ZH_ONLY_DETAIL_RE = /^\/en\/(guides|templates|papers|vs)\/[^/]+/
+
+/** /en 下仅有中文正文的详情页 →对应中文路径；其余返回 null */
+export function zhOnlyRedirectTarget(path: string): string | null {
+  return EN_ZH_ONLY_DETAIL_RE.test(path) ? stripLocalePrefix(path) : null
+}
 
 export const routes: RouteRecordRaw[] = [
   {
@@ -149,6 +157,10 @@ export function createAppRouter() {
 
   // 进入目标路由前按 /en 前缀切换 locale（英文字典首次进入时懒加载；预渲染同样生效）
   router.beforeEach(async (to) => {
+    const zhPath = zhOnlyRedirectTarget(to.path)
+    if (zhPath) {
+      return { path: zhPath, query: to.query, hash: to.hash, replace: true }
+    }
     await setLocale(localeFromPath(to.path))
   })
 
