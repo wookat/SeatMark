@@ -5,6 +5,7 @@ import {
   CATEGORY_DEMO_DATASET,
   DEMO_DATASETS,
   demoExcelFor,
+  demoPersonNames,
   resolveDemoDataset,
   sampleExcelFor,
   TEMPLATE_DEMO_DATASET_OVERRIDES,
@@ -161,6 +162,41 @@ describe('demoDatasets', () => {
       const before = demoExcelFor(template).rows[0]![sample.headers[0]!]
       sample.rows[0]![sample.headers[0]!] = '篡改'
       expect(demoExcelFor(template).rows[0]![sample.headers[0]!]).toBe(before)
+    })
+  })
+
+  describe('demoPersonNames', () => {
+    const CJK = /[\u4e00-\u9fff]/
+
+    it.each([48, 64, 200])('zh 生成 %i 人姓名全部唯一且为中文', (count) => {
+      const names = demoPersonNames(count, 'zh')
+      expect(names).toHaveLength(count)
+      expect(new Set(names).size).toBe(count)
+      for (const n of names) {
+        expect(n, n).toMatch(CJK)
+        expect(n.length).toBeGreaterThanOrEqual(2)
+        expect(n.length).toBeLessThanOrEqual(3)
+      }
+    })
+
+    it.each([48, 64, 200])('en 生成 %i 人姓名全部唯一且不含 CJK', (count) => {
+      const names = demoPersonNames(count, 'en')
+      expect(names).toHaveLength(count)
+      expect(new Set(names).size).toBe(count)
+      for (const n of names) expect(n, n).not.toMatch(CJK)
+    })
+
+    it('zh 优先使用内置姓名池，en 不足时追加序号后缀', () => {
+      expect(demoPersonNames(3, 'zh')).toEqual(['张伟', '王芳', '李娜'])
+      const en = demoPersonNames(26, 'en')
+      expect(en[0]).toBe('ZHANG Wei')
+      expect(en[24]).toBe('ZHANG Wei 2')
+      expect(en[25]).toBe('WANG Fang 2')
+    })
+
+    it('默认 zh；count 为 0 返回空数组', () => {
+      expect(demoPersonNames(0)).toEqual([])
+      expect(demoPersonNames(2)).toEqual(['张伟', '王芳'])
     })
   })
 })

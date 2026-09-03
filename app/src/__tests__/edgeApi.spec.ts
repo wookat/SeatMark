@@ -14,7 +14,14 @@ interface Env {
   ADMIN_EMAILS?: string
   RESEND_API_KEY?: string
   DEV?: string
+  /** '1' 放行内存存储；未放行时持久化写入路由 fail closed 503 */
+  SEATMARK_ALLOW_MEMORY_STORAGE?: string
   seatmark_blob?: MockBlobStore
+}
+
+/** 测试默认走内存 KV 降级，需显式放行；用例可以传 '' 覆盖以验证 fail closed */
+function withTestEnv(env: Env): Env {
+  return { SEATMARK_ALLOW_MEMORY_STORAGE: '1', ...env }
 }
 
 /** 与 @edgeone/pages-blob Store 同接口子集的内存模拟 */
@@ -61,7 +68,7 @@ function createMockBlobStore(): MockBlobStore & { data: Map<string, string> } {
 /** 获取并解答一张图片验证码（从 SVG 文本节点还原字符），供注册/登录/重置密码请求携带 */
 async function solvedCaptcha(env: Env = {}) {
   const request = new Request('https://www.seatmark.cn/api/auth/captcha', { method: 'GET' })
-  const response: Response = await onRequest({ request, env })
+  const response: Response = await onRequest({ request, env: withTestEnv(env) })
   const data = (await response.json()) as { image: string; token: string }
   const b64 = data.image.replace(/^data:image\/svg\+xml;base64,/, '')
   const svg = Buffer.from(b64, 'base64').toString('utf-8')
@@ -95,9 +102,77 @@ async function call(
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   })
-  const response: Response = await onRequest({ request, env })
+  const response: Response = await onRequest({ request, env: withTestEnv(env) })
   return { response, data: (await response.json()) as Record<string, unknown> }
 }
+
+describe('存储降级 memory 时持久化写入路由 fail closed', () => {
+  const noAllow: Env = { SEATMARK_ALLOW_MEMORY_STORAGE: '' }
+
+  it('memory 且未放行 → 验证码/注册/配额扣减/兑换/分享计次 均 503 storage_unavailable', async () => {
+    const routes: [string, string, unknown][] = [
+      ['POST', '/api/auth/code', { email: 'fc@example.com' }],
+      ['POST', '/api/auth/register', { email: 'fc@example.com', password: 'super-secret-1' }],
+      ['POST', '/api/auth/login', { email: 'fc@example.com', password: 'super-secret-1' }],
+      ['POST', '/api/quota/consume', {}],
+      ['POST', '/api/redeem', { code: 'SM-AAAA-BBBB-CCCC' }],
+      ['POST', '/api/share/visit', { code: 'deadbeef' }],
+      ['POST', '/api/share/tpl', { payload: 'v0.eyJhIjoxfQ' }],
+    ]
+    for (const [method, path, body] of routes) {
+      const { response, data } = await call(method, `https://www.seatmark.cn${path}`, {
+        body,
+        env: noAllow,
+      })
+      expect(response.status, path).toBe(503)
+      expect(data.error, path).toBe('storage_unavailable')
+      expect(response.headers.get('X-SeatMark-Storage')).toBe('memory')
+    }
+  })
+
+  it('memory 且未放行 → 只读端点不变', async () => {
+    const quota = await call('GET', 'https://www.seatmark.cn/api/quota', { env: noAllow })
+    expect(quota.response.status).toBe(200)
+    expect(quota.data.anonymous).toBe(true)
+    const me = await call('GET', 'https://www.seatmark.cn/api/auth/me', { env: noAllow })
+    expect(me.response.status).toBe(200)
+    const ann = await call('GET', 'https://www.seatmark.cn/api/announcement', { env: noAllow })
+    expect(ann.response.status).toBe(200)
+  })
+
+  it('memory 且放行 → 注册正常', async () => {
+    const { response, data } = await call('POST', 'https://www.seatmark.cn/api/auth/register', {
+      body: { email: 'fc-allowed@example.com', password: 'super-secret-1' },
+      env: { SEATMARK_ALLOW_MEMORY_STORAGE: '1' },
+    })
+    expect(response.status).toBe(200)
+    expect((data.user as Record<string, unknown>).email).toBe('fc-allowed@example.com')
+  })
+
+  it('KV 已绑定时不受放行变量影响', async () => {
+    const store = new Map<string, string>()
+    const kv = {
+      async get(key: string) {
+        return store.has(key) ? (store.get(key) as string) : null
+      },
+      async put(key: string, value: string) {
+        store.set(key, String(value))
+      },
+      async delete(key: string) {
+        store.delete(key)
+      },
+      async list() {
+        return { keys: [], complete: true, cursor: '' }
+      },
+    }
+    const { response } = await call('POST', 'https://www.seatmark.cn/api/share/tpl', {
+      body: { payload: 'v0.eyJhIjoxfQ' },
+      env: { SEATMARK_ALLOW_MEMORY_STORAGE: '', seatmark_kv: kv } as unknown as Env,
+    })
+    expect(response.status).toBe(200)
+    expect(response.headers.get('X-SeatMark-Storage')).toBe('kv')
+  })
+})
 
 describe('/api/auth/code devCode 环境限制', () => {
   it('本地开发（localhost）未配邮件时返回 devCode', async () => {

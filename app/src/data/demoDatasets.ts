@@ -33,6 +33,51 @@ const EN_NAMES = [
   'HE Ping', 'GAO Xiang', 'LIN Fang', 'LUO Bin', 'ZHENG Shuang', 'LIANG Bo', 'XIE Yu', 'SONG Jian',
 ]
 
+const DEMO_SURNAMES = '王李张刘陈杨赵黄周吴徐孙马朱胡郭何高林罗郑梁谢宋唐许韩冯邓曹彭'
+const DEMO_GIVEN = '伟芳娜敏静丽强磊军洋勇艳杰娟涛明超霞平刚桂英华玉兰春香才发武新利'
+
+/**
+ * 生成 count 个互不重复的演示姓名（座位表 / 宴会名单等演示数据共用）：
+ * - zh：优先用 NAMES 池，不足时按「姓 + 双字名」组合补齐；
+ * - en：优先用 EN_NAMES 池，不足时追加序号后缀（如 'ZHANG Wei 2'）。
+ */
+export function demoPersonNames(count: number, locale: 'zh' | 'en' = 'zh'): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  const push = (name: string) => {
+    if (seen.has(name)) return
+    seen.add(name)
+    out.push(name)
+  }
+  const pool = locale === 'en' ? EN_NAMES : NAMES
+  for (const name of pool) {
+    if (out.length >= count) break
+    push(name)
+  }
+  if (locale === 'en') {
+    for (let round = 2; out.length < count; round++) {
+      for (const name of EN_NAMES) {
+        if (out.length >= count) break
+        push(`${name} ${round}`)
+      }
+    }
+    return out
+  }
+  // 确定性遍历姓 × 名 × 名，保证在池子耗尽前不会死循环
+  const s = DEMO_SURNAMES.length
+  const g = DEMO_GIVEN.length
+  const total = s * g * g
+  for (let i = 0; out.length < count && i < total; i++) {
+    const surname = DEMO_SURNAMES[(i * 7) % s]!
+    const a = DEMO_GIVEN[(i * 11) % g]!
+    const b = DEMO_GIVEN[(Math.floor(i / g) * 13 + i * 3 + 5) % g]!
+    push(`${surname}${a}${b}`)
+  }
+  // 极端情况（组合仍不够）按序号兜底，保证长度与唯一性
+  for (let n = 1; out.length < count; n++) push(`演示${n}`)
+  return out
+}
+
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
 function buildRows(count: number, make: (i: number) => DataRow): DataRow[] {

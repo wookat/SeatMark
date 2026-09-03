@@ -7,7 +7,8 @@ import ModalDialog from '@/components/ui/ModalDialog.vue'
 import NumberField from '@/components/ui/NumberField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
-import { localePath, t as tr } from '@/i18n'
+import { demoPersonNames } from '@/data/demoDatasets'
+import { currentLocale, localePath, t as tr } from '@/i18n'
 import { useQuotaStore } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
 import {
@@ -18,6 +19,7 @@ import {
   MARKER_PRESETS,
   nextGroupColor,
   parseBanquetGuests,
+  summarizeBanquet,
   validateBanquet,
   VENUE_HEIGHT,
   VENUE_PRESETS,
@@ -169,21 +171,16 @@ const groupOptions = computed<SelectOption[]>(() => [
 ])
 
 function loadDemoGuests() {
-  const surnames = '王李张刘陈杨赵黄周吴徐孙马朱胡郭何高林罗'
-  const given = '伟芳娜敏静丽强磊军洋勇艳杰娟涛明超霞平刚'
   const demoGroups: BanquetGroup[] = [
     { id: uid('grp'), name: tr('男方亲友'), color: '#4f46e5' },
     { id: uid('grp'), name: tr('女方亲友'), color: '#e11d48' },
     { id: uid('grp'), name: tr('同事'), color: '#0891b2' },
   ]
-  const list: BanquetGuest[] = []
-  for (let i = 0; i < 48; i++) {
-    list.push({
-      id: uid('gst'),
-      name: `${surnames[i % surnames.length]}${given[(i * 7) % given.length]}${given[(i * 13 + 5) % given.length]}`,
-      groupId: demoGroups[i % 3]!.id,
-    })
-  }
+  const list: BanquetGuest[] = demoPersonNames(48, currentLocale()).map((name, i) => ({
+    id: uid('gst'),
+    name,
+    groupId: demoGroups[i % 3]!.id,
+  }))
   groups.value = demoGroups
   guests.value = list
   for (const t of tables.value) t.guestIds = []
@@ -329,15 +326,40 @@ function autoAssign() {
   for (const t of tables.value) {
     t.guestIds = result.get(t.id) ?? []
   }
-  const issues = validateBanquet(guests.value, tables.value)
-  if (issues.unassigned.length) {
+  const s = summary.value
+  const detail = `${tr('已安排')} ${s.assigned}/${s.total} · ${tr('空桌')} ${s.emptyTables} · ${tr('拆分分组')} ${s.splitGroups} · ${tr('未安排')} ${s.unassigned}`
+  if (s.unassigned) {
     toast.warning(
-      `${tr('座位不够：未安排宾客')}: ${issues.unassigned.length}`,
-      tr('可增加餐桌或提高每桌座位数后重新分配'),
+      `${tr('座位不够：未安排宾客')}: ${s.unassigned}`,
+      `${detail}。${tr('可增加餐桌或提高每桌座位数后重新分配')}`,
     )
   } else {
-    toast.success(tr('已自动分配座位'), tr('同组宾客已尽量安排同桌，可拖拽宾客微调'))
+    toast.success(tr('已自动分配座位'), `${detail}。${tr('同组宾客已尽量安排同桌，可拖拽宾客微调')}`)
   }
+}
+
+/** 画布上方的结果摘要（随安排实时变化，不仅限于自动排座后） */
+const summary = computed(() => summarizeBanquet(guests.value, tables.value, groups.value))
+
+/** 点击摘要中的空桌数：短暂高亮空桌并滚到首个空桌 */
+const highlightEmptyTables = ref(false)
+let highlightTimer: ReturnType<typeof setTimeout> | null = null
+function focusEmptyTables() {
+  const first = tables.value.find((t) => !t.guestIds.length)
+  if (!first) return
+  highlightEmptyTables.value = true
+  if (highlightTimer) clearTimeout(highlightTimer)
+  highlightTimer = setTimeout(() => {
+    highlightEmptyTables.value = false
+  }, 2400)
+  canvasContainer.value
+    ?.querySelector(`[data-table-id="${first.id}"]`)
+    ?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+}
+
+/** 点击摘要中的未安排数：滚到未安排宾客池 */
+function focusUnassignedPool() {
+  document.querySelector('[data-guest-pool]')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
 function clearAssignments() {
@@ -864,9 +886,34 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
               +
             </button>
           </div>
-          <p class="text-xs text-slate-500">
-            {{ tables.length }} {{ tr('桌') }} · {{ tr('已安排') }} {{ guests.length - unassignedGuests.length }} /
-            {{ guests.length }}
+          <p class="flex flex-wrap items-center gap-x-1 text-xs text-slate-500" data-banquet-summary>
+            <span>{{ tables.length }} {{ tr('桌') }}</span>
+            <span aria-hidden="true">·</span>
+            <span>{{ tr('已安排') }} {{ summary.assigned }}/{{ summary.total }}</span>
+            <span aria-hidden="true">·</span>
+            <button
+              type="button"
+              class="rounded px-0.5 transition-colors"
+              :class="summary.emptyTables ? 'font-bold text-amber-600 hover:bg-amber-50' : 'cursor-default'"
+              :disabled="!summary.emptyTables"
+              :title="summary.emptyTables ? tr('点击高亮空桌') : undefined"
+              @click="focusEmptyTables"
+            >
+              {{ tr('空桌') }} {{ summary.emptyTables }}
+            </button>
+            <span aria-hidden="true">·</span>
+            <span>{{ tr('拆分分组') }} {{ summary.splitGroups }}</span>
+            <span aria-hidden="true">·</span>
+            <button
+              type="button"
+              class="rounded px-0.5 transition-colors"
+              :class="summary.unassigned ? 'font-bold text-amber-600 hover:bg-amber-50' : 'cursor-default'"
+              :disabled="!summary.unassigned"
+              :title="summary.unassigned ? tr('点击查看未安排宾客') : undefined"
+              @click="focusUnassignedPool"
+            >
+              {{ tr('未安排') }} {{ summary.unassigned }}
+            </button>
           </p>
         </div>
         <p class="mb-1 text-[11px] leading-5 text-slate-400 sm:hidden">← {{ tr('画布超宽时可左右滑动查看') }} →</p>
@@ -911,6 +958,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
                       'banquet-selected': selectedId === t.id,
                       'banquet-table--drop': guestDragging && dropTableId === t.id,
                       'banquet-table--over': t.guestIds.length > t.seats,
+                      'banquet-table--empty-hint': highlightEmptyTables && !t.guestIds.length,
                     }"
                     :style="{
                       left: `${t.x}mm`,
@@ -1244,6 +1292,11 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
   border-color: #16a34a;
   box-shadow: 0 0 0 1mm rgba(22, 163, 74, 0.25);
   background: #f0fdf4;
+}
+
+.banquet-table--empty-hint {
+  border-color: #d97706;
+  box-shadow: 0 0 0 1mm rgba(217, 119, 6, 0.28);
 }
 
 .banquet-table--over {

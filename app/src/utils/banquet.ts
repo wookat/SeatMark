@@ -348,6 +348,76 @@ export function validateBanquet(guests: BanquetGuest[], tables: BanquetTable[]):
   }
 }
 
+export interface SplitGroup {
+  groupId: string
+  groupName: string
+  /** 该分组被拆到的桌数 */
+  tableCount: number
+  tableNames: string[]
+}
+
+/**
+ * 被拆到多桌的分组（同组宾客分散在 ≥2 桌）；未分组宾客不计。
+ * 用于自动排座后的结果摘要，让「同组尽量同桌」的效果可解释。
+ */
+export function splitGroups(
+  guests: BanquetGuest[],
+  tables: BanquetTable[],
+  groups: BanquetGroup[],
+): SplitGroup[] {
+  const guestGroup = new Map(guests.map((g) => [g.id, g.groupId]))
+  const groupTables = new Map<string, Set<string>>()
+  for (const table of tables) {
+    for (const guestId of table.guestIds) {
+      const groupId = guestGroup.get(guestId)
+      if (!groupId) continue
+      let set = groupTables.get(groupId)
+      if (!set) {
+        set = new Set()
+        groupTables.set(groupId, set)
+      }
+      set.add(table.id)
+    }
+  }
+  const tableName = new Map(tables.map((t) => [t.id, t.name]))
+  const out: SplitGroup[] = []
+  for (const group of groups) {
+    const set = groupTables.get(group.id)
+    if (!set || set.size < 2) continue
+    out.push({
+      groupId: group.id,
+      groupName: group.name,
+      tableCount: set.size,
+      tableNames: [...set].map((id) => tableName.get(id) ?? id),
+    })
+  }
+  return out
+}
+
+/** 自动排座结果摘要：已安排/总数、空桌、拆分分组、未安排 */
+export interface BanquetSummary {
+  assigned: number
+  total: number
+  emptyTables: number
+  splitGroups: number
+  unassigned: number
+}
+
+export function summarizeBanquet(
+  guests: BanquetGuest[],
+  tables: BanquetTable[],
+  groups: BanquetGroup[],
+): BanquetSummary {
+  const issues = validateBanquet(guests, tables)
+  return {
+    assigned: guests.length - issues.unassigned.length,
+    total: guests.length,
+    emptyTables: issues.emptyTables.length,
+    splitGroups: splitGroups(guests, tables, groups).length,
+    unassigned: issues.unassigned.length,
+  }
+}
+
 /** 默认分组配色（可自定义覆盖） */
 export const GROUP_COLORS = [
   '#4f46e5',

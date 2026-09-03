@@ -6,7 +6,8 @@ import CheckboxField from '@/components/ui/CheckboxField.vue'
 import NumberField from '@/components/ui/NumberField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
-import { localePath, t as tr } from '@/i18n'
+import { demoPersonNames } from '@/data/demoDatasets'
+import { currentLocale, localePath, t as tr } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
 import { MM_TO_PX } from '@/utils/layout'
 import { setPrintPageSize } from '@/utils/paper'
@@ -110,13 +111,11 @@ function toggleAisle(afterCol: number) {
 }
 
 function loadDemoNames() {
-  const surnames = '王李张刘陈杨赵黄周吴徐孙马朱胡郭何高林罗郑梁谢宋唐许韩冯邓曹彭'
-  const given = '伟芳娜敏静丽强磊军洋勇艳杰娟涛明超霞平刚桂英华玉兰春香才发武新利'
-  const list: string[] = []
-  for (let i = 0; i < rows.value * cols.value; i++) {
-    const name = `${surnames[i % surnames.length]}${given[(i * 7) % given.length]}${given[(i * 13 + 5) % given.length]}`
-    list.push(`${name}\t${i % 2 === 0 ? '男' : '女'}`)
-  }
+  const locale = currentLocale()
+  const genders = locale === 'en' ? ['M', 'F'] : ['男', '女']
+  const list = demoPersonNames(rows.value * cols.value, locale).map(
+    (name, i) => `${name}\t${genders[i % 2]}`,
+  )
   namesText.value = list.join('\n')
   toast.info(tr('已生成演示名单'), `${list.length} ${tr('人（含性别列），与当前行列数一致')}`)
 }

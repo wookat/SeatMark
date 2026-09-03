@@ -34,6 +34,7 @@
 
 ### 5. 安全整改
 - **[高危] 硬编码企业微信 webhook key**（edge-functions/api/feedback.js 中的 `qyapi.weixin.qq.com/...key=f987...` 兜底值）→ 已删除，只读环境变量 `FEEDBACK_WEBHOOK`；**该 key 已泄露进 git 历史，请务必在企业微信后台重置该机器人 webhook**；
+  - **r355 复查**：feedback.js 的 `FEEDBACK_WEBHOOK_DEFAULT` 兜底值曾回归，且 ai-design.js 新增了同一 key 的 `ALERT_WEBHOOK_DEFAULT`；现已再次移除，两文件均只读 `FEEDBACK_WEBHOOK` / `ALERT_WEBHOOK` 环境变量，未配置时 `console.warn('webhook not configured')` 跳过推送（反馈接口仍返回成功）。新增单测覆盖「env 无 webhook 时不发起 fetch」；`grep -rn qyapi.weixin.qq.com edge-functions/` 仅剩 feedback.js 的 isWeCom 判断。老板侧仍需：重置该机器人 webhook，并在 EdgeOne Pages 环境变量配置新的 `FEEDBACK_WEBHOOK` 与 `ALERT_WEBHOOK`；
 - 反馈接口新增同 IP 每日 10 次限频（IP 经 SHA-256 单向哈希后仅作计数），补齐表单防滥用；
 - /account 与 /admin 页已确认输出 `noindex, nofollow`（此前已具备，无需修改）；
 - AUTH_SECRET 仅有开发兜底值 `seatmark-dev-secret-do-not-use-in-prod`，生产需确认已在 EdgeOne 控制台配置（见待办）。

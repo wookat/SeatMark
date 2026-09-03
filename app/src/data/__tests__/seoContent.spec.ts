@@ -6,7 +6,7 @@ import { guidesRound2 } from '@/data/guidesRound2'
 import { guidesRound3 } from '@/data/guidesRound3'
 import { guidesRound4 } from '@/data/guidesRound4'
 import { guidesRound5 } from '@/data/guidesRound5'
-import { prerenderPaths, resolveSeo } from '@/data/seo'
+import { enIndexShellPaths, isSitemapEligible, prerenderPaths, resolveSeo } from '@/data/seo'
 import { templateDetails } from '@/data/templateDetails'
 
 /**
@@ -43,6 +43,35 @@ describe('SEO 页面元数据质量', () => {
     for (const s of seos) {
       expect(s.path === '/' || !s.path.endsWith('/'), `${s.path}`).toBe(true)
     }
+  })
+
+  it('/en 内容站索引外壳：预渲染、英文 title、noindex、不进 sitemap', async () => {
+    const paths = await prerenderPaths()
+    const shells = enIndexShellPaths()
+    expect(shells).toEqual(['/en/templates', '/en/guides', '/en/papers', '/en/vs'])
+    for (const p of shells) {
+      expect(paths, `${p} 应预渲染`).toContain(p)
+      const seo = await resolveSeo(p)
+      expect(seo.lang).toBe('en')
+      expect(seo.title, `${p} title 应为英文`).not.toMatch(/[\u4e00-\u9fff]/)
+      expect(seo.robots).toMatch(/noindex/)
+      expect(isSitemapEligible(seo)).toBe(false)
+    }
+    const sitemapPaths = (
+      await Promise.all(paths.map(async (p) => ({ p, seo: await resolveSeo(p) })))
+    ).filter(({ seo }) => isSitemapEligible(seo))
+    expect(sitemapPaths.length).toBe(paths.length - shells.length)
+  })
+
+  it('/en/account 与 /en/admin 壳页使用英文 title 且 noindex', async () => {
+    for (const p of ['/en/account', '/en/admin']) {
+      const seo = await resolveSeo(p)
+      expect(seo.title).not.toMatch(/[\u4e00-\u9fff]/)
+      expect(seo.lang).toBe('en')
+      expect(seo.robots).toMatch(/noindex/)
+    }
+    expect((await resolveSeo('/en/account')).title).toBe('My Account - SeatMark')
+    expect((await resolveSeo('/account')).title).toBe('个人中心 - SeatMark 座签')
   })
 })
 

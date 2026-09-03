@@ -5,7 +5,10 @@ import {
   buildVenuePreset,
   findOverlaps,
   parseBanquetGuests,
+  splitGroups,
+  summarizeBanquet,
   validateBanquet,
+  type BanquetGroup,
   type BanquetGuest,
   type BanquetTable,
 } from '../banquet'
@@ -137,6 +140,62 @@ describe('validateBanquet', () => {
     expect(issues.emptyTables).toEqual(['B', 'C'])
     expect(issues.overlaps).toEqual([['A', 'B']])
     expect(issues.overCapacity).toEqual(['A'])
+  })
+})
+
+describe('splitGroups', () => {
+  const groups: BanquetGroup[] = [
+    { id: 'gA', name: '男方亲友', color: '#000' },
+    { id: 'gB', name: '同事', color: '#111' },
+  ]
+
+  it('同组全部同桌 → 0', () => {
+    const t1 = table('A', 4)
+    const t2 = table('B', 4)
+    t1.guestIds = ['g1', 'g2']
+    t2.guestIds = ['g3', 'g4']
+    const guests = [guest('g1', 'gA'), guest('g2', 'gA'), guest('g3', 'gB'), guest('g4', 'gB')]
+    expect(splitGroups(guests, [t1, t2], groups)).toEqual([])
+  })
+
+  it('同组跨两桌 → 1，并给出桌数与桌名', () => {
+    const t1 = table('A', 4)
+    const t2 = table('B', 4)
+    t1.guestIds = ['g1', 'g3']
+    t2.guestIds = ['g2', 'g4']
+    const guests = [guest('g1', 'gA'), guest('g2', 'gA'), guest('g3', 'gB'), guest('g4', null)]
+    const split = splitGroups(guests, [t1, t2], groups)
+    expect(split).toHaveLength(1)
+    expect(split[0]).toMatchObject({ groupId: 'gA', groupName: '男方亲友', tableCount: 2 })
+    expect(split[0]!.tableNames.sort()).toEqual(['A', 'B'])
+  })
+
+  it('未分组宾客与未安排宾客不计入拆分', () => {
+    const t1 = table('A', 4)
+    const t2 = table('B', 4)
+    t1.guestIds = ['g1']
+    t2.guestIds = ['g2']
+    const guests = [guest('g1', null), guest('g2', null), guest('g3', 'gA'), guest('g4', 'gA')]
+    expect(splitGroups(guests, [t1, t2], groups)).toEqual([])
+  })
+})
+
+describe('summarizeBanquet', () => {
+  it('给出已安排/总数、空桌、拆分分组、未安排四个数字', () => {
+    const groups: BanquetGroup[] = [{ id: 'gA', name: 'A', color: '#000' }]
+    const t1 = table('A', 2)
+    const t2 = table('B', 2)
+    const t3 = table('C', 2)
+    t1.guestIds = ['g1']
+    t2.guestIds = ['g2']
+    const guests = [guest('g1', 'gA'), guest('g2', 'gA'), guest('g3', null)]
+    expect(summarizeBanquet(guests, [t1, t2, t3], groups)).toEqual({
+      assigned: 2,
+      total: 3,
+      emptyTables: 1,
+      splitGroups: 1,
+      unassigned: 1,
+    })
   })
 })
 

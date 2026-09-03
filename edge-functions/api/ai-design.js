@@ -13,7 +13,7 @@
  * - AI_API_KEY        兜底密钥（智谱开放平台 glm-4-flash）
  * - AI_BASE_URL       兜底接口地址，默认 https://open.bigmodel.cn/api/paas/v4
  * - AI_MODEL          兜底模型名，默认 glm-4-flash
- * - ALERT_WEBHOOK     可选，告警 webhook（企业微信机器人），未配置时使用内置默认值
+ * - ALERT_WEBHOOK     可选，告警 webhook（企业微信机器人）；仅从环境变量读取，未配置时跳过告警推送
  */
 
 import { withSecurityHeaders } from './_security.js'
@@ -26,8 +26,6 @@ const FALLBACK_MODEL = 'glm-4-flash'
 
 const POLLINATIONS_URL = 'https://text.pollinations.ai/openai'
 const POLLINATIONS_MODELS = ['openai', 'openai-fast']
-
-const ALERT_WEBHOOK_DEFAULT = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=f987cae8-5740-41a8-9492-f11325d894e1'
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -46,8 +44,11 @@ function alertLevel(status) {
 
 /** 向企业微信推送告警（静默，不阻塞主流程） */
 async function sendAlert(env, level, detail) {
-  const webhook = (env && env.ALERT_WEBHOOK) || ALERT_WEBHOOK_DEFAULT
-  if (!webhook) return
+  const webhook = (env && typeof env.ALERT_WEBHOOK === 'string' && env.ALERT_WEBHOOK.trim()) || ''
+  if (!webhook) {
+    console.warn('[seatmark-ai-design] webhook not configured')
+    return
+  }
   const text = [
     '【AI 设计告警】DeepSeek 主模型异常',
     `等级：${level}`,
