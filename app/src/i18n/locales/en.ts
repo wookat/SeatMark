@@ -2,7 +2,24 @@
  * English dictionary (gettext style): Chinese source strings are the keys.
  * Missing entries fall back to the Chinese source text.
  */
+import {
+  enDemoValues,
+  enFieldLabels,
+  enPaperNames,
+  enSubcategories,
+  enTemplateNames,
+  enTemplateScenarios,
+} from './enStudio'
+import { enTemplateDescriptions } from './enStudioDescriptions'
+
 export const en: Record<string, string> = {
+  ...enDemoValues,
+  ...enFieldLabels,
+  ...enPaperNames,
+  ...enSubcategories,
+  ...enTemplateNames,
+  ...enTemplateScenarios,
+  ...enTemplateDescriptions,
   '(空白)': '(blank)',
   '150+ 款内置模板覆盖考场桌贴、座位号贴、考号贴、门贴门牌、会议桌牌 / 桌签 / 台签 / 席卡、医院床头卡、政务窗口牌、餐饮外卖架、图书馆索书标、驿站货架、学生证、工作证、胸卡出入证等场景，叠加纸张与设计器自定义，相当于数百种成品方案；字段、尺寸与排版都可自由调整。':
     '150+ built-in templates cover exam desk labels, seat number stickers, door signs, conference table tents, place cards, hospital bed cards, service-window signs, shelf labels, student IDs, staff badges and more. Combined with paper presets and the designer, that is hundreds of ready-made layouts — fields, sizes and layout are all adjustable.',
@@ -488,6 +505,26 @@ export const en: Record<string, string> = {
   '已添加宾客': 'Guests added',
   '已清空全部座位安排': 'All seat assignments cleared',
   '已生成演示名单': 'Demo roster generated',
+  '尚未导入宾客': 'No guests imported yet',
+  '删除自定义模板': 'Delete custom template',
+  '当前模板没有文本字段': 'This template has no text fields',
+  '无需做 Excel 字段匹配。': 'No Excel field mapping needed.',
+  '上传后会自动尝试匹配常见列名': 'Common column names are matched automatically after upload',
+  '表头包含姓名、考场、准考证号、座位号等时，系统通常可以自动识别。':
+    'Headers such as Name, Room, Candidate No. or Seat No. are usually recognised automatically.',
+  '已自动匹配 {matched}/{total} 个字段': 'Auto-matched {matched}/{total} fields',
+  '可以直接查看预览，如有偏差再手动调整映射。':
+    'Check the preview; adjust the mapping manually if anything looks off.',
+  '还有字段需要手动选择对应的 Excel 列。': 'Some fields still need an Excel column selected manually.',
+  '暂未识别到可自动匹配的列': 'No columns could be matched automatically',
+  '请检查表头命名，或手动选择每个字段对应的列。':
+    'Check the header names, or pick a column for each field manually.',
+  '没有匹配的模板，换个关键词试试，或从空白新建模板。':
+    'No templates match. Try another keyword or start from a blank template.',
+  '确定删除模板': 'Delete template',
+  '吗？删除后无法恢复，如需保留可先导出为 JSON。': '? This cannot be undone; export it as JSON first if you want to keep it.',
+  '粘贴名单': 'Paste a list',
+  '载入示例': 'Load example',
   '已自动分配座位': 'Seats auto-assigned',
   '已赠送 7 天专业版试用：无水印导出不限次与云端模板同步已生效': '7-day Pro trial granted: unlimited watermark-free exports and cloud template sync are now active',
   '已超员': 'is over capacity',

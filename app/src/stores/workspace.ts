@@ -16,7 +16,8 @@ import {
 } from '@/utils/glyphSupport'
 import { applyLabelPaper, matchLabelPaper } from '@/utils/labelPaper'
 import { evaluatePaperFit, FIT_LEVEL_LABELS } from '@/utils/paperFit'
-import { demoExcelFor } from '@/data/demoDatasets'
+import { demoExcelFor, localizeDemoExcel } from '@/data/demoDatasets'
+import { currentLocale, t as tr } from '@/i18n'
 import { compareCellText, parseExcelFile } from '@/utils/excel'
 import { stackSortRows } from '@/utils/cutSort'
 import { chunkRows, cloneTemplate, labelsPerPage } from '@/utils/layout'
@@ -348,17 +349,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         text: '表头包含姓名、考场、准考证号、座位号等时，系统通常可以自动识别。',
       }
     }
+    const matchedTitle = tr('已自动匹配 {matched}/{total} 个字段')
+      .replace('{matched}', String(matched))
+      .replace('{total}', String(total))
     if (matched === total) {
       return {
         tone: 'success',
-        title: `已自动匹配 ${matched}/${total} 个字段`,
+        title: matchedTitle,
         text: '可以直接查看预览，如有偏差再手动调整映射。',
       }
     }
     if (matched > 0) {
       return {
         tone: 'warning',
-        title: `已自动匹配 ${matched}/${total} 个字段`,
+        title: matchedTitle,
         text: '还有字段需要手动选择对应的 Excel 列。',
       }
     }
@@ -473,7 +477,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     // 用户自己导入的名单不动
     let demoNote = ''
     if (isDemoData.value && excel.rows.length) {
-      const demo = demoExcelFor(template.value)
+      const demo = localizedDemoExcel()
       if (demo.sheetName !== excel.sheetName) {
         applyExcel(demo)
         Object.assign(mapping, demo.mapping)
@@ -605,8 +609,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     isDemoData.value = false
   }
 
-  function useDemoData() {
+  /** 当前模板的演示数据；en 下表头 / 姓名 / 枚举值换用英文样例 */
+  function localizedDemoExcel() {
     const demo = demoExcelFor(template.value)
+    return currentLocale() === 'en' ? localizeDemoExcel(demo, tr) : demo
+  }
+
+  function useDemoData() {
+    const demo = localizedDemoExcel()
     applyExcel(demo)
     // 演示数据自带精确映射（含模板专属补充列），覆盖自动匹配可能漏掉的槽位
     Object.assign(mapping, demo.mapping)

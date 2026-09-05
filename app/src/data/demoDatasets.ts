@@ -555,6 +555,121 @@ export function demoExcelFor(template: LabelTemplate): DemoExcel {
   }
 }
 
+const CJK_RE = /[\u4e00-\u9fff]/
+const EN_NAME_BY_ZH = new Map(NAMES.map((name, i) => [name, EN_NAMES[i]!]))
+const EN_SURNAME_BY_ZH = new Map(NAMES.map((name, i) => [name[0]!, EN_NAMES[i]!.split(' ')[0]!]))
+
+function enSurname(zh: string): string {
+  const upper = EN_SURNAME_BY_ZH.get(zh) ?? 'Lee'
+  return upper[0]! + upper.slice(1).toLowerCase()
+}
+
+type Translate = (zh: string) => string
+
+/** 演示值中带编号 / 称谓的固定句式 → 英文 */
+const EN_VALUE_RULES: ReadonlyArray<[RegExp, (m: RegExpExecArray, tr: Translate) => string]> = [
+  [/^第(\d+)考场$/, (m) => `Room ${m[1]}`],
+  [/^第(\d+)组$/, (m) => `Group ${m[1]}`],
+  [/^高三（(\d+)）班$/, (m) => `Grade 12 Class ${m[1]}`],
+  [/^五年级（(\d+)）班$/, (m) => `Grade 5 Class ${m[1]}`],
+  [/^(\d+)号桌$/, (m) => `Table ${m[1]}`],
+  [/^(.)(老师|医生|护士|先生)$/, (m) =>
+    `${m[2] === '先生' ? 'Mr.' : m[2] === '老师' ? 'Ms.' : m[2] === '医生' ? 'Dr.' : 'Nurse'} ${enSurname(m[1]!)}`],
+  [/^(\d+)楼(东|西|南|北)区(\d+)架$/, (m) =>
+    `F${m[1]} ${{ 东: 'East', 西: 'West', 南: 'South', 北: 'North' }[m[2]!]} Shelf ${m[3]}`],
+  [/^(\d+:\d+) · (\d+) 位$/, (m) => `${m[1]} · party of ${m[2]}`],
+  [/^([A-Z])馆-(\d+)$/, (m) => `Hall ${m[1]}-${m[2]}`],
+  [/^(.+?) · (\d+) 号位$/, (m) => `${m[1]} · Slot ${m[2]}`],
+  [/^(.+)演示数据\.xlsx$/, (m, tr) => `${localizeDemoValue(m[1]!, tr)} demo.xlsx`],
+  [/^(\d{4}) ?年 ?(\d{1,2}) ?月 ?(\d{1,2}) ?日$/, (m) =>
+    `${m[1]}-${m[2]!.padStart(2, '0')}-${m[3]!.padStart(2, '0')}`],
+  [/^(\d+) ?号车$/, (m) => `Car ${m[1]}`],
+  [/^(\d+) ?号$/, (m) => `No. ${m[1]}`],
+  [/^([A-Z]) 区$/, (m) => `Zone ${m[1]}`],
+  [/^([A-Z]) 区等候$/, (m) => `Zone ${m[1]} waiting area`],
+  [/^分会场 ([A-Z0-9]+)$/, (m) => `Breakout room ${m[1]}`],
+  [/^(\d+)层$/, (m) => `Floor ${m[1]}`],
+  [/^([一二三四五六七八九十])层$/, (m) => `Floor ${'一二三四五六七八九十'.indexOf(m[1]!) + 1}`],
+  [/^第([一二三四五六七八九十])场$/, (m) => `Session ${'一二三四五六七八九十'.indexOf(m[1]!) + 1}`],
+  [/^(小|中|大)([一二三四])班$/, (m) =>
+    `${{ 小: 'Junior', 中: 'Middle', 大: 'Senior' }[m[1]!]} Class ${'一二三四'.indexOf(m[2]!) + 1}`],
+  [/^高([一二三])年级$/, (m) => `Grade ${'一二三'.indexOf(m[1]!) + 10}`],
+  [/^(.)(主任|经理|教授|院长|校长)$/, (m) =>
+    `${{ 主任: 'Director', 经理: 'Manager', 教授: 'Prof.', 院长: 'Dean', 校长: 'Principal' }[m[2]!]} ${enSurname(m[1]!)}`],
+]
+
+function localizeDemoValue(value: string, translate: Translate): string {
+  if (!CJK_RE.test(value)) return value
+  const byName = EN_NAME_BY_ZH.get(value)
+  if (byName) return byName
+  const direct = translate(value)
+  if (direct !== value) return direct
+  for (const [re, make] of EN_VALUE_RULES) {
+    const m = re.exec(value)
+    if (m) return localizeDemoValue(make(m, translate), translate)
+  }
+  // 「乐乐·张」「战队 · 上单」等复合值按分隔段逐段翻译
+  if (/[·♥，,：:]/.test(value)) {
+    return value
+      .split(/(\s*[·♥，,：:]\s*)/)
+      .map((part, i) => (i % 2 === 0 ? localizeDemoValue(part, translate) : part))
+      .join('')
+  }
+  return value
+}
+
+/** 英文表头是否为「人名」列：字典未覆盖的中文姓名回落到英文姓名池 */
+const PERSON_HEADER_RE =
+  /\b(name|guest|student|staff|attendee|player|patient|customer|teacher|doctor|nurse|parent|guardian|honoree|recipient|speaker|host|owner|nickname|signature|sign-off|child|kid|baby|couple|bride|groom)\b/i
+
+/**
+ * en 环境下的演示数据：表头、工作表名与枚举型单元格值经 translate 查表翻译，
+ * 姓名列改用与 NAMES 对应的拼音英文名，编号 / 日期等保持原样；模板 id 与映射关系不变。
+ */
+export function localizeDemoExcel(demo: DemoExcel, translate: Translate): DemoExcel {
+  const headerOf = new Map<string, string>()
+  const used = new Set<string>()
+  for (const header of demo.headers) {
+    let localized = localizeDemoValue(header, translate)
+    for (let n = 2; used.has(localized); n++) localized = `${localizeDemoValue(header, translate)} ${n}`
+    used.add(localized)
+    headerOf.set(header, localized)
+  }
+  // 字典与句式都覆盖不到的自由文本（寄语 / 个性昵称等）：人名列用英文姓名池，其余用「表头 + 序号」占位
+  const fallbackNames = demoPersonNames(demo.rows.length, 'en')
+  const rows = demo.rows.map((row, i) => {
+    const out: DataRow = {}
+    for (const [header, value] of Object.entries(row)) {
+      const enHeader = headerOf.get(header) ?? header
+      let localized = localizeDemoValue(value, translate)
+      if (CJK_RE.test(localized)) {
+        // 复合值先去掉仍为中文的分段（「Chinese · Math · 体育」→「Chinese · Math」）
+        const kept = localized
+          .split(/\s*[·♥]\s*/)
+          .filter((part) => part && !CJK_RE.test(part))
+        localized = kept.length
+          ? kept.join(' · ')
+          : PERSON_HEADER_RE.test(enHeader)
+            ? fallbackNames[i]!
+            : `${enHeader} ${i + 1}`
+      }
+      out[enHeader] = localized
+    }
+    return out
+  })
+  const mapping: FieldMapping = {}
+  for (const [fieldId, header] of Object.entries(demo.mapping)) {
+    mapping[fieldId] = headerOf.get(header) ?? header
+  }
+  return {
+    fileName: localizeDemoValue(demo.fileName, translate),
+    sheetName: localizeDemoValue(demo.sheetName, translate),
+    headers: demo.headers.map((h) => headerOf.get(h)!),
+    rows,
+    mapping,
+  }
+}
+
 export interface SampleExcel {
   fileName: string
   sheetName: string
