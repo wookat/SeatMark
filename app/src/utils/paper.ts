@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import type { PrintCalibration } from '@/utils/calibration'
 import { isCalibrationActive } from '@/utils/calibration'
 
@@ -31,7 +32,7 @@ export function matchPaperPreset(page: Pick<PageSpec, 'paperWidth' | 'paperHeigh
 /** 纸张的人类可读名称，如「A4 纵向」或「210 × 297 mm」 */
 export function paperLabel(page: Pick<PageSpec, 'paperWidth' | 'paperHeight'>): string {
   const preset = matchPaperPreset(page)
-  return preset ? preset.label : `${page.paperWidth} × ${page.paperHeight} mm`
+  return preset ? t(preset.label) : `${page.paperWidth} × ${page.paperHeight} mm`
 }
 
 /** 应用纸张预设到页面规格（仅改变纸张尺寸，不动边距与行列） */

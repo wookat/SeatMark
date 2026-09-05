@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
+import LabelCard from '@/components/label/LabelCard.vue'
 import MappingPanel from '@/components/studio/MappingPanel.vue'
 import TemplatePickerPanel from '@/components/studio/TemplatePickerPanel.vue'
 import { defaultTemplates } from '@/data/defaultTemplates'
@@ -87,6 +88,18 @@ describe('en 工坊：模板选择器与字段映射面板不含 CJK', () => {
       }
       if (CJK.test(demo.sheetName)) offenders.push(`${template.id} sheet ${demo.sheetName}`)
       if (CJK.test(demo.fileName)) offenders.push(`${template.id} file ${demo.fileName}`)
+    }
+    expect([...new Set(offenders)]).toEqual([])
+  })
+
+  it('模板缩略图（LabelCard sample-mode）在 en 下样例文字无 CJK（模板自带固定文字除外）', () => {
+    const offenders: string[] = []
+    for (const template of defaultTemplates) {
+      const wrapper = mount(LabelCard, { props: { template, sampleMode: true } })
+      let text = wrapper.text()
+      for (const f of template.fields) if (f.fixedText) text = text.split(f.fixedText).join(' ')
+      if (CJK.test(text)) offenders.push(`${template.id}: ${text.slice(0, 60)}`)
+      wrapper.unmount()
     }
     expect([...new Set(offenders)]).toEqual([])
   })

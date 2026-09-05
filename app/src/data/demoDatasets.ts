@@ -623,6 +623,25 @@ const PERSON_HEADER_RE =
   /\b(name|guest|student|staff|attendee|player|patient|customer|teacher|doctor|nurse|parent|guardian|honoree|recipient|speaker|host|owner|nickname|signature|sign-off|child|kid|baby|couple|bride|groom)\b/i
 
 /**
+ * en 环境下模板缩略图里的样例文字：同演示数据的翻译策略；
+ * 字典覆盖不到时，人名类字段用英文姓名、其余用英文字段名占位。
+ */
+export function localizeSampleText(
+  value: string,
+  fieldLabel: string,
+  translate: Translate,
+): string {
+  const localized = localizeDemoValue(value, translate)
+  if (!CJK_RE.test(localized)) return localized
+  const kept = localized
+    .split(/\s*[·♥]\s*/)
+    .filter((part) => part && !CJK_RE.test(part))
+  if (kept.length) return kept.join(' · ')
+  const enLabel = localizeDemoValue(fieldLabel, translate)
+  return PERSON_HEADER_RE.test(enLabel) ? demoPersonNames(1, 'en')[0]! : enLabel
+}
+
+/**
  * en 环境下的演示数据：表头、工作表名与枚举型单元格值经 translate 查表翻译，
  * 姓名列改用与 NAMES 对应的拼音英文名，编号 / 日期等保持原样；模板 id 与映射关系不变。
  */

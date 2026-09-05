@@ -465,7 +465,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const fit = evaluatePaperFit(template.value, currentPaper)
       if (fit.level === 'recommended' || fit.level === 'usable') {
         applyLabelPaper(template.value, currentPaper)
-        paperNote = `，已保留纸型「${currentPaper.name}」`
+        paperNote = tr('，已保留纸型「{name}」').replace('{name}', tr(currentPaper.name))
       } else if (!options.silent) {
         toast.warning(
           '已选纸型与新模板适配度不足',
@@ -481,14 +481,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       if (demo.sheetName !== excel.sheetName) {
         applyExcel(demo)
         Object.assign(mapping, demo.mapping)
-        demoNote = `，演示数据已换为「${demo.sheetName}」`
+        demoNote = tr('，演示数据已换为「{name}」').replace('{name}', demo.sheetName)
       }
     }
     remapForTemplate()
     // 模板若使用了在线字体（自定义 / 分享 / 导入），后台补载
     useFontsStore().ensureTemplateFonts(template.value)
     if (!options.silent) {
-      toast.info('模板已切换', `当前模板：${next.name}${paperNote}${demoNote}`)
+      toast.info(tr('模板已切换'), `${tr('当前模板：')}${tr(next.name)}${paperNote}${demoNote}`)
     }
   }
 
@@ -621,7 +621,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     // 演示数据自带精确映射（含模板专属补充列），覆盖自动匹配可能漏掉的槽位
     Object.assign(mapping, demo.mapping)
     isDemoData.value = true
-    toast.info(`已载入「${demo.sheetName}」演示数据`, '体验完整流程后可清空并上传自己的 Excel')
+    toast.info(
+      tr('已载入「{name}」演示数据').replace('{name}', demo.sheetName),
+      tr('体验完整流程后可清空并上传自己的 Excel'),
+    )
   }
 
   function clearData() {

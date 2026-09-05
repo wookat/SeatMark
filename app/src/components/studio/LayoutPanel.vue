@@ -55,7 +55,7 @@ const paperId = computed({
     fitToPaper(workspace.template)
     toast.info(
       '已自动适配新纸张',
-      `${preset.label}：${page.cols} 列 × ${page.rows} 行，每页 ${page.cols * page.rows} 枚`,
+      `${t(preset.label)}：${page.cols} 列 × ${page.rows} 行，每页 ${page.cols * page.rows} 枚`,
     )
   },
 })
@@ -129,7 +129,7 @@ const labelPaperOptions = computed<SelectOption[]>(() => [
 const paperOptions = computed<SelectOption[]>(() => {
   const options: SelectOption[] = PAPER_PRESETS.map((p) => ({
     value: p.id,
-    label: p.label,
+    label: t(p.label),
     hint: `${p.width} × ${p.height} mm`,
   }))
   if (isCustomPaper.value) {
