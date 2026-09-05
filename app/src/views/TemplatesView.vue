@@ -4,9 +4,11 @@ import { useRoute, useRouter } from 'vue-router'
 
 import ChineseOnlyNotice from '@/components/ChineseOnlyNotice.vue'
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
+import { useBatchedList } from '@/composables/useBatchedList'
 import { defaultTemplates, TEMPLATE_CATEGORIES } from '@/data/defaultTemplates'
 import { templateDetails } from '@/data/templateDetails'
 import { TEMPLATE_SUBCATEGORIES, subcategoryOf } from '@/data/templateTaxonomy'
+import { t as tr } from '@/i18n'
 import type { TemplateCategory } from '@/types/template'
 import { matchesChineseQuery } from '@/utils/pinyin'
 
@@ -129,6 +131,18 @@ const searchResult = computed(() => {
 
 const filteredItems = computed(() => searchResult.value.list)
 
+const {
+  visible: visibleItems,
+  hasMore,
+  showMore,
+} = useBatchedList(filteredItems, [activeCategory, activeSubcategory, searchQuery])
+
+const shownNote = computed(() =>
+  tr('已显示 {shown}/{total}')
+    .replace('{shown}', String(visibleItems.value.length))
+    .replace('{total}', String(filteredItems.value.length)),
+)
+
 const searchActive = computed(() => searchQuery.value.trim().length > 0)
 
 const activeCategoryName = computed(
@@ -177,7 +191,10 @@ const recommendedItems = computed(() => {
       </p>
     </div>
 
-    <div class="mt-8 flex flex-col items-center gap-3">
+    <div
+      class="sticky top-14 z-20 -mx-4 mt-8 flex flex-col items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 md:static md:mx-0 md:border-0 md:bg-transparent md:p-0"
+      data-testid="templates-filter-bar"
+    >
       <label class="relative block w-full max-w-md">
         <svg
           class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-600"
@@ -285,7 +302,7 @@ const recommendedItems = computed(() => {
 
     <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       <RouterLink
-        v-for="item in filteredItems"
+        v-for="item in visibleItems"
         :key="item.detail.slug"
         :to="`/templates/${item.detail.slug}`"
         class="group relative flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-brand-300 hover:shadow-card-hover"
@@ -325,6 +342,13 @@ const recommendedItems = computed(() => {
           </div>
         </div>
       </RouterLink>
+    </div>
+
+    <div v-if="hasMore" class="mt-8 flex flex-col items-center gap-2">
+      <button type="button" class="btn btn-secondary btn-md" data-testid="load-more" @click="showMore">
+        {{ tr('加载更多') }}
+      </button>
+      <p class="text-xs text-slate-500">{{ shownNote }}</p>
     </div>
 
     <!-- CTA -->

@@ -505,6 +505,8 @@ export const en: Record<string, string> = {
   '已添加宾客': 'Guests added',
   '已清空全部座位安排': 'All seat assignments cleared',
   '已生成演示名单': 'Demo roster generated',
+  '加载更多': 'Load more',
+  '已显示 {shown}/{total}': 'Showing {shown}/{total}',
   '尚未导入宾客': 'No guests imported yet',
   '删除自定义模板': 'Delete custom template',
   '当前模板没有文本字段': 'This template has no text fields',

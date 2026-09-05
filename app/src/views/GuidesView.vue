@@ -2,7 +2,9 @@
 import { computed, ref } from 'vue'
 
 import ChineseOnlyNotice from '@/components/ChineseOnlyNotice.vue'
+import { useBatchedList } from '@/composables/useBatchedList'
 import { guides } from '@/data/guides'
+import { t as tr } from '@/i18n'
 import { matchesChineseQuery } from '@/utils/pinyin'
 
 const activeCategory = ref('全部')
@@ -19,6 +21,18 @@ const filteredGuides = computed(() =>
       (activeAudience.value === '全部' || g.audiences.includes(activeAudience.value)) &&
       matchesChineseQuery(`${g.title} ${g.description} ${g.category}`, searchQuery.value),
   ),
+)
+
+const {
+  visible: visibleGuides,
+  hasMore,
+  showMore,
+} = useBatchedList(filteredGuides, [activeCategory, activeAudience, searchQuery])
+
+const shownNote = computed(() =>
+  tr('已显示 {shown}/{total}')
+    .replace('{shown}', String(visibleGuides.value.length))
+    .replace('{total}', String(filteredGuides.value.length)),
 )
 
 function resetFilters() {
@@ -47,12 +61,15 @@ const recommendedGuides = computed(() => {
       <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">教程中心</h1>
       <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
         座签、桌牌、席位卡、证卡的制作与打印实战教程：从 Excel 名单整理、模板选择到打印裁切，
-        问答式讲解常见坑点，看完即可上手。
+        问答式讲解常见坑点，按文中步骤操作约 3 分钟出第一张成品。
       </p>
     </div>
 
     <!-- 筛选器 -->
-    <div class="mt-8 grid gap-3">
+    <div
+      class="sticky top-14 z-20 -mx-4 mt-8 grid gap-3 border-b border-slate-200 bg-white px-4 py-3 md:static md:mx-0 md:border-0 md:bg-transparent md:p-0"
+      data-testid="guides-filter-bar"
+    >
       <label class="relative mx-auto block w-full max-w-md">
         <svg
           class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-600"
@@ -142,7 +159,7 @@ const recommendedGuides = computed(() => {
 
     <div v-else class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       <RouterLink
-        v-for="guide in filteredGuides"
+        v-for="guide in visibleGuides"
         :key="guide.slug"
         :to="`/guides/${guide.slug}`"
         class="group flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-brand-300 hover:shadow-card-hover"
@@ -174,6 +191,13 @@ const recommendedGuides = computed(() => {
           </svg>
         </span>
       </RouterLink>
+    </div>
+
+    <div v-if="hasMore" class="mt-8 flex flex-col items-center gap-2">
+      <button type="button" class="btn btn-secondary btn-md" data-testid="load-more" @click="showMore">
+        {{ tr('加载更多') }}
+      </button>
+      <p class="text-xs text-slate-500">{{ shownNote }}</p>
     </div>
 
     <!-- CTA -->
