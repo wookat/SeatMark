@@ -112,7 +112,13 @@ const categoryOptions = computed<{ id: CategoryFilter; name: string; count: numb
 const searchQuery = ref('')
 
 function matchesQuery(t: LabelTemplate, query: string): boolean {
-  return matchesChineseQuery(`${t.name} ${t.scenario ?? ''} ${t.description}`, query)
+  const haystack = `${t.name} ${t.scenario ?? ''} ${t.description}`
+  return (
+    matchesChineseQuery(haystack, query) ||
+    `${tr(t.name)} ${tr(t.scenario ?? '')} ${tr(t.description)}`
+      .toLowerCase()
+      .includes(query.toLowerCase())
+  )
 }
 
 const filteredTemplates = computed<LabelTemplate[]>(() => {
