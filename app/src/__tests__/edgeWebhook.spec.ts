@@ -15,6 +15,7 @@ interface Env {
   FEEDBACK_WEBHOOK?: string
   ALERT_WEBHOOK?: string
   DEEPSEEK_API_KEY?: string
+  SEATMARK_ALLOW_MEMORY_STORAGE?: string
 }
 
 function postJson(url: string, body: unknown) {
@@ -82,7 +83,7 @@ describe('ai-design.js 告警 webhook 仅读 env.ALERT_WEBHOOK', () => {
     }) as unknown as typeof fetch
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    const env: Env = { DEEPSEEK_API_KEY: 'test-key' }
+    const env: Env = { DEEPSEEK_API_KEY: 'test-key', SEATMARK_ALLOW_MEMORY_STORAGE: '1' }
     const response: Response = await aiDesignRequest({
       request: postJson('https://www.seatmark.cn/api/ai-design', {
         messages: [{ role: 'user', content: 'hi' }],
@@ -103,7 +104,11 @@ describe('ai-design.js 告警 webhook 仅读 env.ALERT_WEBHOOK', () => {
       return new Response('{}', { status: url.includes('example.com') ? 200 : 402 })
     }) as unknown as typeof fetch
 
-    const env: Env = { DEEPSEEK_API_KEY: 'test-key', ALERT_WEBHOOK: 'https://example.com/alert' }
+    const env: Env = {
+      DEEPSEEK_API_KEY: 'test-key',
+      ALERT_WEBHOOK: 'https://example.com/alert',
+      SEATMARK_ALLOW_MEMORY_STORAGE: '1',
+    }
     await aiDesignRequest({
       request: postJson('https://www.seatmark.cn/api/ai-design', {
         messages: [{ role: 'user', content: 'hi' }],

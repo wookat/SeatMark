@@ -33,7 +33,8 @@
  *   PUT  /api/admin/announcement 公告配置（管理员）
  *
  * 环境变量（EdgeOne Pages 控制台配置）：
- * - AUTH_SECRET      JWT 签名密钥（必配，未配置时使用开发默认值并在响应头标记）
+ * - AUTH_SECRET      JWT 签名密钥（必配；未配置时回退开发默认值并在函数日志告警，
+ *                    /api/admin/health 的 authSecretConfigured 为 false）
  * - ADMIN_EMAILS     管理员邮箱白名单，逗号分隔（未配置则管理端全部 403）
  * - TENCENT_SES_SECRET_ID    腾讯云 SES SecretId（配置后优先走腾讯云 SES 发送验证码）
  * - TENCENT_SES_SECRET_KEY   腾讯云 SES SecretKey
@@ -54,6 +55,7 @@
 
 import { getStorage, probeBlob } from './_storage.js'
 import { withSecurityHeaders } from './_security.js'
+import { randomDigits, randomId, randomInt, randomToken } from './_random.js'
 
 // ---------- 配额与裂变参数（前端 quota.ts 与此保持一致；计数对象为无水印导出，带水印不限次） ----------
 const QUOTA_ANON_DAILY = 1
@@ -182,8 +184,10 @@ async function verifyJwt(token, secret) {
   }
 }
 
+const DEV_AUTH_SECRET = 'seatmark-dev-secret-do-not-use-in-prod'
+
 function getSecret(env) {
-  return (env && env.AUTH_SECRET) || 'seatmark-dev-secret-do-not-use-in-prod'
+  return (env && env.AUTH_SECRET) || DEV_AUTH_SECRET
 }
 
 function parseCookies(request) {
@@ -597,9 +601,9 @@ async function captchaAnswerHash(answer, secret) {
 function captchaSvg(code) {
   const width = 132
   const height = 44
-  const rand = (min, max) => min + Math.random() * (max - min)
+  const rand = (min, max) => min + (randomInt(10000) / 10000) * (max - min)
   const palette = ['#334155', '#1d4ed8', '#0f766e', '#7c3aed', '#b45309']
-  const pick = () => palette[Math.floor(Math.random() * palette.length)]
+  const pick = () => palette[randomInt(palette.length)]
   let parts = `<rect width="${width}" height="${height}" fill="#f8fafc"/>`
   for (let i = 0; i < 3; i++) {
     parts += `<path d="M0 ${rand(6, height - 6).toFixed(1)} Q ${(width / 2).toFixed(1)} ${rand(0, height).toFixed(1)}, ${width} ${rand(6, height - 6).toFixed(1)}" stroke="${pick()}" stroke-opacity="0.35" fill="none" stroke-width="1.2"/>`
@@ -673,7 +677,11 @@ async function handleRequest(context) {
 
   const { kv, storage, blobStore } = await getStorage(env)
   // Rev 标记仅用于部署观测：探针可确认线上边缘函数版本，改动本文件时递增
-  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r355' }
+  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r356' }
+
+  if (storage !== 'memory' && !(env && env.AUTH_SECRET)) {
+    console.error('[seatmark-api] AUTH_SECRET 未配置，正在使用开发默认密钥签发会话')
+  }
 
   // 内存降级跨 isolate 不一致且不持久：验证码、配额、兑换、限流等写入会静默丢失，
   // 生产必须 fail closed；仅显式放行（本地 dev / 测试）时允许
@@ -759,10 +767,7 @@ async function handleRequest(context) {
   // ----- 认证 -----
   // 表单验证码：图片字符 + 签名令牌（无存储，5 分钟有效），注册/登录/重置密码均需携带
   if (path === '/api/auth/captcha' && method === 'GET') {
-    let code = ''
-    for (let i = 0; i < CAPTCHA_LENGTH; i++) {
-      code += CAPTCHA_CHARSET[Math.floor(Math.random() * CAPTCHA_CHARSET.length)]
-    }
+    const code = randomToken(CAPTCHA_LENGTH, CAPTCHA_CHARSET)
     const token = await signJwt(
       {
         typ: 'captcha',
@@ -803,7 +808,7 @@ async function handleRequest(context) {
       }
     }
 
-    const code = String(Math.floor(100000 + Math.random() * 900000))
+    const code = randomDigits(6)
     await kv.put(
       codeKey,
       JSON.stringify({ code, sentAt: Date.now(), exp: Date.now() + CODE_TTL_MS, attempts: 0 }),
@@ -1045,7 +1050,7 @@ async function handleRequest(context) {
       return json({ ok: true, delivery: 'email' }, 200, storageHeader)
     }
 
-    const code = String(Math.floor(100000 + Math.random() * 900000))
+    const code = randomDigits(6)
     await kv.put(
       resetKey,
       JSON.stringify({ code, sentAt: Date.now(), exp: Date.now() + CODE_TTL_MS, attempts: 0 }),
@@ -1377,7 +1382,7 @@ async function handleRequest(context) {
     if (teamSize.length > 50 || note.length > 500) {
       return json({ error: '内容过长' }, 400, storageHeader)
     }
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const id = randomId()
     await kv.put(
       `reserve:${id}`,
       JSON.stringify({ email, teamSize, note, createdAt: new Date().toISOString() }),
@@ -1557,7 +1562,7 @@ async function handleRequest(context) {
       if (!Number.isInteger(count) || count < 1 || count > REDEEM_BATCH_MAX) {
         return json({ error: `数量需为 1–${REDEEM_BATCH_MAX} 的整数` }, 400, storageHeader)
       }
-      const batch = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      const batch = randomId()
       const createdAt = new Date().toISOString()
       const codes = []
       const hashes = []
