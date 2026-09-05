@@ -52,7 +52,7 @@ describe('TemplatesView 分批加载', () => {
     const wrapper = await mountView(TemplatesView, '/templates')
     const bar = wrapper.find('[data-testid="templates-filter-bar"]')
     expect(bar.classes()).toEqual(
-      expect.arrayContaining(['sticky', 'top-14', 'bg-white', 'border-b', 'border-slate-200', 'md:static']),
+      expect.arrayContaining(['sticky', 'top-14', 'bg-white', 'border-b', 'border-slate-200', 'min-[769px]:static']),
     )
   })
 })

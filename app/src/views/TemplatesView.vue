@@ -192,7 +192,7 @@ const recommendedItems = computed(() => {
     </div>
 
     <div
-      class="sticky top-14 z-20 -mx-4 mt-8 flex flex-col items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 md:static md:mx-0 md:border-0 md:bg-transparent md:p-0"
+      class="sticky top-14 z-20 -mx-4 mt-8 flex flex-col items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 min-[769px]:static min-[769px]:mx-0 min-[769px]:border-0 min-[769px]:bg-transparent min-[769px]:p-0"
       data-testid="templates-filter-bar"
     >
       <label class="relative block w-full max-w-md">
