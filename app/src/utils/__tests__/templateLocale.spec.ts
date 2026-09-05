@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { standardTemplate } from '@/data/templateStandard'
 import type { LabelTemplate } from '@/types/template'
+import { defaultTemplates } from '@/data/defaultTemplates'
 import { localizeTemplateForLocale, SAMPLE_NAME_EN } from '@/utils/templateLocale'
 
 const CJK = /[\u4e00-\u9fff]/
@@ -56,7 +57,19 @@ describe('localizeTemplateForLocale', () => {
     expect(localizeTemplateForLocale(plain, 'en')).toBe(plain)
   })
 
-  it('en：示例值考场编号→Room N，姓名→英文占位名，其余 sample 原样保留', () => {
+  it('en：首页橱窗前 5 款默认模板的固定文案 / 小注 / 示例值均不含中文', () => {
+    for (const tpl of defaultTemplates.slice(0, 5)) {
+      const out = localizeTemplateForLocale(tpl, 'en')
+      for (const f of out.fields) {
+        expect(f.fixedText ?? '', `${tpl.id}/${f.id} fixedText`).not.toMatch(CJK)
+        expect(f.caption ?? '', `${tpl.id}/${f.id} caption`).not.toMatch(CJK)
+        expect(f.sample ?? '', `${tpl.id}/${f.id} sample`).not.toMatch(CJK)
+      }
+      for (const v of Object.values(out.sampleData ?? {})) expect(v).not.toMatch(CJK)
+    }
+  })
+
+  it('en：示例值考场编号→Room N，姓名/班级→英文占位值，无占位的字段 sample 原样保留', () => {
     const out = localizeTemplateForLocale(standardTemplate, 'en')
     expect(out.fields.find((f) => f.id === 'room')!.sample).toBe('Room 1')
     expect(out.fields.find((f) => f.id === 'name')!.sample).toBe(SAMPLE_NAME_EN)
@@ -70,12 +83,14 @@ describe('localizeTemplateForLocale', () => {
       fields: [
         { ...standardTemplate.fields[0]!, id: 'room', sample: '第3考场' },
         { ...standardTemplate.fields[0]!, id: 'className', sample: '高二（3）班' },
+        { ...standardTemplate.fields[0]!, id: 'motto', sample: '学而不厌' },
         { ...standardTemplate.fields[0]!, id: 'name', sample: 'Li Ming' },
       ],
     }
     expect(localizeTemplateForLocale(tpl, 'en').fields.map((f) => f.sample)).toEqual([
       'Room 3',
-      '高二（3）班',
+      'Class 9-5',
+      '学而不厌',
       'Li Ming',
     ])
   })

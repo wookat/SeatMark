@@ -5,10 +5,19 @@ import type { LabelTemplate } from '@/types/template'
 export const TEMPLATE_FIXED_TEXT_EN: Record<string, string> = {
   '座位号 SEAT': 'SEAT NO.',
   '座位号 SEAT NO.': 'SEAT NO.',
+  'SEAT 座位': 'SEAT',
+  '准考证号 EXAM NO.': 'EXAM NO.',
+  '核验照片 PHOTO': 'PHOTO',
+  '请对号入座 · PLEASE BE SEATED': 'PLEASE BE SEATED',
   姓名: 'NAME',
   考场: 'ROOM',
   准考证号: 'EXAM ID',
+  班级: 'CLASS',
+  学号: 'STUDENT ID',
+  性别: 'GENDER',
+  学校: 'SCHOOL',
   请对号入座: 'Please sit in your assigned seat',
+  入场请核对照片与准考证信息是否一致: 'Please check the photo and exam ID at the entrance',
 }
 
 function localizeText(text: string): string {
@@ -19,12 +28,20 @@ const ROOM_SAMPLE_RE = /^(?:考场-(\d+)|第(\d+)考场)$/
 const CJK_RE = /[\u4e00-\u9fff]/
 /** 英文预览的占位姓名：仅用于模板橱窗示例，与用户名单无关 */
 export const SAMPLE_NAME_EN = 'Alex Chen'
+/** 按字段 id 的英文占位示例值：仅在原示例含中文时替换 */
+export const SAMPLE_BY_FIELD_EN: Record<string, string> = {
+  name: SAMPLE_NAME_EN,
+  className: 'Class 9-5',
+  gender: 'F',
+  school: 'No. 1 High School',
+}
 
-/** 示例值（sample / sampleData）本地化：考场编号→Room N，中文姓名→英文占位名，其余原样保留 */
+/** 示例值（sample / sampleData）本地化：考场编号→Room N，含中文的姓名/班级等→英文占位值，其余原样保留 */
 function localizeSample(fieldId: string, value: string): string {
   const room = ROOM_SAMPLE_RE.exec(value.trim())
   if (room) return `Room ${room[1] ?? room[2]}`
-  if (fieldId === 'name' && CJK_RE.test(value)) return SAMPLE_NAME_EN
+  const fallback = SAMPLE_BY_FIELD_EN[fieldId]
+  if (fallback && CJK_RE.test(value)) return fallback
   return value
 }
 
