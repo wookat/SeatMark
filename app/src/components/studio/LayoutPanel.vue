@@ -54,8 +54,12 @@ const paperId = computed({
     page.paperHeight = preset.height
     fitToPaper(workspace.template)
     toast.info(
-      '已自动适配新纸张',
-      `${t(preset.label)}：${page.cols} 列 × ${page.rows} 行，每页 ${page.cols * page.rows} 枚`,
+      t('已自动适配新纸张'),
+      t('{paper}：{cols} 列 × {rows} 行，每页 {count} 枚')
+        .replace('{paper}', t(preset.label))
+        .replace('{cols}', String(page.cols))
+        .replace('{rows}', String(page.rows))
+        .replace('{count}', String(page.cols * page.rows)),
     )
   },
 })
