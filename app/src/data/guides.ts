@@ -232,7 +232,7 @@ export const guides: Guide[] = [
 <li><strong>招聘面试</strong>：用<a href="/templates/fullPage">整页大名牌</a>做面试间门牌，姓名换成「第一面试间」等固定文本字段即可；</li>
 <li><strong>家长会</strong>：见专门的<a href="/guides/parent-meeting-desk-card">家长会桌牌教程</a>，可直接复用学生名单。</li>
 </ul>
-<p>整套流程熟练后，从拿到名单到打完一百张桌牌通常不超过十分钟，而且名单变了随时重出，不再有「改 Word 改到眼花」的问题。座次有讲究的正式会议，摆放前建议再对照<a href="/guides/desk-card-etiquette-seating">座次礼仪与桌牌摆放规范</a>核一遍主次顺序，桌牌做得对、摆得也对，会务准备才算真正闭环。</p>
+<p>整套流程熟练后，从拿到名单到打完一百张桌牌通常不超过十分钟，而且名单变了随时重出，不再有「改 Word 改到眼花」的问题。座次有讲究的正式会议，摆放前建议再对照<a href="/guides/desk-card-etiquette-seating">座次礼仪与桌牌摆放规范</a>核一遍主次顺序，桌牌做得对、摆得也对，会务这一环才算完成。</p>
 `,
   },
   {
@@ -977,7 +977,7 @@ export const guides: Guide[] = [
   },
   {
     slug: 'training-institution-materials',
-    title: '培训机构开班物料清单：学员桌贴、胸卡、门牌、签到表一站式准备',
+    title: '培训机构开班物料清单：学员桌贴、胸卡、门牌、签到表用一份名单全部生成',
     description:
       '新班开课前教务要准备哪些纸质物料？本文给出培训机构开班物料完整清单与批量制作方法：学员桌贴、听课证/胸卡、教室门牌、签到表，用一份学员名单全部生成。',
     keywords: ['培训机构开班物料', '学员桌贴', '培训班胸卡', '开班准备清单', '培训机构教务'],
