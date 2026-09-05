@@ -68,6 +68,15 @@ const FILL_OPTIONS = computed<SelectOption[]>(() => [
 
 const parsedEntries = computed<SeatingEntry[]>(() => parseSeatingRoster(namesText.value))
 
+const namesInput = ref<HTMLTextAreaElement | null>(null)
+
+function focusNamesInput() {
+  const el = namesInput.value
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  el.focus()
+}
+
 /** 手工排座结果（随机 / 拖拽后生效）；名单文本变化时失效还原 */
 const arranged = ref<SeatingEntry[] | null>(persisted?.arranged ?? null)
 watch(namesText, () => {
@@ -505,6 +514,7 @@ function toDeskLabels() {
             </button>
           </div>
           <textarea
+            ref="namesInput"
             v-model="namesText"
             rows="10"
             class="input-field mt-2 h-auto min-h-40 resize-y py-2 leading-6"
@@ -637,6 +647,20 @@ function toDeskLabels() {
           <p v-if="selectedSeat != null || selectedRow != null" class="text-xs font-semibold text-brand-600">
             {{ selectedRow != null ? `${tr('已选中排')} ${selectedRow + 1}，${tr('点另一排把手交换')}` : tr('已选中座位，点另一个座位交换') }}
           </p>
+        </div>
+        <div
+          v-if="!filledCount"
+          class="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-500"
+          data-testid="seating-empty-cta"
+        >
+          <span>{{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} · 0 {{ tr('人') }}</span>
+          <span aria-hidden="true">·</span>
+          <button type="button" class="btn btn-primary btn-sm" @click="focusNamesInput">
+            {{ tr('粘贴名单') }}
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" @click="loadDemoNames">
+            {{ tr('载入示例') }}
+          </button>
         </div>
         <p class="mb-1 text-[11px] leading-5 text-slate-400 sm:hidden">← {{ tr('座位表超宽时可左右滑动查看') }} →</p>
         <div

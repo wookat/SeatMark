@@ -105,6 +105,14 @@ watch(
 // ---------- 第 1 步：宾客名单 ----------
 
 const txtInput = ref<HTMLInputElement | null>(null)
+const pasteInput = ref<HTMLTextAreaElement | null>(null)
+
+function focusPasteInput() {
+  const el = pasteInput.value
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  el.focus()
+}
 
 const guestById = computed(() => new Map(guests.value.map((g) => [g.id, g])))
 const groupById = computed(() => new Map(groups.value.map((g) => [g.id, g])))
@@ -170,13 +178,13 @@ const groupOptions = computed<SelectOption[]>(() => [
   ...groups.value.map((g) => ({ value: g.id, label: g.name })),
 ])
 
-function loadDemoGuests() {
+function loadDemoGuests(count = 48) {
   const demoGroups: BanquetGroup[] = [
     { id: uid('grp'), name: tr('男方亲友'), color: '#4f46e5' },
     { id: uid('grp'), name: tr('女方亲友'), color: '#e11d48' },
     { id: uid('grp'), name: tr('同事'), color: '#0891b2' },
   ]
-  const list: BanquetGuest[] = demoPersonNames(48, currentLocale()).map((name, i) => ({
+  const list: BanquetGuest[] = demoPersonNames(count, currentLocale()).map((name, i) => ({
     id: uid('gst'),
     name,
     groupId: demoGroups[i % 3]!.id,
@@ -613,7 +621,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         <section class="panel-card">
           <div class="panel-head">
             <h2 class="section-title"><span class="step-chip">1</span>{{ tr('宾客名单与分组') }}</h2>
-            <button type="button" class="btn btn-ghost btn-sm" @click="loadDemoGuests">
+            <button type="button" class="btn btn-ghost btn-sm" @click="loadDemoGuests()">
               {{ tr('用演示名单') }}
             </button>
           </div>
@@ -628,6 +636,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             />
           </div>
           <textarea
+            ref="pasteInput"
             v-model="pasteText"
             rows="5"
             class="input-field mt-2 h-auto min-h-24 resize-y py-2 leading-6"
@@ -889,7 +898,8 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
           <p class="flex flex-wrap items-center gap-x-1 text-xs text-slate-500" data-banquet-summary>
             <span>{{ tables.length }} {{ tr('桌') }}</span>
             <span aria-hidden="true">·</span>
-            <span>{{ tr('已安排') }} {{ summary.assigned }}/{{ summary.total }}</span>
+            <span v-if="guests.length">{{ tr('已安排') }} {{ summary.assigned }}/{{ summary.total }}</span>
+            <span v-else>{{ tr('尚未导入宾客') }}</span>
             <span aria-hidden="true">·</span>
             <button
               type="button"
@@ -1023,6 +1033,14 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             >
               {{ g.name || tr('（未命名）') }}
             </span>
+          </div>
+          <div v-else-if="!guests.length" class="mt-2 flex flex-wrap gap-2" data-testid="banquet-empty-cta">
+            <button type="button" class="btn btn-primary btn-sm" @click="focusPasteInput">
+              {{ tr('粘贴名单') }}
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" @click="loadDemoGuests(24)">
+              {{ tr('载入示例') }}
+            </button>
           </div>
           <p v-else class="mt-1 text-xs text-slate-400">{{ tr('全部宾客都已安排上桌。') }}</p>
         </div>
