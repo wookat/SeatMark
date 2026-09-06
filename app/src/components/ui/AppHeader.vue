@@ -26,11 +26,23 @@ function onSwitchLocale() {
 const menuOpen = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
 
+/** 「排座」场景下拉：教室座位表 / 宴会排桌 */
+const seatingOpen = ref(false)
+const seatingRef = ref<HTMLElement | null>(null)
+const SEATING_LINKS = computed(() => [
+  { to: '/seating', name: 'seating', label: t('教室座位表') },
+  { to: '/banquet', name: 'banquet', label: t('宴会排桌') },
+])
+const seatingActive = computed(() => SEATING_LINKS.value.some((l) => l.name === routeName.value))
+
 const avatarLetter = computed(() => (auth.user ? auth.user.email[0]!.toUpperCase() : ''))
 
 function onDocClick(event: MouseEvent) {
   if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
     menuOpen.value = false
+  }
+  if (seatingRef.value && !seatingRef.value.contains(event.target as Node)) {
+    seatingOpen.value = false
   }
 }
 
@@ -121,6 +133,44 @@ const SECTIONS = computed(() => [
         >
           {{ t('模板') }}
         </RouterLink>
+        <div
+          ref="seatingRef"
+          class="relative hidden sm:block"
+          data-testid="nav-seating"
+          @mouseenter="seatingOpen = true"
+          @mouseleave="seatingOpen = false"
+        >
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            :class="{ 'bg-slate-100 text-brand-600': seatingActive || seatingOpen }"
+            :aria-expanded="seatingOpen"
+            aria-haspopup="true"
+            @click.stop="seatingOpen = !seatingOpen"
+          >
+            {{ t('排座') }}
+            <svg class="size-3 transition-transform" :class="{ 'rotate-180': seatingOpen }" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m4 6 4 4 4-4" />
+            </svg>
+          </button>
+          <div
+            v-if="seatingOpen"
+            class="absolute left-0 top-9 z-50 w-48 rounded-lg border border-slate-200 bg-white p-1.5 shadow-pop"
+            role="menu"
+          >
+            <RouterLink
+              v-for="link in SEATING_LINKS"
+              :key="link.to"
+              :to="localePath(link.to)"
+              class="block rounded px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+              :class="{ 'text-brand-600': routeName === link.name }"
+              role="menuitem"
+              @click="seatingOpen = false"
+            >
+              {{ link.label }}
+            </RouterLink>
+          </div>
+        </div>
         <RouterLink
           :to="localePath('/guides')"
           class="btn btn-ghost btn-sm max-md:min-h-11 max-md:min-w-11 max-sm:px-1.5"

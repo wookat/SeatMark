@@ -73,6 +73,32 @@ describe('AppHeader 移动端触控热区（<md 时 ≥44×44）', () => {
   })
 })
 
+describe('AppHeader 「排座」场景下拉', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('点击展开后含 /seating 与 /banquet 两个链接，≥sm 才显示', async () => {
+    const wrapper = await mountHeader()
+    const nav = wrapper.get('[data-testid="nav-seating"]')
+    expect(nav.classes()).toEqual(expect.arrayContaining(['hidden', 'sm:block']))
+    const toggle = nav.get('button')
+    expect(toggle.text()).toContain('排座')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(nav.find('[role="menu"]').exists()).toBe(false)
+
+    await toggle.trigger('click')
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    const hrefs = nav.findAll('a[role="menuitem"]').map((a) => a.attributes('href'))
+    expect(hrefs).toEqual(['/seating', '/banquet'])
+    expect(nav.text()).toContain('教室座位表')
+    expect(nav.text()).toContain('宴会排桌')
+
+    await nav.trigger('mouseleave')
+    expect(nav.find('[role="menu"]').exists()).toBe(false)
+  })
+})
+
 describe('AnnouncementBar 关闭按钮热区', () => {
   it('关闭按钮 ≥44px（min-h-11/min-w-11），视觉图标容器保持 20px', async () => {
     vi.stubGlobal(
