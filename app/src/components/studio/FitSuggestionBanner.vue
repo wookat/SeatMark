@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import { t } from '@/i18n'
 import { useTemplateLibrary } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -47,7 +48,7 @@ function switchToRecommended() {
   const best = recommended.value
   if (!best) return
   applyLabelPaper(workspace.template, best.spec)
-  toast.success('已切换到推荐纸型', `${best.spec.name}：${best.fit.reason}`)
+  toast.success(t('已切换到推荐纸型'), `${best.spec.name}：${best.fit.reason}`)
 }
 </script>
 
@@ -71,11 +72,15 @@ function switchToRecommended() {
     </svg>
     <div class="min-w-0 flex-1">
       <p class="font-semibold">
-        当前模板与纸型「{{ currentPaper?.name }}」适配度：{{ FIT_LEVEL_LABELS[mismatch.level] }}
+        {{
+          t('当前模板与纸型「{paper}」适配度：{level}')
+            .replace('{paper}', currentPaper?.name ?? '')
+            .replace('{level}', t(FIT_LEVEL_LABELS[mismatch.level]))
+        }}
       </p>
       <p class="mt-0.5 text-amber-700">{{ mismatch.reason }}</p>
       <p v-if="recommended && showSwitch" class="mt-0.5 text-amber-700">
-        建议改用「{{ recommended.spec.name }}」：{{ recommended.fit.reason }}
+        {{ t('建议改用「{paper}」：{reason}').replace('{paper}', recommended.spec.name).replace('{reason}', recommended.fit.reason) }}
       </p>
     </div>
     <button
@@ -84,7 +89,7 @@ function switchToRecommended() {
       class="btn btn-secondary btn-sm shrink-0"
       @click="switchToRecommended"
     >
-      一键切换推荐纸型
+      {{ t('一键切换推荐纸型') }}
     </button>
   </div>
 </template>

@@ -11,6 +11,7 @@ import QuotaLimitDialog from '@/components/ui/QuotaLimitDialog.vue'
 import ShareWelcomeBanner from '@/components/ui/ShareWelcomeBanner.vue'
 import ToastHost from '@/components/ui/ToastHost.vue'
 import WeChatGuideOverlay from '@/components/ui/WeChatGuideOverlay.vue'
+import { t } from '@/i18n'
 import { INVITE_REF_KEY, useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { apiFetch } from '@/utils/api'
@@ -60,8 +61,8 @@ onMounted(() => {
         void router.replace({ path: '/studio', hash: `${SHARE_HASH_PREFIX}${payload}` })
       } else {
         toast.warning(
-          '分享模板暂时无法打开',
-          '链接可能已过期或网络波动，请让对方重新生成；你仍可直接使用全部内置模板',
+          t('分享模板暂时无法打开'),
+          t('链接可能已过期或网络波动，请让对方重新生成；你仍可直接使用全部内置模板'),
         )
       }
     })
@@ -76,7 +77,7 @@ onMounted(() => {
       class="sr-only rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50"
       @click.prevent="focusMain"
     >
-      跳到主内容
+      {{ t('跳到主内容') }}
     </a>
     <AnnouncementBar />
     <AppHeader />

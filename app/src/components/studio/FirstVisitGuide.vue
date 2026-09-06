@@ -43,14 +43,14 @@ function tryDemo() {
   <section
     v-if="visible"
     class="rounded-lg border border-brand-200 bg-brand-50/60 p-4"
-    aria-label="首次使用引导"
+    :aria-label="t('首次使用引导')"
   >
     <div class="flex items-start justify-between gap-2">
       <p class="text-sm font-bold text-slate-900">{{ t('四步拿到成品') }}</p>
       <button
         type="button"
         class="cursor-pointer rounded p-1 text-slate-600 transition-colors hover:bg-white hover:text-slate-600"
-        aria-label="关闭引导"
+        :aria-label="t('关闭引导')"
         @click="close"
       >
         <svg

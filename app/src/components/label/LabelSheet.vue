@@ -2,6 +2,7 @@
 import { computed, type CSSProperties } from 'vue'
 
 import LabelCard from '@/components/label/LabelCard.vue'
+import { t } from '@/i18n'
 import type { DataRow, LabelTemplate } from '@/types/template'
 import { cutLines, labelPosition } from '@/utils/layout'
 
@@ -92,7 +93,7 @@ function textsFor(row: DataRow): Record<string, string> {
       :key="idx"
       class="label-box"
       :class="interactive && row ? 'cursor-pointer transition-shadow hover:ring-2 hover:ring-brand-400' : ''"
-      :title="interactive && row ? '点击可单张覆写：只改这一张标签，不改名单' : undefined"
+      :title="interactive && row ? t('点击可单张覆写：只改这一张标签，不改名单') : undefined"
       :style="boxStyle(idx)"
       @click="interactive && row && emit('labelClick', row)"
     >
@@ -108,9 +109,9 @@ function textsFor(row: DataRow): Record<string, string> {
       <span
         v-if="row && overriddenRows?.has(row)"
         class="pointer-events-none absolute top-0.5 right-0.5 z-10 rounded-full bg-brand-600 px-1.5 py-0.5 text-[8px] font-bold text-white"
-        aria-label="此标签含单张覆写"
+        :aria-label="t('此标签含单张覆写')"
       >
-        已改
+        {{ t('已改') }}
       </span>
     </div>
   </div>

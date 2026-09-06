@@ -7,10 +7,15 @@ import {
 
 import { localeFromPath, setLocale, stripLocalePrefix } from '@/i18n'
 
-/** 仅有中文正文的内容站详情路由：/en 镜像直接回到中文路径，避免英文外壳包中文正文 */
-const EN_ZH_ONLY_DETAIL_RE = /^\/en\/(guides|templates|papers|vs)\/[^/]+/
+/**
+ * 仅有中文正文的路由：/en 镜像直接回到中文路径，避免英文外壳包中文正文。
+ * - 内容站详情页（guides/templates/papers/vs 的 :slug）；
+ * - 协议/隐私与专题落地页（整路径匹配，不预渲染 /en 版本）。
+ */
+const EN_ZH_ONLY_DETAIL_RE =
+  /^\/en\/(?:(?:guides|templates|papers|vs)\/[^/]+|(?:terms|privacy|desk-card-generator|name-card-batch)\/?$)/
 
-/** /en 下仅有中文正文的详情页 →对应中文路径；其余返回 null */
+/** /en 下仅有中文正文的页面 →对应中文路径；其余返回 null */
 export function zhOnlyRedirectTarget(path: string): string | null {
   return EN_ZH_ONLY_DETAIL_RE.test(path) ? stripLocalePrefix(path) : null
 }
