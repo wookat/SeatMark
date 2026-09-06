@@ -19,6 +19,7 @@ import {
   MARKER_PRESETS,
   nextGroupColor,
   parseBanquetGuests,
+  removeEmptyTables,
   summarizeBanquet,
   validateBanquet,
   VENUE_HEIGHT,
@@ -33,7 +34,7 @@ import {
   type VenuePresetId,
 } from '@/utils/banquet'
 import { uid } from '@/utils/id'
-import { MM_TO_PX } from '@/utils/layout'
+import { fitScale, MM_TO_PX } from '@/utils/layout'
 import { exportPagedPng, sanitizeFileNamePart } from '@/utils/pngExport'
 import { defaultPdfFileName, exportPagedPdf } from '@/utils/pdfExport'
 
@@ -246,11 +247,19 @@ function removeMarker(id: string) {
 const canvasContainer = ref<HTMLElement | null>(null)
 const { width: containerWidth } = useElementSize(canvasContainer)
 const zoom = ref(1)
+/** 「原尺寸」模式的缩放下限：桌子拖拽目标不至于过小，超出部分靠容器横向滚动查看 */
 const MIN_FIT_SCALE = 0.45
+/** <sm 视口默认「适配屏宽」：整个场地缩到容器宽度内 */
+const fitToWidth = ref(typeof window !== 'undefined' && window.innerWidth < 640)
 const scale = computed(() => {
-  const base = containerWidth.value
-    ? Math.min(Math.max((containerWidth.value - 16) / (VENUE_WIDTH * MM_TO_PX), MIN_FIT_SCALE), 1)
-    : 0.6
+  const innerWidth = containerWidth.value - 16
+  const contentWidth = VENUE_WIDTH * MM_TO_PX
+  let base = 0.6
+  if (containerWidth.value) {
+    base = fitToWidth.value
+      ? fitScale(innerWidth, contentWidth)
+      : Math.min(Math.max(innerWidth / contentWidth, MIN_FIT_SCALE), 1)
+  }
   return base * zoom.value
 })
 
@@ -496,9 +505,30 @@ function startExport(format: 'png' | 'pdf') {
   exportChoiceOpen.value = true
 }
 
+/** 检查结果里除空桌外没有其他问题：此时「继续导出」只是保留空桌 */
+const onlyEmptyTableIssues = computed(() => {
+  const found = issues.value
+  return (
+    !!found &&
+    found.emptyTables.length > 0 &&
+    !found.unassigned.length &&
+    !found.overlaps.length &&
+    !found.overCapacity.length
+  )
+})
+
 function confirmIssuesAndExport() {
   issuesOpen.value = false
   exportChoiceOpen.value = true
+}
+
+/** 删除空桌（默认桌名重新编号）后直接进入导出方式选择 */
+function removeEmptyTablesAndExport() {
+  const kept = removeEmptyTables(tables.value)
+  if (selectedId.value && !kept.some((t) => t.id === selectedId.value)) selectedId.value = null
+  tables.value = kept
+  issues.value = validateBanquet(guests.value, kept)
+  confirmIssuesAndExport()
 }
 
 async function chooseWatermarked() {
@@ -916,7 +946,18 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             </button>
           </p>
         </div>
-        <p class="mb-1 text-[11px] leading-5 text-slate-400 sm:hidden">← {{ tr('画布超宽时可左右滑动查看') }} →</p>
+        <div class="mb-1 flex items-center justify-between gap-2 text-[11px] leading-5 text-slate-400 sm:hidden">
+          <p>{{ fitToWidth ? tr('已缩放至屏幕宽度，可切回原尺寸查看细节') : `← ${tr('画布超宽时可左右滑动查看')} →` }}</p>
+          <button
+            type="button"
+            class="shrink-0 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+            :aria-pressed="fitToWidth"
+            data-testid="canvas-fit-toggle"
+            @click="fitToWidth = !fitToWidth"
+          >
+            {{ fitToWidth ? tr('原尺寸') : tr('适配屏宽') }}
+          </button>
+        </div>
         <div
           ref="canvasContainer"
           class="overflow-auto rounded-lg border border-slate-200/80 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-slate-100/70 bg-[size:16px_16px] p-3 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)]"
@@ -1049,8 +1090,12 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
           <p class="mt-0.5 text-xs leading-5 text-slate-600">{{ issues.unassigned.join('、') }}</p>
         </div>
         <div v-if="issues.emptyTables.length">
-          <p class="font-bold text-amber-600">{{ tr('空桌') }}（{{ issues.emptyTables.length }}）</p>
-          <p class="mt-0.5 text-xs leading-5 text-slate-600">{{ issues.emptyTables.join('、') }}</p>
+          <p class="font-bold text-amber-600">
+            {{ tr('空桌') }} {{ issues.emptyTables.length }} {{ tr('桌') }}：{{ issues.emptyTables.join('、') }}
+          </p>
+          <p class="mt-0.5 text-xs leading-5 text-slate-600">
+            {{ tr('继续导出时这些桌会以空白桌保留在座位图和桌卡中；不需要请删除空桌或减少桌数。') }}
+          </p>
         </div>
         <div v-if="issues.overCapacity.length">
           <p class="font-bold text-red-600">{{ tr('超员的桌') }}（{{ issues.overCapacity.length }}）</p>
@@ -1067,8 +1112,16 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         <button type="button" class="btn btn-secondary btn-md" @click="issuesOpen = false">
           {{ tr('返回修改') }}
         </button>
+        <button
+          v-if="issues?.emptyTables.length"
+          type="button"
+          class="btn btn-secondary btn-md"
+          @click="removeEmptyTablesAndExport"
+        >
+          {{ tr('删除空桌后导出') }}
+        </button>
         <button type="button" class="btn btn-primary btn-md" @click="confirmIssuesAndExport">
-          {{ tr('忽略问题，继续导出') }}
+          {{ onlyEmptyTableIssues ? tr('保留空桌，继续导出') : tr('忽略问题，继续导出') }}
         </button>
       </template>
     </ModalDialog>

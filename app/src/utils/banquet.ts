@@ -323,6 +323,23 @@ export function findOverlaps(items: VenueRect[]): Array<[string, string]> {
   return out
 }
 
+/** 默认桌名（「n号桌」/「Table n」）；自定义桌名不参与重排 */
+const DEFAULT_TABLE_NAME_RE = /^(?:\d+号桌|Table \d+)$/
+
+/**
+ * 移除没有任何宾客的桌，并把剩余仍使用默认桌名的桌按新顺序重新编号（纯函数，不修改入参）。
+ * 自定义桌名与桌位坐标保持不变。
+ */
+export function removeEmptyTables(tables: BanquetTable[]): BanquetTable[] {
+  return tables
+    .filter((t) => t.guestIds.length > 0)
+    .map((t, i) => {
+      if (!DEFAULT_TABLE_NAME_RE.test(t.name)) return t
+      const name = defaultTableName(i + 1)
+      return name === t.name ? t : { ...t, name }
+    })
+}
+
 // ---------- 导出前检查 ----------
 
 export interface BanquetIssues {

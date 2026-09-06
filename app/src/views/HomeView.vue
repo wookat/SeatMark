@@ -10,6 +10,7 @@ import type { DataRow, LabelTemplate } from '@/types/template'
 import { localePath, t, useI18n } from '@/i18n'
 import { makeDemoRows } from '@/utils/excel'
 import { MM_TO_PX } from '@/utils/layout'
+import { localizeTemplateForLocale } from '@/utils/templateLocale'
 
 const { locale } = useI18n()
 
@@ -41,7 +42,8 @@ const vReveal: Directive<HTMLElement, number | undefined> = {
   },
 }
 
-const heroTemplate = standardTemplate
+/** 首屏演示模板：英文站下固定小注（如「座位号 SEAT」）换为英文 */
+const heroTemplate = computed(() => localizeTemplateForLocale(standardTemplate, locale.value))
 
 const HERO_EN_NAMES = [
   'Emma Johnson', 'Liam Smith', 'Olivia Brown', 'Noah Davis', 'Ava Wilson', 'Mason Clark',
@@ -112,8 +114,8 @@ const vLoadTemplates: Directive<HTMLElement> = {
 
 const shownTemplates = computed(() => {
   const list = allTemplates.value
-  if (!list) return [standardTemplate]
-  return templatesExpanded.value ? list : list.slice(0, SHOWCASE_COUNT)
+  const shown = !list ? [standardTemplate] : templatesExpanded.value ? list : list.slice(0, SHOWCASE_COUNT)
+  return shown.map((tpl) => localizeTemplateForLocale(tpl, locale.value))
 })
 const showcaseSkeletonCount = computed(() =>
   allTemplates.value ? 0 : SHOWCASE_COUNT - shownTemplates.value.length,
@@ -140,10 +142,10 @@ const estimatedPanelWidth =
 
 const heroScale = computed(() => {
   const width = heroPanelWidth.value || estimatedPanelWidth
-  return Math.min((width - HERO_PAD_X * 2) / (heroTemplate.page.paperWidth * MM_TO_PX), 0.62)
+  return Math.min((width - HERO_PAD_X * 2) / (standardTemplate.page.paperWidth * MM_TO_PX), 0.62)
 })
 const heroHeight = computed(
-  () => heroTemplate.page.paperHeight * MM_TO_PX * heroScale.value + HERO_PAD_TOP + HERO_PAD_BOTTOM,
+  () => standardTemplate.page.paperHeight * MM_TO_PX * heroScale.value + HERO_PAD_TOP + HERO_PAD_BOTTOM,
 )
 
 const STEPS = computed(() => [

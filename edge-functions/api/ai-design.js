@@ -14,9 +14,27 @@
  * - AI_BASE_URL       兜底接口地址，默认 https://open.bigmodel.cn/api/paas/v4
  * - AI_MODEL          兜底模型名，默认 glm-4-flash
  * - ALERT_WEBHOOK     可选，告警 webhook（企业微信机器人）；仅从环境变量读取，未配置时跳过告警推送
+ *
+ * 防护：
+ * - 请求体 > 32KB → 413（先看 Content-Length，再看实际字节数）
+ * - 按 IP 1 小时滑动窗口最多 30 次 → 429 + Retry-After
+ * - 上游 fetch 共用 25s AbortController 超时；全部上游因超时失败 → 504
+ * - 回复 content > 20KB 截断并在响应顶层标记 truncated:true
+ *
+ * 存储降级：AI 为可选功能，存储为 memory（未放行）时限频跳过、只保留字节上限与超时——
+ * 与 [[default]].js 对持久化写入（配额/会话）的 fail-closed 503 不同，这里没有需要保护的持久化数据。
  */
 
 import { withSecurityHeaders } from './_security.js'
+import { getStorage } from './_storage.js'
+
+export const AI_MAX_BODY_BYTES = 32 * 1024
+export const AI_RATE_LIMIT = 30
+export const AI_RATE_WINDOW_MS = 60 * 60 * 1000
+export const AI_UPSTREAM_TIMEOUT_MS = 25_000
+export const AI_MAX_CONTENT_CHARS = 20 * 1024
+
+const encoder = new TextEncoder()
 
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
 const DEEPSEEK_MODEL = 'deepseek-v4-flash'
@@ -27,11 +45,70 @@ const FALLBACK_MODEL = 'glm-4-flash'
 const POLLINATIONS_URL = 'https://text.pollinations.ai/openai'
 const POLLINATIONS_MODELS = ['openai', 'openai-fast']
 
-function json(data, status = 200) {
+function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extraHeaders },
   })
+}
+
+function clientIp(request) {
+  return (
+    request.headers.get('EO-Connecting-IP') ||
+    request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ||
+    'unknown'
+  )
+}
+
+async function sha256Hex(text) {
+  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(text))
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * 按 IP 的 1 小时滑动窗口限频：KV 中存最近一小时内的请求时间戳数组。
+ * 返回 { limited, retryAfterSeconds }。
+ */
+async function checkRateLimit(kv, ip, now) {
+  const key = `rl:ai:${(await sha256Hex(ip)).slice(0, 32)}`
+  let stamps = []
+  try {
+    const parsed = JSON.parse((await kv.get(key)) || '[]')
+    if (Array.isArray(parsed)) stamps = parsed.filter((t) => Number.isFinite(t) && now - t < AI_RATE_WINDOW_MS)
+  } catch {
+    stamps = []
+  }
+  if (stamps.length >= AI_RATE_LIMIT) {
+    const oldest = Math.min(...stamps)
+    return { limited: true, retryAfterSeconds: Math.max(1, Math.ceil((oldest + AI_RATE_WINDOW_MS - now) / 1000)) }
+  }
+  stamps.push(now)
+  await kv.put(key, JSON.stringify(stamps))
+  return { limited: false, retryAfterSeconds: 0 }
+}
+
+/**
+ * 上游 JSON 回复中 choices[0].message.content 超长则截断并在顶层标记 truncated:true；
+ * 非 JSON 或结构不符时原样透传。
+ */
+function truncateReply(text) {
+  let data
+  try {
+    data = JSON.parse(text)
+  } catch {
+    return text
+  }
+  const content = data && data.choices && data.choices[0] && data.choices[0].message
+    ? data.choices[0].message.content
+    : undefined
+  if (typeof content !== 'string' || content.length <= AI_MAX_CONTENT_CHARS) return text
+  data.choices[0].message.content = content.slice(0, AI_MAX_CONTENT_CHARS)
+  data.truncated = true
+  return JSON.stringify(data)
+}
+
+function isAbortError(e) {
+  return !!e && typeof e === 'object' && e.name === 'AbortError'
 }
 
 /** 告警等级与 HTTP 状态的映射 */
@@ -76,9 +153,23 @@ async function handleRequest(context) {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 })
   if (request.method !== 'POST') return json({ error: '请求方法不支持' }, 405)
 
+  const declared = Number(request.headers.get('Content-Length'))
+  if (Number.isFinite(declared) && declared > AI_MAX_BODY_BYTES) {
+    return json({ error: '请求内容过长，请精简设计要求后重试' }, 413)
+  }
+  let rawBody
+  try {
+    rawBody = await request.text()
+  } catch {
+    return json({ error: '请求体格式错误' }, 400)
+  }
+  if (encoder.encode(rawBody).length > AI_MAX_BODY_BYTES) {
+    return json({ error: '请求内容过长，请精简设计要求后重试' }, 413)
+  }
+
   let payload
   try {
-    payload = await request.json()
+    payload = JSON.parse(rawBody)
   } catch {
     return json({ error: '请求体格式错误' }, 400)
   }
@@ -93,6 +184,41 @@ async function handleRequest(context) {
     if (!roleOk || !contentOk) return json({ error: '消息内容无效' }, 400)
   }
 
+  // 按 IP 限频：存储不可用（memory 未放行）时跳过，见文件头注释
+  const { kv, storage } = await getStorage(env)
+  const memoryAllowed = !!(env && env.SEATMARK_ALLOW_MEMORY_STORAGE === '1')
+  if (storage !== 'memory' || memoryAllowed) {
+    try {
+      const rl = await checkRateLimit(kv, clientIp(request), Date.now())
+      if (rl.limited) {
+        return json({ error: 'AI 设计请求过于频繁，请稍后再试' }, 429, {
+          'Retry-After': String(rl.retryAfterSeconds),
+        })
+      }
+    } catch {
+      /* 计数读写失败不阻断可选功能 */
+    }
+  }
+
+  const aborter = new AbortController()
+  const timer = setTimeout(() => aborter.abort(), AI_UPSTREAM_TIMEOUT_MS)
+  try {
+    return await proxyUpstreams({ env, messages, signal: aborter.signal })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+function okResponse(text) {
+  return new Response(truncateReply(text), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  })
+}
+
+async function proxyUpstreams({ env, messages, signal }) {
+  let timedOut = false
+
   async function callUpstream(baseUrl, apiKey, model) {
     const url = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl.replace(/\/+$/, '')}/chat/completions`
     const resp = await fetch(url, {
@@ -102,6 +228,7 @@ async function handleRequest(context) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({ model, messages, temperature: 0.6 }),
+      signal,
       eo: {
         timeoutSetting: {
           connectTimeout: 30_000,
@@ -118,19 +245,14 @@ async function handleRequest(context) {
   if (deepseekKey) {
     try {
       const upstream = await callUpstream(DEEPSEEK_BASE_URL, deepseekKey, DEEPSEEK_MODEL)
-      if (upstream.ok) {
-        const text = await upstream.text()
-        return new Response(text, {
-          status: upstream.status,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-        })
-      }
+      if (upstream.ok) return okResponse(await upstream.text())
       // DeepSeek 返回非 200：读取错误详情并告警
       const errBody = await upstream.text().catch(() => '')
       const level = alertLevel(upstream.status)
       const detail = `HTTP ${upstream.status} ${errBody.slice(0, 200)}`
       await sendAlert(env, level, detail)
     } catch (e) {
+      if (isAbortError(e)) timedOut = true
       // DeepSeek 网络异常：告警
       const detail = `网络异常 ${e instanceof Error ? e.message : String(e)}`
       await sendAlert(env, '网络异常', detail)
@@ -144,14 +266,9 @@ async function handleRequest(context) {
     const fallbackModel = (env && env.AI_MODEL) || FALLBACK_MODEL
     try {
       const upstream = await callUpstream(fallbackBaseUrl, fallbackKey, fallbackModel)
-      if (upstream.ok) {
-        const text = await upstream.text()
-        return new Response(text, {
-          status: upstream.status,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-        })
-      }
-    } catch {
+      if (upstream.ok) return okResponse(await upstream.text())
+    } catch (e) {
+      if (isAbortError(e)) timedOut = true
       /* 落到无密钥兜底 */
     }
   }
@@ -165,6 +282,7 @@ async function handleRequest(context) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model, messages, temperature: 0.6 }),
+        signal,
         eo: {
           timeoutSetting: {
             connectTimeout: 30_000,
@@ -173,19 +291,15 @@ async function handleRequest(context) {
           },
         },
       })
-      if (upstream.ok) {
-        const text = await upstream.text()
-        return new Response(text, {
-          status: upstream.status,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-        })
-      }
+      if (upstream.ok) return okResponse(await upstream.text())
       const errBody = await upstream.text().catch(() => '')
       attempts.push(`${model}: HTTP ${upstream.status} ${errBody.slice(0, 120)}`)
     } catch (e) {
+      if (isAbortError(e)) timedOut = true
       attempts.push(`${model}: ${e instanceof Error ? e.message : String(e)}`)
     }
   }
 
+  if (timedOut) return json({ error: 'AI 服务响应超时，请稍后再试' }, 504)
   return json({ error: `AI 服务暂时不可用，请稍后再试（${attempts.join('；').slice(0, 300)}）` }, 502)
 }
