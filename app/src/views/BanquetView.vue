@@ -1671,6 +1671,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
           v-model="batchGroupId"
           :options="batchGroupOptions"
           size="sm"
+          placement="up"
           class="min-w-0 flex-1 sm:max-w-64"
           data-testid="batch-group-select"
         />

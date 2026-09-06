@@ -31,17 +31,39 @@ const props = withDefaults(
     /** sm：工具栏紧凑尺寸；md：表单常规尺寸 */
     size?: 'sm' | 'md'
     placeholder?: string
+    /** 选项列表展开方向；auto：下方空间不足且上方更宽裕时向上展开（如固定在底部的工具条） */
+    placement?: 'auto' | 'down' | 'up'
   }>(),
-  { modelValue: undefined, size: 'md', placeholder: undefined },
+  { modelValue: undefined, size: 'md', placeholder: undefined, placement: 'auto' },
 )
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const open = ref(false)
+const dropUp = ref(false)
 const root = ref<HTMLElement | null>(null)
 const trigger = ref<HTMLButtonElement | null>(null)
 
 const current = computed(() => props.options.find((o) => o.value === props.modelValue))
+
+/** 列表最大高度（max-h-64）+ 内边距 + 间距，用于估算展开所需空间 */
+const LIST_MAX_HEIGHT = 256 + 12 + 6
+
+function resolveDropUp(): boolean {
+  if (props.placement !== 'auto') return props.placement === 'up'
+  const rect = trigger.value?.getBoundingClientRect()
+  if (!rect || typeof window === 'undefined') return false
+  const rows = Math.min(props.options.length, 8)
+  const rowHeight = props.size === 'sm' ? 30 : 38
+  const need = Math.min(LIST_MAX_HEIGHT, rows * rowHeight + 18)
+  const below = window.innerHeight - rect.bottom
+  return below < need && rect.top > below
+}
+
+function toggle() {
+  if (!open.value) dropUp.value = resolveDropUp()
+  open.value = !open.value
+}
 
 function pick(option: SelectOption) {
   if (option.disabled) return
@@ -66,7 +88,7 @@ function onRootKeydown(event: KeyboardEvent) {
   if (!open.value) {
     if (event.key === 'ArrowDown' && event.target === trigger.value) {
       event.preventDefault()
-      open.value = true
+      toggle()
     }
     return
   }
@@ -102,7 +124,7 @@ onBeforeUnmount(() => {
       :class="size === 'sm' ? '!py-1 text-xs' : ''"
       aria-haspopup="listbox"
       :aria-expanded="open"
-      @click="open = !open"
+      @click="toggle"
     >
       <span class="min-w-0 flex-1 truncate">{{ current?.label ?? placeholder ?? t('请选择') }}</span>
       <svg
@@ -121,14 +143,16 @@ onBeforeUnmount(() => {
 
     <Transition
       enter-active-class="transition duration-100 ease-out"
-      enter-from-class="-translate-y-1 opacity-0"
+      :enter-from-class="dropUp ? 'translate-y-1 opacity-0' : '-translate-y-1 opacity-0'"
       leave-active-class="transition duration-75 ease-in"
-      leave-to-class="-translate-y-1 opacity-0"
+      :leave-to-class="dropUp ? 'translate-y-1 opacity-0' : '-translate-y-1 opacity-0'"
     >
       <div
         v-if="open"
-        class="absolute right-0 z-30 mt-1.5 w-max max-w-80 min-w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-pop"
+        class="absolute right-0 z-30 w-max max-w-80 min-w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-pop"
+        :class="dropUp ? 'bottom-full mb-1.5' : 'top-full mt-1.5'"
         role="listbox"
+        :data-placement="dropUp ? 'up' : 'down'"
       >
         <div class="max-h-64 overflow-y-auto p-1.5">
           <button
