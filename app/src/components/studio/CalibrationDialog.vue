@@ -73,21 +73,35 @@ function onReset() {
 
 const fmtMm = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(2)} mm`
 const fmtScale = (v: number) => `${(v * 100).toFixed(2)}%`
+
+const nominalHint = computed(() =>
+  t('设计值：基准框距纸张左、上边缘各 {left} mm，框宽 {w} mm、框高 {h} mm。请量取打印出来的实际值：')
+    .replace('{left}', String(nominal.value.left))
+    .replace('{w}', String(nominal.value.frameWidth))
+    .replace('{h}', String(nominal.value.frameHeight)),
+)
+
+const activeHint = computed(() =>
+  t('当前已有生效的校准（偏移 {ox} / {oy}，缩放 {sx} / {sy}），保存将覆盖。')
+    .replace('{ox}', fmtMm(calibrationStore.calibration.offsetX))
+    .replace('{oy}', fmtMm(calibrationStore.calibration.offsetY))
+    .replace('{sx}', fmtScale(calibrationStore.calibration.scaleX))
+    .replace('{sy}', fmtScale(calibrationStore.calibration.scaleY)),
+)
 </script>
 
 <template>
   <ModalDialog :open="open" :title="t('打印校准向导')" size="lg" @close="emit('close')">
     <div class="space-y-4">
       <p class="leading-6">
-        {{ t('打印跑偏、尺寸不准多因打印机存在固有偏移或缩放误差。按下面三步做一次校准，补偿参数保存在本机浏览器，之后所有导出与打印自动应用。') }}
-        {{ t('详细排障说明见') }}<a href="/guides/print-offset-calibration-wizard" target="_blank" class="font-semibold text-brand-600 hover:underline">{{ t('打印偏移排障教程') }}</a>{{ t('。') }}
+        {{ t('打印跑偏、尺寸不准多因打印机存在固有偏移或缩放误差。按下面三步做一次校准， 补偿参数保存在本机浏览器，之后所有导出与打印自动应用。 详细排障说明见') }}<a href="/guides/print-offset-calibration-wizard" target="_blank" class="font-semibold text-brand-600 hover:underline">{{ t('打印偏移排障教程') }}</a>{{ t('。') }}
       </p>
 
       <!-- 第一步 -->
       <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
         <h4 class="flex items-center gap-2 text-sm font-bold text-slate-900">
           <span class="flex size-5 items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white">1</span>
-          {{ t('打印标尺校准页（{paper}）').replace('{paper}', paperLabel(workspace.template.page)) }}
+          {{ t('打印标尺校准页（{paper}）').replace('{paper}', t(paperLabel(workspace.template.page))) }}
         </h4>
         <p class="mt-1.5 text-xs leading-5 text-slate-600">
           {{ t('下载并用') }}<strong>{{ t('目标打印机') }}</strong>{{ t('打印这一页：缩放选「实际大小 / 100%」，不要选「适应页面」，边距设为无。') }}
@@ -107,12 +121,7 @@ const fmtScale = (v: number) => `${(v * 100).toFixed(2)}%`
           {{ t('用直尺量取 4 个实测值（mm）') }}
         </h4>
         <p class="mt-1.5 text-xs leading-5 text-slate-600">
-          {{
-            t('设计值：基准框距纸张左、上边缘各 {left} mm，框宽 {w} mm、框高 {h} mm。请量取打印出来的实际值：')
-              .replace('{left}', String(nominal.left))
-              .replace('{w}', String(nominal.frameWidth))
-              .replace('{h}', String(nominal.frameHeight))
-          }}
+          {{ nominalHint }}
         </p>
         <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <label class="block">
@@ -158,13 +167,7 @@ const fmtScale = (v: number) => `${(v * 100).toFixed(2)}%`
         <svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="m5 13 4 4 10-11" />
         </svg>
-        {{
-          t('当前已有生效的校准（偏移 {ox} / {oy}，缩放 {sx} / {sy}），保存将覆盖。')
-            .replace('{ox}', fmtMm(calibrationStore.calibration.offsetX))
-            .replace('{oy}', fmtMm(calibrationStore.calibration.offsetY))
-            .replace('{sx}', fmtScale(calibrationStore.calibration.scaleX))
-            .replace('{sy}', fmtScale(calibrationStore.calibration.scaleY))
-        }}
+        {{ activeHint }}
       </div>
     </div>
 

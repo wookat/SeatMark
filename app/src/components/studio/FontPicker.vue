@@ -29,7 +29,7 @@ const query = ref('')
 const root = ref<HTMLElement | null>(null)
 
 const currentFont = computed(() => findFontByStack(props.modelValue))
-const defaultLabelText = computed(() => props.defaultLabel ?? t('宋体（系统默认）'))
+const defaultLabelText = computed(() => (props.defaultLabel ? t(props.defaultLabel) : t('宋体（系统默认）')))
 const currentLabel = computed(() => {
   if (!props.modelValue) return defaultLabelText.value
   return currentFont.value?.name ?? t('自定义字体')
@@ -180,7 +180,7 @@ onBeforeUnmount(() => {
               <span
                 class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600"
               >
-                {{ font.category }}
+                {{ t(font.category) }}
               </span>
               <span v-if="!font.local" class="flex w-4 shrink-0 justify-center">
                 <span
@@ -229,7 +229,7 @@ onBeforeUnmount(() => {
           </template>
 
           <p v-if="!groups.length" class="px-2.5 py-6 text-center text-xs text-slate-600">
-            {{ t('没有匹配「{query}」的字体').replace('{query}', query) }}
+            {{ t('没有匹配「{q}」的字体').replace('{q}', query) }}
           </p>
         </div>
 

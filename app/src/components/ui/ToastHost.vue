@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { t } from '@/i18n'
-
 import { useToastStore, type ToastType } from '@/stores/toast'
 
 const toastStore = useToastStore()

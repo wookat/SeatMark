@@ -23,6 +23,7 @@ import {
   FIT_LEVEL_LABELS,
   rankPapersForTemplate,
 } from '@/utils/paperFit'
+import { tFitReason } from '@/utils/paperFitI18n'
 import { centerLayout, clamp, fitToPaper, layoutOverflow, round1 } from '@/utils/layout'
 import { matchPaperPreset, PAPER_PRESETS, paperLabel } from '@/utils/paper'
 
@@ -237,9 +238,9 @@ function onCenterLayout() {
               class="cursor-pointer font-semibold text-brand-600 hover:underline"
               @click="labelPaperSlug = recommendedPaper.spec.slug"
             >
-              {{ recommendedPaper.spec.name }}
+              {{ t(recommendedPaper.spec.name) }}
             </button>
-            ，{{ t(recommendedPaper.fit.reason) }}
+            ，{{ tFitReason(recommendedPaper.fit.reason) }}
           </span>
         </p>
       </div>

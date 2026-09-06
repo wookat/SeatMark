@@ -7,6 +7,7 @@ import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { applyLabelPaper, matchLabelPaper } from '@/utils/labelPaper'
 import { bestPaperForTemplate, evaluatePaperFit, FIT_LEVEL_LABELS } from '@/utils/paperFit'
+import { tFitReason } from '@/utils/paperFitI18n'
 
 /**
  * 模板 × 纸型错配提示条（非阻断）：
@@ -48,7 +49,12 @@ function switchToRecommended() {
   const best = recommended.value
   if (!best) return
   applyLabelPaper(workspace.template, best.spec)
-  toast.success(t('已切换到推荐纸型'), `${best.spec.name}：${best.fit.reason}`)
+  toast.success(
+    t('已切换到推荐纸型'),
+    t('{paper}：{reason}')
+      .replace('{paper}', t(best.spec.name))
+      .replace('{reason}', tFitReason(best.fit.reason)),
+  )
 }
 </script>
 
@@ -74,13 +80,17 @@ function switchToRecommended() {
       <p class="font-semibold">
         {{
           t('当前模板与纸型「{paper}」适配度：{level}')
-            .replace('{paper}', currentPaper?.name ?? '')
+            .replace('{paper}', currentPaper ? t(currentPaper.name) : '')
             .replace('{level}', t(FIT_LEVEL_LABELS[mismatch.level]))
         }}
       </p>
-      <p class="mt-0.5 text-amber-700">{{ mismatch.reason }}</p>
+      <p class="mt-0.5 text-amber-700">{{ tFitReason(mismatch.reason) }}</p>
       <p v-if="recommended && showSwitch" class="mt-0.5 text-amber-700">
-        {{ t('建议改用「{paper}」：{reason}').replace('{paper}', recommended.spec.name).replace('{reason}', recommended.fit.reason) }}
+        {{
+          t('建议改用「{paper}」：{reason}')
+            .replace('{paper}', t(recommended.spec.name))
+            .replace('{reason}', tFitReason(recommended.fit.reason))
+        }}
       </p>
     </div>
     <button

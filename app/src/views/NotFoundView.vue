@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { guides } from '@/data/guides'
-import { localePath, t } from '@/i18n'
+import { localePath, t, useI18n } from '@/i18n'
 
-/** 404 页推荐入口：热门教程前 3 篇，避免流量直接流失 */
+const { locale } = useI18n()
+
+/** 404 页推荐入口：热门教程前 3 篇，避免流量直接流失（教程仅有中文正文，英文壳下不展示） */
 const recommendedGuides = guides.slice(0, 3)
 </script>
 
@@ -13,8 +15,7 @@ const recommendedGuides = guides.slice(0, 3)
       {{ t('页面不存在或已被移动') }}
     </h1>
     <p class="mx-auto mt-4 max-w-xl text-sm leading-6 text-slate-600">
-      {{ t('你访问的地址没有对应的页面。可能是链接拼写有误，或该内容已经调整位置。') }}
-      {{ t('下面是一些常用入口，或直接进入标签工坊开始制作。') }}
+      {{ t('你访问的地址没有对应的页面。可能是链接拼写有误，或该内容已经调整位置。 下面是一些常用入口，或直接进入标签工坊开始制作。') }}
     </p>
 
     <div class="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -41,8 +42,8 @@ const recommendedGuides = guides.slice(0, 3)
       <RouterLink :to="localePath('/pricing')" class="hover:underline">{{ t('定价说明') }}</RouterLink>
     </div>
 
-    <section class="mt-12 text-left">
-      <h2 class="text-center text-sm font-bold text-slate-600">{{ t('也许你在找这些教程') }}</h2>
+    <section v-if="locale !== 'en'" class="mt-12 text-left">
+      <h2 class="text-center text-sm font-bold text-slate-600">也许你在找这些教程</h2>
       <div class="mt-4 grid gap-3 sm:grid-cols-3">
         <RouterLink
           v-for="rec in recommendedGuides"

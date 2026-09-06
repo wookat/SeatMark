@@ -5,6 +5,18 @@ description: How to run and test SeatMark locally (vite dev server with edge-fun
 
 # Testing SeatMark locally
 
+## Static preview / locale-shell checks
+
+- For an already built `app/dist`, run `cd app && npx vite preview --port 4173`; this has no edge API backend, so distinguish expected `/api/*` fetch failures from `Runtime.exceptionThrown`.
+- Vite preview may serve the SPA fallback for a route without a trailing slash even when `dist/<route>/index.html` exists. Use `/studio/` and `/en/studio/` to inspect the actual prerendered startup HTML; test the requested slashless routes separately after hydration.
+- To capture a transient startup splash, temporarily pause script execution with CDP `Emulation.setScriptExecutionDisabled`, navigate to the prerendered route, screenshot, then restore execution and reload. Label this as a prerender inspection, not a normal hydration run.
+- For a duplex-guide-only check, load `/en/studio?template=vTent&demo=1`, use the print entry and cancel the duplex guide. The export-choice options can start output, so inspect the current dialog before selecting anything; do not select output options in read-only testing.
+- When returning to a bare origin through Chrome's omnibox, discard inline path autocomplete before Enter (for example, Delete); otherwise the browser may reopen a previous deep route.
+
+### Devin Secrets Needed
+
+- None for anonymous static-preview locale-shell testing.
+
 - `cd app && npm install && npm run dev` — vite on http://localhost:5173. `app/scripts/devApi.mjs` runs `edge-functions/api/[[default]].js` in-process with an in-memory KV, so all `/api/*` routes work locally without EdgeOne.
 - devApi reads `process.env` for RESEND_API_KEY / TENCENT_SES_* / AUTH_SECRET / ADMIN_EMAILS. If the shell has a real `RESEND_API_KEY` (Devin secrets inject one), the mail channel becomes `resend` and `/api/auth/code` attempts a real Resend call (may 502). To test the unconfigured/none channel, start with `env -u RESEND_API_KEY -u TENCENT_SES_SECRET_ID -u TENCENT_SES_SECRET_KEY npm run dev`.
 - Login: go to `/account`, enter `admin@seatmark.cn` (default admin, override via ADMIN_EMAILS), click 获取验证码. When no mail channel is configured and host is localhost, the API returns `devCode` and the UI auto-fills it (toast 邮件服务未接入); click 登录.
