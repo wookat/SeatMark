@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
+import ChineseOnlyNotice from '@/components/ChineseOnlyNotice.vue'
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import { defaultTemplates } from '@/data/defaultTemplates'
 import { findLabelPaper, LABEL_PAPER_SHEET, labelPapers } from '@/data/labelPapers'
@@ -64,6 +65,7 @@ const specRows = computed(() => {
 <template>
   <NotFoundView v-if="!paper || !geo" />
   <div v-else class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
+    <ChineseOnlyNotice />
     <nav class="flex flex-wrap items-center gap-1.5 text-xs text-slate-600" aria-label="面包屑">
       <RouterLink to="/" class="hover:text-brand-600">首页</RouterLink>
       <span>/</span>

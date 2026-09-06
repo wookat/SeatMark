@@ -31,3 +31,15 @@ export function randomToken36(len) {
   for (let i = 0; i < len; i++) s += TOKEN36_ALPHABET[randomInt(TOKEN36_ALPHABET.length)]
   return s
 }
+
+/** 从字母表（默认 [0-9a-z]）中随机取 length 个字符 */
+export function randomToken(length, alphabet = TOKEN36_ALPHABET) {
+  let s = ''
+  for (let i = 0; i < length; i++) s += alphabet[randomInt(alphabet.length)]
+  return s
+}
+
+/** 时间戳 + 6 位随机后缀的记录 ID（替代 Date.now()+Math.random 拼接） */
+export function randomId() {
+  return `${Date.now()}-${randomToken36(6)}`
+}

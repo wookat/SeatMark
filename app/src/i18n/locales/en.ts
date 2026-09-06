@@ -2,6 +2,16 @@
  * English dictionary (gettext style): Chinese source strings are the keys.
  * Missing entries fall back to the Chinese source text.
  */
+import {
+  enDemoValues,
+  enFieldLabels,
+  enPaperNames,
+  enSubcategories,
+  enTemplateNames,
+  enTemplateScenarios,
+} from './enStudio'
+import { enTemplateDescriptions } from './enStudioDescriptions'
+
 /** 内容站索引页的分类 / 受众 chip：zh → en（教程分类、受众、模板子分类） */
 export const categoryLabelEn: Record<string, string> = {
   // 教程主题
@@ -63,6 +73,13 @@ export const categoryLabelEn: Record<string, string> = {
 }
 
 export const en: Record<string, string> = {
+  ...enDemoValues,
+  ...enFieldLabels,
+  ...enPaperNames,
+  ...enSubcategories,
+  ...enTemplateNames,
+  ...enTemplateScenarios,
+  ...enTemplateDescriptions,
   ...categoryLabelEn,
   '(空白)': '(blank)',
   '150+ 款内置模板覆盖考场桌贴、座位号贴、考号贴、门贴门牌、会议桌牌 / 桌签 / 台签 / 席卡、医院床头卡、政务窗口牌、餐饮外卖架、图书馆索书标、驿站货架、学生证、工作证、胸卡出入证等场景，叠加纸张与设计器自定义，相当于数百种成品方案；字段、尺寸与排版都可自由调整。':
@@ -549,6 +566,75 @@ export const en: Record<string, string> = {
   '已添加宾客': 'Guests added',
   '已清空全部座位安排': 'All seat assignments cleared',
   '已生成演示名单': 'Demo roster generated',
+  '加载更多': 'Load more',
+  'A4 纵向': 'A4 portrait',
+  'A4 横向': 'A4 landscape',
+  'A5 纵向': 'A5 portrait',
+  'A5 横向': 'A5 landscape',
+  'A3 纵向': 'A3 portrait',
+  'A3 横向': 'A3 landscape',
+  '图片': 'Image',
+  '照片': 'Photo',
+  '设置': 'Settings',
+  '预览': 'Preview',
+  '已自动适配新纸张': 'Layout re-fitted to the new paper',
+  '{paper}：{cols} 列 × {rows} 行，每页 {count} 枚': '{paper}: {cols} cols × {rows} rows, {count} per sheet',
+  '时间': 'Time',
+  '目标': 'Goal',
+  '值日': 'On duty',
+  '经手': 'Handled by',
+  '本周目标': 'Weekly goal',
+  '考生': 'Candidate',
+  '启封': 'Opened',
+  '同时进区': 'Max. occupancy',
+  '忌口': 'Dietary notes',
+  '值守': 'On call',
+  '出诊': 'Clinic hours',
+  '接收': 'Received by',
+  '到访': 'Visiting',
+  '账面': 'Book qty',
+  '内线': 'Ext.',
+  '辣度': 'Spice level',
+  '品种': 'Breed',
+  '喂食': 'Feeding',
+  '接待': 'Host',
+  '主人': 'Owner',
+  '宝宝': 'Baby',
+  '护理师': 'Nurse',
+  '口令': 'Rally call',
+  '坐诊': 'Doctor',
+  '执红': 'Red',
+  '执黑': 'Black',
+  '发起': 'Organizer',
+  '当前使用': 'In use by',
+  '主讲人': 'Speaker',
+  '模板已切换': 'Template switched',
+  '当前模板：': 'Current template: ',
+  '，已保留纸型「{name}」': '; kept label sheet “{name}”',
+  '，演示数据已换为「{name}」': '; demo data switched to “{name}”',
+  '已载入「{name}」演示数据': 'Loaded “{name}” demo data',
+  '体验完整流程后可清空并上传自己的 Excel': 'Try the full flow, then clear it and upload your own Excel',
+  '已显示 {shown}/{total}': 'Showing {shown}/{total}',
+  '尚未导入宾客': 'No guests imported yet',
+  '删除自定义模板': 'Delete custom template',
+  '当前模板没有文本字段': 'This template has no text fields',
+  '无需做 Excel 字段匹配。': 'No Excel field mapping needed.',
+  '上传后会自动尝试匹配常见列名': 'Common column names are matched automatically after upload',
+  '表头包含姓名、考场、准考证号、座位号等时，系统通常可以自动识别。':
+    'Headers such as Name, Room, Candidate No. or Seat No. are usually recognised automatically.',
+  '已自动匹配 {matched}/{total} 个字段': 'Auto-matched {matched}/{total} fields',
+  '可以直接查看预览，如有偏差再手动调整映射。':
+    'Check the preview; adjust the mapping manually if anything looks off.',
+  '还有字段需要手动选择对应的 Excel 列。': 'Some fields still need an Excel column selected manually.',
+  '暂未识别到可自动匹配的列': 'No columns could be matched automatically',
+  '请检查表头命名，或手动选择每个字段对应的列。':
+    'Check the header names, or pick a column for each field manually.',
+  '没有匹配的模板，换个关键词试试，或从空白新建模板。':
+    'No templates match. Try another keyword or start from a blank template.',
+  '确定删除模板': 'Delete template',
+  '吗？删除后无法恢复，如需保留可先导出为 JSON。': '? This cannot be undone; export it as JSON first if you want to keep it.',
+  '粘贴名单': 'Paste a list',
+  '载入示例': 'Load example',
   '已自动分配座位': 'Seats auto-assigned',
   '已赠送 7 天专业版试用：无水印导出不限次与云端模板同步已生效': '7-day Pro trial granted: unlimited watermark-free exports and cloud template sync are now active',
   '已超员': 'is over capacity',

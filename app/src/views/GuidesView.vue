@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+import { useBatchedList } from '@/composables/useBatchedList'
 import ZhOnlyNotice from '@/components/ui/ZhOnlyNotice.vue'
 import { guides } from '@/data/guides'
+import { t as tr } from '@/i18n'
 import { useI18n } from '@/i18n'
 import { matchesChineseQuery } from '@/utils/pinyin'
 
@@ -22,6 +24,18 @@ const filteredGuides = computed(() =>
       (activeAudience.value === '全部' || g.audiences.includes(activeAudience.value)) &&
       matchesChineseQuery(`${g.title} ${g.description} ${g.category}`, searchQuery.value),
   ),
+)
+
+const {
+  visible: visibleGuides,
+  hasMore,
+  showMore,
+} = useBatchedList(filteredGuides, [activeCategory, activeAudience, searchQuery])
+
+const shownNote = computed(() =>
+  tr('已显示 {shown}/{total}')
+    .replace('{shown}', String(visibleGuides.value.length))
+    .replace('{total}', String(filteredGuides.value.length)),
 )
 
 function resetFilters() {
@@ -56,7 +70,10 @@ const recommendedGuides = computed(() => {
     </div>
 
     <!-- 筛选器 -->
-    <div class="mt-8 grid gap-3">
+    <div
+      class="sticky top-14 z-20 -mx-4 mt-8 grid gap-3 border-b border-slate-200 bg-white px-4 py-3 min-[769px]:static min-[769px]:mx-0 min-[769px]:border-0 min-[769px]:bg-transparent min-[769px]:p-0"
+      data-testid="guides-filter-bar"
+    >
       <label class="relative mx-auto block w-full max-w-md">
         <svg
           class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-600"
@@ -148,7 +165,7 @@ const recommendedGuides = computed(() => {
 
     <div v-else class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       <RouterLink
-        v-for="guide in filteredGuides"
+        v-for="guide in visibleGuides"
         :key="guide.slug"
         :to="`/guides/${guide.slug}`"
         class="group flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-brand-300 hover:shadow-card-hover"
@@ -182,6 +199,13 @@ const recommendedGuides = computed(() => {
           </svg>
         </span>
       </RouterLink>
+    </div>
+
+    <div v-if="hasMore" class="mt-8 flex flex-col items-center gap-2">
+      <button type="button" class="btn btn-secondary btn-md" data-testid="load-more" @click="showMore">
+        {{ tr('加载更多') }}
+      </button>
+      <p class="text-xs text-slate-500">{{ shownNote }}</p>
     </div>
 
     <!-- CTA -->

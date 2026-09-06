@@ -112,7 +112,13 @@ const categoryOptions = computed<{ id: CategoryFilter; name: string; count: numb
 const searchQuery = ref('')
 
 function matchesQuery(t: LabelTemplate, query: string): boolean {
-  return matchesChineseQuery(`${t.name} ${t.scenario ?? ''} ${t.description}`, query)
+  const haystack = `${t.name} ${t.scenario ?? ''} ${t.description}`
+  return (
+    matchesChineseQuery(haystack, query) ||
+    `${tr(t.name)} ${tr(t.scenario ?? '')} ${tr(t.description)}`
+      .toLowerCase()
+      .includes(query.toLowerCase())
+  )
 }
 
 const filteredTemplates = computed<LabelTemplate[]>(() => {
@@ -559,7 +565,7 @@ function confirmDelete() {
         </div>
       </div>
       <p v-if="filteredTemplates.length === 0" class="py-8 text-center text-sm text-slate-600">
-        没有匹配的模板，换个关键词试试，或从空白新建模板。
+        {{ tr('没有匹配的模板，换个关键词试试，或从空白新建模板。') }}
       </p>
       <div class="columns-1 gap-3 sm:columns-2 lg:columns-3">
         <article
@@ -598,7 +604,7 @@ function confirmDelete() {
                 :aria-pressed="workspace.selectedTemplateId === t.id"
                 @click.stop="pickFromModal(t)"
               >
-                {{ t.name }}
+                {{ tr(t.name) }}
               </button>
             </h3>
             <span class="flex shrink-0 gap-1">
@@ -606,19 +612,19 @@ function confirmDelete() {
                 v-if="fitOf(t)?.level === 'recommended'"
                 class="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700"
               >
-                适配
+                {{ tr('适配') }}
               </span>
               <span
                 v-if="!t.builtin"
                 class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700"
               >
-                自定义
+                {{ tr('自定义') }}
               </span>
             </span>
           </div>
           <p class="mt-1 text-[11px] text-slate-600">
             {{ t.label.width }} × {{ t.label.height }} mm · {{ t.page.cols * t.page.rows }}
-            枚/页<template v-if="t.scenario"> · {{ t.scenario }}</template>
+            {{ tr('枚 / 页') }}<template v-if="t.scenario"> · {{ tr(t.scenario) }}</template>
           </p>
           <p
             v-if="fitOf(t)?.level === 'incompatible'"
@@ -628,7 +634,7 @@ function confirmDelete() {
           </p>
           <div class="mt-2 flex gap-1.5">
             <button type="button" class="btn btn-ghost btn-sm" @click.stop="openDesignerFromModal(t)">
-              {{ t.builtin ? '以此为基础设计' : '编辑' }}
+              {{ t.builtin ? tr('以此为基础设计') : tr('编辑') }}
             </button>
             <button
               v-if="!t.builtin"
@@ -636,29 +642,29 @@ function confirmDelete() {
               class="btn btn-ghost btn-sm text-red-500 hover:bg-red-50 hover:text-red-600"
               @click.stop="deleteTarget = t"
             >
-              删除
+              {{ tr('删除') }}
             </button>
           </div>
         </article>
       </div>
       <template #actions>
         <button type="button" class="btn btn-secondary btn-md" @click="pickerOpen = false">
-          关闭
+          {{ tr('关闭') }}
         </button>
       </template>
     </ModalDialog>
 
-    <ModalDialog :open="!!deleteTarget" title="删除自定义模板" @close="deleteTarget = null">
+    <ModalDialog :open="!!deleteTarget" :title="tr('删除自定义模板')" @close="deleteTarget = null">
       <p>
-        确定删除模板
+        {{ tr('确定删除模板') }}
         <strong class="text-slate-800">“{{ deleteTarget?.name }}”</strong>
-        吗？删除后无法恢复，如需保留可先导出为 JSON。
+        {{ tr('吗？删除后无法恢复，如需保留可先导出为 JSON。') }}
       </p>
       <template #actions>
         <button type="button" class="btn btn-secondary btn-md" @click="deleteTarget = null">
-          取消
+          {{ tr('取消') }}
         </button>
-        <button type="button" class="btn btn-danger btn-md" @click="confirmDelete">删除</button>
+        <button type="button" class="btn btn-danger btn-md" @click="confirmDelete">{{ tr('删除') }}</button>
       </template>
     </ModalDialog>
   </section>
