@@ -15,10 +15,13 @@ import {
   autoAssignGuests,
   BANQUET_STATE_KEY,
   buildVenuePreset,
+  countAssignedGuests,
   defaultTableName,
   MARKER_PRESETS,
   nextGroupColor,
   parseBanquetGuests,
+  snapshotTables,
+  summarizeAssignments,
   removeEmptyTables,
   summarizeBanquet,
   validateBanquet,
@@ -118,6 +121,15 @@ function focusPasteInput() {
 const guestById = computed(() => new Map(guests.value.map((g) => [g.id, g])))
 const groupById = computed(() => new Map(groups.value.map((g) => [g.id, g])))
 
+/** 最近一次导入被合并的重复姓名（包括与现有名单重复的），在名单区常驻提示 */
+const mergedDuplicates = ref<string[]>([])
+const mergedDuplicatesText = computed(() => {
+  const list = mergedDuplicates.value
+  if (!list.length) return ''
+  const sample = list.slice(0, 5).join('、')
+  return list.length > 5 ? `${sample}…` : sample
+})
+
 function importPasted() {
   const { names, duplicates } = parseBanquetGuests(pasteText.value)
   if (!names.length) {
@@ -127,10 +139,11 @@ function importPasted() {
   const existing = new Set(guests.value.map((g) => g.name))
   const fresh = names.filter((n) => !existing.has(n))
   guests.value = [...guests.value, ...fresh.map((name) => ({ id: uid('gst'), name, groupId: null }))]
-  const skipped = names.length - fresh.length + duplicates.length
+  const merged = [...new Set([...duplicates, ...names.filter((n) => existing.has(n))])]
+  mergedDuplicates.value = merged
   toast.success(
     `${tr('已添加宾客')}: ${fresh.length}`,
-    skipped ? `${tr('自动去重重复姓名')}: ${skipped}` : tr('可在下方列表继续编辑、分组'),
+    merged.length ? `${tr('自动去重重复姓名')}: ${merged.length}` : tr('可在下方列表继续编辑、分组'),
   )
   pasteText.value = ''
 }
@@ -192,9 +205,13 @@ function loadDemoGuests(count = 48) {
   }))
   groups.value = demoGroups
   guests.value = list
+  mergedDuplicates.value = []
   for (const t of tables.value) t.guestIds = []
   toast.info(tr('已生成演示名单'), `${list.length} ${tr('位宾客、3 个分组')}`)
 }
+
+/** 常驻状态条：已安排 / 未安排 / 空桌（与导出前检查、未安排列表同一口径） */
+const assignmentSummary = computed(() => summarizeAssignments(guests.value, tables.value))
 
 // ---------- 第 2 步：场地布局 ----------
 
@@ -203,10 +220,51 @@ const selectedId = ref<string | null>(null)
 const selectedTable = computed(() => tables.value.find((t) => t.id === selectedId.value) ?? null)
 const selectedMarker = computed(() => markers.value.find((m) => m.id === selectedId.value) ?? null)
 
+/** 二次确认：已有安排时切预设 / 清空安排前先弹窗，确认后可在 toast 中 10 秒内撤销 */
+const UNDO_WINDOW_MS = 10_000
+const pendingDestructive = ref<{ kind: 'preset'; preset: VenuePresetId } | { kind: 'clear' } | null>(
+  null,
+)
+const confirmAssignedCount = computed(() => countAssignedGuests(tables.value))
+
+function restoreTables(snapshot: BanquetTable[]) {
+  tables.value = snapshotTables(snapshot)
+  selectedId.value = null
+  toast.info(tr('已撤销'), `${tr('已恢复桌位安排')}: ${countAssignedGuests(tables.value)}`)
+}
+
 function applyPreset(preset: VenuePresetId) {
+  if (countAssignedGuests(tables.value) > 0) {
+    pendingDestructive.value = { kind: 'preset', preset }
+    return
+  }
+  doApplyPreset(preset)
+}
+
+function doApplyPreset(preset: VenuePresetId) {
+  const snapshot = snapshotTables(tables.value)
+  const hadAssignments = countAssignedGuests(snapshot) > 0
   tables.value = buildVenuePreset(preset)
   selectedId.value = null
-  toast.success(tr('已应用场地预设'), tr('桌上原有的宾客安排已清空，可重新一键分配'))
+  if (hadAssignments) {
+    toast.push(
+      'success',
+      tr('已应用场地预设'),
+      tr('桌上原有的宾客安排已清空，可重新一键分配'),
+      UNDO_WINDOW_MS,
+      { label: tr('撤销'), onClick: () => restoreTables(snapshot) },
+    )
+  } else {
+    toast.success(tr('已应用场地预设'), tr('可在第 3 步一键自动分配座位'))
+  }
+}
+
+function confirmDestructive() {
+  const pending = pendingDestructive.value
+  pendingDestructive.value = null
+  if (!pending) return
+  if (pending.kind === 'preset') doApplyPreset(pending.preset)
+  else doClearAssignments()
 }
 
 function addTable(shape: 'round' | 'rect') {
@@ -380,8 +438,20 @@ function focusUnassignedPool() {
 }
 
 function clearAssignments() {
+  if (countAssignedGuests(tables.value) > 0) {
+    pendingDestructive.value = { kind: 'clear' }
+    return
+  }
+  toast.info(tr('当前没有座位安排'))
+}
+
+function doClearAssignments() {
+  const snapshot = snapshotTables(tables.value)
   for (const t of tables.value) t.guestIds = []
-  toast.info(tr('已清空全部座位安排'))
+  toast.push('info', tr('已清空全部座位安排'), undefined, UNDO_WINDOW_MS, {
+    label: tr('撤销'),
+    onClick: () => restoreTables(snapshot),
+  })
 }
 
 const seatedIds = computed(() => {
@@ -505,7 +575,8 @@ function startExport(format: 'png' | 'pdf') {
     found.unassigned.length ||
     found.emptyTables.length ||
     found.overlaps.length ||
-    found.overCapacity.length
+    found.overCapacity.length ||
+    found.duplicateNames.length
   ) {
     issuesOpen.value = true
     return
@@ -655,6 +726,24 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
               {{ tr('用演示名单') }}
             </button>
           </div>
+          <div class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p class="text-xs leading-5 text-slate-500">
+              {{ tr('流程：名单 → 场地 → 一键自动分配 → 拖拽微调 → 导出') }}
+            </p>
+            <p
+              class="assign-status"
+              data-testid="assign-status"
+              :aria-label="tr('座位安排状态')"
+            >
+              <span>{{ tr('已安排') }} {{ assignmentSummary.assigned }}</span>
+              <span aria-hidden="true">/</span>
+              <span :class="assignmentSummary.unassigned ? 'text-amber-700' : ''">
+                {{ tr('未安排') }} {{ assignmentSummary.unassigned }}
+              </span>
+              <span aria-hidden="true">/</span>
+              <span>{{ tr('空桌') }} {{ assignmentSummary.emptyTables }}</span>
+            </p>
+          </div>
           <div class="mt-2">
             <label class="field-label" for="banquet-title">{{ tr('座位表标题') }}</label>
             <input
@@ -728,6 +817,14 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
                 + {{ tr('加一行') }}
               </button>
             </div>
+            <p
+              v-if="mergedDuplicates.length"
+              class="mt-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs leading-5 text-amber-800"
+              role="status"
+              aria-live="polite"
+            >
+              {{ tr('已合并') }} {{ mergedDuplicates.length }} {{ tr('个重复姓名') }}：{{ mergedDuplicatesText }}
+            </p>
             <div
               v-if="guests.length"
               class="mt-1.5 flex max-h-64 flex-col gap-1.5 overflow-y-auto pr-1"
@@ -765,7 +862,21 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
 
         <!-- 第 2 步：场地布局 -->
         <section class="panel-card">
-          <h2 class="section-title"><span class="step-chip">2</span>{{ tr('场地布局') }}</h2>
+          <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+            <h2 class="section-title"><span class="step-chip">2</span>{{ tr('场地布局') }}</h2>
+            <p class="assign-status" :aria-label="tr('座位安排状态')">
+              <span>{{ tr('已安排') }} {{ assignmentSummary.assigned }}</span>
+              <span aria-hidden="true">/</span>
+              <span :class="assignmentSummary.unassigned ? 'text-amber-700' : ''">
+                {{ tr('未安排') }} {{ assignmentSummary.unassigned }}
+              </span>
+              <span aria-hidden="true">/</span>
+              <span>{{ tr('空桌') }} {{ assignmentSummary.emptyTables }}</span>
+            </p>
+          </div>
+          <p class="mt-1 text-xs leading-5 text-slate-500">
+            {{ tr('选预设或自建桌位；下一步一键自动分配，再拖拽微调。已有安排时切预设会先确认。') }}
+          </p>
           <div class="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-2">
             <button
               v-for="p in VENUE_PRESETS"
@@ -848,6 +959,9 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         <!-- 第 3 步：自动分配 -->
         <section class="panel-card">
           <h2 class="section-title"><span class="step-chip">3</span>{{ tr('分配座位') }}</h2>
+          <p class="mt-1 text-xs leading-5 text-slate-500">
+            {{ tr('先一键自动分配，再拖拽微调，最后到第 4 步导出。') }}
+          </p>
           <div class="mt-3 flex flex-wrap gap-2">
             <button type="button" class="btn btn-primary btn-sm" @click="autoAssign">
               {{ tr('一键自动分配（同组同桌）') }}
@@ -1125,6 +1239,12 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             {{ issues.overlaps.map(([a, b]) => `${a} ↔ ${b}`).join('；') }}
           </p>
         </div>
+        <div v-if="issues.duplicateNames.length">
+          <p class="font-bold text-amber-600">{{ tr('同名宾客') }}（{{ issues.duplicateNames.length }}）</p>
+          <p class="mt-0.5 text-xs leading-5 text-slate-600">
+            {{ issues.duplicateNames.join('、') }}。{{ tr('同名会被当作不同宾客各占一座；如为同一人请删除多余行，如为不同人建议在姓名后加备注区分。') }}
+          </p>
+        </div>
       </div>
       <template #actions>
         <button type="button" class="btn btn-secondary btn-md" @click="issuesOpen = false">
@@ -1140,6 +1260,32 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         </button>
         <button type="button" class="btn btn-primary btn-md" @click="confirmIssuesAndExport">
           {{ onlyEmptyTableIssues ? tr('保留空桌，继续导出') : tr('忽略问题，继续导出') }}
+        </button>
+      </template>
+    </ModalDialog>
+
+    <!-- 切预设 / 清空安排二次确认（仅在已有安排时弹出） -->
+    <ModalDialog
+      :open="pendingDestructive !== null"
+      :title="pendingDestructive?.kind === 'clear' ? tr('清空座位安排') : tr('切换场地预设')"
+      size="md"
+      @close="pendingDestructive = null"
+    >
+      <p class="text-sm leading-6 text-slate-700">
+        <template v-if="pendingDestructive?.kind === 'clear'">
+          {{ tr('将清空当前') }} {{ confirmAssignedCount }} {{ tr('位宾客的桌位安排，是否继续？') }}
+        </template>
+        <template v-else>
+          {{ tr('切换预设会清空当前') }} {{ confirmAssignedCount }} {{ tr('位宾客的桌位安排，是否继续？') }}
+        </template>
+      </p>
+      <p class="mt-1 text-xs leading-5 text-slate-500">{{ tr('确认后 10 秒内可在提示中点「撤销」恢复。') }}</p>
+      <template #actions>
+        <button type="button" class="btn btn-secondary btn-md" @click="pendingDestructive = null">
+          {{ tr('取消') }}
+        </button>
+        <button type="button" class="btn btn-danger btn-md" @click="confirmDestructive">
+          {{ pendingDestructive?.kind === 'clear' ? tr('清空安排') : tr('清空并切换') }}
         </button>
       </template>
     </ModalDialog>
@@ -1253,6 +1399,23 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
 </template>
 
 <style scoped>
+/* 常驻安排状态条：可换行，字号与面板辅助文字一致 */
+.assign-status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0 0.375rem;
+  min-width: 0;
+  max-width: 100%;
+  border-radius: 0.375rem;
+  background: #f8fafc;
+  padding: 0 0.5rem;
+  font-size: 0.6875rem;
+  line-height: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #475569;
+}
+
 /* 场地画布：mm 物理单位排版，屏幕经 scale 适配，导出所见即所得 */
 .banquet-venue {
   position: relative;

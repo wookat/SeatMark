@@ -85,8 +85,8 @@ export const en: Record<string, string> = {
   '150+ 款内置模板覆盖考场桌贴、座位号贴、考号贴、门贴门牌、会议桌牌 / 桌签 / 台签 / 席卡、医院床头卡、政务窗口牌、餐饮外卖架、图书馆索书标、驿站货架、学生证、工作证、胸卡出入证等场景，叠加纸张与设计器自定义，相当于数百种成品方案；字段、尺寸与排版都可自由调整。':
     '150+ built-in templates cover exam desk labels, seat number stickers, door signs, conference table tents, place cards, hospital bed cards, service-window signs, shelf labels, student IDs, staff badges and more. Combined with paper presets and the designer, that is hundreds of ready-made layouts — fields, sizes and layout are all adjustable.',
   'A4 实际排版效果 · 24 枚/页': 'Actual A4 layout · 24 labels per page',
-  'Excel 名单与照片全部在浏览器内解析，不经过任何服务器，敏感人员信息零外泄。':
-    'Your spreadsheet and photos are parsed entirely in the browser — nothing touches a server, so sensitive personal data never leaks.',
+  'Excel 名单与照片全部在浏览器内解析，不发送到我们的服务器；只有账号、反馈、AI 设计等可选功能才产生服务端请求。':
+    'Your spreadsheet and photos are parsed entirely in the browser and never sent to our servers; only optional features (account, feedback, AI design) make server requests.',
   'Excel 应该怎么准备？': 'How should I prepare my spreadsheet?',
   'Excel 批量导入': 'Excel batch import',
   'PDF / 直接打印': 'PDF / direct printing',
@@ -156,8 +156,8 @@ export const en: Record<string, string> = {
   '全部模板': 'All templates',
   '共': 'Total',
   '关闭': 'Close',
-  '关闭页面即清空，没有任何服务器存过你的学生 / 员工名单':
-    'Close the page and it is gone — no server ever stores your student or staff lists',
+  '名单只暂存在本标签页，关闭即清除；座位表草稿留在本机浏览器，可在隐私页一键清除':
+    'Rosters live only in this tab and are cleared when you close it; seating drafts stay in this browser and can be wiped from the privacy page',
   '内置专业模板': 'Built-in professional templates',
   '内置思源黑体、霞鹜文楷、Inter 等中英文开源字体，一键加载即用，可免费商用。':
     'Bundled open-source Chinese and Latin fonts (Source Han Sans, LXGW WenKai, Inter and more) load with one click and are free for commercial use.',
@@ -368,6 +368,7 @@ export const en: Record<string, string> = {
   '请减小标签尺寸、行列数或边距，或换更大的纸张。':
     'Reduce label size, rows/columns or margins, or use larger paper.',
   '请选择 Excel 中的一列': 'Choose a column from your spreadsheet',
+  '返回首页': 'Back to home',
   '账号菜单': 'Account menu',
   '资源': 'Resources',
   '跟随中文字体': 'Follow Chinese font',
@@ -1169,7 +1170,6 @@ export const en: Record<string, string> = {
   '页面不存在或已被移动': 'Page not found or moved',
   '你访问的地址没有对应的页面。可能是链接拼写有误，或该内容已经调整位置。 下面是一些常用入口，或直接进入标签工坊开始制作。':
     'There is no page at this address. The link may be misspelled, or the content may have moved. Try one of the common entry points below, or head straight to the Studio to start creating.',
-  '返回首页': 'Back to home',
   '标签模板库': 'Template library',
   '定价说明': 'Pricing',
 
@@ -1504,4 +1504,43 @@ export const en: Record<string, string> = {
   '不想逐篇看？直接上手试试': 'Skip the reading — try it yourself',
   '免费、免登录，上传 Excel 名单即可批量生成桌牌、座签与席卡，名单全程不出浏览器。':
     'Free, no sign-up: upload a spreadsheet to batch-generate table tents, seat labels and place cards. Your list never leaves the browser.',
+
+  // ---------- 宴会：安排状态条 / 重名提示 / 二次确认与撤销 ----------
+  '流程：名单 → 场地 → 一键自动分配 → 拖拽微调 → 导出': 'Flow: roster → venue → auto-assign → drag to fine-tune → export',
+  '座位安排状态': 'Seating status',
+  '已合并': 'Merged',
+  '个重复姓名': 'duplicate name(s)',
+  '选预设或自建桌位；下一步一键自动分配，再拖拽微调。已有安排时切预设会先确认。': 'Pick a preset or add tables; next, auto-assign and fine-tune by dragging. Switching presets asks first when seats are already assigned.',
+  '先一键自动分配，再拖拽微调，最后到第 4 步导出。': 'Auto-assign first, drag to fine-tune, then export in step 4.',
+  '同名宾客': 'Guests with the same name',
+  '同名会被当作不同宾客各占一座；如为同一人请删除多余行，如为不同人建议在姓名后加备注区分。': 'Same-name entries are treated as different guests, each taking a seat. Remove extra rows if they are the same person, or add a note after the name to tell them apart.',
+  '清空座位安排': 'Clear seat assignments',
+  '切换场地预设': 'Switch venue preset',
+  '将清空当前': 'This clears the current assignments of',
+  '切换预设会清空当前': 'Switching presets clears the current assignments of',
+  '位宾客的桌位安排，是否继续？': 'guest(s). Continue?',
+  '确认后 10 秒内可在提示中点「撤销」恢复。': 'You can undo from the toast within 10 seconds.',
+  '清空并切换': 'Clear & switch',
+  '撤销': 'Undo',
+  '已撤销': 'Undone',
+  '已恢复桌位安排': 'Seat assignments restored',
+  '当前没有座位安排': 'No seat assignments yet',
+  '可在第 3 步一键自动分配座位': 'Auto-assign seats in step 3',
+
+  // 模板库 / 教程中心 页面框架（正文仍为中文）
+  '款免费内置模板覆盖考场座签、考号贴、课桌姓名贴、会议桌牌、出入证、学生证、工作证等场景，全部以毫米为单位精确排版，点击任意模板查看详情，或直接开始生成。': 'free built-in templates for exam seat labels, candidate-number stickers, desk name tags, conference place cards, passes, student and staff badges — all laid out to the millimetre. Open any template for details or start generating right away.',
+  '「': '"',
+  '」分类下无匹配，已在全部分类中找到': '" has no matches; found in all categories:',
+  '在「': 'Found in "',
+  '」分类中找到': '":',
+  '在全部分类中找到': 'Found in all categories:',
+  '款': 'template(s)',
+  '没有匹配': 'No templates match',
+  '“': ' "',
+  '”': '"',
+  '的模板，换个关键词试试，或在设计器里从空白新建。': '. Try another keyword or start from a blank template in the designer.',
+  '座签、桌牌、席位卡、证卡的制作与打印实战教程：从 Excel 名单整理、模板选择到打印裁切，问答式讲解常见坑点，看完即可上手。': 'Hands-on guides for making and printing seat labels, place cards and badges: from cleaning up the Excel list and picking a template to printing and cutting, in a Q&A format.',
+  '篇教程': 'guide(s)',
+  '约': 'About',
+  '分钟读完': 'min read',
 }

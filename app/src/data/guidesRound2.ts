@@ -843,7 +843,7 @@ export const guidesRound2: Guide[] = [
       },
       {
         q: '导出 PDF 和打印计不计生成次数？',
-        a: '每次 PDF 导出或调起打印计一次生成，预览与排版不限次数。未登录每天 3 次，登录后每天 10 次，详见定价页说明。',
+        a: '每次 PDF 导出或调起打印计一次生成，预览与排版不限次数。带水印导出与打印不限次数；无水印导出未登录每天 1 次，登录后每天 3 次，详见定价页说明。',
       },
     ],
     related: ['label-print-troubleshooting', 'print-margin-calibration', 'exam-seat-label-batch-print', 'photo-print-quality'],

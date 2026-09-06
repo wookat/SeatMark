@@ -100,7 +100,7 @@ const page = computed(() => findTopicPage(route.path))
     >
       <div>
         <h2 class="text-base font-bold text-white">现在就把名单变成打印页</h2>
-        <p class="mt-1 text-sm text-brand-100">免费、免登录，几秒出结果。</p>
+        <p class="mt-1 text-sm text-brand-100">免费、免登录，上传名单即生成打印页。</p>
       </div>
       <RouterLink
         :to="page.cta.to"

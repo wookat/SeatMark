@@ -33,7 +33,8 @@
  *   PUT  /api/admin/announcement 公告配置（管理员）
  *
  * 环境变量（EdgeOne Pages 控制台配置）：
- * - AUTH_SECRET      JWT 签名密钥（必配，未配置时使用开发默认值并在响应头标记）
+ * - AUTH_SECRET      JWT 签名密钥（必配；生产未配置时除公告/健康检查外全部 503 auth_secret_missing，
+ *                    仅 SEATMARK_ALLOW_MEMORY_STORAGE=1 的本地 dev/测试环境回退开发默认值）
  * - ADMIN_EMAILS     管理员邮箱白名单，逗号分隔（未配置则管理端全部 403）
  * - TENCENT_SES_SECRET_ID    腾讯云 SES SecretId（配置后优先走腾讯云 SES 发送验证码）
  * - TENCENT_SES_SECRET_KEY   腾讯云 SES SecretKey
@@ -99,6 +100,18 @@ const MEMORY_UNSAFE_ROUTES = {
 function isMemoryUnsafeRoute(path, method) {
   const methods = MEMORY_UNSAFE_ROUTES[path]
   return Boolean(methods && methods.includes(method))
+}
+
+/** 不依赖 AUTH_SECRET 的公开只读端点：密钥缺失时仍可响应 */
+const NO_SECRET_PATHS = new Set(['/api/announcement'])
+
+/** 本地 dev 中间件 / Vitest 显式放行标记：与内存存储放行共用同一开关 */
+function isDevAllowed(env) {
+  return Boolean(env && env.SEATMARK_ALLOW_MEMORY_STORAGE === '1')
+}
+
+function hasAuthSecret(env) {
+  return Boolean(env && typeof env.AUTH_SECRET === 'string' && env.AUTH_SECRET.length > 0)
 }
 
 // ---------- 会员与兑换码 ----------
@@ -698,7 +711,24 @@ async function handleRequest(context) {
 
   const { kv, storage, blobStore } = await getStorage(env)
   // Rev 标记仅用于部署观测：探针可确认线上边缘函数版本，改动本文件时递增
-  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r329' }
+  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r342' }
+
+  // 开发默认密钥公开可见：生产缺失 AUTH_SECRET 时会话/验证码/重置码 JWT 可被任意伪造，
+  // 必须 fail closed；仅显式放行的本地 dev / 测试允许回退默认值
+  if (!hasAuthSecret(env) && !isDevAllowed(env)) {
+    if (path === '/api/admin/health' && method === 'GET') {
+      // 无法校验管理员会话：只报告配置缺口本身，不暴露其他状态
+      return json(
+        { error: '服务端未配置 AUTH_SECRET', code: 'auth_secret_missing', authSecretConfigured: false },
+        503,
+        storageHeader,
+      )
+    }
+    if (!(NO_SECRET_PATHS.has(path) && method === 'GET')) {
+      console.error('[seatmark-api] AUTH_SECRET 未配置，拒绝请求:', method, path)
+      return json({ error: 'auth_secret_missing' }, 503, storageHeader)
+    }
+  }
 
   // 内存降级跨 isolate 不一致且不持久：验证码、配额、兑换、限流等写入会静默丢失，
   // 生产必须 fail closed；仅显式放行（本地 dev / 测试）时允许

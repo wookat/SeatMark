@@ -163,6 +163,13 @@ const others = computed(() => {
         >
           <h3 class="text-sm font-bold text-slate-900">{{ faq.q }}</h3>
           <p class="mt-1.5 text-sm leading-6 text-slate-600">{{ faq.a }}</p>
+          <RouterLink
+            v-if="faq.guide"
+            :to="`/guides/${faq.guide}`"
+            class="mt-1.5 inline-block text-xs font-bold text-brand-600 hover:underline"
+          >
+            查看教程 →
+          </RouterLink>
         </div>
       </div>
     </section>

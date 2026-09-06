@@ -172,7 +172,7 @@ const STEPS = computed(() => [
 const FEATURES = computed(() => [
   {
     title: t('数据本地处理'),
-    desc: t('Excel 名单与照片全部在浏览器内解析，不经过任何服务器，敏感人员信息零外泄。'),
+    desc: t('Excel 名单与照片全部在浏览器内解析，不发送到我们的服务器；只有账号、反馈、AI 设计等可选功能才产生服务端请求。'),
     icon: 'M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3zM9 12l2 2 4-4',
   },
   {
@@ -695,7 +695,7 @@ const FAQS = computed(() => [
               </li>
               <li class="flex gap-2">
                 <svg class="mt-0.5 size-3.5 flex-none text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7" /></svg>
-                {{ t('关闭页面即清空，没有任何服务器存过你的学生 / 员工名单') }}
+                {{ t('名单只暂存在本标签页，关闭即清除；座位表草稿留在本机浏览器，可在隐私页一键清除') }}
               </li>
             </ul>
           </div>

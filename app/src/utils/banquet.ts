@@ -89,6 +89,40 @@ export function parseBanquetGuests(text: string): { names: string[]; duplicates:
   return { names, duplicates }
 }
 
+const DEMO_SURNAMES = '王李张刘陈杨赵黄周吴徐孙马朱胡郭何高林罗'
+const DEMO_GIVEN = '伟芳娜敏静丽强磊军洋勇艳杰娟涛明超霞平刚'
+
+/**
+ * 生成演示宾客姓名（确定性、互不重复）：姓氏 × 两字名的笛卡尔组合按固定顺序取前 count 个。
+ * 名字两字不重复；组合数（20 × 20 × 19）远大于演示人数，超出时截断。
+ */
+export function buildDemoGuestNames(count: number): string[] {
+  const names: string[] = []
+  const seen = new Set<string>()
+  for (let gi = 0; gi < DEMO_GIVEN.length && names.length < count; gi++) {
+    for (let si = 0; si < DEMO_SURNAMES.length && names.length < count; si++) {
+      const second = DEMO_GIVEN[(gi + si + 1) % DEMO_GIVEN.length]!
+      if (second === DEMO_GIVEN[gi]) continue
+      const name = `${DEMO_SURNAMES[si]}${DEMO_GIVEN[gi]}${second}`
+      if (seen.has(name)) continue
+      seen.add(name)
+      names.push(name)
+    }
+  }
+  return names
+}
+
+/** 名单中被当作不同宾客的同名（去空白后完全一致），返回姓名去重列表（保序） */
+export function findDuplicateGuestNames(guests: BanquetGuest[]): string[] {
+  const count = new Map<string, number>()
+  for (const g of guests) {
+    const name = g.name.trim()
+    if (!name) continue
+    count.set(name, (count.get(name) ?? 0) + 1)
+  }
+  return [...count.entries()].filter(([, n]) => n > 1).map(([name]) => name)
+}
+
 // ---------- 场地布局预设 ----------
 
 export type VenuePresetId = 'round' | 'long' | 'head' | 'ushape' | 'classroom'
@@ -351,6 +385,8 @@ export interface BanquetIssues {
   overlaps: Array<[string, string]>
   /** 超员的桌（宾客数 > 座位数） */
   overCapacity: string[]
+  /** 名单中同名但被当作不同人的姓名 */
+  duplicateNames: string[]
 }
 
 export function validateBanquet(guests: BanquetGuest[], tables: BanquetTable[]): BanquetIssues {
@@ -362,7 +398,40 @@ export function validateBanquet(guests: BanquetGuest[], tables: BanquetTable[]):
     emptyTables: tables.filter((t) => !t.guestIds.length).map((t) => t.name),
     overlaps: findOverlaps(tables).map(([a, b]) => [tableName.get(a)!, tableName.get(b)!]),
     overCapacity: tables.filter((t) => t.guestIds.length > t.seats).map((t) => t.name),
+    duplicateNames: findDuplicateGuestNames(guests),
   }
+}
+
+/** 安排概览（步骤标题旁状态条）：已安排 / 未安排 / 空桌 */
+export interface AssignmentSummary {
+  assigned: number
+  unassigned: number
+  emptyTables: number
+}
+
+/** 已安排人数只统计仍在名单中的宾客（桌上残留的已删除 id 不计） */
+export function summarizeAssignments(
+  guests: BanquetGuest[],
+  tables: BanquetTable[],
+): AssignmentSummary {
+  const known = new Set(guests.map((g) => g.id))
+  const seated = new Set<string>()
+  for (const t of tables) for (const id of t.guestIds) if (known.has(id)) seated.add(id)
+  return {
+    assigned: seated.size,
+    unassigned: guests.length - seated.size,
+    emptyTables: tables.filter((t) => !t.guestIds.length).length,
+  }
+}
+
+/** 桌上已安排的宾客总数（不去重、不校验名单，用于“是否需要二次确认”判定与文案计数） */
+export function countAssignedGuests(tables: BanquetTable[]): number {
+  return tables.reduce((sum, t) => sum + t.guestIds.length, 0)
+}
+
+/** 深拷贝桌位快照（含 guestIds），供“清空/切预设”后撤销恢复 */
+export function snapshotTables(tables: BanquetTable[]): BanquetTable[] {
+  return tables.map((t) => ({ ...t, guestIds: [...t.guestIds] }))
 }
 
 export interface SplitGroup {

@@ -71,6 +71,14 @@ const TONE_PATH: Record<ToastType, string> = {
           <p v-if="toast.text" class="mt-0.5 text-xs leading-4.5 text-slate-600">
             {{ toast.text }}
           </p>
+          <button
+            v-if="toast.action"
+            type="button"
+            class="mt-1.5 inline-flex min-h-8 cursor-pointer items-center rounded-md border border-slate-200 bg-white px-2.5 text-xs font-bold text-brand-600 transition-colors hover:border-brand-300 hover:bg-brand-50"
+            @click="toastStore.runAction(toast.id)"
+          >
+            {{ toast.action.label }}
+          </button>
         </div>
         <button
           type="button"
