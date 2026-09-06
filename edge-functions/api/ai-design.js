@@ -118,6 +118,7 @@ async function sendAlert(env, level, detail) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ msgtype: 'text', text: { content: text } }),
+      signal: AbortSignal.timeout(8000),
     })
   } catch {
     /* 推送失败不阻塞 */

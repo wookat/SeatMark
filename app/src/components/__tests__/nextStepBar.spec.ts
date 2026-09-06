@@ -151,7 +151,7 @@ describe('NextStepBar', () => {
 
     matchMedia.mockReturnValue({ matches: true })
     await wrapper.find('[data-testid="next-step-action"]').trigger('click')
-    expect(scrollIntoView).toHaveBeenLastCalledWith({ behavior: 'auto', block: 'start' })
+    expect(scrollIntoView).toHaveBeenLastCalledWith({ behavior: 'instant', block: 'start' })
 
     wrapper.unmount()
     target.remove()

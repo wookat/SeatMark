@@ -80,7 +80,7 @@ function prefersReducedMotion() {
 function go() {
   const el = props.target
   if (!el) return
-  el.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
+  el.scrollIntoView({ behavior: prefersReducedMotion() ? 'instant' : 'smooth', block: 'start' })
   if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1')
   el.focus({ preventScroll: true })
 }

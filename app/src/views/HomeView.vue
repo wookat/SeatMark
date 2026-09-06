@@ -45,6 +45,12 @@ const vReveal: Directive<HTMLElement, number | undefined> = {
 /** 首屏演示模板：英文站下固定小注（如「座位号 SEAT」）换为英文 */
 const heroTemplate = computed(() => localizeTemplateForLocale(standardTemplate, locale.value))
 
+/** 首屏 CTA 下方的场景入口：教室排座 / 宴会排桌 */
+const heroSceneLinks = computed(() => [
+  { to: localePath('/seating'), label: t('班主任排座位') },
+  { to: localePath('/banquet'), label: t('婚礼/宴会排桌') },
+])
+
 const HERO_EN_NAMES = [
   'Emma Johnson', 'Liam Smith', 'Olivia Brown', 'Noah Davis', 'Ava Wilson', 'Mason Clark',
   'Sophia Lewis', 'Ethan Walker', 'Mia Hall', 'Lucas Young', 'Isabella King', 'Henry Wright',
@@ -212,7 +218,7 @@ const TRUST_STATS = computed(() => [
 const FAQS = computed(() => [
   {
     q: t('除了考场座签还能生成什么？'),
-    a: t('150+ 款内置模板覆盖考场桌贴、座位号贴、考号贴、门贴门牌、会议桌牌 / 桌签 / 台签 / 席卡、医院床头卡、政务窗口牌、餐饮外卖架、图书馆索书标、驿站货架、学生证、工作证、胸卡出入证等场景；纸张与设计器可再自定义，字段、尺寸与排版都可自由调整。'),
+    a: `${TEMPLATE_COUNT} ${t('款内置模板覆盖考场桌贴、座位号贴、考号贴、门贴门牌、会议桌牌 / 桌签 / 台签 / 席卡、医院床头卡、政务窗口牌、餐饮外卖架、图书馆索书标、驿站货架、学生证、工作证、胸卡出入证等场景；纸张与设计器可再自定义，字段、尺寸与排版都可自由调整。')}`,
   },
   {
     q: t('Excel 应该怎么准备？'),
@@ -301,6 +307,20 @@ const FAQS = computed(() => [
             </RouterLink>
             <RouterLink :to="localePath('/studio?demo=1')" class="btn btn-secondary btn-lg w-full sm:w-auto">
               {{ t('用演示数据先试试') }}
+            </RouterLink>
+          </div>
+          <div
+            class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm font-semibold"
+            data-testid="hero-scene-links"
+          >
+            <RouterLink
+              v-for="scene in heroSceneLinks"
+              :key="scene.to"
+              :to="scene.to"
+              class="group inline-flex items-center gap-1 text-slate-600 transition-colors hover:text-brand-700"
+            >
+              {{ scene.label }}
+              <span class="transition-transform group-hover:translate-x-0.5" aria-hidden="true">→</span>
             </RouterLink>
           </div>
           <div

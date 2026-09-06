@@ -4,6 +4,8 @@
  * 措辞客观：如实标注对方领先/持平项，不贬损、不编造对方功能。
  */
 
+import { TEMPLATE_COUNT } from './templateMeta'
+
 export interface VsDimension {
   /** 对比维度名 */
   dimension: string
@@ -155,7 +157,7 @@ export const vsPages: VsPage[] = [
       {
         dimension: '模板资源',
         competitor: '稻壳模板库桌牌类模板量少，优质模板多需会员（约 ¥179 起/年）',
-        seatmark: '222+ 款免费中文场景模板（考务/会议/校园/婚庆等）',
+        seatmark: `${TEMPLATE_COUNT} 款免费中文场景模板（考务/会议/校园/婚庆等）`,
       },
       {
         dimension: '数据隐私',
@@ -207,7 +209,7 @@ export const vsPages: VsPage[] = [
       {
         dimension: '模板场景',
         competitor: '约 100+ 款，以欧美婚礼风为主',
-        seatmark: '222+ 款中文场景模板：考场座签、会议桌牌、校园证卡等',
+        seatmark: `${TEMPLATE_COUNT} 款中文场景模板：考场座签、会议桌牌、校园证卡等`,
       },
       {
         dimension: '打印校准',
@@ -284,7 +286,7 @@ export const vsPages: VsPage[] = [
       {
         dimension: '中文考务/校园场景',
         competitor: '针对中国考务、校园场景的模板极少',
-        seatmark: '222+ 款中文场景模板，考场座签、课桌贴、证卡成套覆盖',
+        seatmark: `${TEMPLATE_COUNT} 款中文场景模板，考场座签、课桌贴、证卡成套覆盖`,
       },
       {
         dimension: '数据隐私',

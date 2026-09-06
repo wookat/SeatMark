@@ -59,34 +59,150 @@ export const VENUE_HEIGHT = 297
 
 // ---------- 名单解析与去重 ----------
 
+export interface ParsedBanquetGuests {
+  names: string[]
+  duplicates: string[]
+  /** 两列模式下的 姓名 → 分组名 映射；单列旧格式时不存在 */
+  groups?: Record<string, string>
+  /** 首行被识别为表头并跳过 */
+  headerSkipped: boolean
+}
+
+/** 宾客名单表头关键词（姓名/分组/桌/类别/关系） */
+const GUEST_HEADER = /姓名|名字|分组|桌|类别|关系|^name$|group|table|category/i
+const GUEST_NAME_HEADER = /姓名|名字|^name$/i
+const GUEST_GROUP_HEADER = /分组|桌|类别|关系|group|table|category/i
+const GENDER_WORDS = new Set(['男', '女', 'm', 'f', 'male', 'female'])
+
+function cleanLine(line: string): string {
+  return line.replace(/[\u200b\ufeff]/g, '').replace(/[\u00a0\u3000]/g, ' ')
+}
+
 /**
- * 解析宾客名单文本（逐行粘贴或 TXT 内容）：
- * 每行一位宾客；同一行内也允许用逗号/顿号/分号/制表符分隔多位。
+ * 解析宾客名单文本（逐行粘贴或 TXT/CSV 内容）。
+ * 单列旧格式：每行一位宾客；同一行内也允许用逗号/顿号/分号/制表符分隔多位；
  * 空格仅在不含拉丁字母的片段内视为分隔符，避免拆散 "Alice Wang" 这类西文姓名。
+ * 两列「姓名，分组」模式：首行命中表头关键词，或 ≥ 2 行含两列且第二列去重值数 ≤ 行数/2
+ * （分组名重复出现是分组列特征）且不命中性别词时，第二列视为分组，不再展开为宾客。
  * 自动去除空白行、全角空格与重复姓名（保留首次出现顺序）。
  */
-export function parseBanquetGuests(text: string): { names: string[]; duplicates: string[] } {
+export function parseBanquetGuests(text: string): ParsedBanquetGuests {
   const names: string[] = []
   const seen = new Set<string>()
   const duplicates: string[] = []
-  for (const line of text.replace(/\r\n?/g, '\n').split('\n')) {
-    const tokens = line
-      .replace(/[\u200b\ufeff]/g, '')
-      .replace(/[\u00a0\u3000]/g, ' ')
-      .split(/[,，、;；\t]+/)
-      .flatMap((part) => (/[A-Za-z]/.test(part) ? [part] : part.split(/\s+/)))
-      .map((s) => s.trim())
-      .filter(Boolean)
-    for (const t of tokens) {
-      if (seen.has(t)) {
-        duplicates.push(t)
-        continue
-      }
-      seen.add(t)
-      names.push(t)
+  const push = (t: string) => {
+    if (seen.has(t)) {
+      duplicates.push(t)
+      return
     }
+    seen.add(t)
+    names.push(t)
   }
-  return { names, duplicates }
+
+  const lines = text
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map(cleanLine)
+    .filter((l) => l.trim() !== '')
+  const table = lines.map((line) =>
+    line
+      .split(/[,，、;；\t]+/)
+      .map((c) => c.trim())
+      .filter(Boolean),
+  )
+  const firstRow = table[0] ?? []
+  const headerHit = firstRow.length >= 2 && firstRow.some((c) => GUEST_HEADER.test(c))
+  const multiRows = table.filter((r) => r.length >= 2)
+  let columnMode = headerHit
+  if (!columnMode && multiRows.length >= 2) {
+    const second = multiRows.map((r) => r[1]!)
+    const distinct = new Set(second).size
+    const genderish = second.some((v) => GENDER_WORDS.has(v.toLowerCase()))
+    columnMode = distinct <= multiRows.length / 2 && !genderish
+  }
+
+  if (!columnMode) {
+    for (const line of lines) {
+      const tokens = line
+        .split(/[,，、;；\t]+/)
+        .flatMap((part) => (/[A-Za-z]/.test(part) ? [part] : part.split(/\s+/)))
+        .map((s) => s.trim())
+        .filter(Boolean)
+      for (const t of tokens) push(t)
+    }
+    return { names, duplicates, headerSkipped: false }
+  }
+
+  let nameIdx = 0
+  let groupIdx = 1
+  if (headerHit) {
+    const n = firstRow.findIndex((c) => GUEST_NAME_HEADER.test(c))
+    const g = firstRow.findIndex((c, i) => i !== n && GUEST_GROUP_HEADER.test(c))
+    if (n >= 0) nameIdx = n
+    if (g >= 0) groupIdx = g
+    else if (nameIdx === 1) groupIdx = 0
+  }
+  const groups: Record<string, string> = {}
+  for (const row of table.slice(headerHit ? 1 : 0)) {
+    const name = row.length === 1 ? row[0]! : (row[nameIdx] ?? '')
+    if (!name) continue
+    const group = row.length > 1 ? (row[groupIdx] ?? '') : ''
+    push(name)
+    if (group && !(name in groups)) groups[name] = group
+  }
+  return { names, duplicates, groups, headerSkipped: headerHit }
+}
+
+/**
+ * 从表格（parseExcelFile 的 headers/rows）解析宾客：取「姓名」列与「分组/桌/类别/关系」列；
+ * 表头都不命中时按前两列取值，且首行本身也算一位宾客（parseExcelFile 总把首行当表头）。
+ */
+export function parseBanquetGuestsFromTable(
+  headers: string[],
+  rows: Record<string, string>[],
+): ParsedBanquetGuests {
+  const nameHeader = headers.find((h) => GUEST_NAME_HEADER.test(h))
+  const groupHeader = headers.find((h) => h !== nameHeader && GUEST_GROUP_HEADER.test(h))
+  const headerDetected = Boolean(nameHeader || groupHeader)
+  const nameKey = nameHeader ?? headers[0]
+  if (!nameKey) return { names: [], duplicates: [], headerSkipped: false }
+  const groupKey = groupHeader ?? headers.find((h) => h !== nameKey)
+
+  const names: string[] = []
+  const seen = new Set<string>()
+  const duplicates: string[] = []
+  const groups: Record<string, string> = {}
+  const add = (rawName: string, rawGroup: string) => {
+    const name = cleanLine(rawName).trim()
+    if (!name) return
+    if (seen.has(name)) {
+      duplicates.push(name)
+      return
+    }
+    seen.add(name)
+    names.push(name)
+    const group = cleanLine(rawGroup).trim()
+    if (group) groups[name] = group
+  }
+  // 空表头单元格被 parseExcelFile 命名为「列N」，不是宾客
+  if (!headerDetected && !/^列\d+$/.test(nameKey)) {
+    add(nameKey, groupKey && !/^列\d+$/.test(groupKey) ? groupKey : '')
+  }
+  for (const row of rows) add(row[nameKey] ?? '', groupKey ? (row[groupKey] ?? '') : '')
+  return { names, duplicates, groups, headerSkipped: headerDetected }
+}
+
+/**
+ * 批量归组（纯函数）：把 ids 中的宾客 groupId 设为 groupId（null = 清除分组），
+ * 其余宾客原样保留；返回新数组，未命中的对象引用不变。
+ */
+export function assignGroupToGuests(
+  guests: BanquetGuest[],
+  ids: Iterable<string>,
+  groupId: string | null,
+): BanquetGuest[] {
+  const target = new Set(ids)
+  return guests.map((g) => (target.has(g.id) && g.groupId !== groupId ? { ...g, groupId } : g))
 }
 
 const DEMO_SURNAMES = '王李张刘陈杨赵黄周吴徐孙马朱胡郭何高林罗'

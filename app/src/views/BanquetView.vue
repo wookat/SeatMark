@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import NextStepBar, { type NextStep } from '@/components/NextStepBar.vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
@@ -13,6 +13,7 @@ import { currentLocale, localePath, t as tr } from '@/i18n'
 import { useQuotaStore } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
 import {
+  assignGroupToGuests,
   autoAssignGuests,
   BANQUET_STATE_KEY,
   buildVenuePreset,
@@ -21,6 +22,8 @@ import {
   MARKER_PRESETS,
   nextGroupColor,
   parseBanquetGuests,
+  parseBanquetGuestsFromTable,
+  type ParsedBanquetGuests,
   snapshotTables,
   splitGroups,
   summarizeAssignments,
@@ -40,6 +43,7 @@ import {
 } from '@/utils/banquet'
 import { uid } from '@/utils/id'
 import { fitScale, MM_TO_PX } from '@/utils/layout'
+import { listJoin } from '@/utils/listJoin'
 import { exportPagedPng, sanitizeFileNamePart } from '@/utils/pngExport'
 import { defaultPdfFileName, exportPagedPdf } from '@/utils/pdfExport'
 
@@ -128,40 +132,84 @@ const mergedDuplicates = ref<string[]>([])
 const mergedDuplicatesText = computed(() => {
   const list = mergedDuplicates.value
   if (!list.length) return ''
-  const sample = list.slice(0, 5).join('、')
+  const sample = listJoin(list.slice(0, 5))
   return list.length > 5 ? `${sample}…` : sample
 })
 
-function importPasted() {
-  const { names, duplicates } = parseBanquetGuests(pasteText.value)
+/**
+ * 将解析结果并入名单：新分组名自动建组（nextGroupColor），已存在的同名分组直接复用；
+ * toast 汇总宾客数 / 新建分组数 / 跳过表头 / 重复人数。
+ */
+function applyParsedGuests(parsed: ParsedBanquetGuests): boolean {
+  const { names, duplicates, groups: groupMap, headerSkipped } = parsed
   if (!names.length) {
     toast.warning(tr('名单为空'), tr('请粘贴宾客名单，每行一位'))
-    return
+    return false
   }
   const existing = new Set(guests.value.map((g) => g.name))
   const fresh = names.filter((n) => !existing.has(n))
-  guests.value = [...guests.value, ...fresh.map((name) => ({ id: uid('gst'), name, groupId: null }))]
+  const groupIdByName = new Map(groups.value.map((g) => [g.name, g.id]))
+  const created: BanquetGroup[] = []
+  const resolveGroup = (name: string): string | null => {
+    const groupName = groupMap?.[name]
+    if (!groupName) return null
+    const known = groupIdByName.get(groupName)
+    if (known) return known
+    const group: BanquetGroup = {
+      id: uid('grp'),
+      name: groupName,
+      color: nextGroupColor([...groups.value, ...created]),
+    }
+    created.push(group)
+    groupIdByName.set(groupName, group.id)
+    return group.id
+  }
+  const added: BanquetGuest[] = fresh.map((name) => ({ id: uid('gst'), name, groupId: resolveGroup(name) }))
+  if (created.length) groups.value = [...groups.value, ...created]
+  guests.value = [...guests.value, ...added]
   const merged = [...new Set([...duplicates, ...names.filter((n) => existing.has(n))])]
   mergedDuplicates.value = merged
+  const details = [
+    created.length ? `${tr('新建')} ${created.length} ${tr('个分组')}` : '',
+    headerSkipped ? tr('跳过表头 1 行') : '',
+    merged.length ? `${merged.length} ${tr('人重复')}` : '',
+  ].filter(Boolean)
   toast.success(
-    `${tr('已添加宾客')}: ${fresh.length}`,
-    merged.length ? `${tr('自动去重重复姓名')}: ${merged.length}` : tr('可在下方列表继续编辑、分组'),
+    `${tr('已导入')} ${fresh.length} ${tr('位宾客')}`,
+    details.length ? listJoin(details) : tr('可在下方列表继续编辑、分组'),
   )
-  pasteText.value = ''
+  return true
 }
 
-function onTxtChange(event: Event) {
+function importPasted() {
+  if (applyParsedGuests(parseBanquetGuests(pasteText.value))) pasteText.value = ''
+}
+
+/** .xlsx/.xls：懒加载 Excel 解析，取「姓名」与「分组」列（无表头则取前两列） */
+async function importSpreadsheet(file: File) {
+  const { parseExcelFile } = await import('@/utils/excel')
+  const { headers, rows } = await parseExcelFile(file)
+  applyParsedGuests(parseBanquetGuestsFromTable(headers, rows))
+}
+
+async function onTxtChange(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   input.value = ''
   if (!file) return
-  const reader = new FileReader()
-  reader.onload = () => {
-    const text = typeof reader.result === 'string' ? reader.result : ''
-    pasteText.value = pasteText.value.trim() ? `${pasteText.value}\n${text}` : text
-    toast.info(tr('TXT 已读取到输入框'), tr('确认内容后点「添加到名单」'))
+  if (/\.xlsx?$/i.test(file.name)) {
+    try {
+      await importSpreadsheet(file)
+    } catch (err) {
+      toast.danger(tr('Excel 导入失败'), tr(err instanceof Error ? err.message : String(err)))
+    }
+    return
   }
-  reader.readAsText(file)
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  const { decodeCsvText } = await import('@/utils/excel')
+  const text = decodeCsvText(bytes)
+  pasteText.value = pasteText.value.trim() ? `${pasteText.value}\n${text}` : text
+  toast.info(tr('文件已读取到输入框'), tr('确认内容后点「添加到名单」'))
 }
 
 function addGuestRow() {
@@ -510,6 +558,81 @@ const seatedIds = computed(() => {
 })
 const unassignedGuests = computed(() => guests.value.filter((g) => !seatedIds.value.has(g.id)))
 
+// ---------- 未安排池多选 + 批量归组（不碰画布交互、不改逐人下拉） ----------
+const multiSelect = ref(false)
+const selectedGuestIds = ref<Set<string>>(new Set())
+const batchGroupId = ref('')
+/** 批量分组下拉中「新建分组…」的哨兵值 */
+const NEW_GROUP_VALUE = '__new__'
+
+const selectedCount = computed(() => selectedGuestIds.value.size)
+const batchGroupOptions = computed<SelectOption[]>(() => [
+  { value: '', label: tr('选择分组…') },
+  ...groups.value.map((g) => ({ value: g.id, label: g.name })),
+  { value: NEW_GROUP_VALUE, label: tr('新建分组…') },
+])
+
+function toggleMultiSelect() {
+  multiSelect.value = !multiSelect.value
+  if (!multiSelect.value) selectedGuestIds.value = new Set()
+}
+
+function toggleGuestSelected(id: string) {
+  const next = new Set(selectedGuestIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  selectedGuestIds.value = next
+}
+
+function selectAllUngrouped() {
+  selectedGuestIds.value = new Set(unassignedGuests.value.filter((g) => !g.groupId).map((g) => g.id))
+}
+
+/** 选中「新建分组…」时即建一组并选中它，名称可在分组面板改 */
+watch(batchGroupId, (v) => {
+  if (v !== NEW_GROUP_VALUE) return
+  addGroup()
+  batchGroupId.value = groups.value[groups.value.length - 1]?.id ?? ''
+})
+
+function applyBatchGroup(groupId: string | null) {
+  const ids = [...selectedGuestIds.value]
+  if (!ids.length) return
+  guests.value = assignGroupToGuests(guests.value, ids, groupId)
+  const groupName = groupId ? (groupById.value.get(groupId)?.name ?? '') : ''
+  toast.success(
+    groupId
+      ? `${tr('已归组')} ${ids.length} ${tr('人')} → ${groupName}`
+      : `${tr('已清除分组')} ${ids.length} ${tr('人')}`,
+  )
+  selectedGuestIds.value = new Set()
+}
+
+/** 宾客被删除/上桌后从选中集移除，避免幽灵选中 */
+watch(unassignedGuests, (list) => {
+  if (!selectedGuestIds.value.size) return
+  const alive = new Set(list.map((g) => g.id))
+  const next = new Set([...selectedGuestIds.value].filter((id) => alive.has(id)))
+  if (next.size !== selectedGuestIds.value.size) selectedGuestIds.value = next
+})
+
+/**
+ * 批量操作条可见时复用 NextStepBar 的 has-next-step-bar 标记，让反馈按钮/Toast 让位；
+ * 同时卸载下一步条（v-if）避免两条底栏重叠，卸载时它会自行移除标记，所以这里在下一帧再补上。
+ */
+const batchBarVisible = computed(() => multiSelect.value && unassignedGuests.value.length > 0)
+watch(batchBarVisible, async (on) => {
+  if (typeof document === 'undefined') return
+  if (!on) return
+  await nextTick()
+  document.documentElement.classList.add('has-next-step-bar')
+})
+onBeforeUnmount(() => {
+  if (batchBarVisible.value && typeof document !== 'undefined') {
+    document.documentElement.classList.remove('has-next-step-bar')
+  }
+})
+
 /** 宾客拖拽（桌间移动 / 拖回未安排区），同样基于 Pointer 事件 */
 const guestDragId = ref<string | null>(null)
 const guestDragging = ref(false)
@@ -808,21 +931,21 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             v-model="pasteText"
             rows="5"
             class="input-field mt-2 h-auto min-h-24 resize-y py-2 leading-6"
-            :placeholder="tr('每行一位宾客姓名，粘贴后点「添加到名单」')"
+            :placeholder="`${tr('每行一位宾客姓名，粘贴后点「添加到名单」')}\n${tr('张伟')}\t${tr('男方亲友')}\n${tr('第二列可填分组，自动归组；支持从 Excel 直接复制「姓名、分组」两列')}`"
           ></textarea>
           <div class="mt-2 flex flex-wrap gap-2">
             <button type="button" class="btn btn-primary btn-sm" @click="importPasted">
               {{ tr('添加到名单（自动去重）') }}
             </button>
             <button type="button" class="btn btn-secondary btn-sm" @click="txtInput?.click()">
-              {{ tr('上传 TXT 名单') }}
+              {{ tr('上传 TXT / CSV / Excel 名单') }}
             </button>
             <input
               ref="txtInput"
               type="file"
-              accept=".txt,text/plain"
+              accept=".txt,.csv,.xlsx,.xls,text/plain,text/csv"
               class="hidden"
-              :aria-label="tr('上传 TXT 名单文件')"
+              :aria-label="tr('上传 TXT / CSV / Excel 名单文件')"
               @change="onTxtChange"
             />
           </div>
@@ -872,7 +995,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
               role="status"
               aria-live="polite"
             >
-              {{ tr('已合并') }} {{ mergedDuplicates.length }} {{ tr('个重复姓名') }}：{{ mergedDuplicatesText }}
+              {{ tr('已合并') }} {{ mergedDuplicates.length }} {{ tr('个重复姓名') }}{{ tr('：') }}{{ mergedDuplicatesText }}
             </p>
             <div
               v-if="guests.length"
@@ -1151,7 +1274,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             <span class="font-semibold text-slate-800">{{ g.groupName }}</span>
             <span aria-hidden="true" class="text-slate-400">→</span>
             <span>
-              {{ g.tables.map((x) => `${x.name}（${x.count} ${tr('人')}）`).join('、') }}
+              {{ listJoin(g.tables.map((x) => `${x.name}${tr('（')}${x.count} ${tr('人')}${tr('）')}`)) }}
             </span>
           </li>
         </ul>
@@ -1254,25 +1377,75 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
               : 'border-slate-300 bg-white'
           "
         >
-          <p class="text-xs font-bold text-slate-600">
-            {{ tr('未安排宾客') }}{{ tr('（') }}{{ unassignedGuests.length }}{{ tr('）') }}
-            <span class="ml-1 font-normal text-slate-400">{{ tr('拖到餐桌上即可安排；从桌上拖回这里撤下') }}</span>
-          </p>
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p class="min-w-0 flex-1 text-xs font-bold text-slate-600">
+              {{ tr('未安排宾客') }}{{ tr('（') }}{{ unassignedGuests.length }}{{ tr('）') }}
+              <span v-if="!multiSelect" class="ml-1 font-normal text-slate-400">{{
+                tr('拖到餐桌上即可安排；从桌上拖回这里撤下')
+              }}</span>
+              <span v-else class="ml-1 font-normal text-slate-400">{{ tr('点选宾客后在底部操作条批量归组') }}</span>
+            </p>
+            <div v-if="unassignedGuests.length" class="flex shrink-0 items-center gap-1.5">
+              <button
+                v-if="multiSelect"
+                type="button"
+                class="btn btn-ghost btn-sm"
+                data-testid="select-all-ungrouped"
+                @click="selectAllUngrouped"
+              >
+                {{ tr('全选未分组') }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm"
+                :class="multiSelect ? 'btn-primary' : 'btn-secondary'"
+                :aria-pressed="multiSelect"
+                data-testid="toggle-multi-select"
+                @click="toggleMultiSelect"
+              >
+                {{ multiSelect ? tr('退出多选') : tr('多选') }}
+              </button>
+            </div>
+          </div>
           <div v-if="unassignedGuests.length" class="mt-1.5 flex flex-wrap gap-1.5">
-            <span
-              v-for="g in unassignedGuests"
-              :key="g.id"
-              class="banquet-pool-guest"
-              :class="{ 'opacity-40': guestDragging && guestDragId === g.id }"
-              :style="
-                guestColor(g, true)
-                  ? { borderColor: guestColor(g, true)!, color: guestColor(g, true)! }
-                  : undefined
-              "
-              @pointerdown="onGuestPointerDown(g.id, $event)"
-            >
-              {{ g.name || tr('（未命名）') }}
-            </span>
+            <template v-if="multiSelect">
+              <label
+                v-for="g in unassignedGuests"
+                :key="g.id"
+                class="banquet-pool-guest inline-flex! cursor-pointer items-center gap-1 select-none"
+                :class="{ 'ring-2 ring-brand-500/40': selectedGuestIds.has(g.id) }"
+                :style="
+                  guestColor(g, true)
+                    ? { borderColor: guestColor(g, true)!, color: guestColor(g, true)! }
+                    : undefined
+                "
+              >
+                <input
+                  type="checkbox"
+                  class="size-3.5 accent-brand-600"
+                  :checked="selectedGuestIds.has(g.id)"
+                  :aria-label="g.name || tr('（未命名）')"
+                  @change="toggleGuestSelected(g.id)"
+                />
+                {{ g.name || tr('（未命名）') }}
+              </label>
+            </template>
+            <template v-else>
+              <span
+                v-for="g in unassignedGuests"
+                :key="g.id"
+                class="banquet-pool-guest"
+                :class="{ 'opacity-40': guestDragging && guestDragId === g.id }"
+                :style="
+                  guestColor(g, true)
+                    ? { borderColor: guestColor(g, true)!, color: guestColor(g, true)! }
+                    : undefined
+                "
+                @pointerdown="onGuestPointerDown(g.id, $event)"
+              >
+                {{ g.name || tr('（未命名）') }}
+              </span>
+            </template>
           </div>
           <div v-else-if="!guests.length" class="mt-2 flex flex-wrap gap-2" data-testid="banquet-empty-cta">
             <button type="button" class="btn btn-primary btn-sm" @click="focusPasteInput">
@@ -1303,31 +1476,37 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
     <ModalDialog :open="issuesOpen" :title="tr('导出前检查发现问题')" size="md" @close="issuesOpen = false">
       <div v-if="issues" class="flex flex-col gap-3 text-sm text-slate-700">
         <div v-if="issues.unassigned.length">
-          <p class="font-bold text-amber-600">{{ tr('未安排的宾客') }}（{{ issues.unassigned.length }}）</p>
-          <p class="mt-0.5 text-xs leading-5 text-slate-600">{{ issues.unassigned.join('、') }}</p>
+          <p class="font-bold text-amber-600">
+            {{ tr('未安排的宾客') }}{{ tr('（') }}{{ issues.unassigned.length }}{{ tr('）') }}
+          </p>
+          <p class="mt-0.5 text-xs leading-5 text-slate-600">{{ listJoin(issues.unassigned) }}</p>
         </div>
         <div v-if="issues.emptyTables.length">
           <p class="font-bold text-amber-600">
-            {{ tr('空桌') }} {{ issues.emptyTables.length }} {{ tr('桌') }}：{{ issues.emptyTables.join('、') }}
+            {{ tr('空桌') }} {{ issues.emptyTables.length }} {{ tr('桌') }}{{ tr('：') }}{{ listJoin(issues.emptyTables) }}
           </p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">
             {{ tr('继续导出时这些桌会以空白桌保留在座位图和桌卡中；不需要请删除空桌或减少桌数。') }}
           </p>
         </div>
         <div v-if="issues.overCapacity.length">
-          <p class="font-bold text-red-600">{{ tr('超员的桌') }}（{{ issues.overCapacity.length }}）</p>
-          <p class="mt-0.5 text-xs leading-5 text-slate-600">{{ issues.overCapacity.join('、') }}</p>
+          <p class="font-bold text-red-600">
+            {{ tr('超员的桌') }}{{ tr('（') }}{{ issues.overCapacity.length }}{{ tr('）') }}
+          </p>
+          <p class="mt-0.5 text-xs leading-5 text-slate-600">{{ listJoin(issues.overCapacity) }}</p>
         </div>
         <div v-if="issues.overlaps.length">
           <p class="font-bold text-red-600">{{ tr('位置重叠的餐桌') }}</p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">
-            {{ issues.overlaps.map(([a, b]) => `${a} ↔ ${b}`).join('；') }}
+            {{ issues.overlaps.map(([a, b]) => `${a} ↔ ${b}`).join(tr('；')) }}
           </p>
         </div>
         <div v-if="issues.duplicateNames.length">
-          <p class="font-bold text-amber-600">{{ tr('同名宾客') }}（{{ issues.duplicateNames.length }}）</p>
+          <p class="font-bold text-amber-600">
+            {{ tr('同名宾客') }}{{ tr('（') }}{{ issues.duplicateNames.length }}{{ tr('）') }}
+          </p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">
-            {{ issues.duplicateNames.join('、') }}。{{ tr('同名会被当作不同宾客各占一座；如为同一人请删除多余行，如为不同人建议在姓名后加备注区分。') }}
+            {{ listJoin(issues.duplicateNames) }}{{ tr('。') }}{{ tr('同名会被当作不同宾客各占一座；如为同一人请删除多余行，如为不同人建议在姓名后加备注区分。') }}
           </p>
         </div>
       </div>
@@ -1383,7 +1562,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
       @close="exportChoiceOpen = false"
     >
       <p class="text-sm text-slate-600">
-        {{ tr('带水印导出永远免费、不限次数（页脚一行 seatmark.cn 细线签名）；无水印导出今日剩余') }} {{ quota.remaining }}。
+        {{ tr('带水印导出永远免费、不限次数（页脚一行 seatmark.cn 细线签名）；无水印导出今日剩余') }} {{ quota.remaining }}{{ tr('。') }}
       </p>
       <template #actions>
         <button type="button" class="btn btn-secondary btn-md" @click="chooseWatermarked">
@@ -1480,7 +1659,43 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         </div>
       </div>
     </Teleport>
+    <div
+      v-if="batchBarVisible"
+      class="no-print fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white shadow-[0_-1px_3px_rgba(15,23,42,0.05)]"
+      data-testid="batch-group-bar"
+      role="toolbar"
+      :aria-label="tr('批量分组')"
+    >
+      <div class="mx-auto flex h-12 w-full max-w-[1480px] items-center gap-2 px-3 sm:px-4">
+        <SelectField
+          v-model="batchGroupId"
+          :options="batchGroupOptions"
+          size="sm"
+          class="min-w-0 flex-1 sm:max-w-64"
+          data-testid="batch-group-select"
+        />
+        <button
+          type="button"
+          class="btn btn-primary btn-sm shrink-0"
+          :disabled="!selectedCount || !batchGroupId || batchGroupId === NEW_GROUP_VALUE"
+          data-testid="batch-group-apply"
+          @click="applyBatchGroup(batchGroupId)"
+        >
+          {{ tr('应用到已选') }} {{ selectedCount }} {{ tr('人') }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm shrink-0"
+          :disabled="!selectedCount"
+          data-testid="batch-group-clear"
+          @click="applyBatchGroup(null)"
+        >
+          {{ tr('清除分组') }}
+        </button>
+      </div>
+    </div>
     <NextStepBar
+      v-else
       :step="nextStep"
       :arrange-label="tr('自动分配')"
       :progress="nextStepProgress"
