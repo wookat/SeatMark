@@ -749,7 +749,7 @@ function toDeskLabels() {
                           'seating-row-handle--active': selectedRow === r,
                           'seating-seat--drop-target': dragging && dropRowTarget === r,
                         }"
-                        :title="`${tr('排')} ${r + 1}：${tr('点击或拖拽与另一排交换')}`"
+                        :title="`${tr('第')} ${r + 1} ${tr('排：')}${tr('点击或拖拽与另一排交换')}`"
                         :data-row-index="r"
                         @click="onRowHandleClick(r)"
                         @pointerdown="onRowPointerDown(r, $event)"

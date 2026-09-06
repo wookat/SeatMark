@@ -132,7 +132,7 @@ const mergedDuplicates = ref<string[]>([])
 const mergedDuplicatesText = computed(() => {
   const list = mergedDuplicates.value
   if (!list.length) return ''
-  const sample = list.slice(0, 5).join('、')
+  const sample = listJoin(list.slice(0, 5))
   return list.length > 5 ? `${sample}…` : sample
 })
 
@@ -995,7 +995,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
               role="status"
               aria-live="polite"
             >
-              {{ tr('已合并') }} {{ mergedDuplicates.length }} {{ tr('个重复姓名') }}：{{ mergedDuplicatesText }}
+              {{ tr('已合并') }} {{ mergedDuplicates.length }} {{ tr('个重复姓名') }}{{ tr('：') }}{{ mergedDuplicatesText }}
             </p>
             <div
               v-if="guests.length"
@@ -1274,7 +1274,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             <span class="font-semibold text-slate-800">{{ g.groupName }}</span>
             <span aria-hidden="true" class="text-slate-400">→</span>
             <span>
-              {{ g.tables.map((x) => `${x.name}（${x.count} ${tr('人')}）`).join('、') }}
+              {{ listJoin(g.tables.map((x) => `${x.name}${tr('（')}${x.count} ${tr('人')}${tr('）')}`)) }}
             </span>
           </li>
         </ul>
@@ -1476,31 +1476,37 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
     <ModalDialog :open="issuesOpen" :title="tr('导出前检查发现问题')" size="md" @close="issuesOpen = false">
       <div v-if="issues" class="flex flex-col gap-3 text-sm text-slate-700">
         <div v-if="issues.unassigned.length">
-          <p class="font-bold text-amber-600">{{ tr('未安排的宾客') }}（{{ issues.unassigned.length }}）</p>
-          <p class="mt-0.5 text-xs leading-5 text-slate-600">{{ issues.unassigned.join('、') }}</p>
+          <p class="font-bold text-amber-600">
+            {{ tr('未安排的宾客') }}{{ tr('（') }}{{ issues.unassigned.length }}{{ tr('）') }}
+          </p>
+          <p class="mt-0.5 text-xs leading-5 text-slate-600">{{ listJoin(issues.unassigned) }}</p>
         </div>
         <div v-if="issues.emptyTables.length">
           <p class="font-bold text-amber-600">
-            {{ tr('空桌') }} {{ issues.emptyTables.length }} {{ tr('桌') }}：{{ issues.emptyTables.join('、') }}
+            {{ tr('空桌') }} {{ issues.emptyTables.length }} {{ tr('桌') }}{{ tr('：') }}{{ listJoin(issues.emptyTables) }}
           </p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">
             {{ tr('继续导出时这些桌会以空白桌保留在座位图和桌卡中；不需要请删除空桌或减少桌数。') }}
           </p>
         </div>
         <div v-if="issues.overCapacity.length">
-          <p class="font-bold text-red-600">{{ tr('超员的桌') }}（{{ issues.overCapacity.length }}）</p>
-          <p class="mt-0.5 text-xs leading-5 text-slate-600">{{ issues.overCapacity.join('、') }}</p>
+          <p class="font-bold text-red-600">
+            {{ tr('超员的桌') }}{{ tr('（') }}{{ issues.overCapacity.length }}{{ tr('）') }}
+          </p>
+          <p class="mt-0.5 text-xs leading-5 text-slate-600">{{ listJoin(issues.overCapacity) }}</p>
         </div>
         <div v-if="issues.overlaps.length">
           <p class="font-bold text-red-600">{{ tr('位置重叠的餐桌') }}</p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">
-            {{ issues.overlaps.map(([a, b]) => `${a} ↔ ${b}`).join('；') }}
+            {{ issues.overlaps.map(([a, b]) => `${a} ↔ ${b}`).join(tr('；')) }}
           </p>
         </div>
         <div v-if="issues.duplicateNames.length">
-          <p class="font-bold text-amber-600">{{ tr('同名宾客') }}（{{ issues.duplicateNames.length }}）</p>
+          <p class="font-bold text-amber-600">
+            {{ tr('同名宾客') }}{{ tr('（') }}{{ issues.duplicateNames.length }}{{ tr('）') }}
+          </p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">
-            {{ issues.duplicateNames.join('、') }}。{{ tr('同名会被当作不同宾客各占一座；如为同一人请删除多余行，如为不同人建议在姓名后加备注区分。') }}
+            {{ listJoin(issues.duplicateNames) }}{{ tr('。') }}{{ tr('同名会被当作不同宾客各占一座；如为同一人请删除多余行，如为不同人建议在姓名后加备注区分。') }}
           </p>
         </div>
       </div>
@@ -1556,7 +1562,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
       @close="exportChoiceOpen = false"
     >
       <p class="text-sm text-slate-600">
-        {{ tr('带水印导出永远免费、不限次数（页脚一行 seatmark.cn 细线签名）；无水印导出今日剩余') }} {{ quota.remaining }}。
+        {{ tr('带水印导出永远免费、不限次数（页脚一行 seatmark.cn 细线签名）；无水印导出今日剩余') }} {{ quota.remaining }}{{ tr('。') }}
       </p>
       <template #actions>
         <button type="button" class="btn btn-secondary btn-md" @click="chooseWatermarked">

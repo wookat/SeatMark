@@ -215,7 +215,7 @@ async function submitReserve() {
     </div>
 
     <p class="mt-6 text-center text-xs text-slate-600">
-      {{ t('在线支付通道开通前，专业版通过兑换码开通') }}（<RouterLink :to="localePath('/account#redeem')" class="font-semibold text-brand-600 hover:underline">{{ t('去兑换') }}</RouterLink>）；{{ t('团队版预订登记不收取任何费用；所有名单数据仅在浏览器本地处理，不会上传服务器。') }}
+      {{ t('在线支付通道开通前，专业版通过兑换码开通') }}{{ t('（') }}<RouterLink :to="localePath('/account#redeem')" class="font-semibold text-brand-600 hover:underline">{{ t('去兑换') }}</RouterLink>{{ t('）；') }}{{ t('团队版预订登记不收取任何费用；所有名单数据仅在浏览器本地处理，不会上传服务器。') }}
     </p>
 
     <!-- FAQ -->
