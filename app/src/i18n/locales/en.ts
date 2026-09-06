@@ -1510,6 +1510,8 @@ export const en: Record<string, string> = {
   '共 {n} 篇教程': '{n} guides',
   '该条件下暂无教程，换个关键词或筛选条件试试。': 'No guides match these filters. Try another keyword or filter.',
   '清除筛选': 'Reset filters',
+  '（已选': '(',
+  '项）': 'selected)',
   '也许你想看这些教程': 'You might also like',
   '约 {n} 分钟读完': '{n} min read',
   '阅读全文': 'Read more',

@@ -30,12 +30,13 @@ const TONE_PATH: Record<ToastType, string> = {
 </script>
 
 <template>
-  <!-- 底部右侧堆叠：避开工坊预览区吸顶工具栏与页头，同时让开右下角反馈按钮 -->
+  <!-- 底部右侧堆叠：避开工坊预览区吸顶工具栏与页头，同时让开右下角反馈按钮；
+       底部操作条可见（html.has-next-step-bar）时反馈按钮上移到 4.25rem，Toast 随之上移到其顶部（7.25rem）之上 -->
   <div
     role="status"
     aria-live="polite"
     :aria-label="t('操作提示')"
-    class="no-print pointer-events-none fixed right-3 bottom-20 z-[70] flex w-[calc(100vw-1.5rem)] max-w-80 flex-col-reverse gap-2 sm:right-4"
+    class="no-print pointer-events-none fixed right-3 bottom-20 z-[70] flex w-[calc(100vw-1.5rem)] max-w-80 flex-col-reverse gap-2 sm:right-4 [.has-next-step-bar_&]:bottom-[8rem]"
   >
     <TransitionGroup
       enter-active-class="transition duration-200 ease-out"

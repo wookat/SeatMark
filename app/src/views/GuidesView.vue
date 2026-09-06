@@ -14,6 +14,31 @@ const activeCategory = ref('全部')
 const activeAudience = ref('全部')
 const searchQuery = ref('')
 
+/** <769px 下筛选面板默认折叠为一行（sticky），展开后变为 static 不再占视口；≥769px 忽略此状态 */
+const filtersOpen = ref(false)
+
+/** 折叠行上展示的已选条件（不含「全部」） */
+const activeFilterChips = computed(() => {
+  const chips: { key: string; label: string; clear: () => void }[] = []
+  if (activeCategory.value !== '全部') {
+    chips.push({
+      key: 'category',
+      label: t(activeCategory.value),
+      clear: () => (activeCategory.value = '全部'),
+    })
+  }
+  if (activeAudience.value !== '全部') {
+    chips.push({
+      key: 'audience',
+      label: t(activeAudience.value),
+      clear: () => (activeAudience.value = '全部'),
+    })
+  }
+  const q = searchQuery.value.trim()
+  if (q) chips.push({ key: 'query', label: `“${q}”`, clear: () => (searchQuery.value = '') })
+  return chips
+})
+
 const categories = computed(() => ['全部', ...new Set(guides.map((g) => g.category))])
 const audiences = computed(() => ['全部', ...new Set(guides.flatMap((g) => g.audiences))])
 
@@ -69,68 +94,124 @@ const recommendedGuides = computed(() => {
       <ZhOnlyNotice />
     </div>
 
-    <!-- 筛选器 -->
+    <!-- 筛选器：移动端默认折叠为一行 sticky，展开时不再 sticky；桌面端始终展开且 static -->
     <div
-      class="sticky top-14 z-20 -mx-4 mt-8 grid gap-3 border-b border-slate-200 bg-white px-4 py-3 min-[769px]:static min-[769px]:mx-0 min-[769px]:border-0 min-[769px]:bg-transparent min-[769px]:p-0"
+      class="-mx-4 mt-8 border-b border-slate-200 bg-white px-4 min-[769px]:static min-[769px]:mx-0 min-[769px]:border-0 min-[769px]:bg-transparent min-[769px]:p-0"
+      :class="filtersOpen ? 'static' : 'sticky top-14 z-20'"
       data-testid="guides-filter-bar"
     >
-      <label class="relative mx-auto block w-full max-w-md">
-        <svg
-          class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-600"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.6"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <circle cx="7" cy="7" r="4.5" />
-          <path d="m10.5 10.5 3 3" />
-        </svg>
-        <input
-          v-model="searchQuery"
-          type="search"
-          :placeholder="t('搜索教程，支持拼音、首字母，如“打印”“dayin”“jkz”')"
-          class="w-full rounded-lg border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm text-slate-700 shadow-sm placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
-        />
-      </label>
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="shrink-0 text-xs font-bold text-slate-600">{{ t('主题') }}</span>
+      <div class="flex h-12 items-center gap-2 min-[769px]:hidden" data-testid="guides-filter-toggle-row">
         <button
-          v-for="cat in categories"
-          :key="cat"
           type="button"
-          class="rounded-full border px-3 py-1 text-xs font-bold transition-colors"
-          :class="
-            activeCategory === cat
-              ? 'border-brand-600 bg-brand-600 text-white'
-              : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600'
-          "
-          @click="activeCategory = cat"
+          class="btn btn-secondary btn-sm shrink-0"
+          :aria-expanded="filtersOpen"
+          aria-controls="guides-filter-panel"
+          data-testid="guides-filter-toggle"
+          @click="filtersOpen = !filtersOpen"
         >
-          {{ t(cat) }}
+          <svg
+            class="size-3.5 transition-transform"
+            :class="{ 'rotate-180': filtersOpen }"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m4 6 4 4 4-4" />
+          </svg>
+          {{ t('筛选') }}
+          <span v-if="activeFilterChips.length" class="font-normal text-slate-500">
+            {{ t('（已选') }} {{ activeFilterChips.length }} {{ t('项）') }}
+          </span>
         </button>
-      </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="shrink-0 text-xs font-bold text-slate-600">{{ t('群体') }}</span>
-        <button
-          v-for="aud in audiences"
-          :key="aud"
-          type="button"
-          class="rounded-full border px-3 py-1 text-xs font-bold transition-colors"
-          :class="
-            activeAudience === aud
-              ? 'border-brand-600 bg-brand-600 text-white'
-              : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600'
-          "
-          @click="activeAudience = aud"
+        <div
+          v-if="activeFilterChips.length"
+          class="flex min-w-0 flex-1 gap-1.5 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          data-testid="guides-filter-chips"
         >
-          {{ t(aud) }}
-        </button>
+          <button
+            v-for="chip in activeFilterChips"
+            :key="chip.key"
+            type="button"
+            class="inline-flex shrink-0 items-center gap-1 rounded-full border border-brand-600 bg-brand-600 px-2.5 py-1 text-xs font-bold text-white"
+            :aria-label="`${t('清除筛选')} ${chip.label}`"
+            @click="chip.clear()"
+          >
+            {{ chip.label }}
+            <span aria-hidden="true">✕</span>
+          </button>
+        </div>
+        <p v-else class="min-w-0 flex-1 truncate text-xs text-slate-600">
+          {{ t('共 {n} 篇教程').replace('{n}', String(filteredGuides.length)) }}
+        </p>
       </div>
-      <p class="text-xs text-slate-600">
-        {{ t('共 {n} 篇教程').replace('{n}', String(filteredGuides.length)) }}
-      </p>
+      <div
+        id="guides-filter-panel"
+        class="gap-3 pb-3 min-[769px]:grid min-[769px]:p-0"
+        :class="filtersOpen ? 'grid' : 'hidden'"
+        data-testid="guides-filter-panel"
+      >
+        <label class="relative mx-auto block w-full max-w-md">
+          <svg
+            class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-600"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="7" cy="7" r="4.5" />
+            <path d="m10.5 10.5 3 3" />
+          </svg>
+          <input
+            v-model="searchQuery"
+            type="search"
+            :placeholder="t('搜索教程，支持拼音、首字母，如“打印”“dayin”“jkz”')"
+            class="w-full rounded-lg border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm text-slate-700 shadow-sm placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
+          />
+        </label>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="shrink-0 text-xs font-bold text-slate-600">{{ t('主题') }}</span>
+          <button
+            v-for="cat in categories"
+            :key="cat"
+            type="button"
+            class="rounded-full border px-3 py-1 text-xs font-bold transition-colors"
+            :class="
+              activeCategory === cat
+                ? 'border-brand-600 bg-brand-600 text-white'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600'
+            "
+            @click="activeCategory = cat"
+          >
+            {{ t(cat) }}
+          </button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="shrink-0 text-xs font-bold text-slate-600">{{ t('群体') }}</span>
+          <button
+            v-for="aud in audiences"
+            :key="aud"
+            type="button"
+            class="rounded-full border px-3 py-1 text-xs font-bold transition-colors"
+            :class="
+              activeAudience === aud
+                ? 'border-brand-600 bg-brand-600 text-white'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600'
+            "
+            @click="activeAudience = aud"
+          >
+            {{ t(aud) }}
+          </button>
+        </div>
+        <p class="text-xs text-slate-600">
+          {{ t('共 {n} 篇教程').replace('{n}', String(filteredGuides.length)) }}
+        </p>
+      </div>
     </div>
 
     <div
