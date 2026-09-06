@@ -71,6 +71,8 @@ function devEnv() {
     ALERT_WEBHOOK: process.env.ALERT_WEBHOOK || '',
     // 本地联调放行内存存储（生产 memory 降级时持久化写入路由 fail closed 503）
     SEATMARK_ALLOW_MEMORY_STORAGE: '1',
+    // 邮件未配置时允许回显 devCode（生产不注入；边缘函数不再看 Host 头判定本地）
+    DEV: '1',
   }
 }
 

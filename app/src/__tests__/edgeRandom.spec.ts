@@ -12,7 +12,7 @@ import { onRequest } from '../../../edge-functions/api/[[default]].js'
 
 const CAPTCHA_CHARSET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'
 const CAPTCHA_LENGTH = 4
-const ENV = { SEATMARK_ALLOW_MEMORY_STORAGE: '1' }
+const ENV = { SEATMARK_ALLOW_MEMORY_STORAGE: '1', DEV: '1' }
 
 describe('_random 工具', () => {
   it('randomInt 落在 [0, max) 且覆盖到边界值', () => {

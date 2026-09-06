@@ -1,11 +1,16 @@
 <script setup lang="ts">
 /**
  * /en 下仅有中文正文的内容站索引页（教程 / 模板 / 纸型 / 对比）顶部提示条：
- * 明确告知本节暂仅中文，并指向已完整英文化的功能页。
+ * 明确告知本节暂仅中文，并给出中文原页与已完整英文化的功能页链接。
  */
-import { useI18n } from '@/i18n'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+import { stripLocalePrefix, useI18n } from '@/i18n'
 
 const { locale } = useI18n()
+const route = useRoute()
+const zhPath = computed(() => stripLocalePrefix(route.path))
 </script>
 
 <template>
@@ -20,7 +25,14 @@ const { locale } = useI18n()
       This section is currently available in Chinese only. The Studio, Seating Chart, Banquet
       planner and Pricing pages are fully in English.
     </p>
-    <p class="flex shrink-0 gap-3 font-semibold">
+    <p class="flex shrink-0 flex-wrap gap-3 font-semibold">
+      <RouterLink
+        :to="zhPath"
+        class="underline decoration-amber-400 underline-offset-2 hover:text-amber-950"
+        data-testid="zh-only-notice-zh-link"
+      >
+        View in Chinese
+      </RouterLink>
       <RouterLink to="/en/studio" class="underline decoration-amber-400 underline-offset-2 hover:text-amber-950">
         Open Studio
       </RouterLink>

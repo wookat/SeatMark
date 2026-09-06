@@ -276,6 +276,23 @@ describe('splitGroups', () => {
     expect(split[0]!.tableNames.sort()).toEqual(['A', 'B'])
   })
 
+  it('给出每桌的分组人数（按桌位顺序）', () => {
+    const t1 = table('A', 6)
+    const t2 = table('B', 6)
+    const t3 = table('C', 6)
+    t1.guestIds = ['g1', 'g2', 'g3']
+    t2.guestIds = ['g4']
+    t3.guestIds = ['g5', 'g6']
+    const guests = ['g1', 'g2', 'g3', 'g4', 'g5', 'g6'].map((id) => guest(id, 'gA'))
+    const split = splitGroups(guests, [t1, t2, t3], groups)
+    expect(split).toHaveLength(1)
+    expect(split[0]!.tables).toEqual([
+      { name: 'A', count: 3 },
+      { name: 'B', count: 1 },
+      { name: 'C', count: 2 },
+    ])
+  })
+
   it('未分组宾客与未安排宾客不计入拆分', () => {
     const t1 = table('A', 4)
     const t2 = table('B', 4)

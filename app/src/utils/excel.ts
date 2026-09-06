@@ -132,6 +132,17 @@ export async function parseExcelFile(file: File, targetSheet?: string): Promise<
   return { fileName: file.name, sheetName, sheetNames, headers, rows }
 }
 
+/** 模块级复用的中文排序器（含数字串自然序）；运行时无 Intl 时为 null，回退 localeCompare */
+const ZH_COLLATOR: Intl.Collator | null = (() => {
+  try {
+    return typeof Intl !== 'undefined' && typeof Intl.Collator === 'function'
+      ? new Intl.Collator('zh-Hans-CN', { numeric: true })
+      : null
+  } catch {
+    return null
+  }
+})()
+
 /**
  * Excel 风格的单元格排序比较：两边都是数值时按数值大小，
  * 数值排在文本前，文本按中文区域（拼音）排序。
@@ -144,7 +155,7 @@ export function compareCellText(a: string, b: string): number {
   if (aIsNum && bIsNum) return na - nb
   if (aIsNum) return -1
   if (bIsNum) return 1
-  return a.localeCompare(b, 'zh-Hans-CN')
+  return ZH_COLLATOR ? ZH_COLLATOR.compare(a, b) : a.localeCompare(b, 'zh-Hans-CN')
 }
 
 /** 按当前模板场景生成并下载样例 Excel（本地生成，不经过服务器） */
