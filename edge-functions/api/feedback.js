@@ -120,6 +120,7 @@ async function handleRequest(context) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(8000),
       })
     } catch {
       // 推送失败不阻塞用户，静默忽略

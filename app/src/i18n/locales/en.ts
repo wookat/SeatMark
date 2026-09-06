@@ -82,8 +82,8 @@ export const en: Record<string, string> = {
   ...enTemplateDescriptions,
   ...categoryLabelEn,
   '(空白)': '(blank)',
-  '150+ 款内置模板覆盖考场桌贴、座位号贴、考号贴、门贴门牌、会议桌牌 / 桌签 / 台签 / 席卡、医院床头卡、政务窗口牌、餐饮外卖架、图书馆索书标、驿站货架、学生证、工作证、胸卡出入证等场景；纸张与设计器可再自定义，字段、尺寸与排版都可自由调整。':
-    '150+ built-in templates cover exam desk labels, seat number stickers, door signs, conference table tents, place cards, hospital bed cards, service-window signs, shelf labels, student IDs, staff badges and more; paper presets and the designer let you adjust fields, sizes and layout freely.',
+  '款内置模板覆盖考场桌贴、座位号贴、考号贴、门贴门牌、会议桌牌 / 桌签 / 台签 / 席卡、医院床头卡、政务窗口牌、餐饮外卖架、图书馆索书标、驿站货架、学生证、工作证、胸卡出入证等场景；纸张与设计器可再自定义，字段、尺寸与排版都可自由调整。':
+    'built-in templates cover exam desk labels, seat number stickers, door signs, conference table tents, place cards, hospital bed cards, service-window signs, shelf labels, student IDs, staff badges and more; paper presets and the designer let you adjust fields, sizes and layout freely.',
   'A4 实际排版效果 · 24 枚/页': 'Actual A4 layout · 24 labels per page',
   'Excel 名单与照片全部在浏览器内解析，不发送到我们的服务器；只有账号、反馈、AI 设计等可选功能才产生服务端请求。':
     'Your spreadsheet and photos are parsed entirely in the browser and never sent to our servers; only optional features (account, feedback, AI design) make server requests.',
@@ -731,7 +731,7 @@ export const en: Record<string, string> = {
   '次无水印导出（带水印不限次）': 'watermark-free exports (watermarked is unlimited)',
   '次无水印导出（服务端去重防刷，每日上限': 'watermark-free exports (server-side dedup, daily cap',
   '次无水印导出（未登录': 'watermark-free exports (signed out',
-  '次（免费登录即升为每日': '(free sign-in raises it to',
+  '次（免费登录即升为每日': '(signing up (free) raises it to',
   '次（登录后': '(after sign-in',
   '次）': 'per day)',
   '次）。': 'per day).',
@@ -838,7 +838,7 @@ export const en: Record<string, string> = {
   '重置失败，请稍后再试': 'Reset failed, please try again later',
   '重置密码并登录': 'Reset password & sign in',
   '长桌': 'Long table',
-  '限时 0 折免费 · 可预订': 'Free for a limited time · reservable',
+  '限时 0 折免费 · 可预订': 'Free for a limited time · Reserve now',
   '限时 0 折免费 · 注册送 7 天': 'Free for a limited time · 7-day trial on sign-up',
   '随机排座': 'Random seating',
   '顶部标注讲台位置': 'Mark podium position at the top',

@@ -3,6 +3,8 @@
  * 每页承接一个高意图搜索词面：首屏直达生成器 CTA + 三步用法 + FAQ + 相关模板/教程内链。
  */
 
+import { TEMPLATE_COUNT } from './templateMeta'
+
 export interface TopicStep {
   name: string
   text: string
@@ -54,7 +56,7 @@ export const topicPages: TopicPage[] = [
     steps: [
       {
         name: '选桌牌模板',
-        text: '从会议桌牌、领导席卡、对折台签等 222+ 款免费模板中挑一款，尺寸精确到毫米，也可自定义。',
+        text: `从会议桌牌、领导席卡、对折台签等 ${TEMPLATE_COUNT} 款免费模板中挑一款，尺寸精确到毫米，也可自定义。`,
       },
       {
         name: '上传 Excel 名单',
@@ -117,7 +119,7 @@ export const topicPages: TopicPage[] = [
       },
       {
         name: '选卡片样式与尺寸',
-        text: '222+ 款免费模板按场景挑选，尺寸按毫米设置；选不干胶纸型可自动对版。',
+        text: `${TEMPLATE_COUNT} 款免费模板按场景挑选，尺寸按毫米设置；选不干胶纸型可自动对版。`,
       },
       {
         name: '打印或导出',
