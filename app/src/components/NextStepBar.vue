@@ -54,7 +54,24 @@ function observe(el: HTMLElement | null) {
 watch(() => props.target, observe, { immediate: true })
 onBeforeUnmount(() => observer?.disconnect())
 
-const visible = computed(() => !!props.target && targetOffscreen.value)
+/** 键盘焦点在操作条内时保持显示，避免 Tab 到达后因目标区块恢入视口而丢焦 */
+const barFocused = ref(false)
+
+const visible = computed(() => !!props.target && (targetOffscreen.value || barFocused.value))
+
+/** 操作条可见时在 <html> 上标记，让其他底部浮层（反馈按钮等）让出高度 */
+const BAR_CLASS = 'has-next-step-bar'
+watch(
+  visible,
+  (on) => {
+    if (typeof document === 'undefined') return
+    document.documentElement.classList.toggle(BAR_CLASS, on)
+  },
+  { immediate: true },
+)
+onBeforeUnmount(() => {
+  if (typeof document !== 'undefined') document.documentElement.classList.remove(BAR_CLASS)
+})
 
 function prefersReducedMotion() {
   return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -74,6 +91,8 @@ function go() {
     v-if="visible"
     class="no-print fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white shadow-[0_-1px_3px_rgba(15,23,42,0.05)]"
     data-testid="next-step-bar"
+    @focusin="barFocused = true"
+    @focusout="barFocused = false"
   >
     <div class="mx-auto flex h-12 w-full max-w-[1480px] items-center justify-between gap-3 px-4">
       <p class="min-w-0 truncate text-xs text-slate-500" data-testid="next-step-progress">{{ progress }}</p>

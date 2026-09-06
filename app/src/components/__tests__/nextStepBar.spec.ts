@@ -79,6 +79,62 @@ describe('NextStepBar', () => {
     expect(disconnect).toHaveBeenCalled()
   })
 
+  it('键盘焦点在操作条内时，目标进入视口也保持显示；失焦后隐藏', async () => {
+    let callback: IntersectionObserverCallback | undefined
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(cb: IntersectionObserverCallback) {
+          callback = cb
+        }
+        observe() {}
+        disconnect() {}
+        unobserve() {}
+      },
+    )
+    const target = document.createElement('section')
+    const wrapper = mountBar({ step: 'export', arrangeLabel: '自动分配', target })
+    await wrapper.find('[data-testid="next-step-action"]').trigger('focusin')
+
+    callback!([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver)
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[data-testid="next-step-bar"]').exists()).toBe(true)
+
+    await wrapper.find('[data-testid="next-step-action"]').trigger('focusout')
+    expect(wrapper.find('[data-testid="next-step-bar"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('可见时在 <html> 标记 has-next-step-bar，隐藏/卸载时移除', async () => {
+    let callback: IntersectionObserverCallback | undefined
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(cb: IntersectionObserverCallback) {
+          callback = cb
+        }
+        observe() {}
+        disconnect() {}
+        unobserve() {}
+      },
+    )
+    const html = document.documentElement
+    const target = document.createElement('section')
+    const wrapper = mountBar({ step: 'export', arrangeLabel: '自动分配', target })
+    expect(html.classList.contains('has-next-step-bar')).toBe(true)
+
+    callback!([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver)
+    await wrapper.vm.$nextTick()
+    expect(html.classList.contains('has-next-step-bar')).toBe(false)
+
+    callback!([{ isIntersecting: false } as IntersectionObserverEntry], {} as IntersectionObserver)
+    await wrapper.vm.$nextTick()
+    expect(html.classList.contains('has-next-step-bar')).toBe(true)
+
+    wrapper.unmount()
+    expect(html.classList.contains('has-next-step-bar')).toBe(false)
+  })
+
   it('点击后平滑滚动并聚焦目标；prefers-reduced-motion 时不平滑', async () => {
     const target = document.createElement('section')
     document.body.appendChild(target)
