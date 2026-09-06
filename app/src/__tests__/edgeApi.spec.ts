@@ -3,7 +3,7 @@
  * 直接调用 onRequest（内存 KV 降级），覆盖本轮新增的
  * devCode 环境限制与 /api/admin/health 健康检查。
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore JS 模块无类型声明
@@ -983,5 +983,213 @@ describe("Blob 后备存储（KV 未绑定时）", () => {
     expect(data.kvBound).toBe(false);
     expect(data.blobAvailable).toBe(true);
     expect(data.storage).toBe("blob");
+  });
+});
+
+describe("请求体大小预检（413）", () => {
+  it("Content-Length 超过 64KB 直接 413，不读取正文", async () => {
+    const request = new Request("http://localhost:5173/api/share/tpl", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": String(65 * 1024),
+      },
+      body: JSON.stringify({ payload: "v0.abc" }),
+    });
+    const response: Response = await onRequest({
+      request,
+      env: withTestEnv({}),
+    });
+    expect(response.status).toBe(413);
+    expect(((await response.json()) as { error: string }).error).toBe(
+      "请求内容过长",
+    );
+    expect(response.headers.get("X-SeatMark-Rev")).toMatch(/^r\d+$/);
+  });
+
+  it("实际正文超过 64KB 返回 413（Content-Length 缺失/不实也拦得住）", async () => {
+    const { response, data } = await call(
+      "POST",
+      "http://localhost:5173/api/share/tpl",
+      { body: { payload: `v0.${"a".repeat(70 * 1024)}` } },
+    );
+    expect(response.status).toBe(413);
+    expect(data.error).toBe("请求内容过长");
+  });
+
+  it("/api/account/templates 走 512KB 上限：100KB 模板体不被默认 64KB 拦截", async () => {
+    // 未登录 → 401 而不是 413，说明大小预检放行了 100KB 正文
+    const { response } = await call(
+      "PUT",
+      "http://localhost:5173/api/account/templates",
+      { body: { templates: [{ blob: "x".repeat(100 * 1024) }] } },
+    );
+    expect(response.status).toBe(401);
+  });
+});
+
+describe("IP 日限频（share/tpl 60 次、team/reserve 5 次）", () => {
+  it("POST /api/team/reserve 同 IP 第 6 次返回 429", async () => {
+    const kv = new Map<string, string>();
+    const env = {
+      seatmark_kv: {
+        async get(k: string) {
+          return kv.get(k) ?? null;
+        },
+        async put(k: string, v: string) {
+          kv.set(k, v);
+        },
+        async delete(k: string) {
+          kv.delete(k);
+        },
+      },
+    } as unknown as Env;
+    for (let i = 0; i < 5; i++) {
+      const { response } = await call(
+        "POST",
+        "http://localhost:5173/api/team/reserve",
+        { body: { email: `team-${i}@example.com`, teamSize: "10" }, env },
+      );
+      expect(response.status).toBe(200);
+    }
+    const { response, data } = await call(
+      "POST",
+      "http://localhost:5173/api/team/reserve",
+      { body: { email: "team-6@example.com", teamSize: "10" }, env },
+    );
+    expect(response.status).toBe(429);
+    expect(String(data.error)).toContain("请求过于频繁");
+    const rlKeys = [...kv.keys()].filter((k) => k.startsWith("rl:reserve:"));
+    expect(rlKeys).toHaveLength(1);
+    expect(kv.get(rlKeys[0]!)).toBe("5");
+  });
+
+  it("POST /api/share/tpl 同 IP 第 61 次返回 429", async () => {
+    const kv = new Map<string, string>();
+    const env = {
+      seatmark_kv: {
+        async get(k: string) {
+          return kv.get(k) ?? null;
+        },
+        async put(k: string, v: string) {
+          kv.set(k, v);
+        },
+        async delete(k: string) {
+          kv.delete(k);
+        },
+      },
+    } as unknown as Env;
+    for (let i = 0; i < 60; i++) {
+      const { response } = await call(
+        "POST",
+        "http://localhost:5173/api/share/tpl",
+        { body: { payload: `v0.p${i}` }, env },
+      );
+      expect(response.status).toBe(200);
+    }
+    const { response } = await call(
+      "POST",
+      "http://localhost:5173/api/share/tpl",
+      { body: { payload: "v0.p61" }, env },
+    );
+    expect(response.status).toBe(429);
+  });
+});
+
+describe("captcha 消费标记移出关键路径", () => {
+  const PASSWORD = "deferred-secret-7";
+
+  it("usedKey 写入抛错时登录仍返回 200", async () => {
+    const store = new Map<string, string>();
+    const env = {
+      seatmark_kv: {
+        async get(k: string) {
+          return store.get(k) ?? null;
+        },
+        async put(k: string, v: string) {
+          if (k.startsWith("captcha:used:")) throw new Error("blob write 545");
+          store.set(k, v);
+        },
+        async delete(k: string) {
+          store.delete(k);
+        },
+      },
+    } as unknown as Env;
+    const reg = await call("POST", "https://www.seatmark.cn/api/auth/register", {
+      body: { email: "deferred@example.com", password: PASSWORD },
+      env,
+    });
+    expect(reg.response.status).toBe(200);
+    const login = await call("POST", "https://www.seatmark.cn/api/auth/login", {
+      body: { email: "deferred@example.com", password: PASSWORD },
+      env,
+    });
+    expect(login.response.status).toBe(200);
+    expect(login.data.ok).toBe(true);
+    expect([...store.keys()].some((k) => k.startsWith("captcha:used:"))).toBe(false);
+  });
+
+  it("waitUntil 环境下同一 captcha token 第二次登录返回「验证码已使用」", async () => {
+    await call("POST", "https://www.seatmark.cn/api/auth/login", {
+      body: { email: "dup-cap@example.com", password: PASSWORD },
+    });
+    await call("POST", "https://www.seatmark.cn/api/auth/register", {
+      body: { email: "dup-cap@example.com", password: PASSWORD },
+    });
+    const cap = await solvedCaptcha();
+    const pending: Promise<unknown>[] = [];
+    const context = {
+      env: withTestEnv({}),
+      waitUntil(p: Promise<unknown>) {
+        pending.push(p);
+      },
+    };
+    const mk = () =>
+      new Request("https://www.seatmark.cn/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "dup-cap@example.com", password: PASSWORD, ...cap }),
+      });
+    const first: Response = await onRequest({ ...context, request: mk() });
+    expect(first.status).toBe(200);
+    // 后台写链完成后再复用令牌
+    await Promise.all(pending);
+    const second: Response = await onRequest({ ...context, request: mk() });
+    expect(second.status).toBe(400);
+    expect(((await second.json()) as { error: string }).error).toContain("验证码已使用");
+  });
+});
+
+describe("Blob SDK 加载瞬时失败后可重试", () => {
+  it("首次 getStore 抛错降级 memory（写路由 503），下一请求重试成功走 blob", async () => {
+    vi.resetModules();
+    const blob = createMockBlobStore();
+    let calls = 0;
+    vi.doMock("@edgeone/pages-blob", () => ({
+      getStore() {
+        calls++;
+        if (calls === 1) throw new Error("transient import failure");
+        return blob;
+      },
+    }));
+    const mod = await vi.importActual<{
+      onRequest: (ctx: unknown) => Promise<Response>;
+    }>("../../../edge-functions/api/[[default]].js");
+    const env: Env = { AUTH_SECRET: "test-secret" };
+    const mk = () =>
+      new Request("http://localhost:5173/api/share/tpl", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload: "v0.retry" }),
+      });
+    const first = await mod.onRequest({ request: mk(), env });
+    expect(first.headers.get("X-SeatMark-Storage")).toBe("memory");
+    expect(first.status).toBe(503);
+    const second = await mod.onRequest({ request: mk(), env });
+    expect(second.headers.get("X-SeatMark-Storage")).toBe("blob");
+    expect(second.status).toBe(200);
+    expect(calls).toBe(2);
+    vi.doUnmock("@edgeone/pages-blob");
+    vi.resetModules();
   });
 });

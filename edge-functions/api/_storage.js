@@ -82,7 +82,10 @@ async function getBlobStore(env) {
   }
   if (blobStorePromise) return blobStorePromise
   blobStorePromise = loadBlobStore()
-  return blobStorePromise
+  const store = await blobStorePromise
+  // 瞬时 import/初始化失败不能让 isolate 终身降级内存（写路由全部 503）：下次请求重试
+  if (!store) blobStorePromise = null
+  return store
 }
 
 async function loadBlobStore() {

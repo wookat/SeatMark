@@ -162,6 +162,29 @@ const hostWatermark = computed(
 /** 导出方式选择弹窗：pdf = 图片版 PDF，print = 浏览器打印，png = 图片 PNG */
 const exportChoiceOpen = ref(false)
 const pendingAction = ref<'pdf' | 'print' | 'png'>('pdf')
+/** 本次弹窗内用户已点「仍然导出」，收起未映射字段提示；重新打开弹窗重置 */
+const unmappedAcknowledged = ref(false)
+const emit = defineEmits<{ focusMapping: [] }>()
+
+/** 未映射字段提示条文案：最多列 3 个字段名作例 */
+const unmappedNotice = computed(() => {
+  const fields = workspace.unmappedFields
+  if (!fields.length) return null
+  const examples = fields.slice(0, 3).map((f) => f.label).join(t('、'))
+  return { count: fields.length, examples: fields.length > 3 ? `${examples}…` : examples }
+})
+
+function goToMapping() {
+  exportChoiceOpen.value = false
+  emit('focusMapping')
+}
+
+/** 三种输出的一句话差异，弹窗内直接可见（不再只靠按钮 title） */
+const outputSubtitles = computed<Record<'print' | 'pdf' | 'png', string>>(() => ({
+  print: t('打印 / 矢量 PDF：文字可选中，走系统打印'),
+  pdf: t('图片版 PDF：每页高清栅格，体积较大'),
+  png: t('PNG：逐张成图，多张自动 ZIP'),
+}))
 
 // ---------- PNG 导出参数 ----------
 /** 成图单位：label = 按标签逐张成图（默认）；page = 整页成图 */
@@ -456,6 +479,7 @@ async function rebuildHost() {
 function openExportChoice(action: 'pdf' | 'print' | 'png') {
   if (!workspace.excel.rows.length) return
   pendingAction.value = action
+  unmappedAcknowledged.value = false
   exportChoiceOpen.value = true
 }
 
@@ -1197,6 +1221,33 @@ const hintKey = ref<HintKey | null>(null)
       size="md"
       @close="exportChoiceOpen = false"
     >
+      <div
+        v-if="unmappedNotice && !unmappedAcknowledged"
+        data-testid="unmapped-export-notice"
+        role="status"
+        class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"
+      >
+        <p class="min-w-0 flex-1">
+          <strong>{{ unmappedNotice.count }}</strong> {{ t('个字段未映射（') }}{{ unmappedNotice.examples }}{{ t('），成品中将留空。') }}
+        </p>
+        <span class="flex shrink-0 items-center gap-1.5">
+          <button type="button" class="btn btn-secondary btn-sm" data-testid="unmapped-go-mapping" @click="goToMapping">
+            {{ t('去映射') }}
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" data-testid="unmapped-export-anyway" @click="unmappedAcknowledged = true">
+            {{ t('仍然导出') }}
+          </button>
+        </span>
+      </div>
+      <ul class="mb-3 space-y-0.5 text-xs leading-5 text-slate-500" data-testid="output-subtitles">
+        <li
+          v-for="(text, key) in outputSubtitles"
+          :key="key"
+          :class="key === pendingAction ? 'font-semibold text-slate-700' : ''"
+        >
+          {{ text }}
+        </li>
+      </ul>
       <div v-if="pendingAction === 'png'" class="mb-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
         <label class="field-label" for="png-unit">{{ t('成图单位') }}</label>
         <SelectField id="png-unit" v-model="pngExportUnit" size="sm" :options="PNG_UNIT_OPTIONS" />

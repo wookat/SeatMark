@@ -102,20 +102,27 @@ export const useQuotaStore = defineStore('quota', () => {
           auth.user = null
           // 会话失效则退回未登录本地计数
         } else {
-          // 接口异常（如离线）不阻塞导出：离线可用是产品承诺
-          return { ok: true }
+          // 接口 5xx / 离线：不阻塞导出（离线可用是产品承诺），但按本地计数与账号额度判定，
+          // 避免服务端不可用时无限次无水印导出
+          return consumeLocal(auth.user.quota.limit || QUOTA_ANON_DAILY, 'user-limit')
         }
       }
     }
+    return consumeLocal(QUOTA_ANON_DAILY, 'anon-limit')
+  }
 
+  function consumeLocal(
+    dailyLimit: number,
+    reason: Extract<ConsumeResult, { ok: false }>['reason'],
+  ): ConsumeResult {
     // 消耗前重读本地计数并取与内存的较大值：其他页签已消耗的次数不被覆写回退
     const stored = loadLocalUsage()
     const memoryUsed = localUsage.value.date === todayStr() ? localUsage.value.used : 0
     const used = Math.max(stored.used, memoryUsed)
-    if (used >= QUOTA_ANON_DAILY) {
+    if (used >= dailyLimit) {
       localUsage.value = { date: todayStr(), used }
       limitDialogOpen.value = true
-      return { ok: false, reason: 'anon-limit' }
+      return { ok: false, reason }
     }
     localUsage.value = { date: todayStr(), used: used + 1 }
     persistLocal()

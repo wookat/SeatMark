@@ -55,6 +55,48 @@ describe('验证码与邮箱码使用安全随机', () => {
     }
   })
 
+  it('兑换码 SM-XXXX-XXXX-XXXX 格式正确、字符全落在无歧义字母表且分布无明显偏差', async () => {
+    const env = { ...ENV, ADMIN_EMAILS: 'redeem-admin@example.com' }
+    const post = (path: string, body: unknown, cookie = '') =>
+      onRequest({
+        request: new Request(`http://localhost:5173${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) },
+          body: JSON.stringify(body),
+        }),
+        env,
+      }) as Promise<Response>
+    const codeRes = await post('/api/auth/code', { email: 'redeem-admin@example.com' })
+    const { devCode } = (await codeRes.json()) as { devCode: string }
+    const verifyRes = await post('/api/auth/verify', { email: 'redeem-admin@example.com', code: devCode })
+    const cookie = (verifyRes.headers.get('Set-Cookie') || '').split(';')[0]!
+
+    const counts = new Map<string, number>()
+    let total = 0
+    for (let round = 0; round < 3; round++) {
+      const res = await post('/api/admin/codes', { days: 30, count: 200 }, cookie)
+      expect(res.status).toBe(200)
+      const { codes } = (await res.json()) as { codes: string[] }
+      expect(codes).toHaveLength(200)
+      for (const code of codes) {
+        expect(code).toMatch(/^SM-[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$/)
+        for (const c of code.slice(3).replaceAll('-', '')) {
+          counts.set(c, (counts.get(c) ?? 0) + 1)
+          total++
+        }
+      }
+    }
+    // 7200 次采样、31 个字符：每个字符期望 ≈232 次（σ≈15），全部出现且落在 ±35%（>5σ）内；
+    // 这是防退化的分布健全性检查（±11% 的模偏差需更大样本才能统计判别，无偏性由 randomInt 拒绝采样保证）
+    expect(counts.size).toBe(CAPTCHA_CHARSET.length)
+    const expected = total / CAPTCHA_CHARSET.length
+    for (const c of CAPTCHA_CHARSET) {
+      const n = counts.get(c) ?? 0
+      expect(n).toBeGreaterThan(expected * 0.65)
+      expect(n).toBeLessThan(expected * 1.35)
+    }
+  })
+
   it('memory 存储下未配 AUTH_SECRET 仍可签发会话（开发默认密钥）', async () => {
     const request = new Request('http://localhost:5173/api/auth/code', {
       method: 'POST',

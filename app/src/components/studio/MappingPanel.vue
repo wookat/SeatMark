@@ -92,7 +92,7 @@ function onPhotoFiles(event: Event) {
 </script>
 
 <template>
-  <section class="panel-card">
+  <section class="panel-card" data-mapping-panel tabindex="-1">
     <div class="panel-head">
       <h2 class="section-title"><span class="step-chip">3</span>{{ t('字段映射') }}</h2>
     </div>

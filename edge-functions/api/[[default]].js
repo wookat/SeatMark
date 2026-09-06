@@ -55,7 +55,7 @@
 
 import { getStorage, probeBlob } from './_storage.js'
 import { withSecurityHeaders } from './_security.js'
-import { randomInt, randomDigits, randomToken36 } from './_random.js'
+import { randomInt, randomDigits, randomToken, randomToken36 } from './_random.js'
 
 // ---------- 配额与裂变参数（前端 quota.ts 与此保持一致；计数对象为无水印导出，带水印不限次） ----------
 const QUOTA_ANON_DAILY = 1
@@ -77,6 +77,18 @@ const LOGIN_FAIL_WINDOW_MS = 15 * 60 * 1000
 const REGISTER_IP_DAILY_LIMIT = 20
 const CAPTCHA_TTL_SECONDS = 5 * 60
 const TEMPLATES_MAX_BYTES = 512 * 1024
+/** 默认请求体上限（仅 /api/account/templates 用 TEMPLATES_MAX_BYTES），超限 413 */
+const BODY_MAX_BYTES = 64 * 1024
+const SHARE_TPL_IP_DAILY_LIMIT = 60
+const RESERVE_IP_DAILY_LIMIT = 5
+
+/** readBody 预检超限：由 onRequest 统一转为 413，避免每个路由自行判断 */
+class BodyTooLargeError extends Error {
+  constructor(headers) {
+    super('request body too large')
+    this.headers = headers
+  }
+}
 
 /** 存储降级 memory 时必须 fail closed 的持久化写入路由（path → 受限方法） */
 const MEMORY_UNSAFE_ROUTES = {
@@ -339,13 +351,9 @@ function proStatus(user) {
 }
 
 function randomRedeemCode() {
-  const bytes = crypto.getRandomValues(new Uint8Array(12))
-  let s = ''
-  for (let i = 0; i < 12; i++) {
-    s += REDEEM_ALPHABET[bytes[i] % REDEEM_ALPHABET.length]
-    if (i === 3 || i === 7) s += '-'
-  }
-  return `SM-${s}`
+  // 拒绝采样的 randomToken 无模偏差（字母表 31 不整除 256）
+  const s = randomToken(12, REDEEM_ALPHABET)
+  return `SM-${s.slice(0, 4)}-${s.slice(4, 8)}-${s.slice(8, 12)}`
 }
 
 /** 兑换码存储键：只存哈希，服务端不保留可反推的明文码 */
@@ -635,22 +643,32 @@ function captchaSvg(code) {
 
 /**
  * 验证表单验证码：令牌为服务端签名 JWT，5 分钟内有效。
- * 令牌无状态，但答对后以 token 摘要为 key 写入 KV 标记已消费（TTL 与令牌一致），
- * 同一令牌不能重复用于多次提交。
- * 返回 'ok' | 'invalid' | 'used'。
+ * 令牌无状态，以 token 摘要为 key 在 KV 标记已消费（TTL 与令牌一致），同一令牌不能重复提交。
+ * 本函数只校验（读 usedKey），标记已用由调用方在主逻辑完成后通过 deferWrite + markCaptchaUsed 写入，
+ * 让 Blob 写抖动不再拖垃登录/注册响应。
+ * 返回 { result: 'ok' | 'invalid' | 'used', usedKey, exp }。
  */
 async function verifyCaptcha(env, kv, token, answer) {
-  if (typeof token !== 'string' || answer === undefined || answer === null) return 'invalid'
+  if (typeof token !== 'string' || answer === undefined || answer === null) {
+    return { result: 'invalid', usedKey: null, exp: 0 }
+  }
   const payload = await verifyJwt(token, getSecret(env))
-  if (!payload || payload.typ !== 'captcha' || typeof payload.cap !== 'string') return 'invalid'
-  if (payload.cap !== (await captchaAnswerHash(answer, getSecret(env)))) return 'invalid'
+  if (!payload || payload.typ !== 'captcha' || typeof payload.cap !== 'string') {
+    return { result: 'invalid', usedKey: null, exp: 0 }
+  }
+  if (payload.cap !== (await captchaAnswerHash(answer, getSecret(env)))) {
+    return { result: 'invalid', usedKey: null, exp: 0 }
+  }
   const usedKey = `captcha:used:${(await sha256Hex(token)).slice(0, 32)}`
-  if (await kv.get(usedKey)) return 'used'
-  // 第三参数供支持 TTL 的 KV 使用；Blob/内存实现忽略，值内 exp 供人工排查
-  await kv.put(usedKey, JSON.stringify({ exp: payload.exp }), {
+  if (await kv.get(usedKey)) return { result: 'used', usedKey, exp: payload.exp }
+  return { result: 'ok', usedKey, exp: payload.exp }
+}
+
+/** 标记验证码已消费；第三参数供支持 TTL 的 KV 使用，Blob/内存实现忽略，值内 exp 供人工排查 */
+function markCaptchaUsed(kv, captcha) {
+  return kv.put(captcha.usedKey, JSON.stringify({ exp: captcha.exp }), {
     expirationTtl: CAPTCHA_TTL_SECONDS,
   })
-  return 'ok'
 }
 
 function captchaErrorResponse(result, extraHeaders) {
@@ -691,6 +709,9 @@ export async function onRequest(context) {
   try {
     return withSecurityHeaders(await handleRequest(context))
   } catch (err) {
+    if (err instanceof BodyTooLargeError) {
+      return withSecurityHeaders(json({ error: '请求内容过长' }, 413, err.headers))
+    }
     console.error(
       '[seatmark-api] 未捕获异常:',
       context?.request?.method,
@@ -803,9 +824,29 @@ async function handleRequest(context) {
     },
   }
 
+  /**
+   * 读 JSON 请求体，带大小预检：先看 Content-Length，再对实际字节计数，
+   * 超限抛 BodyTooLargeError（onRequest 转 413）；非 JSON 返回 null。
+   */
+  // templates 路由留 4KB 给 {"templates":[...]} 包装，真正的 512KB 上限由路由内按序列化长度判定
+  const bodyLimit =
+    path === '/api/account/templates' ? TEMPLATES_MAX_BYTES + 4096 : BODY_MAX_BYTES
   async function readBody() {
+    const declared = Number(request.headers.get('Content-Length'))
+    if (Number.isFinite(declared) && declared > bodyLimit) {
+      throw new BodyTooLargeError(storageHeader)
+    }
+    let raw
     try {
-      return await request.json()
+      raw = await request.text()
+    } catch {
+      return null
+    }
+    if (encoder.encode(raw).length > bodyLimit) {
+      throw new BodyTooLargeError(storageHeader)
+    }
+    try {
+      return JSON.parse(raw)
     } catch {
       return null
     }
@@ -945,8 +986,8 @@ async function handleRequest(context) {
         storageHeader,
       )
     }
-    const captchaResult = await verifyCaptcha(env, kv, body?.captchaToken, body?.captchaAnswer)
-    if (captchaResult !== 'ok') return captchaErrorResponse(captchaResult, storageHeader)
+    const captcha = await verifyCaptcha(env, kv, body?.captchaToken, body?.captchaAnswer)
+    if (captcha.result !== 'ok') return captchaErrorResponse(captcha.result, storageHeader)
 
     const ip = clientIp(request)
     const regKey = `rl:reg:${await sha256Hex(ip)}:${today()}`
@@ -955,6 +996,8 @@ async function handleRequest(context) {
       return json({ error: '请求过于频繁，请明天再试' }, 429, storageHeader)
     }
     await deferWrite(() => kv.put(regKey, String(regCount + 1)))
+    // 验证码已校验通过：后续无论注册成否都算消费，标记走后台写不影响响应
+    await deferWrite(() => markCaptchaUsed(kv, captcha))
 
     let user = await getUser(kv, email)
     if (user && user.passwordHash) {
@@ -1012,8 +1055,8 @@ async function handleRequest(context) {
     if (!isValidEmail(email) || typeof password !== 'string' || !password) {
       return json({ error: '邮箱或密码格式不正确' }, 400, storageHeader)
     }
-    const captchaResult = await verifyCaptcha(env, kv, body?.captchaToken, body?.captchaAnswer)
-    if (captchaResult !== 'ok') return captchaErrorResponse(captchaResult, storageHeader)
+    const captcha = await verifyCaptcha(env, kv, body?.captchaToken, body?.captchaAnswer)
+    if (captcha.result !== 'ok') return captchaErrorResponse(captcha.result, storageHeader)
 
     // 连续失败限流（按邮箱，15 分钟窗口）
     const failKey = `pwfail:${email}`
@@ -1030,6 +1073,8 @@ async function handleRequest(context) {
     if (fails.count >= LOGIN_FAIL_LIMIT) {
       return json({ error: '失败次数过多，请 15 分钟后再试' }, 429, storageHeader)
     }
+    // 验证码已校验通过：凭据对错都算消费（防一题多猜），标记走后台写不影响响应
+    await deferWrite(() => markCaptchaUsed(kv, captcha))
 
     const user = await getUser(kv, email)
     if (!user || !user.passwordHash) {
@@ -1066,8 +1111,8 @@ async function handleRequest(context) {
     const body = await readBody()
     const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
     if (!isValidEmail(email)) return json({ error: '邮箱格式不正确' }, 400, storageHeader)
-    const captchaResult = await verifyCaptcha(env, kv, body?.captchaToken, body?.captchaAnswer)
-    if (captchaResult !== 'ok') return captchaErrorResponse(captchaResult, storageHeader)
+    const captcha = await verifyCaptcha(env, kv, body?.captchaToken, body?.captchaAnswer)
+    if (captcha.result !== 'ok') return captchaErrorResponse(captcha.result, storageHeader)
 
     const ip = clientIp(request)
     const ipKey = `rl:ip:${await sha256Hex(ip)}:${today()}`
@@ -1075,6 +1120,7 @@ async function handleRequest(context) {
     if (ipCount >= CODE_IP_DAILY_LIMIT) {
       return json({ error: '请求过于频繁，请明天再试' }, 429, storageHeader)
     }
+    await deferWrite(() => markCaptchaUsed(kv, captcha))
 
     const resetKey = `reset:${email}`
     const existingRaw = await kv.get(resetKey)
@@ -1394,6 +1440,18 @@ async function handleRequest(context) {
     if (!/^v[01]\.[A-Za-z0-9_-]{1,20000}$/.test(payload)) {
       return json({ error: '模板负载无效' }, 400, storageHeader)
     }
+    const shareRlKey = `rl:tplshare:${await sha256Hex(clientIp(request))}:${today()}`
+    let shareCount
+    try {
+      shareCount = await kvOpWithRetry('tplshare 限频读取', () => getCounter(kv, shareRlKey))
+    } catch (err) {
+      console.error('[seatmark-api] tplshare 限频读取重试后仍失败:', err)
+      return json({ error: '分享服务暂时不可用，请稍后重试' }, 503, storageHeader)
+    }
+    if (shareCount >= SHARE_TPL_IP_DAILY_LIMIT) {
+      return json({ error: '请求过于频繁，请明天再试' }, 429, storageHeader)
+    }
+    await deferWrite(() => kv.put(shareRlKey, String(shareCount + 1)))
     // 内容寻址短码：同一模板重复分享得到同一短码，天然去重
     const code = (await sha256Hex(payload)).slice(0, 10)
     try {
@@ -1429,6 +1487,12 @@ async function handleRequest(context) {
     if (teamSize.length > 50 || note.length > 500) {
       return json({ error: '内容过长' }, 400, storageHeader)
     }
+    const reserveRlKey = `rl:reserve:${await sha256Hex(clientIp(request))}:${today()}`
+    const reserveCount = await getCounter(kv, reserveRlKey)
+    if (reserveCount >= RESERVE_IP_DAILY_LIMIT) {
+      return json({ error: '请求过于频繁，请明天再试' }, 429, storageHeader)
+    }
+    await deferWrite(() => kv.put(reserveRlKey, String(reserveCount + 1)))
     const id = `${Date.now()}-${randomToken36(6)}`
     await kv.put(
       `reserve:${id}`,
