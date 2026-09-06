@@ -49,7 +49,7 @@ const emit = defineEmits<{ close: []; confirm: [] }>()
       </div>
 
       <div class="rounded-lg bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-700">
-        {{ t('选错翻转方式的表现：背面内容上下颠倒。对折双联（镜像）模板请直接') }}<strong>{{ t('单面打印') }}</strong>{{ t('， 不要勾选双面打印；打印缩放选「实际大小 / 100%」。') }}
+        {{ t('选错翻转方式的表现：背面内容上下颠倒。对折双联（镜像）模板请直接') }}<strong>{{ t('单面打印') }}</strong>{{ t('，不要勾选双面打印；打印缩放选「实际大小 / 100%」。') }}
       </div>
     </div>
 

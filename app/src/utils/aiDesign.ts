@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import type { LabelSpec, TemplateField, TextAlign, VerticalAlign } from '@/types/template'
 import { uid } from '@/utils/id'
 import { clamp, round1 } from '@/utils/layout'
@@ -177,6 +178,32 @@ interface ChatMessage {
   content: string
 }
 
+/** 上游/代理返回非 2xx 时抛出，保留状态码供调用方分支 */
+export class AiHttpError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+    public readonly retryAfterSeconds: number | null = null,
+  ) {
+    super(message)
+    this.name = 'AiHttpError'
+  }
+}
+
+/** 同源代理的 413/429 是面向用户的明确拒绝，不再落到后续兜底接口 */
+export function proxyRejectionMessage(err: unknown): string | null {
+  if (!(err instanceof AiHttpError)) return null
+  if (err.status === 413) return t('设计要求或字段示例过长（超过 32KB），请精简后重试')
+  if (err.status === 429) {
+    const wait = err.retryAfterSeconds
+    const minutes = wait ? Math.max(1, Math.ceil(wait / 60)) : null
+    return minutes
+      ? t('AI 设计请求过于频繁（每小时最多 30 次），请约 {n} 分钟后再试').replace('{n}', String(minutes))
+      : t('AI 设计请求过于频繁（每小时最多 30 次），请稍后再试')
+  }
+  return null
+}
+
 function isUserAbort(err: unknown, signal?: AbortSignal): boolean {
   return !!signal?.aborted && err instanceof DOMException && err.name === 'AbortError'
 }
@@ -199,7 +226,12 @@ async function postChat(
   const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal })
   if (!res.ok) {
     const text = await res.text().catch(() => '')
-    throw new Error(`HTTP ${res.status}${text ? `：${text.slice(0, 160)}` : `：${res.statusText}`}`)
+    const retryAfter = Number(res.headers.get('Retry-After'))
+    throw new AiHttpError(
+      res.status,
+      `HTTP ${res.status}${text ? `：${text.slice(0, 160)}` : `：${res.statusText}`}`,
+      Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null,
+    )
   }
   const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
   const content = data.choices?.[0]?.message?.content
@@ -252,6 +284,10 @@ async function callChatFree(messages: ChatMessage[], signal?: AbortSignal): Prom
       return await postChat(attempt.url, body, undefined, withTimeout(signal, attempt.timeoutMs))
     } catch (err) {
       if (isUserAbort(err, signal)) throw err
+      if (attempt.url.startsWith('/')) {
+        const rejection = proxyRejectionMessage(err)
+        if (rejection) throw new Error(rejection)
+      }
       lastError = err instanceof Error ? err.message : String(err)
     }
   }

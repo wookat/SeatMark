@@ -29,11 +29,18 @@ const viewSummary = computed(() => {
   const parts: string[] = []
   if (workspace.sort.column) {
     parts.push(
-      `按「${workspace.sort.column}」${workspace.sort.direction === 'asc' ? '升序' : '降序'}`,
+      (workspace.sort.direction === 'asc' ? t('按「{col}」升序') : t('按「{col}」降序')).replace(
+        '{col}',
+        workspace.sort.column,
+      ),
     )
   }
   if (Object.keys(workspace.columnFilters).length) {
-    parts.push(`筛选后 ${workspace.displayRows.length}/${workspace.excel.rows.length} 条`)
+    parts.push(
+      t('筛选后 {shown}/{total} 条')
+        .replace('{shown}', String(workspace.displayRows.length))
+        .replace('{total}', String(workspace.excel.rows.length)),
+    )
   }
   return parts.join(' · ')
 })
@@ -163,7 +170,7 @@ function onDrop(event: DragEvent) {
   if (/\.(xlsx|xls|csv)$/i.test(file.name)) {
     void workspace.importExcel(file)
   } else {
-    toast.warning('文件类型不支持', '请拖入 .xlsx / .xls / .csv 文件')
+    toast.warning(t('文件类型不支持'), t('请拖入 .xlsx / .xls / .csv 文件'))
   }
 }
 
@@ -210,21 +217,27 @@ function openPasteDialog() {
 function confirmPaste() {
   const parsed = pasteParsed.value
   if (!parsed.rows.length) {
-    toast.warning('名单为空', '请粘贴名单内容，每行一条数据')
+    toast.warning(t('名单为空'), t('请粘贴名单内容，每行一条数据'))
     return
   }
-  workspace.applyDataset('粘贴的名单', parsed.headers, parsed.rows)
+  workspace.applyDataset(t('粘贴的名单'), parsed.headers, parsed.rows)
   pasteOpen.value = false
-  const dedupeNote = parsed.removed ? `，已去重 ${parsed.removed} 条` : ''
+  const dedupeNote = parsed.removed
+    ? t('，已去重 {n} 条').replace('{n}', String(parsed.removed))
+    : ''
   toast.success(
-    `已导入 ${parsed.rows.length} 条数据`,
-    (parsed.headerDetected ? '首行已识别为表头' : '未检测到表头，首列已按「姓名」处理') + dedupeNote,
+    t('已导入 {n} 条数据').replace('{n}', String(parsed.rows.length)),
+    (parsed.headerDetected ? t('首行已识别为表头') : t('未检测到表头，首列已按「姓名」处理')) +
+      dedupeNote,
   )
 }
 
 async function onDownloadSample() {
   const sample = await downloadSampleExcel(workspace.template)
-  toast.success(`「${sample.sheetName}」样例已下载`, '按样例表头整理名单后上传即可直接导入')
+  toast.success(
+    t('「{name}」样例已下载').replace('{name}', sample.sheetName),
+    t('按样例表头整理名单后上传即可直接导入'),
+  )
 }
 </script>
 
@@ -283,11 +296,11 @@ async function onDownloadSample() {
           <p class="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-slate-600">
             <template v-if="workspace.excel.sheetNames.length > 1">
               <label class="flex items-center gap-1">
-                工作表
+                {{ t('工作表') }}
                 <select
                   class="max-w-36 cursor-pointer truncate rounded border border-slate-300 bg-white px-1 py-0.5 text-xs text-slate-700"
                   :value="workspace.excel.sheetName"
-                  aria-label="切换工作表"
+                  :aria-label="t('切换工作表')"
                   @change="
                     workspace.switchSheet(($event.target as HTMLSelectElement).value)
                   "
@@ -333,7 +346,7 @@ async function onDownloadSample() {
         ref="previewScroller"
         tabindex="0"
         role="region"
-        aria-label="名单数据预览（可横向滚动）"
+        :aria-label="t('名单数据预览（可横向滚动）')"
         class="mt-3 cursor-grab overflow-x-auto rounded-lg border border-slate-200 focus-visible:outline-2 focus-visible:outline-brand-500"
       >
         <table class="w-full text-left text-xs">
@@ -384,7 +397,7 @@ async function onDownloadSample() {
           type="file"
           accept=".txt,text/plain"
           class="hidden"
-          aria-label="上传 TXT 名单文件"
+          :aria-label="t('上传 TXT 名单文件')"
           @change="onTxtChange"
         />
         <CheckboxField v-model="pasteDedupe" class="shrink-0 text-xs text-slate-600">
@@ -395,18 +408,20 @@ async function onDownloadSample() {
         v-model="pasteText"
         rows="10"
         class="input-field mt-2 w-full resize-y font-mono text-xs"
-        placeholder="例如：
-姓名	班级	座位号
-张伟	高三（1）班	01
-王芳	高三（1）班	02"
-        aria-label="粘贴名单内容"
+        :placeholder="t('例如：\n姓名\t班级\t座位号\n张伟\t高三（1）班\t01\n王芳\t高三（1）班\t02')"
+        :aria-label="t('粘贴名单内容')"
       ></textarea>
       <div
         v-if="pasteText.trim()"
         class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600"
       >
         <span class="min-w-0">
-          识别到 <strong class="text-brand-600">{{ pasteParsed.rows.length }}</strong> 条数据、{{ pasteParsed.headers.length }} 列（{{ pasteParsed.headerDetected ? `首行为表头：${pasteParsed.headers.join('、')}` : '未检测到表头，首列将按「姓名」处理' }}）<template v-if="pasteParsed.removed">，已去重 <strong class="text-amber-600">{{ pasteParsed.removed }}</strong> 条</template>
+          {{ t('识别到') }} <strong class="text-brand-600">{{ pasteParsed.rows.length }}</strong>
+          {{ t('条数据、{n} 列（').replace('{n}', String(pasteParsed.headers.length)) }}{{
+            pasteParsed.headerDetected
+              ? t('首行为表头：{headers}').replace('{headers}', pasteParsed.headers.join('、'))
+              : t('未检测到表头，首列将按「姓名」处理')
+          }}{{ t('）') }}<template v-if="pasteParsed.removed">{{ t('，已去重') }} <strong class="text-amber-600">{{ pasteParsed.removed }}</strong> {{ t('条') }}</template>
         </span>
         <CheckboxField
           class="shrink-0"
@@ -478,7 +493,7 @@ async function onDownloadSample() {
                     type="button"
                     class="flex cursor-pointer items-center gap-1 rounded-md px-1 py-1 transition-colors hover:bg-slate-200/60 hover:text-brand-700"
                     :class="{ 'text-brand-700': workspace.sort.column === h }"
-                    :title="`按「${h}」排序（再次点击切换升降序 / 还原）`"
+                    :title="t('按「{col}」排序（再次点击切换升降序 / 还原）').replace('{col}', h)"
                     @click="workspace.toggleSort(h)"
                   >
                     {{ h }}
@@ -515,8 +530,8 @@ async function onDownloadSample() {
                     type="button"
                     class="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-slate-200/60"
                     :class="workspace.columnFilters[h] ? 'text-brand-600' : 'text-slate-300 hover:text-slate-600'"
-                    :aria-label="`筛选「${h}」`"
-                    :title="`筛选「${h}」`"
+                    :aria-label="t('筛选「{col}」').replace('{col}', h)"
+                    :title="t('筛选「{col}」').replace('{col}', h)"
                     @click="openFilter(h, $event)"
                   >
                     <svg

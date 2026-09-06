@@ -15,7 +15,7 @@ const props = withDefaults(
   }>(),
   {
     modelValue: undefined,
-    defaultLabel: '宋体（系统默认）',
+    defaultLabel: undefined,
     lang: undefined,
   },
 )
@@ -29,8 +29,9 @@ const query = ref('')
 const root = ref<HTMLElement | null>(null)
 
 const currentFont = computed(() => findFontByStack(props.modelValue))
+const defaultLabelText = computed(() => (props.defaultLabel ? t(props.defaultLabel) : t('宋体（系统默认）')))
 const currentLabel = computed(() => {
-  if (!props.modelValue) return t(props.defaultLabel)
+  if (!props.modelValue) return defaultLabelText.value
   return currentFont.value?.name ?? t('自定义字体')
 })
 
@@ -52,11 +53,11 @@ const groups = computed(() => {
       WEB_FONTS.filter((f) => f.lang === lang && !!f.local === local && matches(f))
     list.push(
       {
-        label: t(lang === 'zh' ? '中文系统字体 · 无需联网' : '西文系统字体 · 无需联网'),
+        label: lang === 'zh' ? t('中文系统字体 · 无需联网') : t('西文系统字体 · 无需联网'),
         fonts: pick(true),
       },
       {
-        label: t(lang === 'zh' ? '中文开源字体 · 联网加载' : '英文开源字体 · 联网加载'),
+        label: lang === 'zh' ? t('中文开源字体 · 联网加载') : t('英文开源字体 · 联网加载'),
         fonts: pick(false),
       },
     )
@@ -149,7 +150,7 @@ onBeforeUnmount(() => {
             :class="{ 'bg-brand-50/70 text-brand-700': !modelValue }"
             @click="pickDefault"
           >
-            <span class="font-medium">{{ t(defaultLabel) }}</span>
+            <span class="font-medium">{{ defaultLabelText }}</span>
             <span class="text-[10px] text-slate-600">{{ t('无需联网') }}</span>
           </button>
 

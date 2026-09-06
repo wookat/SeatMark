@@ -36,6 +36,7 @@ import {
   settleWithin,
 } from '@/utils/pdfExport'
 import {
+  BlankLabelError,
   buildFieldFileNames,
   defaultPngExportName,
   EINK_PRESETS,
@@ -146,7 +147,7 @@ const hostPages = computed<(typeof workspace.pages)>(() =>
 )
 /** 导出文件名前缀跟随当前模板名（如「婚礼席位卡」），下载目录里一眼可辨 */
 const exportNamePrefix = computed(
-  () => sanitizeFileNamePart(workspace.template.name) || '考场座位标签',
+  () => sanitizeFileNamePart(workspace.template.name) || t('考场座位标签'),
 )
 /** 本次导出/打印是否叠加页脚角标水印（带水印不限次，无水印计入每日配额） */
 const withWatermark = ref(false)
@@ -503,16 +504,15 @@ async function consumeQuotaAfterSuccess() {
   await quota.tryConsume()
 }
 
-/** 导出错误信息按当前语言本地化：带序号的空白标签错误走插值 key，其余直接查字典（未命中回退原文） */
-function localizeExportError(message: string): string {
-  const blank = message.match(/^第 (\d+)\/(\d+) 页第 (\d+) 枚标签渲染为空白$/)
-  if (blank) {
+/** 导出错误信息按当前语言本地化：空白标签错误按结构化字段插值，其余直接查字典（未命中回退原文） */
+function localizeExportError(err: unknown): string {
+  if (err instanceof BlankLabelError) {
     return t('第 {p}/{pc} 页第 {k} 枚标签渲染为空白')
-      .replace('{p}', blank[1])
-      .replace('{pc}', blank[2])
-      .replace('{k}', blank[3])
+      .replace('{p}', String(err.page))
+      .replace('{pc}', String(err.total))
+      .replace('{k}', String(err.index))
   }
-  return t(message)
+  return t(err instanceof Error ? err.message : String(err))
 }
 
 async function doExportPdf() {
@@ -531,7 +531,7 @@ async function doExportPdf() {
         workspace.setLoading(true, t('正在渲染第 {i}/{n} 页...').replace('{i}', String(i + 1)).replace('{n}', String(pageCount)), cancel)
         await mountHost(i)
         const el = hostRef.value?.querySelector<HTMLElement>('.sheet-page')
-        if (!el) throw new Error('页面节点未挂载')
+        if (!el) throw new Error(t('页面节点未挂载'))
         return el
       },
       rebuildHost,
@@ -554,7 +554,7 @@ async function doExportPdf() {
     if (message === EXPORT_CANCELLED_MESSAGE) {
       toast.info(t('已取消导出'), t('本次未扣除无水印次数，可随时重新导出'))
     } else {
-      toast.danger(t('PDF 生成失败'), `${localizeExportError(message)}${t('；本次未扣除无水印次数，可直接重试')}`)
+      toast.danger(t('PDF 生成失败'), `${localizeExportError(err)}${t('；本次未扣除无水印次数，可直接重试')}`)
     }
   } finally {
     workspace.setLoading(false)
@@ -629,7 +629,7 @@ async function doExportPng() {
         workspace.setLoading(true, t('正在渲染第 {i}/{n} 页...').replace('{i}', String(i + 1)).replace('{n}', String(pageCount)), cancel)
         await mountHost(i)
         const el = hostRef.value?.querySelector<HTMLElement>('.sheet-page')
-        if (!el) throw new Error('页面节点未挂载')
+        if (!el) throw new Error(t('页面节点未挂载'))
         return el
       },
       rebuildHost,
@@ -650,25 +650,25 @@ async function doExportPng() {
       onProgress: (done, total) =>
         workspace.setLoading(
           true,
-          perLabel
-            ? `已完成 ${done}/${total} 张标签，正在生成图片...`
-            : `已完成 ${done}/${total} 页，正在生成图片...`,
+          (perLabel ? t('已完成 {done}/{total} 张标签，正在生成图片...') : t('已完成 {done}/{total} 页，正在生成图片...'))
+            .replace('{done}', String(done))
+            .replace('{total}', String(total)),
           cancel,
         ),
     })
     await consumeQuotaAfterSuccess()
     const exactW = pngPreset.value?.width ?? pngExactWidth.value
     const unitCount = perLabel ? pngTotalLabels.value : pageCount
-    const unitWord = perLabel ? '张标签' : '页'
+    const unitWord = perLabel ? t('张标签') : t('页')
     toast.success(
       unitCount === 1
         ? t('PNG 图片已生成')
         : t('PNG 图片已生成（{n} {unit}打包为 zip）')
             .replace('{n}', String(unitCount))
-            .replace('{unit}', t(unitWord)),
+            .replace('{unit}', unitWord),
       exact
         ? t('每{unit}精确 {w}×{h} 像素{mono}，可直接导入电子桌牌系统')
-            .replace('{unit}', t(unitWord))
+            .replace('{unit}', unitWord)
             .replace('{w}', String(exactW))
             .replace('{h}', String(pngExactHeight.value))
             .replace('{mono}', pngMonochrome.value ? t('、纯黑白') : '')
@@ -682,7 +682,7 @@ async function doExportPng() {
     if (message === EXPORT_CANCELLED_MESSAGE) {
       toast.info(t('已取消导出'), t('本次未扣除无水印次数，可随时重新导出'))
     } else {
-      toast.danger(t('PNG 生成失败'), `${localizeExportError(message)}${t('；本次未扣除无水印次数，可直接重试')}`)
+      toast.danger(t('PNG 生成失败'), `${localizeExportError(err)}${t('；本次未扣除无水印次数，可直接重试')}`)
     }
   } finally {
     workspace.setLoading(false)
@@ -740,7 +740,7 @@ async function doMobilePrint() {
         workspace.setLoading(true, t('正在渲染第 {i}/{n} 页...').replace('{i}', String(i + 1)).replace('{n}', String(pageCount)), cancel)
         await mountHost(i)
         const el = hostRef.value?.querySelector<HTMLElement>('.sheet-page')
-        if (!el) throw new Error('页面节点未挂载')
+        if (!el) throw new Error(t('页面节点未挂载'))
         return el
       },
       rebuildHost,
@@ -752,7 +752,7 @@ async function doMobilePrint() {
       onProgress: (done, total) =>
         workspace.setLoading(true, t('已完成 {done}/{total} 页，正在生成 PDF...').replace('{done}', String(done)).replace('{total}', String(total)), cancel),
     })
-    if (!blob) throw new Error('PDF 生成失败')
+    if (!blob) throw new Error(t('PDF 生成失败'))
     const delivery = await deliverPdfForMobilePrint(blob, fileName)
     if (delivery === 'cancelled') {
       toast.info(t('已取消分享'), t('本次未扣除无水印次数，可随时重新打印'))
@@ -771,7 +771,7 @@ async function doMobilePrint() {
     if (message === EXPORT_CANCELLED_MESSAGE) {
       toast.info(t('已取消导出'), t('本次未扣除无水印次数，可随时重新导出'))
     } else {
-      toast.danger(t('打印 PDF 生成失败'), `${localizeExportError(message)}${t('；本次未扣除无水印次数，可直接重试')}`)
+      toast.danger(t('打印 PDF 生成失败'), `${localizeExportError(err)}${t('；本次未扣除无水印次数，可直接重试')}`)
     }
   } finally {
     workspace.setLoading(false)
@@ -799,17 +799,18 @@ const exportBadgeTitle = computed(
 const unmappedFieldIds = computed(() => new Set(workspace.unmappedFields.map((f) => f.id)))
 
 // ---------- 开关说明（移动端可点击查看，不依赖 hover title） ----------
-const HINTS: Record<string, { title: string; text: string }> = {
+type HintKey = 'cutSort' | 'mirror'
+const HINTS = computed<Record<HintKey, { title: string; text: string }>>(() => ({
   cutSort: {
-    title: '裁切排序（摞优先）',
-    text: '多页叠齐一起裁切后，每摞标签天然按考场/座位号连续有序，免人工分拣。仅改变标签在页面上的排列顺序，不改变内容。',
+    title: t('裁切排序（摞优先）'),
+    text: t('多页叠齐一起裁切后，每摞标签天然按考场/座位号连续有序，免人工分拣。仅改变标签在页面上的排列顺序，不改变内容。'),
   },
   mirror: {
-    title: '对折双联（镜像）',
-    text: '桌牌上半区 180° 镜像重复下半区内容，沿中线对折后两面都能正读。关闭后只印单面内容。',
+    title: t('对折双联（镜像）'),
+    text: t('桌牌上半区 180° 镜像重复下半区内容，沿中线对折后两面都能正读。关闭后只印单面内容。'),
   },
-}
-const hintKey = ref<keyof typeof HINTS | null>(null)
+}))
+const hintKey = ref<HintKey | null>(null)
 </script>
 
 <template>
@@ -839,7 +840,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         <button
           type="button"
           class="btn btn-secondary btn-sm !px-2"
-          aria-label="上一页"
+          :aria-label="t('上一页')"
           :disabled="workspace.previewPage <= 1"
           @click="workspace.previewPage--"
         >
@@ -861,7 +862,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
             type="number"
             min="1"
             :max="workspace.totalPages"
-            aria-label="跳转到页码"
+            :aria-label="t('跳转到页码')"
             class="input-field w-14 text-center"
             @change="jumpToPage"
             @keyup.enter="jumpToPage"
@@ -871,7 +872,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         <button
           type="button"
           class="btn btn-secondary btn-sm !px-2"
-          aria-label="下一页"
+          :aria-label="t('下一页')"
           :disabled="workspace.previewPage >= workspace.totalPages"
           @click="workspace.previewPage++"
         >
@@ -936,13 +937,13 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           <CheckboxField
             v-model="workspace.cutStackSort"
             class="text-xs font-semibold text-slate-600"
-            :title="t(HINTS.cutSort!.text)"
+            :title="HINTS.cutSort.text"
             :label="t('裁切排序')"
           />
           <button
             type="button"
             class="grid size-4 place-items-center rounded-full text-slate-600 hover:text-slate-600"
-            aria-label="裁切排序说明"
+            :aria-label="t('裁切排序说明')"
             @click="hintKey = 'cutSort'"
           >
             <svg class="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
@@ -955,13 +956,13 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           <CheckboxField
             v-model="workspace.showMirror"
             class="text-xs font-semibold text-slate-600"
-            :title="t(HINTS.mirror!.text)"
+            :title="HINTS.mirror.text"
             :label="t('对折双联（镜像）')"
           />
           <button
             type="button"
             class="grid size-4 place-items-center rounded-full text-slate-600 hover:text-slate-600"
-            aria-label="对折双联说明"
+            :aria-label="t('对折双联说明')"
             @click="hintKey = 'mirror'"
           >
             <svg class="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
@@ -982,7 +983,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           {{ t('打印校准') }}<span
             v-if="calibrationStore.active"
             class="ml-0.5 size-1.5 rounded-full bg-emerald-500"
-            aria-label="校准已生效"
+            :aria-label="t('校准已生效')"
           ></span>
         </button>
         </div>
@@ -1098,7 +1099,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
         <button
           type="button"
           class="grid size-6 place-items-center rounded text-slate-600 hover:text-slate-600"
-          aria-label="关闭分享提示"
+          :aria-label="t('关闭分享提示')"
           @click="dismissSharePrompt"
         >
           <svg class="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
@@ -1111,7 +1112,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
     <div
       ref="previewContainer"
       tabindex="0"
-      aria-label="标签预览区"
+      :aria-label="t('标签预览区')"
       class="no-print relative mt-3 flex-1 overflow-auto rounded-lg border border-slate-200/80 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-slate-100/70 bg-[size:16px_16px] p-3 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)]"
     >
       <div v-if="!workspace.excel.rows.length" class="flex h-full items-center justify-center py-12">
@@ -1158,7 +1159,7 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
           <button
             type="button"
             class="grid size-5 shrink-0 place-items-center rounded text-slate-600 hover:text-slate-600"
-            aria-label="关闭提示"
+            :aria-label="t('关闭提示')"
             @click="dismissEditOneHint"
           >
             <svg class="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
@@ -1422,11 +1423,11 @@ const hintKey = ref<keyof typeof HINTS | null>(null)
 
     <ModalDialog
       :open="hintKey != null"
-      :title="hintKey ? t(HINTS[hintKey]!.title) : ''"
+      :title="hintKey ? HINTS[hintKey].title : ''"
       size="md"
       @close="hintKey = null"
     >
-      <p class="text-sm leading-6 text-slate-600">{{ hintKey ? t(HINTS[hintKey]!.text) : '' }}</p>
+      <p class="text-sm leading-6 text-slate-600">{{ hintKey ? HINTS[hintKey].text : '' }}</p>
     </ModalDialog>
 
     <Teleport to="body">

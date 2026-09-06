@@ -32,7 +32,7 @@ const props = withDefaults(
     size?: 'sm' | 'md'
     placeholder?: string
   }>(),
-  { modelValue: undefined, size: 'md', placeholder: '请选择' },
+  { modelValue: undefined, size: 'md', placeholder: undefined },
 )
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
@@ -104,7 +104,7 @@ onBeforeUnmount(() => {
       :aria-expanded="open"
       @click="open = !open"
     >
-      <span class="min-w-0 flex-1 truncate">{{ current?.label ?? t(placeholder) }}</span>
+      <span class="min-w-0 flex-1 truncate">{{ current?.label ?? placeholder ?? t('请选择') }}</span>
       <svg
         class="size-3.5 shrink-0 text-slate-600 transition-transform"
         :class="{ 'rotate-180': open }"

@@ -333,6 +333,65 @@ describe('表单验证码与找回密码', () => {
     expect(response.status).toBe(400)
   })
 
+  it('图形验证码恒为 4 位且字符全部落在 CAPTCHA_CHARSET（CSPRNG 取字）', async () => {
+    const CHARSET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'
+    for (let i = 0; i < 20; i++) {
+      const cap = await solvedCaptcha()
+      const answer = cap.captchaAnswer.toUpperCase()
+      expect(answer).toHaveLength(4)
+      for (const ch of answer) expect(CHARSET).toContain(ch)
+    }
+  })
+
+  it('邮件验证码恒为 6 位数字（含首位 0 的情况，CSPRNG randomDigits）', async () => {
+    // 内存 KV 全文件共享且按 IP 日限 20 次：循环次数留足余量给其余用例
+    for (let i = 0; i < 5; i++) {
+      const { response, data } = await call('POST', 'http://localhost:5173/api/auth/code', {
+        body: { email: `digits-${i}@example.com` },
+      })
+      expect(response.status).toBe(200)
+      expect(String(data.devCode)).toMatch(/^\d{6}$/)
+    }
+  })
+
+  it('同一 captcha token 第二次注册请求被拒 400「验证码已使用」', async () => {
+    const cap = await solvedCaptcha()
+    const first = await call('POST', 'https://www.seatmark.cn/api/auth/register', {
+      body: { email: 'cap-once-a@example.com', password: PASSWORD, ...cap },
+    })
+    expect(first.response.status).toBe(200)
+
+    const second = await call('POST', 'https://www.seatmark.cn/api/auth/register', {
+      body: { email: 'cap-once-b@example.com', password: PASSWORD, ...cap },
+    })
+    expect(second.response.status).toBe(400)
+    expect(second.data.captcha).toBe(true)
+    expect(String(second.data.error)).toContain('验证码已使用')
+
+    // 登录也不能复用同一令牌
+    const login = await call('POST', 'https://www.seatmark.cn/api/auth/login', {
+      body: { email: 'cap-once-a@example.com', password: PASSWORD, ...cap },
+    })
+    expect(login.response.status).toBe(400)
+    expect(String(login.data.error)).toContain('验证码已使用')
+  })
+
+  it('密码错误也会消费 captcha：同一令牌再次登录被拒（前端需换题）', async () => {
+    await call('POST', 'https://www.seatmark.cn/api/auth/register', {
+      body: { email: 'cap-consume@example.com', password: PASSWORD },
+    })
+    const cap = await solvedCaptcha()
+    const wrong = await call('POST', 'https://www.seatmark.cn/api/auth/login', {
+      body: { email: 'cap-consume@example.com', password: 'not-the-password', ...cap },
+    })
+    expect(wrong.response.status).toBe(401)
+    const retry = await call('POST', 'https://www.seatmark.cn/api/auth/login', {
+      body: { email: 'cap-consume@example.com', password: PASSWORD, ...cap },
+    })
+    expect(retry.response.status).toBe(400)
+    expect(String(retry.data.error)).toContain('验证码已使用')
+  })
+
   it('找回密码全链路：发码→验码设新密码→新密码可登录，旧密码失效', async () => {
     const email = 'reset-user@example.com'
     await call('POST', 'https://www.seatmark.cn/api/auth/register', {

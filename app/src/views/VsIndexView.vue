@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import ZhOnlyNotice from '@/components/ui/ZhOnlyNotice.vue'
 import { vsPages } from '@/data/vsPages'
+import { useI18n } from '@/i18n'
+
+const { t, localePath } = useI18n()
 </script>
 
 <template>
@@ -7,12 +11,12 @@ import { vsPages } from '@/data/vsPages'
     <div class="text-center">
       <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Compare</p>
       <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-        工具对比：SeatMark 与常见桌牌席卡做法
+        {{ t('工具对比：SeatMark 与常见桌牌席卡做法') }}
       </h1>
       <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-        基于我们对各工具的实际上手记录，逐项对照名单批量生成、打印拼版、校准精度、隐私与价格，
-        帮你按自己的场景选对工具。措辞如实客观，对方领先项照写。
+        {{ t('基于我们对各工具的实际上手记录，逐项对照名单批量生成、打印拼版、校准精度、隐私与价格，帮你按自己的场景选对工具。措辞如实客观，对方领先项照写。') }}
       </p>
+      <ZhOnlyNotice />
     </div>
 
     <div class="mt-10 grid gap-5 sm:grid-cols-2">
@@ -27,7 +31,7 @@ import { vsPages } from '@/data/vsPages'
         </h2>
         <p class="mt-2 line-clamp-3 text-xs leading-5 text-slate-600">{{ page.intro }}</p>
         <span class="mt-4 inline-flex items-center gap-1 text-xs font-bold text-brand-600">
-          查看逐项对比
+          {{ t('查看逐项对比') }}
           <svg
             class="size-3.5"
             viewBox="0 0 24 24"
@@ -44,11 +48,13 @@ import { vsPages } from '@/data/vsPages'
     </div>
 
     <div class="mt-12 rounded-lg border border-brand-100 bg-brand-50/60 p-6 text-center">
-      <h2 class="text-base font-bold text-slate-900">不想逐篇看？直接上手试试</h2>
+      <h2 class="text-base font-bold text-slate-900">{{ t('不想逐篇看？直接上手试试') }}</h2>
       <p class="mx-auto mt-2 max-w-xl text-xs leading-5 text-slate-600">
-        免费、免登录，上传 Excel 名单即可批量生成桌牌、座签与席卡，名单全程不出浏览器。
+        {{ t('免费、免登录，上传 Excel 名单即可批量生成桌牌、座签与席卡，名单全程不出浏览器。') }}
       </p>
-      <RouterLink to="/studio" class="btn btn-primary btn-md mt-4">打开标签工坊</RouterLink>
+      <RouterLink :to="localePath('/studio')" class="btn btn-primary btn-md mt-4">
+        {{ t('打开标签工坊') }}
+      </RouterLink>
     </div>
   </div>
 </template>

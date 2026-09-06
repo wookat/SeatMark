@@ -11,7 +11,7 @@ import QuotaLimitDialog from '@/components/ui/QuotaLimitDialog.vue'
 import ShareWelcomeBanner from '@/components/ui/ShareWelcomeBanner.vue'
 import ToastHost from '@/components/ui/ToastHost.vue'
 import WeChatGuideOverlay from '@/components/ui/WeChatGuideOverlay.vue'
-import { t } from '@/i18n'
+import { useI18n } from '@/i18n'
 import { INVITE_REF_KEY, useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { apiFetch } from '@/utils/api'
@@ -21,6 +21,7 @@ import { fetchSharedPayload, SHARE_HASH_PREFIX, SHARE_SHORT_PARAM } from '@/util
 const auth = useAuthStore()
 const toast = useToastStore()
 const router = useRouter()
+const { t } = useI18n()
 
 /** 跳过头部直达主内容（键盘用户 skip-link） */
 function focusMain() {
@@ -61,8 +62,8 @@ onMounted(() => {
         void router.replace({ path: '/studio', hash: `${SHARE_HASH_PREFIX}${payload}` })
       } else {
         toast.warning(
-          '分享模板暂时无法打开',
-          '链接可能已过期或网络波动，请让对方重新生成；你仍可直接使用全部内置模板',
+          t('分享模板暂时无法打开'),
+          t('链接可能已过期或网络波动，请让对方重新生成；你仍可直接使用全部内置模板'),
         )
       }
     })

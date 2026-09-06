@@ -9,7 +9,7 @@ import { useElementSize } from '@/composables/useElementSize'
 import { demoPersonNames } from '@/data/demoDatasets'
 import { currentLocale, localePath, t as tr } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
-import { MM_TO_PX } from '@/utils/layout'
+import { fitScale, MM_TO_PX } from '@/utils/layout'
 import { setPrintPageSize } from '@/utils/paper'
 import { printAndWaitUntilDone } from '@/utils/printing'
 import {
@@ -67,6 +67,15 @@ const FILL_OPTIONS = computed<SelectOption[]>(() => [
 ])
 
 const parsedEntries = computed<SeatingEntry[]>(() => parseSeatingRoster(namesText.value))
+
+const namesInput = ref<HTMLTextAreaElement | null>(null)
+
+function focusNamesInput() {
+  const el = namesInput.value
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  el.focus()
+}
 
 /** 手工排座结果（随机 / 拖拽后生效）；名单文本变化时失效还原 */
 const arranged = ref<SeatingEntry[] | null>(persisted?.arranged ?? null)
@@ -359,12 +368,15 @@ const SHEET_W = 297
 const SHEET_H = 210
 const previewContainer = ref<HTMLElement | null>(null)
 const { width: containerWidth } = useElementSize(previewContainer)
-/** 最小缩放下限：窄屏（如 390px）整页缩放会让座位点选目标过小，保底后靠容器横向滚动查看 */
+/** 「原尺寸」模式的缩放下限：座位点选目标不至于过小，超出部分靠容器横向滚动查看 */
 const MIN_SCALE = 0.45
+/** <sm 视口默认「适配屏宽」：整页缩到容器宽度内，不再需要横向滚动 */
+const fitToWidth = ref(typeof window !== 'undefined' && window.innerWidth < 640)
 const scale = computed(() => {
   if (!containerWidth.value) return 0.5
-  const fit = (containerWidth.value - 16) / (SHEET_W * MM_TO_PX)
-  return Math.min(Math.max(fit, MIN_SCALE), 1)
+  const innerWidth = containerWidth.value - 16
+  if (fitToWidth.value) return fitScale(innerWidth, SHEET_W * MM_TO_PX)
+  return Math.min(Math.max(innerWidth / (SHEET_W * MM_TO_PX), MIN_SCALE), 1)
 })
 
 watchEffect(() => {
@@ -505,6 +517,7 @@ function toDeskLabels() {
             </button>
           </div>
           <textarea
+            ref="namesInput"
             v-model="namesText"
             rows="10"
             class="input-field mt-2 h-auto min-h-40 resize-y py-2 leading-6"
@@ -638,7 +651,32 @@ function toDeskLabels() {
             {{ selectedRow != null ? `${tr('已选中排')} ${selectedRow + 1}，${tr('点另一排把手交换')}` : tr('已选中座位，点另一个座位交换') }}
           </p>
         </div>
-        <p class="mb-1 text-[11px] leading-5 text-slate-400 sm:hidden">← {{ tr('座位表超宽时可左右滑动查看') }} →</p>
+        <div
+          v-if="!filledCount"
+          class="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-500"
+          data-testid="seating-empty-cta"
+        >
+          <span>{{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} · 0 {{ tr('人') }}</span>
+          <span aria-hidden="true">·</span>
+          <button type="button" class="btn btn-primary btn-sm" @click="focusNamesInput">
+            {{ tr('粘贴名单') }}
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" @click="loadDemoNames">
+            {{ tr('载入示例') }}
+          </button>
+        </div>
+                <div class="mb-1 flex items-center justify-between gap-2 text-[11px] leading-5 text-slate-400 sm:hidden">
+          <p>{{ fitToWidth ? tr('已缩放至屏幕宽度，可切回原尺寸查看细节') : `← ${tr('座位表超宽时可左右滑动查看')} →` }}</p>
+          <button
+            type="button"
+            class="shrink-0 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+            :aria-pressed="fitToWidth"
+            data-testid="canvas-fit-toggle"
+            @click="fitToWidth = !fitToWidth"
+          >
+            {{ fitToWidth ? tr('原尺寸') : tr('适配屏宽') }}
+          </button>
+        </div>
         <div
           ref="previewContainer"
           class="overflow-auto rounded-lg border border-slate-200/80 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-slate-100/70 bg-[size:16px_16px] p-3 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)]"

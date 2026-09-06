@@ -1,4 +1,5 @@
 import { labelPapers, type LabelPaperSpec } from '@/data/labelPapers'
+import { t } from '@/i18n'
 import type { LabelTemplate } from '@/types/template'
 import { isFullPageTemplate, isPaperCompatible } from '@/utils/labelPaper'
 
@@ -80,25 +81,43 @@ function levelOf(score: number): FitLevel {
   return 'incompatible'
 }
 
+/** 文案插值：{size}/{design}/{cols}/{rows}/{n}/{scale} */
+function fmt(key: string, vars: Record<string, string | number>): string {
+  return Object.entries(vars).reduce(
+    (out, [k, v]) => out.replaceAll(`{${k}}`, String(v)),
+    t(key),
+  )
+}
+
 function reasonOf(template: LabelTemplate, spec: LabelPaperSpec, level: FitLevel): string {
   const size = formatSize(spec.labelWidth, spec.labelHeight)
-  const designSize = formatSize(template.label.width, template.label.height)
+  const design = formatSize(template.label.width, template.label.height)
   if (level === 'recommended') {
-    return `单格 ${size}（${spec.cols} 列 × ${spec.rows} 行）与本模板设计尺寸 ${designSize} 最接近`
+    return fmt('单格 {size}（{cols} 列 × {rows} 行）与本模板设计尺寸 {design} 最接近', {
+      size,
+      cols: spec.cols,
+      rows: spec.rows,
+      design,
+    })
   }
   if (level === 'usable') {
-    return `单格 ${size} 与模板设计尺寸 ${designSize} 相近，等比微调后可用`
+    return fmt('单格 {size} 与模板设计尺寸 {design} 相近，等比微调后可用', { size, design })
   }
   const scale = meanScale(template, spec)
   if (scale > 0 && scale < 1) {
-    const shrink = (1 / scale).toFixed(1)
-    return `单格仅 ${size}，模板需整体缩小约 ${shrink} 倍，文字可能过小难以辨认`
+    return fmt('单格仅 {size}，模板需整体缩小约 {scale} 倍，文字可能过小难以辨认', {
+      size,
+      scale: (1 / scale).toFixed(1),
+    })
   }
   if (scale > 1) {
-    const grow = scale.toFixed(1)
-    return `单格 ${size} 远大于模板设计尺寸 ${designSize}（约放大 ${grow} 倍），版面会明显松散失真`
+    return fmt('单格 {size} 远大于模板设计尺寸 {design}（约放大 {scale} 倍），版面会明显松散失真', {
+      size,
+      design,
+      scale: scale.toFixed(1),
+    })
   }
-  return `单格 ${size} 与模板设计尺寸 ${designSize} 差异过大`
+  return fmt('单格 {size} 与模板设计尺寸 {design} 差异过大', { size, design })
 }
 
 /** 评估模板与纸型的适配度：硬门槛（整页/折叠 × 多格）直接判不适配 */
@@ -107,14 +126,14 @@ export function evaluatePaperFit(template: LabelTemplate, spec: LabelPaperSpec):
     return {
       score: 0,
       level: 'incompatible',
-      reason: `该模板为整页/折叠设计，不适合 ${spec.cols * spec.rows} 格小标签纸型`,
+      reason: fmt('该模板为整页/折叠设计，不适合 {n} 格小标签纸型', { n: spec.cols * spec.rows }),
     }
   }
   if (isFullPageTemplate(template) && spec.cols * spec.rows === 1) {
     return {
       score: 100,
       level: 'recommended',
-      reason: '整版纸型与整页/折叠模板天然匹配',
+      reason: t('整版纸型与整页/折叠模板天然匹配'),
     }
   }
   const score = paperFitScore(template, spec)
@@ -126,7 +145,10 @@ export function evaluatePaperFit(template: LabelTemplate, spec: LabelPaperSpec):
     return {
       score,
       level: 'marginal',
-      reason: `单格 ${formatSize(spec.labelWidth, spec.labelHeight)} 与模板设计尺寸 ${formatSize(template.label.width, template.label.height)} 宽高比差异大，卡面会明显拉伸变形`,
+      reason: fmt('单格 {size} 与模板设计尺寸 {design} 宽高比差异大，卡面会明显拉伸变形', {
+        size: formatSize(spec.labelWidth, spec.labelHeight),
+        design: formatSize(template.label.width, template.label.height),
+      }),
     }
   }
   return { score, level, reason: reasonOf(template, spec, level) }

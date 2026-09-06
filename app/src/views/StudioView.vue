@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { useIsPhone } from '@/composables/useMediaQuery'
@@ -37,18 +37,33 @@ const isMobile = useIsPhone()
 type MobileTab = 'settings' | 'preview'
 const mobileTab = ref<MobileTab>('settings')
 
-const MOBILE_TABS: { key: MobileTab; label: string; icon: string }[] = [
+const MOBILE_TABS = computed<{ key: MobileTab; label: string; icon: string }[]>(() => [
   {
     key: 'settings',
-    label: '设置',
+    label: t('设置'),
     icon: 'M4 6h16M4 12h16M4 18h10M9 4v4M15 10v4M11 16v4',
   },
   {
     key: 'preview',
-    label: '预览',
+    label: t('预览'),
     icon: 'M5 3h14v18H5zM8 7h8M8 11h8M8 15h5',
   },
-]
+])
+
+/** 模板已保存 toast（设计器保存 / 分享模板保存共用） */
+function toastTemplateSaved(name: string) {
+  toast.success(t('模板已保存'), t('「{name}」已加入我的模板并应用').replace('{name}', name))
+}
+
+/** 纸型与模板适配度不足 toast（保持模板默认排版） */
+function toastPaperFitLow(paperName: string, level: keyof typeof FIT_LEVEL_LABELS) {
+  toast.warning(
+    t('纸型与当前模板适配度不足'),
+    t('「{paper}」与本模板适配度：{level}，已保持模板默认排版；可在「纸张排版」选择适配的纸型')
+      .replace('{paper}', paperName)
+      .replace('{level}', t(FIT_LEVEL_LABELS[level])),
+  )
+}
 
 const designerOpen = ref(false)
 const designerTemplate = ref<LabelTemplate | null>(null)
@@ -65,8 +80,7 @@ function onDesignerSave(template: LabelTemplate, asNew: boolean) {
       : library.saveAsCustom(template)
   workspace.selectTemplate(saved, { silent: true })
   designerOpen.value = false
-  if (library.lastPersistOk)
-    toast.success('模板已保存', `「${saved.name}」已加入我的模板并应用`)
+  if (library.lastPersistOk) toastTemplateSaved(saved.name)
 }
 
 // ---------- 分享链接接收 ----------
@@ -82,7 +96,7 @@ async function handleShareHash() {
   const decoded = await decodeSharedTemplate(payload)
   clearShareHash()
   if (!decoded) {
-    toast.danger('分享链接无效', '链接可能不完整或已损坏，请让对方重新生成')
+    toast.danger(t('分享链接无效'), t('链接可能不完整或已损坏，请让对方重新生成'))
     return
   }
   sharedTemplate.value = decoded
@@ -94,7 +108,7 @@ function useSharedOnce() {
   temp.id = uid('shared')
   workspace.selectTemplate(temp, { silent: true })
   sharedTemplate.value = null
-  toast.success('已应用分享模板', '仅本次使用，未保存到我的模板')
+  toast.success(t('已应用分享模板'), t('仅本次使用，未保存到我的模板'))
 }
 
 function saveShared() {
@@ -102,8 +116,7 @@ function saveShared() {
   const saved = library.saveAsCustom(sharedTemplate.value)
   workspace.selectTemplate(saved, { silent: true })
   sharedTemplate.value = null
-  if (library.lastPersistOk)
-    toast.success('模板已保存', `「${saved.name}」已加入我的模板并应用`)
+  if (library.lastPersistOk) toastTemplateSaved(saved.name)
 }
 
 onMounted(() => {
@@ -117,8 +130,8 @@ onMounted(() => {
     // 用户自己导入的名单不覆盖
     if (workspace.excel.rows.length && !workspace.isDemoData) {
       toast.info(
-        '已保留你当前的名单',
-        '如需查看演示数据，请先在「数据导入」中清空当前名单后重试',
+        t('已保留你当前的名单'),
+        t('如需查看演示数据，请先在「数据导入」中清空当前名单后重试'),
       )
     } else {
       workspace.useDemoData()
@@ -131,7 +144,10 @@ onMounted(() => {
       const fit = evaluatePaperFit(workspace.template, spec)
       if (fit.level === 'recommended' || fit.level === 'usable') {
         applyLabelPaper(workspace.template, spec)
-        toast.info('已按纸型锁定排版', `${spec.name}：每页 ${spec.cols * spec.rows} 枚`)
+        toast.info(
+          t('已按纸型锁定排版'),
+          t('{paper}：每页 {n} 枚').replace('{paper}', spec.name).replace('{n}', String(spec.cols * spec.rows)),
+        )
       } else if (typeof templateId !== 'string') {
         // 纸型落地页进来的用户意图就是用这张纸：当前模板不适配时自动换用最适配的内置模板
         const best = defaultTemplates
@@ -142,21 +158,18 @@ onMounted(() => {
           workspace.selectTemplate(best.template, { silent: true })
           applyLabelPaper(workspace.template, spec)
           toast.info(
-            '已换用适配该纸型的模板',
-            `原模板与「${spec.name}」适配度不足，已切换到「${best.template.name}」并按纸型锁定排版（每页 ${spec.cols * spec.rows} 枚）；可在「模板」中更换其他样式`,
+            t('已换用适配该纸型的模板'),
+            t('原模板与「{paper}」适配度不足，已切换到「{template}」并按纸型锁定排版（每页 {n} 枚）；可在「模板」中更换其他样式')
+              .replace('{paper}', spec.name)
+              .replace('{template}', best.template.name)
+              .replace('{n}', String(spec.cols * spec.rows)),
           )
         } else {
-          toast.warning(
-            '纸型与当前模板适配度不足',
-            `「${spec.name}」与本模板适配度：${FIT_LEVEL_LABELS[fit.level]}，已保持模板默认排版；可在「纸张排版」选择适配的纸型`,
-          )
+          toastPaperFitLow(spec.name, fit.level)
         }
       } else {
         // quickStart 等显式指定了模板：尊重模板选择，仅提示纸型未应用
-        toast.warning(
-          '纸型与当前模板适配度不足',
-          `「${spec.name}」与本模板适配度：${FIT_LEVEL_LABELS[fit.level]}，已保持模板默认排版；可在「纸张排版」选择适配的纸型`,
-        )
+        toastPaperFitLow(spec.name, fit.level)
       }
     }
   }
@@ -165,7 +178,7 @@ onMounted(() => {
     const handoff = takeSeatingHandoff()
     if (handoff) {
       workspace.applyDataset(
-        `${handoff.title || '教室座位表'}.名单`,
+        `${handoff.title || t('教室座位表')}.${t('名单')}`,
         Object.keys(handoff.rows[0]!),
         handoff.rows,
       )
@@ -175,10 +188,13 @@ onMounted(() => {
         const desk = library.findById('deskName')
         if (desk) {
           workspace.selectTemplate(desk, { silent: true })
-          toast.info('已切换到课桌贴模板', '原模板字段与座位名单不匹配；可在「模板」中更换其他样式')
+          toast.info(t('已切换到课桌贴模板'), t('原模板字段与座位名单不匹配；可在「模板」中更换其他样式'))
         }
       }
-      toast.success('座位表名单已带入', `共 ${handoff.rows.length} 人，选好模板即可批量生成桌贴`)
+      toast.success(
+        t('座位表名单已带入'),
+        t('共 {n} 人，选好模板即可批量生成桌贴').replace('{n}', String(handoff.rows.length)),
+      )
     }
   }
   // 从主页「从空白新建模板」进入时直接打开设计器
@@ -218,7 +234,7 @@ onMounted(() => {
           >
             <path :d="tab.icon" />
           </svg>
-          {{ t(tab.label) }}
+          {{ tab.label }}
         </button>
       </div>
     </div>

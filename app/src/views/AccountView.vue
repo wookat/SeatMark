@@ -105,7 +105,8 @@ async function onSendResetCode() {
     toast.success(t('验证码已发送'), t('若该邮箱已注册，重置验证码将在几分钟内送达，请同时检查垃圾邮件'))
   } catch (err) {
     formError.value = err instanceof ApiError ? err.message : t('发送失败，请稍后再试')
-    if (err instanceof ApiError && err.status === 400) void refreshCaptcha()
+    // 验证码令牌一次性：服务端任何拒绝后都换一题重试
+    if (err instanceof ApiError) void refreshCaptcha()
   } finally {
     resetSending.value = false
   }
@@ -162,8 +163,8 @@ async function onSubmit() {
           : mode.value === 'reset'
             ? t('重置失败，请稍后再试')
             : t('登录失败，请稍后再试')
-    // 验证码错误或已过期：换一题重试
-    if (err instanceof ApiError && err.status === 400) void refreshCaptcha()
+    // 验证码令牌一次性：服务端任何拒绝（含密码错误）后都换一题重试
+    if (err instanceof ApiError && mode.value !== 'reset') void refreshCaptcha()
   } finally {
     submitting.value = false
   }
@@ -414,14 +415,14 @@ function formatDate(iso: string | null | undefined): string {
                 type="button"
                 class="flex h-10 w-[132px] shrink-0 items-center justify-center overflow-hidden rounded border border-slate-200 bg-slate-50"
                 :disabled="captchaLoading"
-                aria-label="点击更换验证码图片"
-                title="看不清？点击换一张"
+                :aria-label="t('点击更换验证码图片')"
+                :title="t('看不清？点击换一张')"
                 @click="refreshCaptcha"
               >
                 <img
                   v-if="captchaImage && !captchaLoading"
                   :src="captchaImage"
-                  alt="验证码图片"
+                  :alt="t('验证码图片')"
                   class="h-full w-full object-contain"
                 />
                 <span v-else class="text-xs text-slate-500">{{
@@ -437,14 +438,14 @@ function formatDate(iso: string | null | undefined): string {
                 autocapitalize="characters"
                 spellcheck="false"
                 :placeholder="t('图中字符，不分大小写')"
-                aria-label="图片验证码"
+                :aria-label="t('图片验证码')"
                 class="h-10 w-full min-w-0 rounded border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
               />
               <button
                 type="button"
                 class="btn btn-secondary btn-sm h-10 shrink-0"
                 :disabled="captchaLoading"
-                aria-label="换一张"
+                :aria-label="t('换一张')"
                 @click="refreshCaptcha"
               >
                 {{ t('换一张') }}

@@ -6,6 +6,7 @@ import {
   chunkRows,
   cloneTemplate,
   cutLines,
+  fitScale,
   fitToPaper,
   labelPosition,
   labelsPerPage,
@@ -142,5 +143,29 @@ describe('fitToPaper', () => {
     expect(t.page.rows).toBe(1)
     expect(t.page.marginLeft).toBeGreaterThanOrEqual(0)
     expect(t.page.marginTop).toBeGreaterThanOrEqual(0)
+  })
+})
+
+describe('fitScale', () => {
+  it('容器比内容窄时按比例缩小', () => {
+    expect(fitScale(374, 1122.5)).toBeCloseTo(374 / 1122.5, 6)
+    expect(fitScale(500, 1000)).toBe(0.5)
+  })
+
+  it('上限 1：容器比内容宽也不放大', () => {
+    expect(fitScale(1200, 1000)).toBe(1)
+    expect(fitScale(1000, 1000)).toBe(1)
+  })
+
+  it('下限 0.2：极窄容器不会缩到不可辨', () => {
+    expect(fitScale(100, 1000)).toBe(0.2)
+    expect(fitScale(1, 100000)).toBe(0.2)
+  })
+
+  it('容器或内容尺寸无效（未测量/0/NaN）时回退 1', () => {
+    expect(fitScale(0, 1000)).toBe(1)
+    expect(fitScale(500, 0)).toBe(1)
+    expect(fitScale(Number.NaN, 1000)).toBe(1)
+    expect(fitScale(-10, 1000)).toBe(1)
   })
 })

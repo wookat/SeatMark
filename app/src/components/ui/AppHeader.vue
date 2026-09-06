@@ -84,7 +84,8 @@ const SECTIONS = computed(() => [
 
       <nav class="ml-auto flex shrink-0 items-center gap-1.5">
         <span
-          class="hidden items-center gap-1 rounded bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200 md:inline-flex"
+          class="hidden items-center gap-1 rounded bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200"
+          :class="locale === 'en' ? 'lg:inline-flex' : 'md:inline-flex'"
         >
           <svg
             class="size-3.5"
@@ -122,6 +123,7 @@ const SECTIONS = computed(() => [
           :class="{
             'bg-slate-100 text-brand-600':
               routeName === 'guides' || routeName === 'guide-article',
+            'hidden sm:inline-flex': locale === 'en',
           }"
         >
           {{ t('教程') }}
@@ -144,7 +146,7 @@ const SECTIONS = computed(() => [
         <RouterLink
           :to="switchTarget"
           class="btn btn-ghost btn-sm"
-          :aria-label="locale === 'en' ? '切换到中文' : 'Switch to English'"
+          :aria-label="locale === 'en' ? t('切换到中文') : 'Switch to English'"
           :title="locale === 'en' ? '中文' : 'English'"
           @click="onSwitchLocale"
         >

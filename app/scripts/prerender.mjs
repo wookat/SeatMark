@@ -91,7 +91,7 @@ function applyHead(html, seo) {
       .replace(/<meta property="og:locale"[^>]*\/>/, '<meta property="og:locale" content="en_US" />')
       .replace(/<meta property="og:site_name"[^>]*\/>/, '<meta property="og:site_name" content="SeatMark" />')
       .replace(/<meta\s+name="author"[^>]*\/>/, '<meta name="author" content="SeatMark" />')
-      // 启动遮罩（/en/studio 等保持 SPA 挂载的页面）文案随英文壳一起英文化
+      // 首屏启动骨架文案（JS 接管前可见）
       .replace('aria-label="页面加载中"', 'aria-label="Loading"')
       .replace('SeatMark 座签加载中…', 'Loading SeatMark…')
   }

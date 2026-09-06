@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-
 import { t } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
 
@@ -172,7 +171,7 @@ async function submit() {
             <div>
               <label class="mb-2 block text-sm font-medium text-slate-700">
                 {{ t('反馈内容') }}
-                <span class="ml-1 text-xs font-normal text-slate-600">{{ t('（{n}/2000）').replace('{n}', String(content.length)) }}</span>
+                <span class="ml-1 text-xs font-normal text-slate-600">({{ content.length }}/2000)</span>
               </label>
               <textarea
                 v-model="content"

@@ -72,8 +72,8 @@ function dismiss() {
           <div class="min-w-0">
             <h2 class="text-sm font-bold text-slate-900">{{ t('你正在微信中打开 SeatMark') }}</h2>
             <p class="mt-1.5 text-sm leading-6 text-slate-600">
-              {{ t('微信内置浏览器') }}<strong class="text-slate-800">{{ t('无法下载 PDF 文件') }}</strong>{{ t('。 建议点击右上角「···」菜单，选择') }}
-              <strong class="text-brand-600">{{ t('「在浏览器打开」') }}</strong>{{ t('， 即可正常导出 PDF 与打印。') }}
+              {{ t('微信内置浏览器') }}<strong class="text-slate-800">{{ t('无法下载 PDF 文件') }}</strong>{{ t('。建议点击右上角「···」菜单，选择') }}
+              <strong class="text-brand-600">{{ t('「在浏览器打开」') }}</strong>{{ t('，即可正常导出 PDF 与打印。') }}
             </p>
             <p class="mt-1.5 text-xs leading-5 text-slate-600">
               {{ t('仅浏览模板、预览排版不受影响，可关闭此提示继续使用。') }}
