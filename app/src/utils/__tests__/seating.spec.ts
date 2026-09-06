@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { interleaveByGender, parseSeatingRoster, shuffleEntries } from '../seating'
+import {
+  interleaveByGender,
+  parseSeatingRoster,
+  parseSeatingRosterDetailed,
+  shuffleEntries,
+} from '../seating'
 
 describe('parseSeatingRoster', () => {
   it('每行一个姓名（旧行为兼容）', () => {
@@ -33,6 +38,67 @@ describe('parseSeatingRoster', () => {
 
   it('忽略空行与多余空白', () => {
     expect(parseSeatingRoster('\n 张伟 \n\n')).toEqual([{ name: '张伟' }])
+  })
+})
+
+describe('parseSeatingRosterDetailed（Excel 多列粘贴）', () => {
+  it('「姓名\t性别\t学号」表头 + 3 行 → 3 人且性别正确，学号列被忽略', () => {
+    const r = parseSeatingRosterDetailed('姓名\t性别\t学号\n张伟\t男\t2021001\n王芳\t女\t2021002\n李娜\t女\t2021003')
+    expect(r.entries).toEqual([
+      { name: '张伟', gender: '男' },
+      { name: '王芳', gender: '女' },
+      { name: '李娜', gender: '女' },
+    ])
+    expect(r.columnMode).toBe(true)
+    expect(r.headerSkipped).toEqual(['姓名', '性别', '学号'])
+    expect(r.ignoredColumns).toEqual(['学号'])
+    expect(r.genderColumn).toBe(true)
+  })
+
+  it('无表头 3 列 3 行（张伟\t男\t2021001）→ 3 人，学号不当人名', () => {
+    const r = parseSeatingRosterDetailed('张伟\t男\t2021001\n王芳\t女\t2021002\n李娜\t女\t2021003')
+    expect(r.entries.map((e) => e.name)).toEqual(['张伟', '王芳', '李娜'])
+    expect(r.entries.map((e) => e.gender)).toEqual(['男', '女', '女'])
+    expect(r.headerSkipped).toEqual([])
+    expect(r.ignoredColumns).toHaveLength(1)
+    expect(r.genderColumn).toBe(true)
+  })
+
+  it('两列「姓名\t性别」表头不成为学生', () => {
+    const r = parseSeatingRosterDetailed('姓名\t性别\n张伟\t男\n王芳\t女')
+    expect(r.entries).toEqual([
+      { name: '张伟', gender: '男' },
+      { name: '王芳', gender: '女' },
+    ])
+    expect(r.entries.some((e) => e.name === '姓名')).toBe(false)
+  })
+
+  it('表头列序不固定：姓名列不在首列也能识别，班级/学号忽略', () => {
+    const r = parseSeatingRosterDetailed('学号\t姓名\t班级\t性别\n1\t张伟\t高一(1)班\t男\n2\t王芳\t高一(1)班\t女')
+    expect(r.entries).toEqual([
+      { name: '张伟', gender: '男' },
+      { name: '王芳', gender: '女' },
+    ])
+    expect(r.ignoredColumns).toEqual(['学号', '班级'])
+  })
+
+  it('无表头多列姓名网格（无数字/班级词）仍全部展开', () => {
+    const r = parseSeatingRosterDetailed('张伟\t王芳\n李娜\t赵六')
+    expect(r.entries.map((e) => e.name)).toEqual(['张伟', '王芳', '李娜', '赵六'])
+    expect(r.ignoredColumns).toEqual([])
+  })
+
+  it('旧格式「张伟 男」「张伟 王芳 李娜」结果与现在一致且不进入列模式', () => {
+    const a = parseSeatingRosterDetailed('张伟 男\n王芳 女')
+    expect(a.columnMode).toBe(false)
+    expect(a.entries).toEqual([
+      { name: '张伟', gender: '男' },
+      { name: '王芳', gender: '女' },
+    ])
+    const b = parseSeatingRosterDetailed('张伟 王芳 李娜')
+    expect(b.columnMode).toBe(false)
+    expect(b.entries).toEqual([{ name: '张伟' }, { name: '王芳' }, { name: '李娜' }])
+    expect(parseSeatingRoster('张伟 男\n王芳 女')).toEqual(a.entries)
   })
 })
 

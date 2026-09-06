@@ -11,11 +11,12 @@ import { demoPersonNames } from '@/data/demoDatasets'
 import { currentLocale, localePath, t as tr } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
 import { fitScale, MM_TO_PX } from '@/utils/layout'
+import { listJoin } from '@/utils/listJoin'
 import { setPrintPageSize } from '@/utils/paper'
 import { printAndWaitUntilDone } from '@/utils/printing'
 import {
   interleaveByGender,
-  parseSeatingRoster,
+  parseSeatingRosterDetailed,
   SEATING_HANDOFF_KEY,
   shuffleEntries,
   type SeatingEntry,
@@ -67,7 +68,22 @@ const FILL_OPTIONS = computed<SelectOption[]>(() => [
   { value: 'serpentine', label: tr('S 形蛇形填充'), hint: tr('奇数排向右、偶数排向左') },
 ])
 
-const parsedEntries = computed<SeatingEntry[]>(() => parseSeatingRoster(namesText.value))
+const parsedRoster = computed(() => parseSeatingRosterDetailed(namesText.value))
+const parsedEntries = computed<SeatingEntry[]>(() => parsedRoster.value.entries)
+/** 列模式识别提示（表头已跳过 / 忽略列 / 性别列） */
+const rosterHints = computed(() => {
+  const r = parsedRoster.value
+  const hints: string[] = []
+  if (!r.columnMode) return hints
+  if (r.headerSkipped.length) hints.push(`${tr('已跳过表头行：')}${listJoin(r.headerSkipped)}`)
+  if (r.ignoredColumns.length) {
+    hints.push(
+      `${tr('已忽略')} ${r.ignoredColumns.length} ${tr('列附属信息')}${tr('（')}${listJoin(r.ignoredColumns)}${tr('）')}`,
+    )
+  }
+  if (r.genderColumn) hints.push(tr('识别到性别列，可用男女混排'))
+  return hints
+})
 
 const namesInput = ref<HTMLTextAreaElement | null>(null)
 
@@ -545,14 +561,17 @@ function toDeskLabels() {
             v-model="namesText"
             rows="10"
             class="input-field mt-2 h-auto min-h-40 resize-y py-2 leading-6"
-            :placeholder="tr('每行一个姓名，可附性别列（空格/逗号分隔）')"
+            :placeholder="tr('每行一个姓名，可附性别列（空格/逗号分隔）；可直接从 Excel 复制含表头的多列粘贴')"
           ></textarea>
           <p class="mt-2 text-xs leading-5 text-slate-600">
-            {{ tr('已输入') }} <strong class="text-slate-700">{{ filledCount }}</strong> {{ tr('人') }} /
-            <strong class="text-slate-700">{{ seatCount }}</strong> {{ tr('座') }}。
+            {{ tr('已输入') }} <strong class="text-slate-700">{{ filledCount }}</strong> {{ tr('名学生') }} /
+            <strong class="text-slate-700">{{ seatCount }}</strong> {{ tr('座') }}{{ tr('。') }}
             <span v-if="overflowCount" class="font-bold text-amber-600">
               {{ tr('超出') }} {{ overflowCount }} {{ tr('人排不下，请增加行列数。') }}
             </span>
+          </p>
+          <p v-if="rosterHints.length" class="mt-1 text-xs leading-5 text-slate-500" data-testid="roster-hints">
+            <span v-for="hint in rosterHints" :key="hint" class="mr-2 inline-block">{{ hint }}</span>
           </p>
         </section>
 

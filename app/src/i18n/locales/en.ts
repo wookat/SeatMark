@@ -1563,4 +1563,14 @@ export const en: Record<string, string> = {
   '篇教程': 'guide(s)',
   '约': 'About',
   '分钟读完': 'min read',
+
+  // 第 344 轮：/seating Excel 多列粘贴识别提示 + 共享标点词条
+  '每行一个姓名，可附性别列（空格/逗号分隔）；可直接从 Excel 复制含表头的多列粘贴':
+    'One name per line, optional gender column (space/comma separated); you can paste multi-column data with a header row straight from Excel',
+  '已跳过表头行：': 'Header row skipped: ',
+  '已忽略': 'Ignored',
+  '列附属信息': 'extra columns',
+  '识别到性别列，可用男女混排': 'Gender column detected — boy/girl alternating is available',
+  '名学生': 'students',
+  '）；': '); ',
 }
