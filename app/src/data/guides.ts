@@ -48,7 +48,7 @@ export interface Guide {
 export const guides: Guide[] = [
   {
     slug: 'exam-seat-label-batch-print',
-    title: '考场座位贴怎么批量打印？Excel 名单一键生成考场座签完整教程',
+    title: '考场座位贴怎么批量打印？Excel 名单到 A4 一页 24 枚座签的 5 步',
     description:
       '从整理 Excel 名单到打印裁切，手把手教你用 SeatMark 免费批量生成考场座位标签（桌贴/座签），A4 一页 24 枚，数据全程在浏览器本地处理。',
     keywords: ['考场座位贴', '座位标签批量打印', '考场座签', 'Excel 批量生成座签', '考场桌贴打印'],
@@ -150,7 +150,7 @@ export const guides: Guide[] = [
   },
   {
     slug: 'excel-generate-desk-cards',
-    title: 'Excel 名单一键生成桌牌：会议桌牌、姓名牌批量制作方法',
+    title: 'Excel 名单批量生成桌牌：会议桌牌、姓名牌几分钟出打印页',
     description:
       '不用一张张改 Word，把参会名单 Excel 上传到 SeatMark，几分钟批量生成会议桌牌、姓名牌、台签，支持 A4 半页大桌牌与整页名牌，免费在线使用。',
     keywords: ['Excel 生成桌牌', '会议桌牌批量制作', '姓名牌批量打印', '台签制作', '桌牌在线生成'],
@@ -232,7 +232,7 @@ export const guides: Guide[] = [
 <li><strong>招聘面试</strong>：用<a href="/templates/fullPage">整页大名牌</a>做面试间门牌，姓名换成「第一面试间」等固定文本字段即可；</li>
 <li><strong>家长会</strong>：见专门的<a href="/guides/parent-meeting-desk-card">家长会桌牌教程</a>，可直接复用学生名单。</li>
 </ul>
-<p>整套流程熟练后，从拿到名单到打完一百张桌牌通常不超过十分钟，而且名单变了随时重出，不再有「改 Word 改到眼花」的问题。座次有讲究的正式会议，摆放前建议再对照<a href="/guides/desk-card-etiquette-seating">座次礼仪与桌牌摆放规范</a>核一遍主次顺序，桌牌做得对、摆得也对，会务这一环才算完成。</p>
+<p>整套流程熟练后，从拿到名单到打完一百张桌牌通常不超过十分钟，而且名单变了随时重出，不再有「改 Word 改到眼花」的问题。座次有讲究的正式会议，摆放前建议再对照<a href="/guides/desk-card-etiquette-seating">座次礼仪与桌牌摆放规范</a>核一遍主次顺序，桌牌做得对、摆得也对，会务准备才算真正闭环。</p>
 `,
   },
   {
@@ -878,7 +878,7 @@ export const guides: Guide[] = [
     slug: 'class-teacher-exam-workflow',
     title: '班主任期中期末考务全流程：从名单到座位贴、考号贴、门贴一次做完',
     description:
-      '期中期末考试班主任要准备哪些考务物料？本文按时间线梳理名单整理、座位编排、座位贴、考号贴、考场门贴、点名表的完整流程，一份 Excel 名单全部搞定。',
+      '期中期末考试班主任要准备哪些考务物料？本文按时间线梳理名单整理、座位编排、座位贴、考号贴、考场门贴、点名表的制作顺序与方法，一份 Excel 名单全部搞定。',
     keywords: ['期末考试考务准备', '班主任考务流程', '考场布置清单', '考试物料', '座位编排'],
     category: '考务',
     audiences: ['班主任', '考务老师'],
@@ -977,7 +977,7 @@ export const guides: Guide[] = [
   },
   {
     slug: 'training-institution-materials',
-    title: '培训机构开班物料清单：学员桌贴、胸卡、门牌、签到表用一份名单全部生成',
+    title: '培训机构开班物料清单：学员桌贴、胸卡、门牌、签到表用一份名单做齐',
     description:
       '新班开课前教务要准备哪些纸质物料？本文给出培训机构开班物料完整清单与批量制作方法：学员桌贴、听课证/胸卡、教室门牌、签到表，用一份学员名单全部生成。',
     keywords: ['培训机构开班物料', '学员桌贴', '培训班胸卡', '开班准备清单', '培训机构教务'],
@@ -1234,7 +1234,7 @@ export const guides: Guide[] = [
   },
   {
     slug: 'excel-list-format-cleanup',
-    title: 'Excel 名单格式排雷：科学计数法、前导零丢失、合并单元格一次讲清',
+    title: 'Excel 名单格式排雷：科学计数法、前导零丢失、合并单元格的修法',
     description:
       '准考证号变成 2.02301E+11？001 号变成 1？名单导入工具后一片错乱？本文讲清 Excel 名单最常见的格式坑及修复方法，让批量生成标签一次成功。',
     keywords: ['Excel 科学计数法', 'Excel 前导零消失', '准考证号显示不全', '合并单元格 导入', 'Excel 名单整理'],

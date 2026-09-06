@@ -105,7 +105,8 @@ async function onSendResetCode() {
     toast.success(t('验证码已发送'), t('若该邮箱已注册，重置验证码将在几分钟内送达，请同时检查垃圾邮件'))
   } catch (err) {
     formError.value = err instanceof ApiError ? err.message : t('发送失败，请稍后再试')
-    if (err instanceof ApiError && err.status === 400) void refreshCaptcha()
+    // 验证码令牌一次性：服务端任何拒绝后都换一题重试
+    if (err instanceof ApiError) void refreshCaptcha()
   } finally {
     resetSending.value = false
   }
@@ -162,8 +163,8 @@ async function onSubmit() {
           : mode.value === 'reset'
             ? t('重置失败，请稍后再试')
             : t('登录失败，请稍后再试')
-    // 验证码错误或已过期：换一题重试
-    if (err instanceof ApiError && err.status === 400) void refreshCaptcha()
+    // 验证码令牌一次性：服务端任何拒绝（含密码错误）后都换一题重试
+    if (err instanceof ApiError && mode.value !== 'reset') void refreshCaptcha()
   } finally {
     submitting.value = false
   }

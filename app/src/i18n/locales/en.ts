@@ -12,6 +12,66 @@ import {
 } from './enStudio'
 import { enTemplateDescriptions } from './enStudioDescriptions'
 
+/** 内容站索引页的分类 / 受众 chip：zh → en（教程分类、受众、模板子分类） */
+export const categoryLabelEn: Record<string, string> = {
+  // 教程主题
+  '考务': 'Exam admin',
+  '校园': 'Campus',
+  '会务': 'Events',
+  '会议': 'Meetings',
+  '打印技巧': 'Printing tips',
+  '证卡': 'ID cards',
+  '数据': 'Data',
+  '对比': 'Comparison',
+  '婚庆': 'Weddings',
+  '排版': 'Layout',
+  '使用技巧': 'Tips',
+  // 教程受众
+  '通用': 'Everyone',
+  '行政/HR': 'Admin / HR',
+  'HR / 行政': 'HR / Admin',
+  '行政人员': 'Admin staff',
+  '考务老师': 'Exam staff',
+  '会务人员': 'Event staff',
+  '班主任': 'Class teachers',
+  '教务处': 'Academic office',
+  '培训机构': 'Training centres',
+  '幼师/家长': 'Preschool teachers / parents',
+  '婚庆/活动': 'Weddings / events',
+  '婚庆策划': 'Wedding planners',
+  'IT 管理员': 'IT admins',
+  // 模板子分类
+  '考场布置': 'Exam room setup',
+  '考号与证件': 'Exam IDs & cards',
+  '面试口试': 'Interviews & orals',
+  '考务物料': 'Exam supplies',
+  '教室桌贴': 'Classroom desk labels',
+  '班级管理': 'Class management',
+  '教师办公': 'Teacher office',
+  '图书阅览': 'Library',
+  '实验机房': 'Labs & computer rooms',
+  '宿舍收纳': 'Dorm storage',
+  '托管研学': 'After-school & trips',
+  '姓名与物品': 'Names & belongings',
+  '一日流程': 'Daily routine',
+  '班级环创': 'Classroom decor',
+  '桌牌席卡': 'Table tents & place cards',
+  '证件胸牌': 'Badges & IDs',
+  '签到引导': 'Check-in & wayfinding',
+  '号牌票券': 'Number tags & tickets',
+  '文体现场': 'Sports & arts events',
+  '席位桌号': 'Seats & table numbers',
+  '迎宾签到': 'Welcome & sign-in',
+  '礼品甜品': 'Gifts & desserts',
+  '办公职场': 'Office & workplace',
+  '医疗健康': 'Healthcare',
+  '政务窗口': 'Service windows',
+  '餐饮门店': 'Restaurants & shops',
+  '仓储物流': 'Warehouse & logistics',
+  '生活服务': 'Local services',
+  '社区家庭': 'Community & home',
+}
+
 export const en: Record<string, string> = {
   ...enDemoValues,
   ...enFieldLabels,
@@ -20,6 +80,7 @@ export const en: Record<string, string> = {
   ...enTemplateNames,
   ...enTemplateScenarios,
   ...enTemplateDescriptions,
+  ...categoryLabelEn,
   '(空白)': '(blank)',
   '150+ 款内置模板覆盖考场桌贴、座位号贴、考号贴、门贴门牌、会议桌牌 / 桌签 / 台签 / 席卡、医院床头卡、政务窗口牌、餐饮外卖架、图书馆索书标、驿站货架、学生证、工作证、胸卡出入证等场景，叠加纸张与设计器自定义，相当于数百种成品方案；字段、尺寸与排版都可自由调整。':
     '150+ built-in templates cover exam desk labels, seat number stickers, door signs, conference table tents, place cards, hospital bed cards, service-window signs, shelf labels, student IDs, staff badges and more. Combined with paper presets and the designer, that is hundreds of ready-made layouts — fields, sizes and layout are all adjustable.',
@@ -590,10 +651,23 @@ export const en: Record<string, string> = {
   '座位填充顺序': 'Seat fill order',
   '座位表标题': 'Seating chart title',
   '座位表超宽时可左右滑动查看': 'Scroll sideways when the chart is wider than the screen',
+  '已缩放至屏幕宽度，可切回原尺寸查看细节': 'Scaled to fit the screen; switch to actual size for details',
+  '原尺寸': 'Actual size',
+  '适配屏宽': 'Fit width',
   '开始免费试用': 'Start free trial',
   '当前未登录：今日本设备剩余': 'Not signed in: remaining on this device today',
   '忘记密码？': 'Forgot password?',
   '忽略问题，继续导出': 'Ignore and export anyway',
+  '保留空桌，继续导出': 'Keep empty tables and export',
+  '设计要求或字段示例过长（超过 32KB），请精简后重试':
+    'Your design brief or field samples are too long (over 32KB). Please shorten them and try again.',
+  'AI 设计请求过于频繁（每小时最多 30 次），请约 {n} 分钟后再试':
+    'Too many AI design requests (max 30 per hour). Please try again in about {n} minute(s).',
+  'AI 设计请求过于频繁（每小时最多 30 次），请稍后再试':
+    'Too many AI design requests (max 30 per hour). Please try again later.',
+  '删除空桌后导出': 'Remove empty tables and export',
+  '继续导出时这些桌会以空白桌保留在座位图和桌卡中；不需要请删除空桌或减少桌数。':
+    'If you continue, these tables stay in the chart and table cards as blank tables; remove them or reduce the table count if they are not needed.',
   '想起密码了？': 'Remembered your password?',
   '我的云端模板': 'My cloud templates',
   '或': 'or',
@@ -1073,4 +1147,55 @@ export const en: Record<string, string> = {
   '主位桌': 'Head Table',
   '左侧桌': 'Left Table',
   '右侧桌': 'Right Table',
+  // 内容站索引页外壳（教程 / 模板 / 纸型 / 对比；正文卡片保持中文）
+  '跳到主内容': 'Skip to main content',
+  '座签、桌牌、席位卡、证卡的制作与打印实战教程：从 Excel 名单整理、模板选择到打印裁切，问答式讲解常见坑点。':
+    'Hands-on guides for making and printing seating labels, table tents, place cards and ID cards: from tidying the spreadsheet and choosing a template to printing and trimming, in Q&A form.',
+  '搜索教程，支持拼音、首字母，如“打印”“dayin”“jkz”': 'Search guides (Chinese, pinyin or initials)',
+  '主题': 'Topic',
+  '群体': 'Audience',
+  '共 {n} 篇教程': '{n} guides',
+  '该条件下暂无教程，换个关键词或筛选条件试试。': 'No guides match these filters. Try another keyword or filter.',
+  '清除筛选': 'Reset filters',
+  '也许你想看这些教程': 'You might also like',
+  '约 {n} 分钟读完': '{n} min read',
+  '阅读全文': 'Read more',
+  '边看边做，效果最好': 'Learn by doing',
+  '打开标签工坊，用演示数据即可完整体验教程里的每一步，全程免费。':
+    'Open the Studio with demo data and follow every step of the guides — free.',
+  '用演示数据试试': 'Try with demo data',
+  '标签模板库': 'Template library',
+  '{n} 款免费内置模板覆盖考场座签、考号贴、课桌姓名贴、会议桌牌、出入证、学生证、工作证等场景，全部以毫米为单位精确排版，点击任意模板查看详情，或直接开始生成。':
+    '{n} free built-in templates for exam seat labels, exam ID stickers, desk name tags, conference table tents, passes, student and staff IDs — all laid out to the millimetre. Click a template for details or start generating right away.',
+  '搜索模板 / 场景，支持拼音、首字母': 'Search templates / scenarios (Chinese, pinyin or initials)',
+  '「{cat}」分类下无匹配，已在全部分类中找到 {n} 款': 'No match in “{cat}” — found {n} across all categories',
+  '在「{cat}」分类中找到 {n} 款': 'Found {n} in “{cat}”',
+  '在全部分类中找到 {n} 款': 'Found {n} across all categories',
+  '没有匹配“{q}”的模板，换个关键词试试，或在设计器里从空白新建。':
+    'No templates match “{q}”. Try another keyword or start from a blank template in the designer.',
+  '清除搜索条件': 'Clear search',
+  '也许这些模板能满足需求': 'These templates may fit',
+  '没有完全合适的？': 'Nothing quite right?',
+  '任何模板都可以在可视化设计器中继续调整，也可以从空白开始完全自定义。':
+    'Every template can be adjusted in the visual designer, or start from blank and build your own.',
+  'A4 不干胶纸型库': 'A4 label paper library',
+  '收录国产电商常见的 A4 不干胶分切规格：2×4、3×7、3×10、圆角模切等 {n} 种。在标签工坊选好纸型，行列数、边距与间距自动锁定，打印即对版，免手动调参。':
+    '{n} A4 self-adhesive label sheet layouts common in Chinese stationery stores: 2×4, 3×7, 3×10, rounded die-cuts and more. Pick a sheet in the Studio and rows, columns, margins and gaps lock in automatically so prints line up.',
+  '切角': 'Corners',
+  '直角': 'Square',
+  '圆角': 'Rounded',
+  '版式示意': 'layout preview',
+  '行': 'rows',
+  '每页 {n} 枚': '{n} per sheet',
+  '买回来的标签纸不在列表里？': 'Your label sheet is not listed?',
+  '标签工坊支持完全自定义：手动输入标签尺寸、行列数与边距，同样精确到毫米。也欢迎通过页面右下角反馈告诉我们缺少的型号，我们会尽快收录。':
+    'The Studio supports fully custom sheets: enter label size, rows, columns and margins to the millimetre. Tell us about missing sheets via the feedback button and we will add them.',
+  '打开标签工坊': 'Open the Studio',
+  '工具对比：SeatMark 与常见桌牌席卡做法': 'Compare: SeatMark vs common place-card workflows',
+  '基于我们对各工具的实际上手记录，逐项对照名单批量生成、打印拼版、校准精度、隐私与价格，帮你按自己的场景选对工具。措辞如实客观，对方领先项照写。':
+    'Based on our hands-on notes for each tool, we compare batch generation from a list, print imposition, calibration accuracy, privacy and price, so you can pick the right tool for your case. Where the other tool leads, we say so.',
+  '查看逐项对比': 'See the full comparison',
+  '不想逐篇看？直接上手试试': 'Skip the reading — try it yourself',
+  '免费、免登录，上传 Excel 名单即可批量生成桌牌、座签与席卡，名单全程不出浏览器。':
+    'Free, no sign-up: upload a spreadsheet to batch-generate table tents, seat labels and place cards. Your list never leaves the browser.',
 }

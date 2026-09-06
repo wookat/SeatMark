@@ -11,6 +11,14 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
 }
 
+export const FIT_SCALE_MIN = 0.2
+
+/** 画布「适配屏宽」缩放比：内容宽度铺满容器，不放大（≤1），下限 0.2 防止窄屏缩到不可辨 */
+export function fitScale(containerW: number, contentW: number): number {
+  if (!(containerW > 0) || !(contentW > 0)) return 1
+  return clamp(containerW / contentW, FIT_SCALE_MIN, 1)
+}
+
 /**
  * 深克隆模板。模板可能是 Vue 响应式代理（Proxy），
  * structuredClone 无法克隆 Proxy（DataCloneError），

@@ -5,11 +5,11 @@
  */
 export const footerGuideLinks: { label: string; to: string }[] = [
   {
-    label: '考场座位贴怎么批量打印？Excel 名单一键生成考场座签完整教程',
+    label: '考场座位贴怎么批量打印？Excel 名单到 A4 一页 24 枚座签的 5 步',
     to: '/guides/exam-seat-label-batch-print',
   },
   {
-    label: 'Excel 名单一键生成桌牌：会议桌牌、姓名牌批量制作方法',
+    label: 'Excel 名单批量生成桌牌：会议桌牌、姓名牌几分钟出打印页',
     to: '/guides/excel-generate-desk-cards',
   },
   {

@@ -1,13 +1,11 @@
 /**
- * 安全随机工具（Web Crypto getRandomValues），供验证码 / 邮箱码 / 批次与记录 ID 使用。
- * 不使用 Math.random：其序列可预测，不能用于任何安全相关取值。
+ * 安全随机源（CSPRNG）：验证码、一次性 ID 等安全路径统一从这里取随机数，
+ * 禁止在这些路径使用 Math.random（可预测）。
  */
 
-const TOKEN_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz'
-
-/** [0, maxExclusive) 内的均匀随机整数（拒绝采样消除模偏差） */
+/** [0, maxExclusive) 均匀随机整数：crypto.getRandomValues + 拒绝采样，避免取模偏差 */
 export function randomInt(maxExclusive) {
-  if (!Number.isInteger(maxExclusive) || maxExclusive < 1 || maxExclusive > 0x100000000) {
+  if (!Number.isInteger(maxExclusive) || maxExclusive <= 0 || maxExclusive > 0x100000000) {
     throw new RangeError('randomInt: maxExclusive 需为 1–2^32 的整数')
   }
   const limit = 0x100000000 - (0x100000000 % maxExclusive)
@@ -18,19 +16,30 @@ export function randomInt(maxExclusive) {
   }
 }
 
-/** 从字母表中随机取 length 个字符 */
-export function randomToken(length, alphabet = TOKEN_ALPHABET) {
-  let out = ''
-  for (let i = 0; i < length; i++) out += alphabet[randomInt(alphabet.length)]
-  return out
+/** n 位十进制数字串（邮件验证码 / 找回验证码），首位可为 0 */
+export function randomDigits(n) {
+  let s = ''
+  for (let i = 0; i < n; i++) s += String(randomInt(10))
+  return s
 }
 
-/** 定长纯数字码（首位可为 0，如 6 位邮箱验证码） */
-export function randomDigits(length) {
-  return randomToken(length, '0123456789')
+const TOKEN36_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz'
+
+/** len 位 [0-9a-z] 令牌（一次性 ID / 批次号） */
+export function randomToken36(len) {
+  let s = ''
+  for (let i = 0; i < len; i++) s += TOKEN36_ALPHABET[randomInt(TOKEN36_ALPHABET.length)]
+  return s
+}
+
+/** 从字母表（默认 [0-9a-z]）中随机取 length 个字符 */
+export function randomToken(length, alphabet = TOKEN36_ALPHABET) {
+  let s = ''
+  for (let i = 0; i < length; i++) s += alphabet[randomInt(alphabet.length)]
+  return s
 }
 
 /** 时间戳 + 6 位随机后缀的记录 ID（替代 Date.now()+Math.random 拼接） */
 export function randomId() {
-  return `${Date.now()}-${randomToken(6)}`
+  return `${Date.now()}-${randomToken36(6)}`
 }

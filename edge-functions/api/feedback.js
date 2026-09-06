@@ -15,7 +15,7 @@
 
 import { getStorage } from './_storage.js'
 import { withSecurityHeaders } from './_security.js'
-import { randomId } from './_random.js'
+import { randomToken36 } from './_random.js'
 
 const FEEDBACK_IP_DAILY_LIMIT = 10
 
@@ -75,7 +75,7 @@ async function handleRequest(context) {
 
   // 存档（供管理端查看），失败不阻塞
   try {
-    const id = randomId()
+    const id = `${Date.now()}-${randomToken36(6)}`
     await kv.put(
       `fb:${id}`,
       JSON.stringify({

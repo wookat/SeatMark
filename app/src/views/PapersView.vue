@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
-import ChineseOnlyNotice from '@/components/ChineseOnlyNotice.vue'
+import ZhOnlyNotice from '@/components/ui/ZhOnlyNotice.vue'
 import { LABEL_PAPER_SHEET, labelPapers } from '@/data/labelPapers'
+import { useI18n } from '@/i18n'
 import { labelPaperGeometry } from '@/utils/labelPaper'
+
+const { t, localePath } = useI18n()
 
 const activeCorner = ref<'全部' | '直角' | '圆角'>('全部')
 
@@ -33,20 +36,19 @@ function cells(spec: (typeof labelPapers)[number]) {
 
 <template>
   <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
-    <ChineseOnlyNotice />
     <div class="text-center">
       <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Label Papers</p>
       <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-        A4 不干胶纸型库
+        {{ t('A4 不干胶纸型库') }}
       </h1>
       <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-        收录国产电商常见的 A4 不干胶分切规格：2×4、3×7、3×10、圆角模切等 {{ labelPapers.length }}
-        种。在标签工坊选好纸型，行列数、边距与间距自动锁定，打印即对版，免手动调参。
+        {{ t('收录国产电商常见的 A4 不干胶分切规格：2×4、3×7、3×10、圆角模切等 {n} 种。在标签工坊选好纸型，行列数、边距与间距自动锁定，打印即对版，免手动调参。').replace('{n}', String(labelPapers.length)) }}
       </p>
+      <ZhOnlyNotice />
     </div>
 
     <div class="mt-8 flex flex-wrap items-center justify-center gap-2">
-      <span class="shrink-0 text-xs font-bold text-slate-600">切角</span>
+      <span class="shrink-0 text-xs font-bold text-slate-600">{{ t('切角') }}</span>
       <button
         v-for="c in ['全部', '直角', '圆角'] as const"
         :key="c"
@@ -59,7 +61,7 @@ function cells(spec: (typeof labelPapers)[number]) {
         "
         @click="activeCorner = c"
       >
-        {{ c }}
+        {{ t(c) }}
       </button>
     </div>
 
@@ -75,7 +77,7 @@ function cells(spec: (typeof labelPapers)[number]) {
             class="w-16 shrink-0 rounded-sm border border-slate-200 bg-slate-50"
             :viewBox="`0 0 ${LABEL_PAPER_SHEET.width} ${LABEL_PAPER_SHEET.height}`"
             role="img"
-            :aria-label="`${p.name} 版式示意`"
+            :aria-label="`${p.name} ${t('版式示意')}`"
           >
             <rect
               v-for="(cell, i) in cells(p)"
@@ -95,8 +97,9 @@ function cells(spec: (typeof labelPapers)[number]) {
               {{ p.name }}
             </h2>
             <p class="mt-1 text-xs leading-5 text-slate-600">
-              {{ p.labelWidth }} × {{ p.labelHeight }} mm · {{ p.cols }} 列 × {{ p.rows }} 行 ·
-              每页 {{ p.cols * p.rows }} 枚 · {{ p.corner === 'rounded' ? '圆角' : '直角' }}
+              {{ p.labelWidth }} × {{ p.labelHeight }} mm · {{ p.cols }} {{ t('列') }} × {{ p.rows }} {{ t('行') }} ·
+              {{ t('每页 {n} 枚').replace('{n}', String(p.cols * p.rows)) }} ·
+              {{ t(p.corner === 'rounded' ? '圆角' : '直角') }}
             </p>
           </div>
         </div>
@@ -114,12 +117,13 @@ function cells(spec: (typeof labelPapers)[number]) {
     </div>
 
     <div class="mt-12 rounded-lg border border-brand-100 bg-brand-50/60 p-6 text-center">
-      <h2 class="text-base font-bold text-slate-900">买回来的标签纸不在列表里？</h2>
+      <h2 class="text-base font-bold text-slate-900">{{ t('买回来的标签纸不在列表里？') }}</h2>
       <p class="mx-auto mt-2 max-w-xl text-xs leading-5 text-slate-600">
-        标签工坊支持完全自定义：手动输入标签尺寸、行列数与边距，同样精确到毫米。
-        也欢迎通过页面右下角反馈告诉我们缺少的型号，我们会尽快收录。
+        {{ t('标签工坊支持完全自定义：手动输入标签尺寸、行列数与边距，同样精确到毫米。也欢迎通过页面右下角反馈告诉我们缺少的型号，我们会尽快收录。') }}
       </p>
-      <RouterLink to="/studio" class="btn btn-primary btn-md mt-4">打开标签工坊</RouterLink>
+      <RouterLink :to="localePath('/studio')" class="btn btn-primary btn-md mt-4">
+        {{ t('打开标签工坊') }}
+      </RouterLink>
     </div>
   </div>
 </template>

@@ -8,25 +8,33 @@
  * 兜底模型：智谱 glm-4-flash（通过环境变量 AI_API_KEY 配置，永久免费）
  * 无密钥兜底：服务端代理 Pollinations 匿名接口（浏览器直连受来源限制 402，服务端出口可用）
  *
- * 护栏：
- * - 请求体上限 64KB（Content-Length 与实际字节数双重校验），超限 400；
- * - 按 IP 日限次（`ai:ip:<sha256(ip)>:<YYYY-MM-DD>`，上限 30），超限 429 + Retry-After；
- *   存储降级 memory 时计数跨实例不一致，fail closed 503（仅 SEATMARK_ALLOW_MEMORY_STORAGE=1 放行）；
- * - 主上游失败后只允许 1 次兜底调用，兜底阶段总超时 25s；
- * - 返回给前端的错误只含状态分类文案，不透传上游响应正文；日志不打印用户 messages。
- *
  * 环境变量（EdgeOne Pages 控制台配置）：
  * - DEEPSEEK_API_KEY  主模型密钥（DeepSeek 开放平台）
  * - AI_API_KEY        兜底密钥（智谱开放平台 glm-4-flash）
  * - AI_BASE_URL       兜底接口地址，默认 https://open.bigmodel.cn/api/paas/v4
  * - AI_MODEL          兜底模型名，默认 glm-4-flash
  * - ALERT_WEBHOOK     可选，告警 webhook（企业微信机器人）；仅从环境变量读取，未配置时跳过告警推送
+ *
+ * 防护：
+ * - 请求体 > 32KB → 413（先看 Content-Length，再看实际字节数）
+ * - 按 IP 1 小时滑动窗口最多 30 次 → 429 + Retry-After
+ * - 上游 fetch 共用 25s AbortController 超时；全部上游因超时失败 → 504
+ * - 回复 content > 20KB 截断并在响应顶层标记 truncated:true
+ *
+ * 存储降级：AI 为可选功能，存储为 memory（未放行）时限频跳过、只保留字节上限与超时——
+ * 与 [[default]].js 对持久化写入（配额/会话）的 fail-closed 503 不同，这里没有需要保护的持久化数据。
  */
 
 import { withSecurityHeaders } from './_security.js'
 import { getStorage } from './_storage.js'
 
-const REV = 'r356'
+export const AI_MAX_BODY_BYTES = 32 * 1024
+export const AI_RATE_LIMIT = 30
+export const AI_RATE_WINDOW_MS = 60 * 60 * 1000
+export const AI_UPSTREAM_TIMEOUT_MS = 25_000
+export const AI_MAX_CONTENT_CHARS = 20 * 1024
+
+const encoder = new TextEncoder()
 
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
 const DEEPSEEK_MODEL = 'deepseek-v4-flash'
@@ -35,25 +43,12 @@ const FALLBACK_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4'
 const FALLBACK_MODEL = 'glm-4-flash'
 
 const POLLINATIONS_URL = 'https://text.pollinations.ai/openai'
-const POLLINATIONS_MODEL = 'openai'
-
-const MAX_BODY_BYTES = 64 * 1024
-const MAX_MESSAGES = 8
-const MAX_CONTENT_CHARS = 20000
-const IP_DAILY_LIMIT = 30
-const FALLBACK_TIMEOUT_MS = 25_000
-
-const encoder = new TextEncoder()
+const POLLINATIONS_MODELS = ['openai', 'openai-fast']
 
 function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-store',
-      'X-SeatMark-Rev': REV,
-      ...extraHeaders,
-    },
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extraHeaders },
   })
 }
 
@@ -70,16 +65,50 @@ async function sha256Hex(text) {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-function today() {
-  return new Date().toISOString().slice(0, 10)
+/**
+ * 按 IP 的 1 小时滑动窗口限频：KV 中存最近一小时内的请求时间戳数组。
+ * 返回 { limited, retryAfterSeconds }。
+ */
+async function checkRateLimit(kv, ip, now) {
+  const key = `rl:ai:${(await sha256Hex(ip)).slice(0, 32)}`
+  let stamps = []
+  try {
+    const parsed = JSON.parse((await kv.get(key)) || '[]')
+    if (Array.isArray(parsed)) stamps = parsed.filter((t) => Number.isFinite(t) && now - t < AI_RATE_WINDOW_MS)
+  } catch {
+    stamps = []
+  }
+  if (stamps.length >= AI_RATE_LIMIT) {
+    const oldest = Math.min(...stamps)
+    return { limited: true, retryAfterSeconds: Math.max(1, Math.ceil((oldest + AI_RATE_WINDOW_MS - now) / 1000)) }
+  }
+  stamps.push(now)
+  await kv.put(key, JSON.stringify(stamps))
+  return { limited: false, retryAfterSeconds: 0 }
 }
 
-/** 距 UTC 次日零点的秒数（限流 Retry-After） */
-function secondsUntilTomorrow() {
-  const now = Date.now()
-  const next = new Date(now)
-  next.setUTCHours(24, 0, 0, 0)
-  return Math.max(1, Math.ceil((next.getTime() - now) / 1000))
+/**
+ * 上游 JSON 回复中 choices[0].message.content 超长则截断并在顶层标记 truncated:true；
+ * 非 JSON 或结构不符时原样透传。
+ */
+function truncateReply(text) {
+  let data
+  try {
+    data = JSON.parse(text)
+  } catch {
+    return text
+  }
+  const content = data && data.choices && data.choices[0] && data.choices[0].message
+    ? data.choices[0].message.content
+    : undefined
+  if (typeof content !== 'string' || content.length <= AI_MAX_CONTENT_CHARS) return text
+  data.choices[0].message.content = content.slice(0, AI_MAX_CONTENT_CHARS)
+  data.truncated = true
+  return JSON.stringify(data)
+}
+
+function isAbortError(e) {
+  return !!e && typeof e === 'object' && e.name === 'AbortError'
 }
 
 /** 告警等级与 HTTP 状态的映射 */
@@ -118,132 +147,159 @@ export async function onRequest(context) {
   return withSecurityHeaders(await handleRequest(context))
 }
 
-/** 读取并校验请求体：Content-Length 先行拒绝，再按实际字节数兜底（分块传输无长度头） */
-async function readLimitedBody(request) {
-  const declared = Number(request.headers.get('Content-Length'))
-  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) return { tooLarge: true }
-  let text
-  try {
-    text = await request.text()
-  } catch {
-    return { invalid: true }
-  }
-  if (encoder.encode(text).byteLength > MAX_BODY_BYTES) return { tooLarge: true }
-  try {
-    return { payload: JSON.parse(text) }
-  } catch {
-    return { invalid: true }
-  }
-}
-
-function proxyOk(text) {
-  return new Response(text, {
-    status: 200,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-SeatMark-Rev': REV },
-  })
-}
-
 async function handleRequest(context) {
   const { request, env } = context
 
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 })
   if (request.method !== 'POST') return json({ error: '请求方法不支持' }, 405)
 
-  const body = await readLimitedBody(request)
-  if (body.tooLarge) return json({ error: '请求体过大（上限 64KB）' }, 400)
-  if (body.invalid) return json({ error: '请求体格式错误' }, 400)
-  const payload = body.payload
+  const declared = Number(request.headers.get('Content-Length'))
+  if (Number.isFinite(declared) && declared > AI_MAX_BODY_BYTES) {
+    return json({ error: '请求内容过长，请精简设计要求后重试' }, 413)
+  }
+  let rawBody
+  try {
+    rawBody = await request.text()
+  } catch {
+    return json({ error: '请求体格式错误' }, 400)
+  }
+  if (encoder.encode(rawBody).length > AI_MAX_BODY_BYTES) {
+    return json({ error: '请求内容过长，请精简设计要求后重试' }, 413)
+  }
+
+  let payload
+  try {
+    payload = JSON.parse(rawBody)
+  } catch {
+    return json({ error: '请求体格式错误' }, 400)
+  }
 
   const messages = payload && Array.isArray(payload.messages) ? payload.messages : null
-  if (!messages || !messages.length || messages.length > MAX_MESSAGES) {
+  if (!messages || !messages.length || messages.length > 8) {
     return json({ error: '消息格式无效' }, 400)
   }
   for (const item of messages) {
     const roleOk = item && (item.role === 'system' || item.role === 'user')
-    const contentOk = item && typeof item.content === 'string' && item.content.length <= MAX_CONTENT_CHARS
+    const contentOk = item && typeof item.content === 'string' && item.content.length <= 20000
     if (!roleOk || !contentOk) return json({ error: '消息内容无效' }, 400)
   }
 
-  // IP 日限次：存储不可用（memory 降级且未放行）时 fail closed
+  // 按 IP 限频：存储不可用（memory 未放行）时跳过，见文件头注释
   const { kv, storage } = await getStorage(env)
-  if (storage === 'memory' && !(env && env.SEATMARK_ALLOW_MEMORY_STORAGE === '1')) {
-    console.error('[seatmark-ai-design] 存储降级 memory 且未放行，拒绝服务')
-    return json({ error: 'storage_unavailable' }, 503, { 'X-SeatMark-Storage': storage })
-  }
-  const ipKey = `ai:ip:${await sha256Hex(clientIp(request))}:${today()}`
-  let used = 0
-  try {
-    used = Number((await kv.get(ipKey)) || 0)
-    if (!Number.isFinite(used) || used < 0) used = 0
-  } catch (err) {
-    console.error('[seatmark-ai-design] 限流计数读取失败:', err)
-    return json({ error: 'storage_unavailable' }, 503, { 'X-SeatMark-Storage': storage })
-  }
-  if (used >= IP_DAILY_LIMIT) {
-    return json({ error: '今日 AI 设计次数已用完，请明天再试' }, 429, {
-      'Retry-After': String(secondsUntilTomorrow()),
-    })
-  }
-  try {
-    await kv.put(ipKey, String(used + 1))
-  } catch (err) {
-    console.error('[seatmark-ai-design] 限流计数写入失败:', err)
-    return json({ error: 'storage_unavailable' }, 503, { 'X-SeatMark-Storage': storage })
-  }
-
-  async function callUpstream(url, apiKey, model, timeoutMs) {
-    const headers = { 'Content-Type': 'application/json' }
-    if (apiKey) headers.Authorization = `Bearer ${apiKey}`
-    return fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ model, messages, temperature: 0.6 }),
-      signal: typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(timeoutMs) : undefined,
-      eo: {
-        timeoutSetting: {
-          connectTimeout: Math.min(30_000, timeoutMs),
-          readTimeout: timeoutMs,
-          writeTimeout: Math.min(30_000, timeoutMs),
-        },
-      },
-    })
-  }
-
-  function chatUrl(baseUrl) {
-    return baseUrl.endsWith('/chat/completions')
-      ? baseUrl
-      : `${baseUrl.replace(/\/+$/, '')}/chat/completions`
-  }
-
-  // 主模型：DeepSeek
-  const deepseekKey = env && env.DEEPSEEK_API_KEY
-  if (deepseekKey) {
+  const memoryAllowed = !!(env && env.SEATMARK_ALLOW_MEMORY_STORAGE === '1')
+  if (storage !== 'memory' || memoryAllowed) {
     try {
-      const upstream = await callUpstream(chatUrl(DEEPSEEK_BASE_URL), deepseekKey, DEEPSEEK_MODEL, 120_000)
-      if (upstream.ok) return proxyOk(await upstream.text())
-      await sendAlert(env, alertLevel(upstream.status), `HTTP ${upstream.status}`)
-    } catch (e) {
-      await sendAlert(env, '网络异常', e instanceof Error ? e.name : 'unknown')
+      const rl = await checkRateLimit(kv, clientIp(request), Date.now())
+      if (rl.limited) {
+        return json({ error: 'AI 设计请求过于频繁，请稍后再试' }, 429, {
+          'Retry-After': String(rl.retryAfterSeconds),
+        })
+      }
+    } catch {
+      /* 计数读写失败不阻断可选功能 */
     }
   }
 
-  // 兜底：只允许 1 次（有智谱密钥走智谱，否则走匿名代理），总超时 25s
-  const fallbackKey = env && env.AI_API_KEY
-  const fallback = fallbackKey
-    ? {
-        url: chatUrl(String((env && env.AI_BASE_URL) || FALLBACK_BASE_URL)),
-        apiKey: fallbackKey,
-        model: (env && env.AI_MODEL) || FALLBACK_MODEL,
-      }
-    : { url: POLLINATIONS_URL, apiKey: '', model: POLLINATIONS_MODEL }
-  let failure = 'unavailable'
+  const aborter = new AbortController()
+  const timer = setTimeout(() => aborter.abort(), AI_UPSTREAM_TIMEOUT_MS)
   try {
-    const upstream = await callUpstream(fallback.url, fallback.apiKey, fallback.model, FALLBACK_TIMEOUT_MS)
-    if (upstream.ok) return proxyOk(await upstream.text())
-    failure = upstream.status === 429 ? 'rate_limited' : `upstream_${upstream.status}`
-  } catch (e) {
-    failure = e instanceof Error && e.name === 'TimeoutError' ? 'timeout' : 'network'
+    return await proxyUpstreams({ env, messages, signal: aborter.signal })
+  } finally {
+    clearTimeout(timer)
   }
-  console.error('[seatmark-ai-design] 主模型与兜底均失败:', failure)
-  return json({ error: 'AI 服务暂时不可用，请稍后再试', code: failure }, 502)
+}
+
+function okResponse(text) {
+  return new Response(truncateReply(text), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  })
+}
+
+async function proxyUpstreams({ env, messages, signal }) {
+  let timedOut = false
+
+  async function callUpstream(baseUrl, apiKey, model) {
+    const url = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl.replace(/\/+$/, '')}/chat/completions`
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({ model, messages, temperature: 0.6 }),
+      signal,
+      eo: {
+        timeoutSetting: {
+          connectTimeout: 30_000,
+          readTimeout: 120_000,
+          writeTimeout: 30_000,
+        },
+      },
+    })
+    return resp
+  }
+
+  // 主模型：DeepSeek v4 Pro
+  const deepseekKey = env && env.DEEPSEEK_API_KEY
+  if (deepseekKey) {
+    try {
+      const upstream = await callUpstream(DEEPSEEK_BASE_URL, deepseekKey, DEEPSEEK_MODEL)
+      if (upstream.ok) return okResponse(await upstream.text())
+      // DeepSeek 返回非 200：读取错误详情并告警
+      const errBody = await upstream.text().catch(() => '')
+      const level = alertLevel(upstream.status)
+      const detail = `HTTP ${upstream.status} ${errBody.slice(0, 200)}`
+      await sendAlert(env, level, detail)
+    } catch (e) {
+      if (isAbortError(e)) timedOut = true
+      // DeepSeek 网络异常：告警
+      const detail = `网络异常 ${e instanceof Error ? e.message : String(e)}`
+      await sendAlert(env, '网络异常', detail)
+    }
+  }
+
+  // 兜底：智谱 glm-4-flash
+  const fallbackKey = env && env.AI_API_KEY
+  if (fallbackKey) {
+    const fallbackBaseUrl = String((env && env.AI_BASE_URL) || FALLBACK_BASE_URL)
+    const fallbackModel = (env && env.AI_MODEL) || FALLBACK_MODEL
+    try {
+      const upstream = await callUpstream(fallbackBaseUrl, fallbackKey, fallbackModel)
+      if (upstream.ok) return okResponse(await upstream.text())
+    } catch (e) {
+      if (isAbortError(e)) timedOut = true
+      /* 落到无密钥兜底 */
+    }
+  }
+
+  // 无密钥兜底：服务端代理 Pollinations 匿名接口
+  // （浏览器直连会因来源限制返回 402，服务端出口不受影响）
+  const attempts = []
+  for (const model of POLLINATIONS_MODELS) {
+    try {
+      const upstream = await fetch(POLLINATIONS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, messages, temperature: 0.6 }),
+        signal,
+        eo: {
+          timeoutSetting: {
+            connectTimeout: 30_000,
+            readTimeout: 120_000,
+            writeTimeout: 30_000,
+          },
+        },
+      })
+      if (upstream.ok) return okResponse(await upstream.text())
+      const errBody = await upstream.text().catch(() => '')
+      attempts.push(`${model}: HTTP ${upstream.status} ${errBody.slice(0, 120)}`)
+    } catch (e) {
+      if (isAbortError(e)) timedOut = true
+      attempts.push(`${model}: ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }
+
+  if (timedOut) return json({ error: 'AI 服务响应超时，请稍后再试' }, 504)
+  return json({ error: `AI 服务暂时不可用，请稍后再试（${attempts.join('；').slice(0, 300)}）` }, 502)
 }

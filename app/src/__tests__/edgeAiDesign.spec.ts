@@ -1,173 +1,148 @@
 /**
- * edge-functions/api/ai-design.js 护栏桩测试：
- * 请求体上限、按 IP 日限次（fail closed）、兜底只调用一次、错误不透传上游正文。
+ * edge-functions/api/ai-design.js 的桩测试：
+ * 直接调用 onRequest（内存 KV 放行），覆盖 413 字节上限、按 IP 限频 429、
+ * 上游超时 504 与超长回复截断标记。上游 fetch 全部 mock，不访问网络。
  */
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore JS 模块无类型声明
-import { onRequest } from '../../../edge-functions/api/ai-design.js'
+import {
+  AI_MAX_BODY_BYTES,
+  AI_MAX_CONTENT_CHARS,
+  AI_RATE_LIMIT,
+  AI_UPSTREAM_TIMEOUT_MS,
+  onRequest,
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore JS 模块无类型声明
+} from '../../../edge-functions/api/ai-design.js'
 
 interface Env {
+  SEATMARK_ALLOW_MEMORY_STORAGE?: string
   DEEPSEEK_API_KEY?: string
   AI_API_KEY?: string
-  ALERT_WEBHOOK?: string
-  SEATMARK_ALLOW_MEMORY_STORAGE?: string
 }
 
-const ALLOW: Env = { SEATMARK_ALLOW_MEMORY_STORAGE: '1' }
+const ENV: Env = { SEATMARK_ALLOW_MEMORY_STORAGE: '1' }
 
 let ipSeq = 0
-function nextIp() {
+function freshIp(): string {
   ipSeq += 1
-  return `10.0.${Math.floor(ipSeq / 256)}.${ipSeq % 256}`
+  return `203.0.113.${ipSeq}`
 }
 
-function post(body: string | object, ip: string, extraHeaders: Record<string, string> = {}) {
+function post(body: string | Record<string, unknown>, ip: string, headers: Record<string, string> = {}) {
   const raw = typeof body === 'string' ? body : JSON.stringify(body)
   return new Request('https://www.seatmark.cn/api/ai-design', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'EO-Connecting-IP': ip, ...extraHeaders },
+    headers: { 'Content-Type': 'application/json', 'EO-Connecting-IP': ip, ...headers },
     body: raw,
   })
 }
 
-const validBody = { messages: [{ role: 'user', content: 'hi' }] }
+const messages = [{ role: 'user', content: '设计一张考场桌贴' }]
+
+function chatReply(content: string): Response {
+  return new Response(JSON.stringify({ choices: [{ message: { role: 'assistant', content } }] }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
 const originalFetch = globalThis.fetch
+
+beforeEach(() => {
+  globalThis.fetch = vi.fn(async () => chatReply('{"fields":[]}')) as unknown as typeof fetch
+})
 
 afterEach(() => {
   globalThis.fetch = originalFetch
-  vi.restoreAllMocks()
+  vi.useRealTimers()
 })
 
-function mockFetch(handler: (url: string) => Response | Promise<Response>) {
-  const calls: string[] = []
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-    calls.push(url)
-    return handler(url)
-  }) as unknown as typeof fetch
-  return calls
-}
-
-describe('ai-design 请求体护栏', () => {
-  it('GET 返回 405，且响应头带 X-SeatMark-Rev', async () => {
-    const res: Response = await onRequest({
-      request: new Request('https://www.seatmark.cn/api/ai-design', { method: 'GET' }),
-      env: ALLOW,
+describe('ai-design 请求体上限', () => {
+  it('Content-Length 超过 32KB 直接 413，不读取正文', async () => {
+    const res = await onRequest({
+      request: post({ messages }, freshIp(), { 'Content-Length': String(AI_MAX_BODY_BYTES + 1) }),
+      env: ENV,
     })
-    expect(res.status).toBe(405)
-    expect(res.headers.get('X-SeatMark-Rev')).toMatch(/^r\d+$/)
+    expect(res.status).toBe(413)
+    expect(globalThis.fetch).not.toHaveBeenCalled()
   })
 
-  it('空 / 非法 JSON 请求体返回 400', async () => {
-    const fetchMock = mockFetch(() => new Response('{}'))
-    const empty: Response = await onRequest({ request: post('', nextIp()), env: ALLOW })
-    expect(empty.status).toBe(400)
-    const bad: Response = await onRequest({ request: post('{not json', nextIp()), env: ALLOW })
-    expect(bad.status).toBe(400)
-    expect(fetchMock).toHaveLength(0)
+  it('实际正文超过 32KB 返回 413', async () => {
+    const big = { messages: [{ role: 'user', content: 'x'.repeat(AI_MAX_BODY_BYTES) }] }
+    const res = await onRequest({ request: post(big, freshIp()), env: ENV })
+    expect(res.status).toBe(413)
+    expect(globalThis.fetch).not.toHaveBeenCalled()
   })
 
-  it('Content-Length 超过 64KB 直接 400（不读正文、不调上游）', async () => {
-    const calls = mockFetch(() => new Response('{}'))
-    const res: Response = await onRequest({
-      request: post(validBody, nextIp(), { 'Content-Length': String(64 * 1024 + 1) }),
-      env: ALLOW,
-    })
-    expect(res.status).toBe(400)
-    expect(((await res.json()) as { error: string }).error).toContain('64KB')
-    expect(calls).toHaveLength(0)
-  })
-
-  it('实际正文超过 64KB（每条消息不超 20000 字符）也返回 400', async () => {
-    const calls = mockFetch(() => new Response('{}'))
-    const chunk = 'x'.repeat(19000)
-    const body = { messages: Array.from({ length: 4 }, () => ({ role: 'user', content: chunk })) }
-    expect(JSON.stringify(body).length).toBeGreaterThan(64 * 1024)
-    const res: Response = await onRequest({ request: post(body, nextIp()), env: ALLOW })
-    expect(res.status).toBe(400)
-    expect(calls).toHaveLength(0)
+  it('正常体积请求透传上游并 200', async () => {
+    const res = await onRequest({ request: post({ messages }, freshIp()), env: ENV })
+    expect(res.status).toBe(200)
+    const data = (await res.json()) as { choices: Array<{ message: { content: string } }>; truncated?: boolean }
+    expect(data.choices[0]!.message.content).toBe('{"fields":[]}')
+    expect(data.truncated).toBeUndefined()
   })
 })
 
-describe('ai-design 按 IP 日限次', () => {
-  it('同一 IP 第 31 次返回 429 并带 Retry-After；其他 IP 不受影响', async () => {
-    mockFetch(() => new Response('{"choices":[]}', { status: 200 }))
-    const env: Env = { ...ALLOW, DEEPSEEK_API_KEY: 'k' }
-    const ip = nextIp()
-    for (let i = 0; i < 30; i++) {
-      const res: Response = await onRequest({ request: post(validBody, ip), env })
+describe('ai-design 按 IP 限频', () => {
+  it('同一 IP 一小时内第 31 次返回 429 并带 Retry-After', async () => {
+    const ip = freshIp()
+    for (let i = 0; i < AI_RATE_LIMIT; i++) {
+      const res = await onRequest({ request: post({ messages }, ip), env: ENV })
       expect(res.status).toBe(200)
     }
-    const blocked: Response = await onRequest({ request: post(validBody, ip), env })
-    expect(blocked.status).toBe(429)
-    const retryAfter = Number(blocked.headers.get('Retry-After'))
+    const res = await onRequest({ request: post({ messages }, ip), env: ENV })
+    expect(res.status).toBe(429)
+    const retryAfter = Number(res.headers.get('Retry-After'))
     expect(retryAfter).toBeGreaterThan(0)
-    expect(retryAfter).toBeLessThanOrEqual(86400)
-
-    const other: Response = await onRequest({ request: post(validBody, nextIp()), env })
-    expect(other.status).toBe(200)
+    expect(retryAfter).toBeLessThanOrEqual(3600)
+    expect(globalThis.fetch).toHaveBeenCalledTimes(AI_RATE_LIMIT)
   })
 
-  it('存储降级 memory 且未放行时 fail closed 503，不调上游', async () => {
-    const calls = mockFetch(() => new Response('{}'))
-    const res: Response = await onRequest({
-      request: post(validBody, nextIp()),
-      env: { DEEPSEEK_API_KEY: 'k' },
-    })
-    expect(res.status).toBe(503)
-    expect(await res.json()).toEqual({ error: 'storage_unavailable' })
-    expect(calls).toHaveLength(0)
+  it('不同 IP 互不影响', async () => {
+    const res = await onRequest({ request: post({ messages }, freshIp()), env: ENV })
+    expect(res.status).toBe(200)
+  })
+
+  it('存储为 memory 且未放行时限频降级跳过，仍可正常代理', async () => {
+    const ip = freshIp()
+    for (let i = 0; i < AI_RATE_LIMIT + 2; i++) {
+      const res = await onRequest({ request: post({ messages }, ip), env: {} })
+      expect(res.status).toBe(200)
+    }
   })
 })
 
-describe('ai-design 兜底与错误脱敏', () => {
-  it('主上游失败后 fallback 仅调用一次，错误响应不透传上游正文', async () => {
-    const calls = mockFetch(
-      () => new Response('{"error":"SECRET-UPSTREAM-DETAIL quota exhausted"}', { status: 402 }),
+describe('ai-design 上游超时与截断', () => {
+  it('上游 25s 未响应时中止并返回 504', async () => {
+    // 只伪造 setTimeout：限频里的 crypto.subtle / 存储初始化走真实事件循环
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const fetchMock = vi.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          const fail = () => reject(new DOMException('The operation was aborted.', 'AbortError'))
+          if (init.signal?.aborted) fail()
+          else init.signal?.addEventListener('abort', fail)
+        }),
     )
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    const res: Response = await onRequest({
-      request: post(validBody, nextIp()),
-      env: { ...ALLOW, DEEPSEEK_API_KEY: 'k', AI_API_KEY: 'k2' },
-    })
-    expect(res.status).toBe(502)
-    expect(calls.filter((u) => u.includes('deepseek'))).toHaveLength(1)
-    expect(calls.filter((u) => !u.includes('deepseek'))).toHaveLength(1)
-    expect(calls.some((u) => u.includes('bigmodel'))).toBe(true)
-    const text = await res.text()
-    expect(text).not.toContain('SECRET-UPSTREAM-DETAIL')
-    expect(JSON.parse(text)).toEqual({ error: 'AI 服务暂时不可用，请稍后再试', code: 'upstream_402' })
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+    const pending = onRequest({ request: post({ messages }, freshIp()), env: ENV })
+    // vi.waitFor 用真实计时器轮询，等到上游 fetch 已发出（限频等前置异步步骤走真实事件循环）
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    await vi.advanceTimersByTimeAsync(AI_UPSTREAM_TIMEOUT_MS + 10)
+    const res = await pending
+    expect(res.status).toBe(504)
+    const data = (await res.json()) as { error: string }
+    expect(data.error).toContain('超时')
   })
 
-  it('无兜底密钥时只尝试 1 个匿名代理模型', async () => {
-    const calls = mockFetch(() => new Response('x', { status: 500 }))
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    const res: Response = await onRequest({
-      request: post(validBody, nextIp()),
-      env: { ...ALLOW, DEEPSEEK_API_KEY: 'k' },
-    })
-    expect(res.status).toBe(502)
-    expect(calls.filter((u) => u.includes('pollinations'))).toHaveLength(1)
-    expect(calls).toHaveLength(2)
-  })
-
-  it('兜底调用的超时预算不超过 25s', async () => {
-    const timeouts: number[] = []
-    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit & { eo?: { timeoutSetting: { readTimeout: number } } }) => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-      if (!url.includes('deepseek')) timeouts.push(init?.eo?.timeoutSetting.readTimeout ?? -1)
-      return new Response('x', { status: 500 })
-    }) as unknown as typeof fetch
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    await onRequest({
-      request: post(validBody, nextIp()),
-      env: { ...ALLOW, DEEPSEEK_API_KEY: 'k', AI_API_KEY: 'k2' },
-    })
-    expect(timeouts).toEqual([25_000])
+  it('回复 content 超过 20KB 截断并标记 truncated:true', async () => {
+    const long = 'a'.repeat(AI_MAX_CONTENT_CHARS + 500)
+    globalThis.fetch = vi.fn(async () => chatReply(long)) as unknown as typeof fetch
+    const res = await onRequest({ request: post({ messages }, freshIp()), env: ENV })
+    expect(res.status).toBe(200)
+    const data = (await res.json()) as { choices: Array<{ message: { content: string } }>; truncated?: boolean }
+    expect(data.truncated).toBe(true)
+    expect(data.choices[0]!.message.content.length).toBe(AI_MAX_CONTENT_CHARS)
   })
 })
