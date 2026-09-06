@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
+import { t } from '@/i18n'
 
 import { useToastStore, type ToastType } from '@/stores/toast'
 
@@ -34,7 +35,7 @@ const TONE_PATH: Record<ToastType, string> = {
   <div
     role="status"
     aria-live="polite"
-    aria-label="操作提示"
+    :aria-label="t('操作提示')"
     class="no-print pointer-events-none fixed right-3 bottom-20 z-[70] flex w-[calc(100vw-1.5rem)] max-w-80 flex-col-reverse gap-2 sm:right-4"
   >
     <TransitionGroup
@@ -75,7 +76,7 @@ const TONE_PATH: Record<ToastType, string> = {
         <button
           type="button"
           class="-mt-0.5 -mr-0.5 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-600"
-          aria-label="关闭提示"
+          :aria-label="t('关闭提示')"
           @click="toastStore.dismiss(toast.id)"
         >
           <svg

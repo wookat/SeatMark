@@ -48,6 +48,7 @@ SeatMark/
 ├── app/                 # 前端应用（Vue 3 + TypeScript + Vite），详见 app/README.md
 ├── edge-functions/      # 腾讯 EdgeOne Pages Edge Function（AI 设计 / 反馈同源代理）
 ├── edgeone.json         # EdgeOne Pages 构建配置
+├── docs/handoff-context.md  # 交接上下文（构建/部署/边缘函数/i18n 约定/铁律/已知缺口）
 └── .github/workflows/   # GitHub Pages 自动部署（备用预览环境）
 ```
 

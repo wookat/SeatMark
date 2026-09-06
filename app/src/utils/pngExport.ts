@@ -12,6 +12,24 @@ import type { DataRow } from '@/types/template'
 /** CSS 像素密度：96 px/in ÷ 25.4 mm/in */
 export const CSS_PX_PER_MM = 96 / 25.4
 
+/**
+ * 逐标签导出重渲/重建后仍切出空白标签时抛出；page/index 为 1 起序号，
+ * 调用方按字段本地化提示文案，不依赖 message 文本匹配
+ */
+export class BlankLabelError extends Error {
+  readonly page: number
+  readonly total: number
+  readonly index: number
+
+  constructor(page: number, total: number, index: number) {
+    super(`第 ${page}/${total} 页第 ${index} 枚标签渲染为空白`)
+    this.name = 'BlankLabelError'
+    this.page = page
+    this.total = total
+    this.index = index
+  }
+}
+
 /** 精确像素输出的目标宽度上限（防误输入超大值导致内存爆掉） */
 export const MAX_EXACT_PIXEL_WIDTH = 4096
 /** 精确像素输出的目标宽度下限（低于此值文字不可读） */
@@ -498,7 +516,7 @@ async function exportPerLabelPng(
       if (blankIndex < 0) return outputs
       for (const o of outputs) releaseCanvas(o)
       if (attempt >= maxAttempts - 1) {
-        throw new Error(`第 ${pageIndex + 1}/${pageCount} 页第 ${blankIndex + 1} 枚标签渲染为空白`)
+        throw new BlankLabelError(pageIndex + 1, pageCount, blankIndex + 1)
       }
     }
   }

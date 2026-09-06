@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 
 import ModalDialog from '@/components/ui/ModalDialog.vue'
+import { localePath, t } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
 import { QUOTA_USER_DAILY, useQuotaStore } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
@@ -23,20 +24,20 @@ const shareLink = computed(() =>
 const valueLadder = computed(() => [
   {
     key: 'login',
-    label: `登录后每天 ${QUOTA_USER_DAILY} 次无水印导出`,
-    detail: '注册即送 7 天专业版试用（无水印导出不限次），自定义模板可同步云端',
+    label: t('登录后每天 {n} 次无水印导出').replace('{n}', String(QUOTA_USER_DAILY)),
+    detail: t('注册即送 7 天专业版试用（无水印导出不限次），自定义模板可同步云端'),
     active: !isLoggedIn.value,
   },
   {
     key: 'share',
-    label: `分享被点开 1 次再 +1 次（每日最多 ${shareDailyCap.value} 次）`,
-    detail: '专属链接发给同事或群聊，服务端去重防刷',
+    label: t('分享被点开 1 次再 +1 次（每日最多 {n} 次）').replace('{n}', String(shareDailyCap.value)),
+    detail: t('专属链接发给同事或群聊，服务端去重防刷'),
     active: true,
   },
   {
     key: 'watermark',
-    label: '带水印导出永远免费、不限次数',
-    detail: '水印为页脚浅色角标，不遮挡姓名与座位号',
+    label: t('带水印导出永远免费、不限次数'),
+    detail: t('水印为页脚浅色角标，不遮挡姓名与座位号'),
     active: true,
   },
 ])
@@ -44,10 +45,10 @@ const valueLadder = computed(() => [
 async function copyShareLink() {
   if (!shareLink.value) return
   if (await copyToClipboard(shareLink.value)) {
-    toast.success('分享链接已复制', '发给同事或群聊，每被点开 1 次即得 1 次无水印导出')
+    toast.success(t('分享链接已复制'), t('发给同事或群聊，每被点开 1 次即得 1 次无水印导出'))
     close()
   } else {
-    toast.warning('复制失败', '可到个人中心手动复制专属分享链接')
+    toast.warning(t('复制失败'), t('可到个人中心手动复制专属分享链接'))
   }
 }
 
@@ -57,9 +58,9 @@ function close() {
 </script>
 
 <template>
-  <ModalDialog :open="quota.limitDialogOpen" title="今日无水印导出次数已用完" size="md" @close="close">
+  <ModalDialog :open="quota.limitDialogOpen" :title="t('今日无水印导出次数已用完')" size="md" @close="close">
     <p class="leading-6">
-      无水印导出配额明天 0 点自动恢复，也可以立即获得更多次数：
+      {{ t('无水印导出配额明天 0 点自动恢复，也可以立即获得更多次数：') }}
     </p>
 
     <ul class="mt-4 grid gap-2.5 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
@@ -82,25 +83,25 @@ function close() {
     <div class="mt-4 grid gap-2">
       <RouterLink
         v-if="!isLoggedIn"
-        to="/account"
+        :to="localePath('/account')"
         class="btn btn-primary btn-md w-full"
         @click="close"
       >
-        免费登录，每天 {{ QUOTA_USER_DAILY }} 次无水印导出
+        {{ t('免费登录，每天 {n} 次无水印导出').replace('{n}', String(QUOTA_USER_DAILY)) }}
       </RouterLink>
 
       <component
         :is="isLoggedIn ? 'button' : 'RouterLink'"
-        v-bind="isLoggedIn ? { type: 'button' } : { to: '/account' }"
+        v-bind="isLoggedIn ? { type: 'button' } : { to: localePath('/account') }"
         :class="isLoggedIn ? 'btn btn-primary btn-md w-full' : 'btn btn-secondary btn-md w-full'"
         @click="isLoggedIn ? copyShareLink() : close()"
       >
-        {{ isLoggedIn ? '复制专属分享链接，被点开就 +1 次' : '登录后可分享送次数' }}
+        {{ isLoggedIn ? t('复制专属分享链接，被点开就 +1 次') : t('登录后可分享送次数') }}
       </component>
     </div>
 
     <p class="mt-4 text-xs leading-5 text-slate-600">
-      也可以直接选择带水印导出继续使用，不受次数限制。名单与照片始终只在你的浏览器本地处理，登录只用于配额与模板同步，不会上传任何标签数据。
+      {{ t('也可以直接选择带水印导出继续使用，不受次数限制。名单与照片始终只在你的浏览器本地处理，登录只用于配额与模板同步，不会上传任何标签数据。') }}
     </p>
   </ModalDialog>
 </template>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { t } from '@/i18n'
+
 // 透传 aria-label 等无障碍属性到真正的 input，而不是外层容器
 defineOptions({ inheritAttrs: false })
 
@@ -58,7 +60,7 @@ function onChange(event: Event) {
       <button
         type="button"
         tabindex="-1"
-        aria-label="增大"
+        :aria-label="t('增大')"
         class="flex flex-1 cursor-pointer items-center justify-center text-slate-600 hover:bg-slate-100 hover:text-brand-600 active:bg-slate-200"
         @click="nudge(1)"
       >
@@ -77,7 +79,7 @@ function onChange(event: Event) {
       <button
         type="button"
         tabindex="-1"
-        aria-label="减小"
+        :aria-label="t('减小')"
         class="flex flex-1 cursor-pointer items-center justify-center border-t border-slate-100 text-slate-600 hover:bg-slate-100 hover:text-brand-600 active:bg-slate-200"
         @click="nudge(-1)"
       >

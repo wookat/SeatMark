@@ -146,7 +146,7 @@ const SECTIONS = computed(() => [
         <RouterLink
           :to="switchTarget"
           class="btn btn-ghost btn-sm"
-          :aria-label="locale === 'en' ? '切换到中文' : 'Switch to English'"
+          :aria-label="locale === 'en' ? t('切换到中文') : 'Switch to English'"
           :title="locale === 'en' ? '中文' : 'English'"
           @click="onSwitchLocale"
         >

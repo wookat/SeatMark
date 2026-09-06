@@ -74,15 +74,15 @@ const labelPaperSlug = computed({
     if (slug === 'none') {
       if (!matchLabelPaper(workspace.template.page, workspace.template.label)) return
       releaseLabelPaper(workspace.template, designTemplate.value)
-      toast.info('已取消纸型锁定', '恢复模板默认排版，可自由调整行列、尺寸与边距')
+      toast.info(t('已取消纸型锁定'), t('恢复模板默认排版，可自由调整行列、尺寸与边距'))
       return
     }
     const spec = labelPapers.find((p) => p.slug === slug)
     if (!spec) return
     if (!isPaperCompatible(workspace.template, spec)) {
       toast.warning(
-        '当前模板与该纸型不兼容',
-        '整页/折叠桌牌类模板需整页排版，请选择每页 1 枚的整版纸型或更换模板',
+        t('当前模板与该纸型不兼容'),
+        t('整页/折叠桌牌类模板需整页排版，请选择每页 1 枚的整版纸型或更换模板'),
       )
       return
     }
@@ -91,16 +91,22 @@ const labelPaperSlug = computed({
     if (fit.level === 'marginal' || fit.level === 'incompatible') {
       const best = recommendedPaper.value
       toast.warning(
-        `该纸型与当前模板适配度：${FIT_LEVEL_LABELS[fit.level]}`,
+        t('该纸型与当前模板适配度：{level}').replace('{level}', t(FIT_LEVEL_LABELS[fit.level])),
         best && best.spec.slug !== spec.slug
-          ? `${fit.reason}；建议改用「${best.spec.name}」`
+          ? t('{reason}；建议改用「{paper}」').replace('{reason}', fit.reason).replace('{paper}', best.spec.name)
           : fit.reason,
       )
       return
     }
     toast.info(
-      '已按纸型锁定排版',
-      `${spec.name}：${spec.cols} 列 × ${spec.rows} 行，每页 ${spec.cols * spec.rows} 枚（${spec.labelWidth} × ${spec.labelHeight} mm）`,
+      t('已按纸型锁定排版'),
+      t('{paper}：{cols} 列 × {rows} 行，每页 {n} 枚（{w} × {h} mm）')
+        .replace('{paper}', spec.name)
+        .replace('{cols}', String(spec.cols))
+        .replace('{rows}', String(spec.rows))
+        .replace('{n}', String(spec.cols * spec.rows))
+        .replace('{w}', String(spec.labelWidth))
+        .replace('{h}', String(spec.labelHeight)),
     )
   },
 })
@@ -252,7 +258,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">{{ t('标签宽 (mm)') }}</label>
         <NumberField
-          aria-label="标签宽 (mm)"
+          :aria-label="t('标签宽 (mm)')"
           :model-value="workspace.template.label.width"
           :step="1"
           :min="10"
@@ -263,7 +269,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">{{ t('标签高 (mm)') }}</label>
         <NumberField
-          aria-label="标签高 (mm)"
+          :aria-label="t('标签高 (mm)')"
           :model-value="workspace.template.label.height"
           :step="1"
           :min="10"
@@ -274,7 +280,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">{{ t('列数') }}</label>
         <NumberField
-          aria-label="列数"
+          :aria-label="t('列数')"
           :model-value="workspace.template.page.cols"
           :min="1"
           :max="12"
@@ -284,7 +290,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">{{ t('行数') }}</label>
         <NumberField
-          aria-label="行数"
+          :aria-label="t('行数')"
           :model-value="workspace.template.page.rows"
           :min="1"
           :max="30"
@@ -294,7 +300,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">{{ t('横向间距 (mm)') }}</label>
         <NumberField
-          aria-label="横向间距 (mm)"
+          :aria-label="t('横向间距 (mm)')"
           :model-value="workspace.template.page.gapX"
           :step="0.5"
           :min="0"
@@ -305,7 +311,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">{{ t('纵向间距 (mm)') }}</label>
         <NumberField
-          aria-label="纵向间距 (mm)"
+          :aria-label="t('纵向间距 (mm)')"
           :model-value="workspace.template.page.gapY"
           :step="0.5"
           :min="0"
@@ -316,7 +322,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">{{ t('左右边距 (mm)') }}</label>
         <NumberField
-          aria-label="左右边距 (mm)"
+          :aria-label="t('左右边距 (mm)')"
           :model-value="workspace.template.page.marginLeft"
           :step="0.5"
           :min="0"
@@ -327,7 +333,7 @@ function onCenterLayout() {
       <div>
         <label class="field-label">{{ t('上下边距 (mm)') }}</label>
         <NumberField
-          aria-label="上下边距 (mm)"
+          :aria-label="t('上下边距 (mm)')"
           :model-value="workspace.template.page.marginTop"
           :step="0.5"
           :min="0"

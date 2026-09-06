@@ -91,13 +91,13 @@ const subcategoryOptions = computed<{ id: string; name: string; count: number }[
     }))
     .filter((o) => o.count > 0)
   if (options.length <= 1) return []
-  return [{ id: 'all', name: '全部', count: list.length }, ...options]
+  return [{ id: 'all', name: tr('全部'), count: list.length }, ...options]
 })
 
 const categoryOptions = computed<{ id: CategoryFilter; name: string; count: number }[]>(() => {
   const all = library.allTemplates
   const options: { id: CategoryFilter; name: string; count: number }[] = [
-    { id: 'all', name: '全部', count: all.length },
+    { id: 'all', name: tr('全部'), count: all.length },
     ...TEMPLATE_CATEGORIES.map((c) => ({
       id: c.id as CategoryFilter,
       name: c.name,
@@ -105,7 +105,7 @@ const categoryOptions = computed<{ id: CategoryFilter; name: string; count: numb
     })),
   ]
   const customCount = all.filter((t) => !t.builtin).length
-  if (customCount > 0) options.push({ id: 'custom', name: '自定义', count: customCount })
+  if (customCount > 0) options.push({ id: 'custom', name: tr('自定义'), count: customCount })
   return options.filter((o) => o.count > 0)
 })
 
@@ -193,7 +193,7 @@ async function showShareQr() {
     shareQrShortFailed.value = true
   } catch {
     closeShareQr()
-    toast.danger('生成二维码失败', '请改用「复制分享链接」')
+    toast.danger(tr('生成二维码失败'), tr('请改用「复制分享链接」'))
   } finally {
     shareQrLoading.value = false
   }
@@ -206,8 +206,8 @@ async function useLongLinkQr() {
     if (!url) {
       closeShareQr()
       toast.warning(
-        '模板体积过大，不适合扫码分享',
-        '通常是包含了固定图片（Logo）。请改用「导出 JSON」分享文件。',
+        tr('模板体积过大，不适合扫码分享'),
+        tr('通常是包含了固定图片（Logo）。请改用「导出 JSON」分享文件。'),
       )
       return
     }
@@ -216,7 +216,7 @@ async function useLongLinkQr() {
     shareQrSvg.value = qrToSvg(url, 'L')
   } catch {
     closeShareQr()
-    toast.danger('生成二维码失败', '请改用「复制分享链接」')
+    toast.danger(tr('生成二维码失败'), tr('请改用「复制分享链接」'))
   }
 }
 
@@ -225,18 +225,18 @@ async function shareCurrentTemplate() {
     const url = await buildShareUrl()
     if (!url) {
       toast.warning(
-        '模板体积过大，不适合用链接分享',
-        '通常是包含了固定图片（Logo）。请改用「导出 JSON」分享文件。',
+        tr('模板体积过大，不适合用链接分享'),
+        tr('通常是包含了固定图片（Logo）。请改用「导出 JSON」分享文件。'),
       )
       return
     }
     if (await copyToClipboard(url)) {
-      toast.success('分享链接已复制', '对方打开链接即可导入该模板（数据不经过服务器）')
+      toast.success(tr('分享链接已复制'), tr('对方打开链接即可导入该模板（数据不经过服务器）'))
     } else {
-      toast.danger('复制失败', '请改用「导出 JSON」分享文件')
+      toast.danger(tr('复制失败'), tr('请改用「导出 JSON」分享文件'))
     }
   } catch {
-    toast.danger('生成分享链接失败', '请改用「导出 JSON」分享文件')
+    toast.danger(tr('生成分享链接失败'), tr('请改用「导出 JSON」分享文件'))
   }
 }
 
@@ -251,16 +251,16 @@ function onImportFile(event: Event) {
     try {
       const parsed: unknown = JSON.parse(String(reader.result))
       if (!isValidTemplate(parsed)) {
-        toast.danger('模板文件无效', '文件缺少 label、page 或 fields 字段')
+        toast.danger(tr('模板文件无效'), tr('文件缺少 label、page 或 fields 字段'))
         return
       }
       parsed.id = uid('custom')
-      parsed.name = parsed.name || '导入的模板'
+      parsed.name = parsed.name || tr('导入的模板')
       const saved = library.saveAsCustom(parsed)
       workspace.selectTemplate(saved, { silent: true })
-      if (library.lastPersistOk) toast.success('模板导入成功', saved.name)
+      if (library.lastPersistOk) toast.success(tr('模板导入成功'), saved.name)
     } catch {
-      toast.danger('模板解析失败', '请确认导入的是有效的 JSON 模板文件')
+      toast.danger(tr('模板解析失败'), tr('请确认导入的是有效的 JSON 模板文件'))
     }
   }
   reader.readAsText(file)
@@ -275,7 +275,7 @@ function exportCurrentTemplate() {
   a.download = `${workspace.template.name || 'template'}.json`
   a.click()
   URL.revokeObjectURL(url)
-  toast.success('模板已导出', 'JSON 模板文件已开始下载')
+  toast.success(tr('模板已导出'), tr('JSON 模板文件已开始下载'))
 }
 
 function confirmDelete() {
@@ -286,7 +286,7 @@ function confirmDelete() {
     workspace.selectTemplate(library.allTemplates[0]!, { silent: true })
   }
   deleteTarget.value = null
-  toast.info('自定义模板已删除', '如需保留，请先导出为 JSON')
+  toast.info(tr('自定义模板已删除'), tr('如需保留，请先导出为 JSON'))
 }
 </script>
 
@@ -465,7 +465,7 @@ function confirmDelete() {
         <span
           class="size-8 animate-spin rounded-full border-[3px] border-brand-200 border-t-brand-600"
         ></span>
-        <p class="text-xs text-slate-600">正在生成扫码短链……</p>
+        <p class="text-xs text-slate-600">{{ tr('正在生成扫码短链……') }}</p>
       </div>
       <div v-else-if="shareQrShortFailed" class="flex flex-col items-center gap-3 py-4">
         <span class="flex size-10 items-center justify-center rounded-full bg-amber-100 text-amber-600">
@@ -473,14 +473,14 @@ function confirmDelete() {
             <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
           </svg>
         </span>
-        <p class="text-center text-sm font-semibold text-slate-700">短链服务暂时不可用</p>
+        <p class="text-center text-sm font-semibold text-slate-700">{{ tr('短链服务暂时不可用') }}</p>
         <p class="text-center text-xs leading-5 text-slate-600">
-          已自动重试仍未成功，通常稍等片刻即可恢复。也可改用长链接二维码（密度较高，需近距离扫描）。
+          {{ tr('已自动重试仍未成功，通常稍等片刻即可恢复。也可改用长链接二维码（密度较高，需近距离扫描）。') }}
         </p>
         <div class="flex flex-wrap justify-center gap-2">
-          <button type="button" class="btn btn-primary btn-sm" @click="showShareQr">重试</button>
+          <button type="button" class="btn btn-primary btn-sm" @click="showShareQr">{{ tr('重试') }}</button>
           <button type="button" class="btn btn-secondary btn-sm" @click="useLongLinkQr">
-            改用长链接二维码
+            {{ tr('改用长链接二维码') }}
           </button>
         </div>
       </div>
@@ -488,12 +488,12 @@ function confirmDelete() {
         <!-- eslint-disable-next-line vue/no-v-html -->
         <div class="w-64 max-w-full rounded-lg border border-slate-200 p-2" v-html="shareQrSvg"></div>
         <p class="text-center text-xs leading-5 text-slate-600">
-          用微信「扫一扫」即可在手机上打开当前模板；{{
+          {{ tr('用微信「扫一扫」即可在手机上打开当前模板；') }}{{
             shareQrIsShort
-              ? '二维码只包含一个短链接，模板设计经加密信道寄存，名单数据始终不离开浏览器。'
-              : '模板数据全部编码在链接里，不经过任何服务器；长链接二维码密度较高，请近距离扫描。'
+              ? tr('二维码只包含一个短链接，模板设计经加密信道寄存，名单数据始终不离开浏览器。')
+              : tr('模板数据全部编码在链接里，不经过任何服务器；长链接二维码密度较高，请近距离扫描。')
           }}
-          微信内下载 PDF 受限，打印导出请点右上角菜单选「在浏览器打开」。
+          {{ tr('微信内下载 PDF 受限，打印导出请点右上角菜单选「在浏览器打开」。') }}
         </p>
       </div>
     </ModalDialog>

@@ -114,7 +114,7 @@ import { computed, type CSSProperties } from 'vue'
 
 import { localizeSampleText } from '@/data/demoDatasets'
 import { combineFontStacks, DEFAULT_FONT_STACK, withRareCJKFallback } from '@/data/fonts'
-import { currentLocale, t as tr } from '@/i18n'
+import { currentLocale, t, t as tr } from '@/i18n'
 import { watermarkToneFor } from '@/utils/watermark'
 import type { LabelTemplate, TemplateField } from '@/types/template'
 
@@ -363,7 +363,7 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
           <span class="label-field__content">{{ textOf(field) }}</span>
         </span>
         <span v-if="isUnmapped(field)" class="label-field__unmapped" aria-hidden="true">
-          {{ field.label || field.id }} 未映射
+          {{ field.label || field.id }} {{ t('未映射') }}
         </span>
       </div>
       <div
@@ -375,9 +375,9 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
         <img
           v-if="imageSrcOf(field)"
           :src="imageSrcOf(field)!"
-          :alt="field.imageSrc != null ? '模板图片素材' : '标签照片'"
+          :alt="field.imageSrc != null ? t('模板图片素材') : t('标签照片')"
         />
-        <span v-else class="label-field__placeholder">{{ tr(field.imageSrc != null ? '图片' : '照片') }}</span>
+        <span v-else class="label-field__placeholder">{{ field.imageSrc != null ? tr('图片') : tr('照片') }}</span>
       </div>
     </template>
     <div

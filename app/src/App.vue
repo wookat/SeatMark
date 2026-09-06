@@ -62,8 +62,8 @@ onMounted(() => {
         void router.replace({ path: '/studio', hash: `${SHARE_HASH_PREFIX}${payload}` })
       } else {
         toast.warning(
-          '分享模板暂时无法打开',
-          '链接可能已过期或网络波动，请让对方重新生成；你仍可直接使用全部内置模板',
+          t('分享模板暂时无法打开'),
+          t('链接可能已过期或网络波动，请让对方重新生成；你仍可直接使用全部内置模板'),
         )
       }
     })

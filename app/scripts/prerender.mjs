@@ -91,6 +91,9 @@ function applyHead(html, seo) {
       .replace(/<meta property="og:locale"[^>]*\/>/, '<meta property="og:locale" content="en_US" />')
       .replace(/<meta property="og:site_name"[^>]*\/>/, '<meta property="og:site_name" content="SeatMark" />')
       .replace(/<meta\s+name="author"[^>]*\/>/, '<meta name="author" content="SeatMark" />')
+      // 首屏启动骨架文案（JS 接管前可见）
+      .replace('aria-label="页面加载中"', 'aria-label="Loading"')
+      .replace('SeatMark 座签加载中…', 'Loading SeatMark…')
   }
 
   if (seo.robots) {
