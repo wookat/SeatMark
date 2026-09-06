@@ -21,6 +21,8 @@ import {
   MARKER_PRESETS,
   nextGroupColor,
   parseBanquetGuests,
+  parseBanquetGuestsFromTable,
+  type ParsedBanquetGuests,
   snapshotTables,
   splitGroups,
   summarizeAssignments,
@@ -40,6 +42,7 @@ import {
 } from '@/utils/banquet'
 import { uid } from '@/utils/id'
 import { fitScale, MM_TO_PX } from '@/utils/layout'
+import { listJoin } from '@/utils/listJoin'
 import { exportPagedPng, sanitizeFileNamePart } from '@/utils/pngExport'
 import { defaultPdfFileName, exportPagedPdf } from '@/utils/pdfExport'
 
@@ -132,36 +135,80 @@ const mergedDuplicatesText = computed(() => {
   return list.length > 5 ? `${sample}…` : sample
 })
 
-function importPasted() {
-  const { names, duplicates } = parseBanquetGuests(pasteText.value)
+/**
+ * 将解析结果并入名单：新分组名自动建组（nextGroupColor），已存在的同名分组直接复用；
+ * toast 汇总宾客数 / 新建分组数 / 跳过表头 / 重复人数。
+ */
+function applyParsedGuests(parsed: ParsedBanquetGuests): boolean {
+  const { names, duplicates, groups: groupMap, headerSkipped } = parsed
   if (!names.length) {
     toast.warning(tr('名单为空'), tr('请粘贴宾客名单，每行一位'))
-    return
+    return false
   }
   const existing = new Set(guests.value.map((g) => g.name))
   const fresh = names.filter((n) => !existing.has(n))
-  guests.value = [...guests.value, ...fresh.map((name) => ({ id: uid('gst'), name, groupId: null }))]
+  const groupIdByName = new Map(groups.value.map((g) => [g.name, g.id]))
+  const created: BanquetGroup[] = []
+  const resolveGroup = (name: string): string | null => {
+    const groupName = groupMap?.[name]
+    if (!groupName) return null
+    const known = groupIdByName.get(groupName)
+    if (known) return known
+    const group: BanquetGroup = {
+      id: uid('grp'),
+      name: groupName,
+      color: nextGroupColor([...groups.value, ...created]),
+    }
+    created.push(group)
+    groupIdByName.set(groupName, group.id)
+    return group.id
+  }
+  const added: BanquetGuest[] = fresh.map((name) => ({ id: uid('gst'), name, groupId: resolveGroup(name) }))
+  if (created.length) groups.value = [...groups.value, ...created]
+  guests.value = [...guests.value, ...added]
   const merged = [...new Set([...duplicates, ...names.filter((n) => existing.has(n))])]
   mergedDuplicates.value = merged
+  const details = [
+    created.length ? `${tr('新建')} ${created.length} ${tr('个分组')}` : '',
+    headerSkipped ? tr('跳过表头 1 行') : '',
+    merged.length ? `${merged.length} ${tr('人重复')}` : '',
+  ].filter(Boolean)
   toast.success(
-    `${tr('已添加宾客')}: ${fresh.length}`,
-    merged.length ? `${tr('自动去重重复姓名')}: ${merged.length}` : tr('可在下方列表继续编辑、分组'),
+    `${tr('已导入')} ${fresh.length} ${tr('位宾客')}`,
+    details.length ? listJoin(details) : tr('可在下方列表继续编辑、分组'),
   )
-  pasteText.value = ''
+  return true
 }
 
-function onTxtChange(event: Event) {
+function importPasted() {
+  if (applyParsedGuests(parseBanquetGuests(pasteText.value))) pasteText.value = ''
+}
+
+/** .xlsx/.xls：懒加载 Excel 解析，取「姓名」与「分组」列（无表头则取前两列） */
+async function importSpreadsheet(file: File) {
+  const { parseExcelFile } = await import('@/utils/excel')
+  const { headers, rows } = await parseExcelFile(file)
+  applyParsedGuests(parseBanquetGuestsFromTable(headers, rows))
+}
+
+async function onTxtChange(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   input.value = ''
   if (!file) return
-  const reader = new FileReader()
-  reader.onload = () => {
-    const text = typeof reader.result === 'string' ? reader.result : ''
-    pasteText.value = pasteText.value.trim() ? `${pasteText.value}\n${text}` : text
-    toast.info(tr('TXT 已读取到输入框'), tr('确认内容后点「添加到名单」'))
+  if (/\.xlsx?$/i.test(file.name)) {
+    try {
+      await importSpreadsheet(file)
+    } catch (err) {
+      toast.danger(tr('Excel 导入失败'), tr(err instanceof Error ? err.message : String(err)))
+    }
+    return
   }
-  reader.readAsText(file)
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  const { decodeCsvText } = await import('@/utils/excel')
+  const text = decodeCsvText(bytes)
+  pasteText.value = pasteText.value.trim() ? `${pasteText.value}\n${text}` : text
+  toast.info(tr('文件已读取到输入框'), tr('确认内容后点「添加到名单」'))
 }
 
 function addGuestRow() {
@@ -808,21 +855,21 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             v-model="pasteText"
             rows="5"
             class="input-field mt-2 h-auto min-h-24 resize-y py-2 leading-6"
-            :placeholder="tr('每行一位宾客姓名，粘贴后点「添加到名单」')"
+            :placeholder="`${tr('每行一位宾客姓名，粘贴后点「添加到名单」')}\n${tr('张伟')}\t${tr('男方亲友')}\n${tr('第二列可填分组，自动归组；支持从 Excel 直接复制「姓名、分组」两列')}`"
           ></textarea>
           <div class="mt-2 flex flex-wrap gap-2">
             <button type="button" class="btn btn-primary btn-sm" @click="importPasted">
               {{ tr('添加到名单（自动去重）') }}
             </button>
             <button type="button" class="btn btn-secondary btn-sm" @click="txtInput?.click()">
-              {{ tr('上传 TXT 名单') }}
+              {{ tr('上传 TXT / CSV / Excel 名单') }}
             </button>
             <input
               ref="txtInput"
               type="file"
-              accept=".txt,text/plain"
+              accept=".txt,.csv,.xlsx,.xls,text/plain,text/csv"
               class="hidden"
-              :aria-label="tr('上传 TXT 名单文件')"
+              :aria-label="tr('上传 TXT / CSV / Excel 名单文件')"
               @change="onTxtChange"
             />
           </div>
