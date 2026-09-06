@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
+import ChineseOnlyNotice from '@/components/ChineseOnlyNotice.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 import { findVsPage, SEATMARK_HIGHLIGHTS } from '@/data/vsPages'
 
@@ -11,6 +12,7 @@ const page = computed(() => findVsPage(String(route.params.slug ?? '')))
 
 <template>
   <div v-if="page" class="mx-auto w-full max-w-4xl px-4 py-10 sm:py-14">
+    <ChineseOnlyNotice />
     <!-- 面包屑 -->
     <nav class="flex flex-wrap items-center gap-1.5 text-xs text-slate-600" aria-label="面包屑">
       <RouterLink to="/" class="hover:text-brand-600">首页</RouterLink>

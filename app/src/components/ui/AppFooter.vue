@@ -34,13 +34,14 @@ const GROUPS = computed(() => [
     title: t('资源'),
     links: [
       { label: t('工具对比选型'), to: localePath('/vs') },
-      { label: t('桌牌在线生成'), to: localePath('/desk-card-generator') },
-      { label: t('姓名卡片批量生成'), to: localePath('/name-card-batch') },
+      // 专题落地页与协议/隐私仅有中文正文，不预渲染 /en 版本：直指中文路径，首屏 HTML 即为 200 页
+      { label: t('桌牌在线生成'), to: '/desk-card-generator' },
+      { label: t('姓名卡片批量生成'), to: '/name-card-batch' },
       { label: t('使用流程'), to: localePath('/#how') },
       { label: t('功能特性'), to: localePath('/#features') },
       { label: t('常见问题'), to: localePath('/#faq') },
-      { label: t('用户协议'), to: localePath('/terms') },
-      { label: t('隐私政策'), to: localePath('/privacy') },
+      { label: t('用户协议'), to: '/terms' },
+      { label: t('隐私政策'), to: '/privacy' },
     ],
   },
 ])

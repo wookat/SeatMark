@@ -10,7 +10,11 @@ import {
   parseBanquetGuests,
   snapshotTables,
   summarizeAssignments,
+  removeEmptyTables,
+  splitGroups,
+  summarizeBanquet,
   validateBanquet,
+  type BanquetGroup,
   type BanquetGuest,
   type BanquetTable,
 } from '../banquet'
@@ -196,6 +200,108 @@ describe('安排统计与快照', () => {
     const restored = snapshotTables(snapshot)
     expect(restored.map((t) => t.guestIds)).toEqual([['g1', 'g2'], ['g3']])
     expect(restored[0]!.guestIds).not.toBe(snapshot[0]!.guestIds)
+  })
+})
+
+describe('removeEmptyTables', () => {
+  it('删除空桌，保留有人桌，默认桌名序号重新连续', () => {
+    const tables = [1, 2, 3, 4].map((n) => table(`t${n}`, 8, { name: `${n}号桌`, x: n * 100 }))
+    tables[0]!.guestIds = ['g1']
+    tables[2]!.guestIds = ['g2', 'g3']
+    const out = removeEmptyTables(tables)
+    expect(out.map((t) => t.id)).toEqual(['t1', 't3'])
+    expect(out.map((t) => t.name)).toEqual(['1号桌', '2号桌'])
+    expect(out[1]!.x).toBe(300)
+    expect(out[1]!.guestIds).toEqual(['g2', 'g3'])
+  })
+
+  it('自定义桌名不参与重排', () => {
+    const tables = [
+      table('a', 8, { name: '1号桌' }),
+      table('b', 8, { name: '主桌' }),
+      table('c', 8, { name: '3号桌', guestIds: ['g1'] }),
+    ]
+    tables[1]!.guestIds = ['g0']
+    const out = removeEmptyTables(tables)
+    expect(out.map((t) => t.name)).toEqual(['主桌', '2号桌'])
+  })
+
+  it('不修改入参；无空桌时桌对象按引用复用', () => {
+    const tables = [
+      table('a', 8, { name: '1号桌', guestIds: ['g1'] }),
+      table('b', 8, { name: '2号桌' }),
+      table('c', 8, { name: '3号桌', guestIds: ['g2'] }),
+    ]
+    const before = JSON.stringify(tables)
+    const out = removeEmptyTables(tables)
+    expect(JSON.stringify(tables)).toBe(before)
+    expect(out[0]).toBe(tables[0])
+    expect(out[1]).not.toBe(tables[2])
+    expect(out[1]!.name).toBe('2号桌')
+
+    const full = [
+      table('a', 8, { name: '1号桌', guestIds: ['g1'] }),
+      table('b', 8, { name: '2号桌', guestIds: ['g2'] }),
+    ]
+    const same = removeEmptyTables(full)
+    expect(same[0]).toBe(full[0])
+    expect(same[1]).toBe(full[1])
+  })
+})
+
+describe('splitGroups', () => {
+  const groups: BanquetGroup[] = [
+    { id: 'gA', name: '男方亲友', color: '#000' },
+    { id: 'gB', name: '同事', color: '#111' },
+  ]
+
+  it('同组全部同桌 → 0', () => {
+    const t1 = table('A', 4)
+    const t2 = table('B', 4)
+    t1.guestIds = ['g1', 'g2']
+    t2.guestIds = ['g3', 'g4']
+    const guests = [guest('g1', 'gA'), guest('g2', 'gA'), guest('g3', 'gB'), guest('g4', 'gB')]
+    expect(splitGroups(guests, [t1, t2], groups)).toEqual([])
+  })
+
+  it('同组跨两桌 → 1，并给出桌数与桌名', () => {
+    const t1 = table('A', 4)
+    const t2 = table('B', 4)
+    t1.guestIds = ['g1', 'g3']
+    t2.guestIds = ['g2', 'g4']
+    const guests = [guest('g1', 'gA'), guest('g2', 'gA'), guest('g3', 'gB'), guest('g4', null)]
+    const split = splitGroups(guests, [t1, t2], groups)
+    expect(split).toHaveLength(1)
+    expect(split[0]).toMatchObject({ groupId: 'gA', groupName: '男方亲友', tableCount: 2 })
+    expect(split[0]!.tableNames.sort()).toEqual(['A', 'B'])
+  })
+
+  it('未分组宾客与未安排宾客不计入拆分', () => {
+    const t1 = table('A', 4)
+    const t2 = table('B', 4)
+    t1.guestIds = ['g1']
+    t2.guestIds = ['g2']
+    const guests = [guest('g1', null), guest('g2', null), guest('g3', 'gA'), guest('g4', 'gA')]
+    expect(splitGroups(guests, [t1, t2], groups)).toEqual([])
+  })
+})
+
+describe('summarizeBanquet', () => {
+  it('给出已安排/总数、空桌、拆分分组、未安排四个数字', () => {
+    const groups: BanquetGroup[] = [{ id: 'gA', name: 'A', color: '#000' }]
+    const t1 = table('A', 2)
+    const t2 = table('B', 2)
+    const t3 = table('C', 2)
+    t1.guestIds = ['g1']
+    t2.guestIds = ['g2']
+    const guests = [guest('g1', 'gA'), guest('g2', 'gA'), guest('g3', null)]
+    expect(summarizeBanquet(guests, [t1, t2, t3], groups)).toEqual({
+      assigned: 2,
+      total: 3,
+      emptyTables: 1,
+      splitGroups: 1,
+      unassigned: 1,
+    })
   })
 })
 

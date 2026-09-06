@@ -357,6 +357,23 @@ export function findOverlaps(items: VenueRect[]): Array<[string, string]> {
   return out
 }
 
+/** 默认桌名（「n号桌」/「Table n」）；自定义桌名不参与重排 */
+const DEFAULT_TABLE_NAME_RE = /^(?:\d+号桌|Table \d+)$/
+
+/**
+ * 移除没有任何宾客的桌，并把剩余仍使用默认桌名的桌按新顺序重新编号（纯函数，不修改入参）。
+ * 自定义桌名与桌位坐标保持不变。
+ */
+export function removeEmptyTables(tables: BanquetTable[]): BanquetTable[] {
+  return tables
+    .filter((t) => t.guestIds.length > 0)
+    .map((t, i) => {
+      if (!DEFAULT_TABLE_NAME_RE.test(t.name)) return t
+      const name = defaultTableName(i + 1)
+      return name === t.name ? t : { ...t, name }
+    })
+}
+
 // ---------- 导出前检查 ----------
 
 export interface BanquetIssues {
@@ -415,6 +432,76 @@ export function countAssignedGuests(tables: BanquetTable[]): number {
 /** 深拷贝桌位快照（含 guestIds），供“清空/切预设”后撤销恢复 */
 export function snapshotTables(tables: BanquetTable[]): BanquetTable[] {
   return tables.map((t) => ({ ...t, guestIds: [...t.guestIds] }))
+}
+
+export interface SplitGroup {
+  groupId: string
+  groupName: string
+  /** 该分组被拆到的桌数 */
+  tableCount: number
+  tableNames: string[]
+}
+
+/**
+ * 被拆到多桌的分组（同组宾客分散在 ≥2 桌）；未分组宾客不计。
+ * 用于自动排座后的结果摘要，让「同组尽量同桌」的效果可解释。
+ */
+export function splitGroups(
+  guests: BanquetGuest[],
+  tables: BanquetTable[],
+  groups: BanquetGroup[],
+): SplitGroup[] {
+  const guestGroup = new Map(guests.map((g) => [g.id, g.groupId]))
+  const groupTables = new Map<string, Set<string>>()
+  for (const table of tables) {
+    for (const guestId of table.guestIds) {
+      const groupId = guestGroup.get(guestId)
+      if (!groupId) continue
+      let set = groupTables.get(groupId)
+      if (!set) {
+        set = new Set()
+        groupTables.set(groupId, set)
+      }
+      set.add(table.id)
+    }
+  }
+  const tableName = new Map(tables.map((t) => [t.id, t.name]))
+  const out: SplitGroup[] = []
+  for (const group of groups) {
+    const set = groupTables.get(group.id)
+    if (!set || set.size < 2) continue
+    out.push({
+      groupId: group.id,
+      groupName: group.name,
+      tableCount: set.size,
+      tableNames: [...set].map((id) => tableName.get(id) ?? id),
+    })
+  }
+  return out
+}
+
+/** 自动排座结果摘要：已安排/总数、空桌、拆分分组、未安排 */
+export interface BanquetSummary {
+  assigned: number
+  total: number
+  emptyTables: number
+  splitGroups: number
+  unassigned: number
+}
+
+export function summarizeBanquet(
+  guests: BanquetGuest[],
+  tables: BanquetTable[],
+  groups: BanquetGroup[],
+): BanquetSummary {
+  const issues = validateBanquet(guests, tables)
+  return {
+    assigned: guests.length - issues.unassigned.length,
+    total: guests.length,
+    emptyTables: issues.emptyTables.length,
+    splitGroups: splitGroups(guests, tables, groups).length,
+    unassigned: issues.unassigned.length,
+  }
 }
 
 /** 默认分组配色（可自定义覆盖） */

@@ -28,11 +28,45 @@ export interface PageSeo {
 /** 已提供英文版内容的中文路径（/en 前缀镜像可被索引并互挂 hreflang） */
 const EN_LOCALIZED_BASES = ['/', '/studio', '/pricing', '/seating', '/banquet'] as const
 
-/** 仅页面框架英文化的列表页：英文 title/description，但正文仍为中文，故 noindex 且不挂 hreflang */
-const EN_FRAMED_BASES = ['/templates', '/guides'] as const
-
 function enPathOf(base: string): string {
   return base === '/' ? '/en' : `/en${base}`
+}
+
+/**
+ * 内容站索引页的 /en 外壳：预渲染供静态托管直达不 404，提供英文 title/description，
+ * 但正文尚未英文化，故 noindex 且 canonical 指回中文原页，不进 sitemap。
+ */
+const EN_INDEX_SHELL_SEO: Record<string, { title: string; description: string }> = {
+  '/templates': {
+    title: 'Label Templates: Place Cards, Table Tents & Badges | SeatMark',
+    description:
+      'Free built-in templates for place cards, table tents, seat labels, name badges and ID cards. Pick one, upload your spreadsheet and batch-print with mm-accurate layout.',
+  },
+  '/guides': {
+    title: 'Guides: Print Place Cards, Seat Labels & Name Tags | SeatMark',
+    description:
+      'Step-by-step tutorials on batch-printing place cards, exam seat labels, table tents and name badges from a spreadsheet, plus print calibration and label-paper tips.',
+  },
+  '/papers': {
+    title: 'A4 Label Sheet Library: Auto-Fit Layouts | SeatMark',
+    description:
+      'Common A4 self-adhesive label sheet sizes (2×4, 3×7, 3×10, rounded corners). Pick a sheet and rows, columns, margins and gaps lock in automatically for aligned printing.',
+  },
+  '/vs': {
+    title: 'Compare: SeatMark vs Other Place Card Tools | SeatMark',
+    description:
+      'Side-by-side comparisons of SeatMark with common place card and table tent workflows: batch generation from a list, print imposition, calibration, privacy and price.',
+  },
+}
+
+/** /en 下的内容站索引外壳路径（预渲染但 noindex，不进 sitemap） */
+export function enIndexShellPaths(): string[] {
+  return Object.keys(EN_INDEX_SHELL_SEO).map((base) => enPathOf(base))
+}
+
+/** 预渲染页是否应进 sitemap（noindex 页不进） */
+export function isSitemapEligible(seo: PageSeo): boolean {
+  return !/noindex/i.test(seo.robots ?? '')
 }
 
 function hreflangFor(base: string): { hreflang: string; path: string }[] {
@@ -159,8 +193,6 @@ export async function resolveSeo(path: string): Promise<PageSeo> {
     const enSeo = resolveEnSeo(base)
     if (enSeo) return enSeo
     const seo = await resolveSeo(base)
-    const framed = resolveEnFramedSeo(base)
-    if (framed) return { ...seo, ...framed, lang: 'en', robots: 'noindex, follow' }
     return { ...seo, lang: 'en', robots: 'noindex, follow' }
   }
 
@@ -172,26 +204,42 @@ export async function resolveSeo(path: string): Promise<PageSeo> {
   return resolveZhSeo(p)
 }
 
-function resolveEnFramedSeo(base: string): Pick<PageSeo, 'title' | 'description'> | null {
-  if (base === '/templates') {
-    return {
-      title: 'Template Library: Place Cards, Seat Labels & Badges | SeatMark',
-      description:
-        'Browse free templates for seat labels, place cards, table tents, name tags and badges. Template names are in Chinese; the Studio UI is available in English.',
-    }
-  }
-  if (base === '/guides') {
-    return {
-      title: 'Guides: Printing Seat Labels, Place Cards & Name Tags | SeatMark',
-      description:
-        'How-to guides for batch-printing seat labels, place cards and name tags from Excel. Guides are currently in Chinese; the Studio UI is available in English.',
-    }
-  }
-  return null
-}
-
-/** 已英文化核心页的英文 SEO 数据 */
+/** 已英文化核心页的英文 SEO 数据；内容站索引外壳与账号/管理壳页仅提供英文 title（noindex） */
 function resolveEnSeo(base: string): PageSeo | null {
+  const indexShell = EN_INDEX_SHELL_SEO[base]
+  if (indexShell) {
+    return {
+      ...indexShell,
+      path: base,
+      lang: 'en',
+      robots: 'noindex, follow',
+      jsonLd: [],
+    }
+  }
+
+  if (base === '/account') {
+    return {
+      title: 'My Account - SeatMark',
+      description:
+        'Sign in to SeatMark to sync your custom templates, check your daily watermark-free export quota and manage your Pro plan.',
+      path: base,
+      lang: 'en',
+      robots: 'noindex, nofollow',
+      jsonLd: [],
+    }
+  }
+
+  if (base === '/admin') {
+    return {
+      title: 'Admin Console - SeatMark',
+      description: 'SeatMark admin console for redemption codes and site announcements. Staff only.',
+      path: base,
+      lang: 'en',
+      robots: 'noindex, nofollow',
+      jsonLd: [],
+    }
+  }
+
   if (!(EN_LOCALIZED_BASES as readonly string[]).includes(base)) return null
   const path = enPathOf(base)
   const common = { path, lang: 'en' as const, alternates: hreflangFor(base) }
@@ -758,6 +806,7 @@ export async function prerenderPaths(): Promise<string[]> {
     '/terms',
     '/privacy',
     ...EN_LOCALIZED_BASES.map((base) => enPathOf(base)),
-    ...EN_FRAMED_BASES.map((base) => enPathOf(base)),
+    // /en 内容站索引外壳：noindex，预渲染防 404 但由 isSitemapEligible 排除出 sitemap
+    ...enIndexShellPaths(),
   ]
 }

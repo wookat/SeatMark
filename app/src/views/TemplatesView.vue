@@ -3,17 +3,22 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
+import { useBatchedList } from '@/composables/useBatchedList'
+import ZhOnlyNotice from '@/components/ui/ZhOnlyNotice.vue'
 import { defaultTemplates, TEMPLATE_CATEGORIES } from '@/data/defaultTemplates'
 import { templateDetails } from '@/data/templateDetails'
 import { TEMPLATE_SUBCATEGORIES, subcategoryOf } from '@/data/templateTaxonomy'
-import { localePath, t as tr, useI18n } from '@/i18n'
+import { t as tr } from '@/i18n'
+import { useI18n } from '@/i18n'
 import type { TemplateCategory } from '@/types/template'
 import { matchesChineseQuery } from '@/utils/pinyin'
+
+const { t, localePath } = useI18n()
 
 const items = templateDetails
   .map((detail) => ({
     detail,
-    template: defaultTemplates.find((t) => t.id === detail.slug),
+    template: defaultTemplates.find((tpl) => tpl.id === detail.slug),
   }))
   .filter((item) => !!item.template)
 
@@ -24,7 +29,6 @@ type CategoryFilter = TemplateCategory | 'all'
 // 改用 sessionStorage 保状态：返回/刷新本页签仍恢复搜索，关页签即清除。
 const route = useRoute()
 const router = useRouter()
-const { locale } = useI18n()
 
 const VALID_CATEGORIES = new Set<string>(TEMPLATE_CATEGORIES.map((c) => c.id))
 
@@ -94,14 +98,14 @@ const subcategoryOptions = computed<{ id: string; name: string; count: number }[
     }))
     .filter((o) => o.count > 0)
   if (options.length <= 1) return []
-  return [{ id: 'all', name: '全部', count: list.length }, ...options]
+  return [{ id: 'all', name: t('全部'), count: list.length }, ...options]
 })
 
 const categoryOptions = computed<{ id: CategoryFilter; name: string; count: number }[]>(() => [
-  { id: 'all', name: '全部', count: items.length },
+  { id: 'all', name: t('全部'), count: items.length },
   ...TEMPLATE_CATEGORIES.map((c) => ({
     id: c.id as CategoryFilter,
-    name: c.name,
+    name: t(c.name),
     count: items.filter((item) => item.template!.category === c.id).length,
   })).filter((o) => o.count > 0),
 ])
@@ -130,21 +134,38 @@ const searchResult = computed(() => {
 
 const filteredItems = computed(() => searchResult.value.list)
 
+const {
+  visible: visibleItems,
+  hasMore,
+  showMore,
+} = useBatchedList(filteredItems, [activeCategory, activeSubcategory, searchQuery])
+
+const shownNote = computed(() =>
+  tr('已显示 {shown}/{total}')
+    .replace('{shown}', String(visibleItems.value.length))
+    .replace('{total}', String(filteredItems.value.length)),
+)
+
 const searchActive = computed(() => searchQuery.value.trim().length > 0)
 
-const activeCategoryName = computed(
-  () => TEMPLATE_CATEGORIES.find((c) => c.id === activeCategory.value)?.name ?? '',
+const activeCategoryName = computed(() =>
+  t(TEMPLATE_CATEGORIES.find((c) => c.id === activeCategory.value)?.name ?? ''),
 )
+
+function fill(zh: string, vars: Record<string, string | number>): string {
+  return t(zh).replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? ''))
+}
 
 const searchScopeNote = computed(() => {
   if (!searchActive.value || filteredItems.value.length === 0) return ''
+  const vars = { cat: activeCategoryName.value, n: filteredItems.value.length }
   if (searchResult.value.globalFallback) {
-    return `${tr('「')}${tr(activeCategoryName.value)}${tr('」分类下无匹配，已在全部分类中找到')} ${filteredItems.value.length} ${tr('款')}`
+    return fill('「{cat}」分类下无匹配，已在全部分类中找到 {n} 款', vars)
   }
   if (activeCategory.value !== 'all') {
-    return `${tr('在「')}${tr(activeCategoryName.value)}${tr('」分类中找到')} ${filteredItems.value.length} ${tr('款')}`
+    return fill('在「{cat}」分类中找到 {n} 款', vars)
   }
-  return `${tr('在全部分类中找到')} ${filteredItems.value.length} ${tr('款')}`
+  return fill('在全部分类中找到 {n} 款', vars)
 })
 
 function resetSearch() {
@@ -168,21 +189,18 @@ const recommendedItems = computed(() => {
     <div class="text-center">
       <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Templates</p>
       <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-        {{ tr('标签模板库') }}
+        {{ t('标签模板库') }}
       </h1>
       <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-        {{ items.length }}
-        {{ tr('款免费内置模板覆盖考场座签、考号贴、课桌姓名贴、会议桌牌、出入证、学生证、工作证等场景，全部以毫米为单位精确排版，点击任意模板查看详情，或直接开始生成。') }}
+        {{ fill('{n} 款免费内置模板覆盖考场座签、考号贴、课桌姓名贴、会议桌牌、出入证、学生证、工作证等场景，全部以毫米为单位精确排版，点击任意模板查看详情，或直接开始生成。', { n: items.length }) }}
       </p>
-      <p
-        v-if="locale === 'en'"
-        class="mx-auto mt-3 max-w-2xl rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600"
-      >
-        Template names and descriptions are currently in Chinese; the Studio UI is available in English.
-      </p>
+      <ZhOnlyNotice />
     </div>
 
-    <div class="mt-8 flex flex-col items-center gap-3">
+    <div
+      class="sticky top-14 z-20 -mx-4 mt-8 flex flex-col items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 min-[769px]:static min-[769px]:mx-0 min-[769px]:border-0 min-[769px]:bg-transparent min-[769px]:p-0"
+      data-testid="templates-filter-bar"
+    >
       <label class="relative block w-full max-w-md">
         <svg
           class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-600"
@@ -199,7 +217,7 @@ const recommendedItems = computed(() => {
         <input
           v-model="searchQuery"
           type="search"
-          :placeholder="tr('搜索模板 / 场景，支持拼音、首字母')"
+          :placeholder="t('搜索模板 / 场景，支持拼音、首字母')"
           class="w-full rounded-lg border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm text-slate-700 shadow-sm placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
         />
       </label>
@@ -219,7 +237,7 @@ const recommendedItems = computed(() => {
           "
           @click="selectCategory(opt.id)"
         >
-          {{ tr(opt.name) }}
+          {{ opt.name }}
           <span :class="activeCategory === opt.id ? 'text-brand-100' : 'text-slate-600'">
             {{ opt.count }}
           </span>
@@ -238,7 +256,7 @@ const recommendedItems = computed(() => {
           "
           @click="activeSubcategory = sub.id"
         >
-          {{ tr(sub.name) }}
+          {{ t(sub.name) }}
           <span :class="activeSubcategory === sub.id ? 'text-brand-400' : 'text-slate-600'">
             {{ sub.count }}
           </span>
@@ -251,7 +269,7 @@ const recommendedItems = computed(() => {
       class="mt-10 rounded-lg border border-slate-200 bg-slate-50 p-8 text-center"
     >
       <p class="text-sm text-slate-600">
-        {{ tr('没有匹配') }}{{ tr('“') }}{{ searchQuery }}{{ tr('”') }}{{ tr('的模板，换个关键词试试，或在设计器里从空白新建。') }}
+        {{ fill('没有匹配“{q}”的模板，换个关键词试试，或在设计器里从空白新建。', { q: searchQuery }) }}
       </p>
       <div class="mt-3 flex flex-wrap items-center justify-center gap-4">
         <button
@@ -259,22 +277,22 @@ const recommendedItems = computed(() => {
           class="cursor-pointer text-xs font-bold text-brand-600 hover:underline"
           @click="resetSearch"
         >
-          {{ tr('清除搜索条件') }}
+          {{ t('清除搜索条件') }}
         </button>
         <RouterLink
           :to="localePath('/studio?design=new')"
           class="text-xs font-bold text-brand-600 hover:underline"
         >
-          {{ tr('从空白新建模板') }}
+          {{ t('从空白新建模板') }}
         </RouterLink>
       </div>
       <div class="mt-6 border-t border-slate-200 pt-5 text-left">
-        <p class="text-xs font-bold text-slate-600">{{ tr('也许这些模板能满足需求') }}</p>
+        <p class="text-xs font-bold text-slate-600">{{ t('也许这些模板能满足需求') }}</p>
         <div class="mt-3 grid gap-4 sm:grid-cols-3">
           <RouterLink
             v-for="rec in recommendedItems"
             :key="rec.detail.slug"
-            :to="localePath(`/templates/${rec.detail.slug}`)"
+            :to="`/templates/${rec.detail.slug}`"
             class="group flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 transition-colors hover:border-brand-300"
           >
             <div class="w-16 shrink-0">
@@ -293,9 +311,9 @@ const recommendedItems = computed(() => {
 
     <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       <RouterLink
-        v-for="item in filteredItems"
+        v-for="item in visibleItems"
         :key="item.detail.slug"
-        :to="localePath(`/templates/${item.detail.slug}`)"
+        :to="`/templates/${item.detail.slug}`"
         class="group relative flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-brand-300 hover:shadow-card-hover"
       >
         <span
@@ -328,11 +346,18 @@ const recommendedItems = computed(() => {
               {{ item.template!.label.width }} × {{ item.template!.label.height }} mm
             </span>
             <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
-              {{ item.template!.page.cols * item.template!.page.rows }} {{ tr('枚 / 页') }}
+              {{ item.template!.page.cols * item.template!.page.rows }} {{ t('枚 / 页') }}
             </span>
           </div>
         </div>
       </RouterLink>
+    </div>
+
+    <div v-if="hasMore" class="mt-8 flex flex-col items-center gap-2">
+      <button type="button" class="btn btn-secondary btn-md" data-testid="load-more" @click="showMore">
+        {{ tr('加载更多') }}
+      </button>
+      <p class="text-xs text-slate-500">{{ shownNote }}</p>
     </div>
 
     <!-- CTA -->
@@ -340,16 +365,16 @@ const recommendedItems = computed(() => {
       class="mt-12 flex flex-col items-center justify-between gap-4 rounded-lg border border-brand-200 bg-brand-50/60 px-6 py-6 text-center sm:flex-row sm:text-left"
     >
       <div>
-        <h2 class="text-base font-bold text-slate-900">{{ tr('没有完全合适的？') }}</h2>
+        <h2 class="text-base font-bold text-slate-900">{{ t('没有完全合适的？') }}</h2>
         <p class="mt-1 text-sm text-slate-600">
-          {{ tr('任何模板都可以在可视化设计器中继续调整，也可以从空白开始完全自定义。') }}
+          {{ t('任何模板都可以在可视化设计器中继续调整，也可以从空白开始完全自定义。') }}
         </p>
       </div>
       <RouterLink
         :to="localePath('/studio?design=new')"
         class="btn btn-primary btn-md w-full shrink-0 sm:w-auto"
       >
-        {{ tr('从空白新建模板') }}
+        {{ t('从空白新建模板') }}
       </RouterLink>
     </div>
   </div>

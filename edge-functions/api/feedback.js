@@ -5,23 +5,24 @@
  * 请求体：{ type: 'bug'|'suggestion'|'other', content: string, contact?: string }
  *
  * 环境变量（EdgeOne Pages 控制台配置）：
- * - FEEDBACK_WEBHOOK  可选，飞书/钉钉/企业微信机器人 webhook URL；未配置时不推送，反馈仅落库
- *   （源码内不内置任何 webhook 地址）
+ * - FEEDBACK_WEBHOOK  可选，飞书/钉钉/企业微信机器人 webhook URL
+ *   仅从环境变量读取，代码中不允许出现任何 webhook key 字面量；
+ *   未配置时跳过推送（console.warn），反馈仍正常存档并返回成功
  *
- * 存储：与主 API 同源的三级后备（KV → Blob → 内存，见 _storage.js）。线上持久化存储缺失时
- * 返回 503 {code:'storage_unavailable'}，不再静默写内存后报成功。
+ * 存储：与主 API 同源的三级后备（KV → Blob → 内存，见 _storage.js）。
  * 反馈存档到 fb: 前缀供管理端 /api/admin/feedback 查看；限频计数用 rl:fb: 前缀。
  */
 
-import { getStorage, StorageUnavailableError } from './_storage.js'
+import { getStorage } from './_storage.js'
 import { withSecurityHeaders } from './_security.js'
+import { randomToken36 } from './_random.js'
 
 const FEEDBACK_IP_DAILY_LIMIT = 10
 
-function json(data, status = 200, extraHeaders = {}) {
+function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extraHeaders },
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   })
 }
 
@@ -51,19 +52,7 @@ async function handleRequest(context) {
   if (!content || content.length > 2000) return json({ error: '请填写反馈内容（不超过 2000 字）' }, 400)
   if (contact.length > 200) return json({ error: '联系方式过长' }, 400)
 
-  let kv
-  let storage
-  try {
-    ;({ kv, storage } = await getStorage(env, { hostname: new URL(request.url).hostname }))
-  } catch (err) {
-    if (!(err instanceof StorageUnavailableError)) throw err
-    return json(
-      { error: '服务端存储未就绪，请稍后重试', code: err.code },
-      503,
-      { 'X-SeatMark-Storage': 'unavailable' },
-    )
-  }
-  const storageHeader = { 'X-SeatMark-Storage': storage }
+  const { kv } = await getStorage(env)
 
   // 防滥用：同一 IP 每日限量（IP 经单向哈希后仅用作限频计数）
   try {
@@ -77,7 +66,7 @@ async function handleRequest(context) {
     const rlKey = `rl:fb:${ipHash}:${day}`
     const count = Number((await kv.get(rlKey)) || 0)
     if (count >= FEEDBACK_IP_DAILY_LIMIT) {
-      return json({ error: '今日反馈次数已达上限，请明天再试' }, 429, storageHeader)
+      return json({ error: '今日反馈次数已达上限，请明天再试' }, 429)
     }
     await kv.put(rlKey, String(count + 1))
   } catch {
@@ -86,7 +75,7 @@ async function handleRequest(context) {
 
   // 存档（供管理端查看），失败不阻塞
   try {
-    const id = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
+    const id = `${Date.now()}-${randomToken36(6)}`
     await kv.put(
       `fb:${id}`,
       JSON.stringify({
@@ -101,8 +90,10 @@ async function handleRequest(context) {
     // 存档失败静默忽略
   }
 
-  const webhook = env && env.FEEDBACK_WEBHOOK
-  if (webhook) {
+  const webhook = (env && typeof env.FEEDBACK_WEBHOOK === 'string' && env.FEEDBACK_WEBHOOK.trim()) || ''
+  if (!webhook) {
+    console.warn('[seatmark-feedback] webhook not configured')
+  } else {
     const typeLabel = { bug: '问题', suggestion: '建议', other: '其他' }[type]
     const text = [
       `【用户反馈】${typeLabel}`,
@@ -112,13 +103,7 @@ async function handleRequest(context) {
       `页面：${payload.page || ''}`,
     ].filter(Boolean).join('\n')
 
-    // 企业微信机器人与飞书/钉钉的消息体结构不同，按 webhook 域名区分
-    let isWeCom = false
-    try {
-      isWeCom = new URL(webhook).hostname.endsWith('.weixin.qq.com')
-    } catch {
-      /* 非法 URL 交给 fetch 报错并被忽略 */
-    }
+    const isWeCom = webhook.includes('qyapi.weixin.qq.com')
     const body = isWeCom
       ? { msgtype: 'text', text: { content: text } }
       : { msg_type: 'text', content: { text } }
@@ -134,5 +119,5 @@ async function handleRequest(context) {
     }
   }
 
-  return json({ ok: true }, 200, storageHeader)
+  return json({ ok: true })
 }

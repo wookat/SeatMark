@@ -12,9 +12,10 @@ import { createAppRouter } from '@/router'
 
 export { defaultTemplates } from '@/data/defaultTemplates'
 export { guides } from '@/data/guides'
-export { quotaFaqAnswer } from '@/data/llmsFaq'
-export { appShellPaths, prerenderPaths, resolveSeo, SITE_ORIGIN } from '@/data/seo'
+export { PRICING_SUMMARY, PRO_ORIGINAL_PRICE, TEAM_ORIGINAL_PRICE } from '@/data/pricingSummary'
+export { appShellPaths, isSitemapEligible, prerenderPaths, resolveSeo, SITE_ORIGIN } from '@/data/seo'
 export { templateDetails } from '@/data/templateDetails'
+export { QUOTA_ANON_DAILY, QUOTA_USER_DAILY } from '@/stores/quota'
 
 export async function render(url: string): Promise<string> {
   const app = createSSRApp(App)

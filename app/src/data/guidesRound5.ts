@@ -80,7 +80,7 @@ export const guidesRound5: Guide[] = [
   },
   {
     slug: 'place-card-generator-online',
-    title: '席卡生成器：在线批量制作坐席卡、席位卡的免费小工具（Excel 一键生成）',
+    title: '席卡生成器：在线批量制作坐席卡、席位卡的免费小工具（上传 Excel 即出打印页）',
     description:
       '找席卡生成器、坐席卡生成软件？SeatMark 免费在线席卡制作小工具：上传 Excel 宾客或参会名单，批量生成席卡、坐席卡打印页，支持双面折叠席卡与桌卡，A4/A5 精准排版，数据不出浏览器。',
     keywords: ['席卡生成器', '坐席卡生成软件', '席卡制作小工具', '批量打印席卡', '席卡在线制作'],

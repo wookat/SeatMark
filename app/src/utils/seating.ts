@@ -31,8 +31,10 @@ export function parseSeatingRoster(text: string): SeatingEntry[] {
     const last = tokens[tokens.length - 1]!
     const gender = GENDER_TOKENS[last.toLowerCase()]
     if (tokens.length >= 2 && gender) {
-      // 「姓名 性别」两列：仅首个片段为姓名（多余片段并入姓名，容忍复姓中间空格）
-      out.push({ name: tokens.slice(0, -1).join(''), gender })
+      // 「姓名 性别」两列：性别前的片段并入姓名（容忍复姓中间空格；拉丁字母姓名保留空格）
+      const nameTokens = tokens.slice(0, -1)
+      const latin = nameTokens.some((tok) => /[A-Za-z]/.test(tok))
+      out.push({ name: nameTokens.join(latin ? ' ' : ''), gender })
     } else {
       for (const t of tokens) out.push({ name: t })
     }

@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { findFontByStack, fontStackOf, WEB_FONTS, type FontLang, type WebFont } from '@/data/fonts'
+import { t } from '@/i18n'
 import { useFontsStore } from '@/stores/fonts'
 
 const props = withDefaults(
@@ -14,7 +15,7 @@ const props = withDefaults(
   }>(),
   {
     modelValue: undefined,
-    defaultLabel: '宋体（系统默认）',
+    defaultLabel: undefined,
     lang: undefined,
   },
 )
@@ -28,9 +29,10 @@ const query = ref('')
 const root = ref<HTMLElement | null>(null)
 
 const currentFont = computed(() => findFontByStack(props.modelValue))
+const defaultLabelText = computed(() => (props.defaultLabel ? t(props.defaultLabel) : t('宋体（系统默认）')))
 const currentLabel = computed(() => {
-  if (!props.modelValue) return props.defaultLabel
-  return currentFont.value?.name ?? '自定义字体'
+  if (!props.modelValue) return defaultLabelText.value
+  return currentFont.value?.name ?? t('自定义字体')
 })
 
 function matches(font: WebFont): boolean {
@@ -51,11 +53,11 @@ const groups = computed(() => {
       WEB_FONTS.filter((f) => f.lang === lang && !!f.local === local && matches(f))
     list.push(
       {
-        label: lang === 'zh' ? '中文系统字体 · 无需联网' : '西文系统字体 · 无需联网',
+        label: lang === 'zh' ? t('中文系统字体 · 无需联网') : t('西文系统字体 · 无需联网'),
         fonts: pick(true),
       },
       {
-        label: lang === 'zh' ? '中文开源字体 · 联网加载' : '英文开源字体 · 联网加载',
+        label: lang === 'zh' ? t('中文开源字体 · 联网加载') : t('英文开源字体 · 联网加载'),
         fonts: pick(false),
       },
     )
@@ -137,7 +139,7 @@ onBeforeUnmount(() => {
             v-model="query"
             type="text"
             class="input-field !py-1.5 text-xs"
-            placeholder="搜索字体（如：楷体 / Noto / Serif）"
+            :placeholder="t('搜索字体（如：楷体 / Noto / Serif）')"
           />
         </div>
 
@@ -148,8 +150,8 @@ onBeforeUnmount(() => {
             :class="{ 'bg-brand-50/70 text-brand-700': !modelValue }"
             @click="pickDefault"
           >
-            <span class="font-medium">{{ defaultLabel }}</span>
-            <span class="text-[10px] text-slate-600">无需联网</span>
+            <span class="font-medium">{{ defaultLabelText }}</span>
+            <span class="text-[10px] text-slate-600">{{ t('无需联网') }}</span>
           </button>
 
           <template v-for="group in groups" :key="group.label">
@@ -178,7 +180,7 @@ onBeforeUnmount(() => {
               <span
                 class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600"
               >
-                {{ font.category }}
+                {{ t(font.category) }}
               </span>
               <span v-if="!font.local" class="flex w-4 shrink-0 justify-center">
                 <span
@@ -227,14 +229,14 @@ onBeforeUnmount(() => {
           </template>
 
           <p v-if="!groups.length" class="px-2.5 py-6 text-center text-xs text-slate-600">
-            没有匹配「{{ query }}」的字体
+            {{ t('没有匹配「{q}」的字体').replace('{q}', query) }}
           </p>
         </div>
 
         <p
           class="border-t border-slate-100 bg-slate-50/60 px-3 py-1.5 text-[10px] leading-4 text-slate-600"
         >
-          系统字体本机直接渲染；开源字体来自公共 CDN 按需联网加载，可免费商用
+          {{ t('系统字体本机直接渲染；开源字体来自公共 CDN 按需联网加载，可免费商用') }}
         </p>
       </div>
     </Transition>

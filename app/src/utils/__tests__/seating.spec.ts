@@ -23,6 +23,14 @@ describe('parseSeatingRoster', () => {
     ])
   })
 
+  it('英文姓名带性别列：保留姓名中的空格，复姓中文仍紧贴', () => {
+    expect(parseSeatingRoster('ZHANG Wei\tM\nWANG Fang 2\tF\n欧阳 明 男')).toEqual([
+      { name: 'ZHANG Wei', gender: '男' },
+      { name: 'WANG Fang 2', gender: '女' },
+      { name: '欧阳明', gender: '男' },
+    ])
+  })
+
   it('忽略空行与多余空白', () => {
     expect(parseSeatingRoster('\n 张伟 \n\n')).toEqual([{ name: '张伟' }])
   })

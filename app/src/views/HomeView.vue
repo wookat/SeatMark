@@ -10,6 +10,7 @@ import type { DataRow, LabelTemplate } from '@/types/template'
 import { localePath, t, useI18n } from '@/i18n'
 import { makeDemoRows } from '@/utils/excel'
 import { MM_TO_PX } from '@/utils/layout'
+import { localizeTemplateForLocale } from '@/utils/templateLocale'
 
 const { locale } = useI18n()
 
@@ -41,7 +42,8 @@ const vReveal: Directive<HTMLElement, number | undefined> = {
   },
 }
 
-const heroTemplate = standardTemplate
+/** 首屏演示模板：英文站下固定小注（如「座位号 SEAT」）换为英文 */
+const heroTemplate = computed(() => localizeTemplateForLocale(standardTemplate, locale.value))
 
 const HERO_EN_NAMES = [
   'Emma Johnson', 'Liam Smith', 'Olivia Brown', 'Noah Davis', 'Ava Wilson', 'Mason Clark',
@@ -112,8 +114,8 @@ const vLoadTemplates: Directive<HTMLElement> = {
 
 const shownTemplates = computed(() => {
   const list = allTemplates.value
-  if (!list) return [standardTemplate]
-  return templatesExpanded.value ? list : list.slice(0, SHOWCASE_COUNT)
+  const shown = !list ? [standardTemplate] : templatesExpanded.value ? list : list.slice(0, SHOWCASE_COUNT)
+  return shown.map((tpl) => localizeTemplateForLocale(tpl, locale.value))
 })
 const showcaseSkeletonCount = computed(() =>
   allTemplates.value ? 0 : SHOWCASE_COUNT - shownTemplates.value.length,
@@ -140,10 +142,10 @@ const estimatedPanelWidth =
 
 const heroScale = computed(() => {
   const width = heroPanelWidth.value || estimatedPanelWidth
-  return Math.min((width - HERO_PAD_X * 2) / (heroTemplate.page.paperWidth * MM_TO_PX), 0.62)
+  return Math.min((width - HERO_PAD_X * 2) / (standardTemplate.page.paperWidth * MM_TO_PX), 0.62)
 })
 const heroHeight = computed(
-  () => heroTemplate.page.paperHeight * MM_TO_PX * heroScale.value + HERO_PAD_TOP + HERO_PAD_BOTTOM,
+  () => standardTemplate.page.paperHeight * MM_TO_PX * heroScale.value + HERO_PAD_TOP + HERO_PAD_BOTTOM,
 )
 
 const STEPS = computed(() => [
@@ -259,7 +261,7 @@ const FAQS = computed(() => [
             class="mt-4 text-3xl leading-tight font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl"
           >
             <template v-if="locale === 'en'">
-              Upload a spreadsheet, batch-create<br />
+              Upload a spreadsheet, batch-create <br />
               <span class="text-brand-600"><span class="whitespace-nowrap">seating charts</span> · <span class="whitespace-nowrap">place cards</span> · <span class="whitespace-nowrap">name tags</span></span>
             </template>
             <template v-else>
@@ -305,7 +307,10 @@ const FAQS = computed(() => [
               {{ t('用演示数据先试试') }}
             </RouterLink>
           </div>
-          <div class="mt-5 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+          <div
+            v-if="locale !== 'en'"
+            class="mt-5 flex flex-wrap items-center gap-2 text-xs text-slate-600"
+          >
             <span class="font-semibold">{{ t('快捷入口：') }}</span>
             <RouterLink
               v-for="chip in [

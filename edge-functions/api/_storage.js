@@ -5,31 +5,13 @@
  * - EdgeOne Pages Blob（@edgeone/pages-blob）：KV 未绑定时的持久化后备，
  *   getStore 首次调用自动创建，无需控制台绑定。读取默认 strong 一致性
  *   （验证码/配额/会话等强一致场景必须读到最新写入）。
- * - 内存 Map：仅本地联调兜底，跨 isolate 不一致。线上（非开发环境且未显式设置
- *   ALLOW_MEMORY_STORAGE=1）不再静默降级，而是抛出 StorageUnavailableError，
- *   由调用方对写操作返回 503，避免验证码/兑换/配额等写入无声丢失。
+ * - 内存 Map：仅本地联调兜底，跨 isolate 不一致，线上不应命中。
  *
  * 云端模板（tpl: 前缀）体积大（上限 512KB），即使 KV 已绑定也优先走 Blob，
  * 读取时保留 KV 旧数据兜底以兼容存量用户。
  */
 
-import { isDevEnvironment } from './_security.js'
-
 const memoryStore = new Map()
-
-/** KV 与 Blob 均不可用且不允许内存降级时抛出 */
-export class StorageUnavailableError extends Error {
-  constructor() {
-    super('持久化存储不可用（KV/Blob 均未绑定）')
-    this.name = 'StorageUnavailableError'
-    this.code = 'storage_unavailable'
-  }
-}
-
-/** 是否允许降级到进程内存：显式开关或开发环境 */
-export function memoryStorageAllowed(env, hostname) {
-  return Boolean(env && env.ALLOW_MEMORY_STORAGE === '1') || isDevEnvironment(env, hostname)
-}
 
 const BLOB_STORE_NAME = 'seatmark-kv'
 
@@ -120,10 +102,8 @@ async function loadBlobStore() {
  * - kv：KV 接口（KV 绑定 → Blob 适配 → 内存）
  * - storage：'kv' | 'blob' | 'memory'（响应头 X-SeatMark-Storage 用）
  * - blobStore：原始 Blob Store（可用时；供模板等大对象场景直连）
- * - options.hostname：请求 host，用于开发环境判定；非开发环境且未设
- *   ALLOW_MEMORY_STORAGE=1 时两级持久化均不可用会抛 StorageUnavailableError
  */
-export async function getStorage(env, options = {}) {
+export async function getStorage(env) {
   const bound =
     (env && env.seatmark_kv) ||
     (typeof globalThis !== 'undefined' ? globalThis.seatmark_kv : undefined)
@@ -134,28 +114,7 @@ export async function getStorage(env, options = {}) {
   if (blobStore) {
     return { kv: blobKv(blobStore), storage: 'blob', blobStore }
   }
-  if (!memoryStorageAllowed(env, options.hostname)) throw new StorageUnavailableError()
   return { kv: memoryKv(), storage: 'memory', blobStore: null }
-}
-
-/**
- * 存储不可用时的只读替身：读一律返回空，写抛 StorageUnavailableError，
- * 让 health/公开只读接口仍可响应，而任何写路径都 fail-closed。
- */
-export function unavailableKv() {
-  const fail = async () => {
-    throw new StorageUnavailableError()
-  }
-  return {
-    async get() {
-      return null
-    },
-    put: fail,
-    delete: fail,
-    async list() {
-      return { keys: [], complete: true, cursor: '' }
-    },
-  }
 }
 
 /** Blob 可用性探测（健康检查用）：写→强一致读→删 */

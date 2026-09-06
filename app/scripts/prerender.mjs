@@ -23,11 +23,16 @@ const {
   resolveSeo,
   prerenderPaths,
   appShellPaths,
+  isSitemapEligible,
   SITE_ORIGIN,
   guides,
   templateDetails,
   defaultTemplates,
-  quotaFaqAnswer,
+  QUOTA_ANON_DAILY,
+  QUOTA_USER_DAILY,
+  PRICING_SUMMARY,
+  PRO_ORIGINAL_PRICE,
+  TEAM_ORIGINAL_PRICE,
 } = await import(join(root, 'dist-ssr', 'entry-server.js'))
 
 const template = readFileSync(join(distDir, 'index.html'), 'utf-8')
@@ -86,6 +91,9 @@ function applyHead(html, seo) {
       .replace(/<meta property="og:locale"[^>]*\/>/, '<meta property="og:locale" content="en_US" />')
       .replace(/<meta property="og:site_name"[^>]*\/>/, '<meta property="og:site_name" content="SeatMark" />')
       .replace(/<meta\s+name="author"[^>]*\/>/, '<meta name="author" content="SeatMark" />')
+      // 首屏启动骨架文案（JS 接管前可见）
+      .replace('aria-label="页面加载中"', 'aria-label="Loading"')
+      .replace('SeatMark 座签加载中…', 'Loading SeatMark…')
   }
 
   if (seo.robots) {
@@ -143,13 +151,12 @@ for (const path of [...paths, ...shellPaths]) {
   console.log('prerendered /404 -> dist/404.html')
 }
 
-// ---------- sitemap.xml（与预渲染路径同源） ----------
+// ---------- sitemap.xml（与预渲染路径同源；noindex 页不进） ----------
 const today = new Date().toISOString().slice(0, 10)
 const priorities = (p) => (p === '/' ? '1.0' : p === '/studio' ? '0.9' : p.split('/').length > 2 ? '0.7' : '0.8')
-// noindex 的预渲染页（如仅框架英文化的 /en/templates、/en/guides）不进 sitemap
 const sitemapEntries = (
   await Promise.all(paths.map(async (p) => ({ p, seo: await resolveSeo(p) })))
-).filter(({ seo }) => !(seo.robots ?? '').includes('noindex'))
+).filter(({ seo }) => isSitemapEligible(seo))
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${sitemapEntries
@@ -178,7 +185,8 @@ const templateItems = templateDetails
   .map((d) => ({ detail: d, template: defaultTemplates.find((t) => t.id === d.slug) }))
   .filter((item) => !!item.template)
 
-const SITE_INTRO = `> SeatMark（${SITE_ORIGIN}）是一款免费的在线批量标签生成工具：上传 Excel 名单即可批量生成考场座位标签（座签/桌贴）、考号贴、会议桌牌/台签/席卡、门贴门牌、学生证、工作证、胸卡出入证等打印页。毫米级精确排版（A4/A5/A3），支持照片核验、可视化模板设计器与 PDF 导出。名单、照片与排版数据仅在用户浏览器本地处理，不上传服务器，排版与导出可离线使用，无需注册。限时 0 折免费。`
+// 配额与定价文案单一来源：QUOTA_* 来自 stores/quota.ts，PRICING_SUMMARY 来自 entry-server.ts
+const SITE_INTRO = `> SeatMark（${SITE_ORIGIN}）是一款免费的在线批量标签生成工具：上传 Excel 名单即可批量生成考场座位标签（座签/桌贴）、考号贴、会议桌牌/台签/席卡、门贴门牌、学生证、工作证、胸卡出入证等打印页。毫米级精确排版（A4/A5/A3），支持照片核验、可视化模板设计器与 PDF 导出。所有数据仅在用户浏览器本地处理，不上传服务器，可离线使用，无需注册。${PRICING_SUMMARY}。`
 
 const llmsTxt = `# SeatMark 座签
 
@@ -198,7 +206,7 @@ ${SITE_INTRO}
 - [标签工坊（在线生成）](${SITE_ORIGIN}/studio)
 - [模板库](${SITE_ORIGIN}/templates)
 - [教程中心](${SITE_ORIGIN}/guides)
-- [定价（Beta 期间免费）](${SITE_ORIGIN}/pricing)
+- [定价（专业版原价 ${PRO_ORIGINAL_PRICE}、团队版 ${TEAM_ORIGINAL_PRICE}，限时 0 折免费）](${SITE_ORIGIN}/pricing)
 - [工具对比（vs 创客贴 / WPS 邮件合并 / placecard.us / Canva）](${SITE_ORIGIN}/vs)
 - [桌牌在线生成](${SITE_ORIGIN}/desk-card-generator)
 - [姓名卡片批量生成器](${SITE_ORIGIN}/name-card-batch)
@@ -232,13 +240,13 @@ ${SITE_INTRO}
 答：不需要。打开 ${SITE_ORIGIN}/studio 即可使用全部功能；登录仅用于领取更高的每日生成配额与模板云端同步。
 
 **问：名单数据会不会泄露？**
-答：Excel 解析、排版、照片匹配、PDF 生成全部在用户浏览器本地完成，名单与照片不上传服务器，断网也能排版导出；仅登录、反馈与 AI 设计请求会发送到服务端。详见 ${SITE_ORIGIN}/guides/data-privacy-offline-usage
+答：不会。Excel 解析、排版、照片匹配、PDF 生成全部在用户浏览器本地完成，不上传任何服务器，断网也能使用。详见 ${SITE_ORIGIN}/guides/data-privacy-offline-usage
 
 **问：打印出来尺寸不对怎么办？**
 答：打印时缩放必须选「实际大小 / 100%」，不要选「适应页面」；详见 ${SITE_ORIGIN}/guides/print-margin-calibration
 
 **问：收费吗？**
-答：${quotaFaqAnswer(SITE_ORIGIN)}
+答：${PRICING_SUMMARY}；正式收费前会提前公告。详见 ${SITE_ORIGIN}/pricing
 
 ## 全部教程（共 ${guides.length} 篇）
 
@@ -267,3 +275,15 @@ ${templateItems
 `
 writeFileSync(join(distDir, 'llms-full.txt'), llmsFullTxt)
 console.log(`llms-full.txt generated (${templateItems.length} templates)`)
+
+// 构建期断言：llms 文案中的配额次数必须与 quota.ts 常量一致，且不残留 Beta 期旧文案
+for (const [name, text] of [['llms.txt', llmsTxt], ['llms-full.txt', llmsFullTxt]]) {
+  const expected = [`未登录每天 ${QUOTA_ANON_DAILY} 次`, `登录后每天 ${QUOTA_USER_DAILY} 次`]
+  for (const needle of expected) {
+    if (!text.includes(needle)) throw new Error(`${name} 缺少配额文案「${needle}」`)
+  }
+  if (/Beta 期间|3 次生成|每天 10 次/.test(text)) {
+    throw new Error(`${name} 残留旧的 Beta 配额文案`)
+  }
+}
+console.log('llms quota copy matches quota.ts constants')

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 
+import { t } from '@/i18n'
 import { apiFetch } from '@/utils/api'
 
 interface Announcement {
@@ -51,7 +52,7 @@ function dismiss() {
     <button
       type="button"
       class="group/close -my-3 -mr-3 flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center"
-      aria-label="关闭公告"
+      :aria-label="t('关闭公告')"
       @click="dismiss"
     >
       <span class="flex size-5 items-center justify-center rounded group-hover/close:bg-white/15">
