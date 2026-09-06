@@ -115,6 +115,7 @@ import { computed, type CSSProperties } from 'vue'
 import { localizeSampleText } from '@/data/demoDatasets'
 import { combineFontStacks, DEFAULT_FONT_STACK, withRareCJKFallback } from '@/data/fonts'
 import { currentLocale, t, t as tr } from '@/i18n'
+import { sanitizeDecorSvg } from '@/utils/svgSanitize'
 import { watermarkToneFor } from '@/utils/watermark'
 import type { LabelTemplate, TemplateField } from '@/types/template'
 
@@ -219,21 +220,13 @@ const SAMPLE_FALLBACK: Record<string, string> = {
   examId: '2025053002',
 }
 
-/**
- * 装饰层安全门禁：模板可能来自分享链接 / 导入 JSON，
- * 仅允许纯 svg 矢量标记，拒绝脚本、事件处理器与外部引用
- */
-function isSafeDecorSvg(svg: string): boolean {
-  const s = svg.trim()
-  if (!s.startsWith('<svg')) return false
-  return !/<script|<foreignobject|\son\w+\s*=|javascript:|\shref\s*=|xlink:href/i.test(s)
-}
-
 const decorUid = `u${++decorInstanceSeq}`
 
 const decorSvg = computed(() => {
   const svg = props.template.label.decorSvg
-  return svg && isSafeDecorSvg(svg) ? uniquifySvgIds(svg, decorUid) : null
+  if (!svg) return null
+  const safe = sanitizeDecorSvg(svg)
+  return safe ? uniquifySvgIds(safe, decorUid) : null
 })
 
 const rootStyle = computed<CSSProperties>(() => {
