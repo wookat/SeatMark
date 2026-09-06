@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import NextStepBar, { type NextStep } from '@/components/NextStepBar.vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
@@ -13,6 +13,7 @@ import { currentLocale, localePath, t as tr } from '@/i18n'
 import { useQuotaStore } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
 import {
+  assignGroupToGuests,
   autoAssignGuests,
   BANQUET_STATE_KEY,
   buildVenuePreset,
@@ -556,6 +557,81 @@ const seatedIds = computed(() => {
   return set
 })
 const unassignedGuests = computed(() => guests.value.filter((g) => !seatedIds.value.has(g.id)))
+
+// ---------- 未安排池多选 + 批量归组（不碰画布交互、不改逐人下拉） ----------
+const multiSelect = ref(false)
+const selectedGuestIds = ref<Set<string>>(new Set())
+const batchGroupId = ref('')
+/** 批量分组下拉中「新建分组…」的哨兵值 */
+const NEW_GROUP_VALUE = '__new__'
+
+const selectedCount = computed(() => selectedGuestIds.value.size)
+const batchGroupOptions = computed<SelectOption[]>(() => [
+  { value: '', label: tr('选择分组…') },
+  ...groups.value.map((g) => ({ value: g.id, label: g.name })),
+  { value: NEW_GROUP_VALUE, label: tr('新建分组…') },
+])
+
+function toggleMultiSelect() {
+  multiSelect.value = !multiSelect.value
+  if (!multiSelect.value) selectedGuestIds.value = new Set()
+}
+
+function toggleGuestSelected(id: string) {
+  const next = new Set(selectedGuestIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  selectedGuestIds.value = next
+}
+
+function selectAllUngrouped() {
+  selectedGuestIds.value = new Set(unassignedGuests.value.filter((g) => !g.groupId).map((g) => g.id))
+}
+
+/** 选中「新建分组…」时即建一组并选中它，名称可在分组面板改 */
+watch(batchGroupId, (v) => {
+  if (v !== NEW_GROUP_VALUE) return
+  addGroup()
+  batchGroupId.value = groups.value[groups.value.length - 1]?.id ?? ''
+})
+
+function applyBatchGroup(groupId: string | null) {
+  const ids = [...selectedGuestIds.value]
+  if (!ids.length) return
+  guests.value = assignGroupToGuests(guests.value, ids, groupId)
+  const groupName = groupId ? (groupById.value.get(groupId)?.name ?? '') : ''
+  toast.success(
+    groupId
+      ? `${tr('已归组')} ${ids.length} ${tr('人')} → ${groupName}`
+      : `${tr('已清除分组')} ${ids.length} ${tr('人')}`,
+  )
+  selectedGuestIds.value = new Set()
+}
+
+/** 宾客被删除/上桌后从选中集移除，避免幽灵选中 */
+watch(unassignedGuests, (list) => {
+  if (!selectedGuestIds.value.size) return
+  const alive = new Set(list.map((g) => g.id))
+  const next = new Set([...selectedGuestIds.value].filter((id) => alive.has(id)))
+  if (next.size !== selectedGuestIds.value.size) selectedGuestIds.value = next
+})
+
+/**
+ * 批量操作条可见时复用 NextStepBar 的 has-next-step-bar 标记，让反馈按钮/Toast 让位；
+ * 同时卸载下一步条（v-if）避免两条底栏重叠，卸载时它会自行移除标记，所以这里在下一帧再补上。
+ */
+const batchBarVisible = computed(() => multiSelect.value && unassignedGuests.value.length > 0)
+watch(batchBarVisible, async (on) => {
+  if (typeof document === 'undefined') return
+  if (!on) return
+  await nextTick()
+  document.documentElement.classList.add('has-next-step-bar')
+})
+onBeforeUnmount(() => {
+  if (batchBarVisible.value && typeof document !== 'undefined') {
+    document.documentElement.classList.remove('has-next-step-bar')
+  }
+})
 
 /** 宾客拖拽（桌间移动 / 拖回未安排区），同样基于 Pointer 事件 */
 const guestDragId = ref<string | null>(null)
@@ -1301,25 +1377,75 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
               : 'border-slate-300 bg-white'
           "
         >
-          <p class="text-xs font-bold text-slate-600">
-            {{ tr('未安排宾客') }}{{ tr('（') }}{{ unassignedGuests.length }}{{ tr('）') }}
-            <span class="ml-1 font-normal text-slate-400">{{ tr('拖到餐桌上即可安排；从桌上拖回这里撤下') }}</span>
-          </p>
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p class="min-w-0 flex-1 text-xs font-bold text-slate-600">
+              {{ tr('未安排宾客') }}{{ tr('（') }}{{ unassignedGuests.length }}{{ tr('）') }}
+              <span v-if="!multiSelect" class="ml-1 font-normal text-slate-400">{{
+                tr('拖到餐桌上即可安排；从桌上拖回这里撤下')
+              }}</span>
+              <span v-else class="ml-1 font-normal text-slate-400">{{ tr('点选宾客后在底部操作条批量归组') }}</span>
+            </p>
+            <div v-if="unassignedGuests.length" class="flex shrink-0 items-center gap-1.5">
+              <button
+                v-if="multiSelect"
+                type="button"
+                class="btn btn-ghost btn-sm"
+                data-testid="select-all-ungrouped"
+                @click="selectAllUngrouped"
+              >
+                {{ tr('全选未分组') }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm"
+                :class="multiSelect ? 'btn-primary' : 'btn-secondary'"
+                :aria-pressed="multiSelect"
+                data-testid="toggle-multi-select"
+                @click="toggleMultiSelect"
+              >
+                {{ multiSelect ? tr('退出多选') : tr('多选') }}
+              </button>
+            </div>
+          </div>
           <div v-if="unassignedGuests.length" class="mt-1.5 flex flex-wrap gap-1.5">
-            <span
-              v-for="g in unassignedGuests"
-              :key="g.id"
-              class="banquet-pool-guest"
-              :class="{ 'opacity-40': guestDragging && guestDragId === g.id }"
-              :style="
-                guestColor(g, true)
-                  ? { borderColor: guestColor(g, true)!, color: guestColor(g, true)! }
-                  : undefined
-              "
-              @pointerdown="onGuestPointerDown(g.id, $event)"
-            >
-              {{ g.name || tr('（未命名）') }}
-            </span>
+            <template v-if="multiSelect">
+              <label
+                v-for="g in unassignedGuests"
+                :key="g.id"
+                class="banquet-pool-guest inline-flex! cursor-pointer items-center gap-1 select-none"
+                :class="{ 'ring-2 ring-brand-500/40': selectedGuestIds.has(g.id) }"
+                :style="
+                  guestColor(g, true)
+                    ? { borderColor: guestColor(g, true)!, color: guestColor(g, true)! }
+                    : undefined
+                "
+              >
+                <input
+                  type="checkbox"
+                  class="size-3.5 accent-brand-600"
+                  :checked="selectedGuestIds.has(g.id)"
+                  :aria-label="g.name || tr('（未命名）')"
+                  @change="toggleGuestSelected(g.id)"
+                />
+                {{ g.name || tr('（未命名）') }}
+              </label>
+            </template>
+            <template v-else>
+              <span
+                v-for="g in unassignedGuests"
+                :key="g.id"
+                class="banquet-pool-guest"
+                :class="{ 'opacity-40': guestDragging && guestDragId === g.id }"
+                :style="
+                  guestColor(g, true)
+                    ? { borderColor: guestColor(g, true)!, color: guestColor(g, true)! }
+                    : undefined
+                "
+                @pointerdown="onGuestPointerDown(g.id, $event)"
+              >
+                {{ g.name || tr('（未命名）') }}
+              </span>
+            </template>
           </div>
           <div v-else-if="!guests.length" class="mt-2 flex flex-wrap gap-2" data-testid="banquet-empty-cta">
             <button type="button" class="btn btn-primary btn-sm" @click="focusPasteInput">
@@ -1527,7 +1653,43 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         </div>
       </div>
     </Teleport>
+    <div
+      v-if="batchBarVisible"
+      class="no-print fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white shadow-[0_-1px_3px_rgba(15,23,42,0.05)]"
+      data-testid="batch-group-bar"
+      role="toolbar"
+      :aria-label="tr('批量分组')"
+    >
+      <div class="mx-auto flex h-12 w-full max-w-[1480px] items-center gap-2 px-3 sm:px-4">
+        <SelectField
+          v-model="batchGroupId"
+          :options="batchGroupOptions"
+          size="sm"
+          class="min-w-0 flex-1 sm:max-w-64"
+          data-testid="batch-group-select"
+        />
+        <button
+          type="button"
+          class="btn btn-primary btn-sm shrink-0"
+          :disabled="!selectedCount || !batchGroupId || batchGroupId === NEW_GROUP_VALUE"
+          data-testid="batch-group-apply"
+          @click="applyBatchGroup(batchGroupId)"
+        >
+          {{ tr('应用到已选') }} {{ selectedCount }} {{ tr('人') }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm shrink-0"
+          :disabled="!selectedCount"
+          data-testid="batch-group-clear"
+          @click="applyBatchGroup(null)"
+        >
+          {{ tr('清除分组') }}
+        </button>
+      </div>
+    </div>
     <NextStepBar
+      v-else
       :step="nextStep"
       :arrange-label="tr('自动分配')"
       :progress="nextStepProgress"

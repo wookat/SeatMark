@@ -192,6 +192,19 @@ export function parseBanquetGuestsFromTable(
   return { names, duplicates, groups, headerSkipped: headerDetected }
 }
 
+/**
+ * 批量归组（纯函数）：把 ids 中的宾客 groupId 设为 groupId（null = 清除分组），
+ * 其余宾客原样保留；返回新数组，未命中的对象引用不变。
+ */
+export function assignGroupToGuests(
+  guests: BanquetGuest[],
+  ids: Iterable<string>,
+  groupId: string | null,
+): BanquetGuest[] {
+  const target = new Set(ids)
+  return guests.map((g) => (target.has(g.id) && g.groupId !== groupId ? { ...g, groupId } : g))
+}
+
 const DEMO_SURNAMES = '王李张刘陈杨赵黄周吴徐孙马朱胡郭何高林罗'
 const DEMO_GIVEN = '伟芳娜敏静丽强磊军洋勇艳杰娟涛明超霞平刚'
 

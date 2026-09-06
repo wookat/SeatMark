@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  assignGroupToGuests,
   autoAssignGuests,
   buildDemoGuestNames,
   buildVenuePreset,
@@ -174,6 +175,33 @@ describe('parseBanquetGuestsFromTable', () => {
     expect(out.headerSkipped).toBe(false)
     expect(out.names).toEqual(['张伟', '李娜', '王芳'])
     expect(out.groups).toEqual({ 张伟: '男方亲友', 李娜: '女方亲友' })
+  })
+})
+
+describe('assignGroupToGuests', () => {
+  const base: BanquetGuest[] = [guest('a'), guest('b', 'g1'), guest('c', 'g1'), guest('d', 'g2')]
+
+  it('新建归组：未分组宾客指向新分组，其余不变', () => {
+    const out = assignGroupToGuests(base, ['a'], 'g3')
+    expect(out.map((g) => g.groupId)).toEqual(['g3', 'g1', 'g1', 'g2'])
+    expect(out[1]).toBe(base[1])
+    expect(base[0]!.groupId).toBeNull()
+  })
+
+  it('切换：已分组宾客改到另一组', () => {
+    const out = assignGroupToGuests(base, new Set(['b', 'd']), 'g2')
+    expect(out.map((g) => g.groupId)).toEqual([null, 'g2', 'g1', 'g2'])
+    expect(out[3]).toBe(base[3])
+  })
+
+  it('清除：groupId=null', () => {
+    const out = assignGroupToGuests(base, ['b', 'c'], null)
+    expect(out.map((g) => g.groupId)).toEqual([null, null, null, 'g2'])
+  })
+
+  it('ids 为空或不存在时原样返回', () => {
+    expect(assignGroupToGuests(base, [], 'g1')).toEqual(base)
+    expect(assignGroupToGuests(base, ['zzz'], 'g1')).toEqual(base)
   })
 })
 
