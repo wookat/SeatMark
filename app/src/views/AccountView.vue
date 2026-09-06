@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 
 import { t } from '@/i18n'
-import { useAuthStore } from '@/stores/auth'
+import { isServiceUnavailableError, useAuthStore } from '@/stores/auth'
 import { QUOTA_ANON_DAILY, QUOTA_USER_DAILY, useQuotaStore } from '@/stores/quota'
 import { isValidTemplate, useTemplateLibrary } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
@@ -27,6 +27,8 @@ const captchaImage = ref('')
 const captchaToken = ref('')
 const captchaAnswer = ref('')
 const captchaLoading = ref(false)
+/** 验证码因账号服务 503 而获取失败：此时不展示裸失败态，由服务提示条统一说明 */
+const captchaUnavailable = ref(false)
 
 async function refreshCaptcha() {
   captchaLoading.value = true
@@ -35,15 +37,22 @@ async function refreshCaptcha() {
     const data = await auth.fetchCaptcha()
     captchaImage.value = data.image
     captchaToken.value = data.token
-  } catch {
+    captchaUnavailable.value = false
+  } catch (err) {
     captchaImage.value = ''
     captchaToken.value = ''
+    captchaUnavailable.value = isServiceUnavailableError(err)
   } finally {
     captchaLoading.value = false
   }
 }
 
+/** 账号服务不可用：登录/注册/找回表单禁用提交（导出与打印不受影响） */
+const serviceUnavailable = computed(() => auth.serviceUnavailable || captchaUnavailable.value)
+
 onMounted(() => {
+  // 账号页需要准确登录态：不依赖 App 启动时的本地标记判定，无条件向服务端确认
+  void auth.refresh()
   if (!auth.user) void refreshCaptcha()
 })
 
@@ -104,6 +113,11 @@ async function onSendResetCode() {
     if (data.devCode) resetCode.value = data.devCode
     toast.success(t('验证码已发送'), t('若该邮箱已注册，重置验证码将在几分钟内送达，请同时检查垃圾邮件'))
   } catch (err) {
+    if (isServiceUnavailableError(err)) {
+      auth.serviceUnavailable = true
+      formError.value = ''
+      return
+    }
     formError.value = err instanceof ApiError ? err.message : t('发送失败，请稍后再试')
     // 验证码令牌一次性：服务端任何拒绝后都换一题重试
     if (err instanceof ApiError) void refreshCaptcha()
@@ -155,6 +169,11 @@ async function onSubmit() {
     password.value = ''
     confirmPassword.value = ''
   } catch (err) {
+    if (isServiceUnavailableError(err)) {
+      auth.serviceUnavailable = true
+      formError.value = ''
+      return
+    }
     formError.value =
       err instanceof ApiError
         ? err.message
@@ -332,6 +351,15 @@ function formatDate(iso: string | null | undefined): string {
         </div>
 
         <form class="mt-8 grid gap-4" @submit.prevent="onSubmit">
+          <div
+            v-if="serviceUnavailable"
+            data-testid="auth-service-unavailable"
+            role="status"
+            class="rounded border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm leading-6 text-amber-900"
+          >
+            <p class="font-semibold">{{ t('账号服务暂时不可用，稍后再试') }}</p>
+            <p class="text-amber-800">{{ t('导出与打印不受影响，可直接使用工坊。') }}</p>
+          </div>
           <label class="grid gap-1.5">
             <span class="text-sm font-semibold text-slate-700">{{ t('邮箱') }}</span>
             <input
@@ -426,7 +454,7 @@ function formatDate(iso: string | null | undefined): string {
                   class="h-full w-full object-contain"
                 />
                 <span v-else class="text-xs text-slate-500">{{
-                  captchaLoading ? t('加载中...') : t('加载失败')
+                  captchaLoading ? t('加载中...') : serviceUnavailable ? t('暂不可用') : t('加载失败')
                 }}</span>
               </button>
               <input
@@ -458,7 +486,7 @@ function formatDate(iso: string | null | undefined): string {
           <button
             type="submit"
             class="btn btn-primary btn-md w-full"
-            :disabled="submitting || resetSending"
+            :disabled="submitting || resetSending || serviceUnavailable"
           >
             {{
               mode === 'register'

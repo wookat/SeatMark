@@ -1,7 +1,7 @@
 # 交接上下文（Handoff Context）
 
 > 按 company-os `templates/handoff-context.md` 结构维护。每条事实后附可复核的文件路径或命令；不写任何凭证值。
-> 换会话/换负责人时，把本文档整体注入新会话首条消息。最后更新：第 340 轮。
+> 换会话/换负责人时，把本文档整体注入新会话首条消息。最后更新：第 342 轮。
 
 ## 项目目标
 
@@ -41,6 +41,7 @@ node scripts/i18n-audit.mjs   # /en 中文泄漏守卫，exit 0 = 0 条非允许
 - 生产域名：`https://www.seatmark.cn`；英文入口 `https://www.seatmark.cn/en`。
 - 预渲染：`app/scripts/prerender.mjs` 按 `prerenderPaths()`（`app/src/data/seo.ts`）为每条路径写 `dist/<path>/index.html`，同时生成 `dist/sitemap.xml`（`isSitemapEligible` 排除 noindex 页）与品牌化 `dist/404.html`。**只有 `prerenderPaths()` 列出的路径在静态托管下直达才不是 404**。
 - PWA：`vite-plugin-pwa`（`app/package.json`）。生产复测时注意 service worker 旧缓存，需用全新浏览器 profile / 清缓存后再核验（见 `.agents/skills/testing-seatmark/SKILL.md`）。
+- PWA 预缓存取舍（第 342 轮，`app/vite.config.ts` `workbox.globIgnores`）：预缓存只收核心工具链（入口 `index-*`、`StudioView`、`vendor-pdf/xlsx/preload`、`defaultTemplates`、字体与图标），排除内容站分包 `guides-*` / `templateDetails-*` / `vsPages-*` / `topicPages-*` / 英文字典 `en-*`，jspdf.html() 从不调用的可选依赖 `html2canvas.esm-*` / `index.es-*`(canvg) / `purify.es-*`，以及 `og-image.png`；首访预缓存由 72 条 / 4093 KiB 降到 63 条 / 2712 KiB。被排除的内容分包走 `StaleWhileRevalidate`（cacheName `content-chunks`），**代价：未访问过的教程/模板详情/对比页/英文站离线不可达**，访问过一次后才能离线打开；工坊导入/编辑/导出仍完整离线可用。统计命令：解析 `dist/sw.js` 中 `precacheAndRoute` 的 `url:` 列表并对 `dist/` 下对应文件 `statSync` 汇总。
 - `.github/workflows/` 中的文件保留但 **GitHub Actions 处于禁用状态**，不要启用或修复（公司规则，见下）。
 
 ## 边缘函数清单（`edge-functions/api/`）
@@ -74,13 +75,15 @@ node scripts/i18n-audit.mjs   # /en 中文泄漏守卫，exit 0 = 0 条非允许
 - UI 只做小改小调，禁止深色玻璃拟态/纸质印刷风/黑白编辑部式等全站大改。
 - 定价：专业版原价 ¥19、团队版 ¥49、限时 0 折免费；不接入真实支付（`app/src/views/PricingView.vue`、`en.ts` 中 'Pro is free for a limited time (normally ¥19/mo)'）。
 - 公司规则：所有仓库不需要 CI，GitHub Actions 保持禁用；验收 = 本地 test/typecheck/build 全绿 + 生产复测，本地全绿即可合并。
-- git：新分支 `devin/<时间戳>-<描述>`；禁止 `git add .`、amend、force push main、跳过 hooks；PR 由 auto-merge 合并。
+- git：新分支 `devin/<时间戳>-<描述>`；禁止 `git add .`、amend、force push main、跳过 hooks；仓库无 CI / 无 auto-merge，本地全绿后由负责人经 GitHub API squash 合并并 GET 确认 `merged=true`。
 
 ## 已知缺口
 
 - `app/src/components/designer/TemplateDesigner.vue`、`AiDesignDialog.vue`、`IconPickerDialog.vue` 未英文化（`i18n-audit.mjs` `KNOWN_GAP_FILES`，第 340 轮分别剩 197 / 31 / 7 行含中文）。
 - `/en` 内容站（templates/guides/papers/vs）只有 noindex 英文外壳，正文为中文；详情页在 /en 下直接回到中文路径。
 - 生产复测受 PWA service worker 旧缓存影响，需全新 profile 或清缓存（`.agents/skills/testing-seatmark/SKILL.md`）。
+- **生产 `AUTH_SECRET` 未配置**（第 342 轮 `curl https://www.seatmark.cn/api/admin/health` 实测 503 `authSecretConfigured:false`、`code:auth_secret_missing`）：账号登录/注册/找回、验证码、配额同步、模板云同步全部 fail-closed；导出/打印/本地处理不受影响。org 内腾讯凭证（`TENCENT_SES_SECRET_ID/KEY`）未验证到 EdgeOne Pages 环境变量写权限，需在 EdgeOne 控制台手工配置：`AUTH_SECRET`（`openssl rand -base64 48` 生成）、`ADMIN_EMAILS`、`TENCENT_SES_SECRET_ID/KEY/REGION/TEMPLATE_ID`、`RESEND_API_KEY`、`MAIL_FROM`、`FEEDBACK_WEBHOOK`、KV 绑定 `seatmark_kv`。前端已对 503 / `auth_secret_missing` 显示「账号服务暂时不可用」并禁用提交（`app/src/stores/auth.ts` `serviceUnavailable`、`app/src/views/AccountView.vue`）。
+- 匿名访客默认不再请求 `/api/auth/me`：`localStorage` 标记 `seatmark:has-account`（`app/src/stores/auth.ts` `bootstrap()`），`/account` 与 `?ref=` 落地仍无条件 `refresh()`。
 
 ## 测试报告与计划存放约定
 

@@ -32,12 +32,12 @@ function focusMain() {
 const shareWelcomeOpen = ref(false)
 
 onMounted(() => {
-  void auth.refresh()
-
   const params = new URLSearchParams(window.location.search)
 
   // 分享链接访问上报（?ref=分享码）：服务端 IP+日去重后为分享者赠送 1 次无水印导出
   const refCode = params.get('ref')
+  // 匿名访客（本浏览器无登录标记）跳过 /api/auth/me；?ref= 落地需要准确登录态，仍无条件查询
+  void (refCode ? auth.refresh() : auth.bootstrap())
   if (refCode && /^[0-9a-f]{8}$/.test(refCode)) {
     void apiFetch('/api/share/visit', { method: 'POST', body: { code: refCode } }).catch(() => {})
     shareWelcomeOpen.value = true

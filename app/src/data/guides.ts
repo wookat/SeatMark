@@ -50,7 +50,7 @@ export const guides: Guide[] = [
     slug: 'exam-seat-label-batch-print',
     title: '考场座位贴怎么批量打印？Excel 名单到 A4 一页 24 枚座签的 5 步',
     description:
-      '从整理 Excel 名单到打印裁切，手把手教你用 SeatMark 免费批量生成考场座位标签（桌贴/座签），A4 一页 24 枚，数据全程在浏览器本地处理。',
+      '导入 Excel 名单 → 核对字段映射 → 导出 A4 PDF 打印裁切：用 SeatMark 免费批量生成考场座位标签（桌贴/座签），A4 一页 24 枚，数据全程在浏览器本地处理。',
     keywords: ['考场座位贴', '座位标签批量打印', '考场座签', 'Excel 批量生成座签', '考场桌贴打印'],
     category: '考务',
     audiences: ['考务老师', '班主任'],
@@ -232,7 +232,7 @@ export const guides: Guide[] = [
 <li><strong>招聘面试</strong>：用<a href="/templates/fullPage">整页大名牌</a>做面试间门牌，姓名换成「第一面试间」等固定文本字段即可；</li>
 <li><strong>家长会</strong>：见专门的<a href="/guides/parent-meeting-desk-card">家长会桌牌教程</a>，可直接复用学生名单。</li>
 </ul>
-<p>整套流程熟练后，从拿到名单到打完一百张桌牌通常不超过十分钟，而且名单变了随时重出，不再有「改 Word 改到眼花」的问题。座次有讲究的正式会议，摆放前建议再对照<a href="/guides/desk-card-etiquette-seating">座次礼仪与桌牌摆放规范</a>核一遍主次顺序，桌牌做得对、摆得也对，会务准备才算真正闭环。</p>
+<p>整套流程熟练后，从拿到名单到打完一百张桌牌通常不超过十分钟，而且名单变了随时重出，不再有「改 Word 改到眼花」的问题。座次有讲究的正式会议，摆放前建议再对照<a href="/guides/desk-card-etiquette-seating">座次礼仪与桌牌摆放规范</a>核一遍主次顺序，桌牌做得对、摆得也对，会务准备才算完成。</p>
 `,
   },
   {
@@ -471,7 +471,7 @@ export const guides: Guide[] = [
     slug: 'double-sided-tent-card-print',
     title: '会议桌牌双面打印技巧：正反姓名对齐不翻车的做法',
     description:
-      '帐篷式桌牌要求正反两面姓名对应同一个人且方向正确。本文讲清双面打印的翻转设置、页序对应关系与对折排版原理，一次打对不废纸。',
+      '帐篷式桌牌要求正反两面姓名对应同一个人且方向正确。本文讲清双面打印的翻转设置、页序对应关系与对折排版原理：先打一页核对正反面后再批量打印。',
     keywords: ['桌牌双面打印', '帐篷桌牌制作', '双面姓名牌', '短边翻转', '桌牌对折'],
     category: '会议',
     audiences: ['行政/HR', '通用'],

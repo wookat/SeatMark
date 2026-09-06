@@ -145,6 +145,48 @@ describe('quota store（每日无水印导出配额）', () => {
     expect(quota.limitDialogOpen).toBe(true)
   })
 
+  it('已登录：/api/quota/consume 返回 503 时回落本地计数——前 N 次放行且 localStorage 递增，第 N+1 次拒绝', async () => {
+    const auth = useAuthStore()
+    const limit = 3
+    auth.user = mockUser({ limit, remaining: limit })
+    const quota = useQuotaStore()
+
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(JSON.stringify({ error: 'gateway' }), { status: 503 }))
+
+    for (let i = 1; i <= limit; i++) {
+      const result = await quota.tryConsume()
+      expect(result.ok).toBe(true)
+      const raw = localStorage.getItem('seatmark.clean-export-usage.v1')
+      expect(JSON.parse(raw!).used).toBe(i)
+    }
+
+    const result = await quota.tryConsume()
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.reason).toBe('user-limit')
+    expect(quota.limitDialogOpen).toBe(true)
+    expect(JSON.parse(localStorage.getItem('seatmark.clean-export-usage.v1')!).used).toBe(limit)
+    // 每次都先尝试服务端，仅失败后才回落
+    expect(fetchMock).toHaveBeenCalledTimes(limit + 1)
+    // 会话仍保留（非 401）
+    expect(auth.user).not.toBeNull()
+  })
+
+  it('已登录：consume 网络异常且账号 limit 缺失时按匿名上限回落', async () => {
+    const auth = useAuthStore()
+    auth.user = mockUser({ limit: 0, remaining: 0 })
+    const quota = useQuotaStore()
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'))
+
+    for (let i = 0; i < QUOTA_ANON_DAILY; i++) {
+      expect((await quota.tryConsume()).ok).toBe(true)
+    }
+    const result = await quota.tryConsume()
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.reason).toBe('user-limit')
+  })
+
   it('已登录：consume 成功后同步剩余次数', async () => {
     const auth = useAuthStore()
     auth.user = mockUser()

@@ -47,8 +47,23 @@ export default defineConfig(({ isSsrBuild }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        // 生僻字扩展字库共 ~11MB，浏览器按 unicode-range 按需下载，不进预缓存
-        globIgnores: ['fonts/plangothic/**'],
+        // 预缓存只收核心工具链（入口/工坊/导出 vendor/默认模板/字体图标）：
+        // - 生僻字扩展字库共 ~11MB，浏览器按 unicode-range 按需下载；
+        // - 内容站分包（教程/模板详情/对比页/专题页/英文字典）走下方 StaleWhileRevalidate 运行时缓存，访问过一次后才可离线；
+        // - jspdf.html() 的可选依赖（html2canvas.esm / canvg index.es / dompurify purify.es）本项目从不调用，不预缓存；
+        // - og-image 仅供社交平台抓取。
+        globIgnores: [
+          'fonts/plangothic/**',
+          'assets/guides-*.js',
+          'assets/templateDetails-*.js',
+          'assets/vsPages-*.js',
+          'assets/topicPages-*.js',
+          'assets/en-*.js',
+          'assets/html2canvas.esm-*.js',
+          'assets/index.es-*.js',
+          'assets/purify.es-*.js',
+          'og-image.png',
+        ],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // 新版本立即接管，服务端响应头/资源更新不必等用户关闭全部标签页
         skipWaiting: true,
@@ -69,6 +84,17 @@ export default defineConfig(({ isSsrBuild }) => ({
               expiration: { maxEntries: 32, maxAgeSeconds: 60 * 60 * 24 },
               // 离线且该路由未缓存时回落预缓存壳页，保持任意路由可离线打开
               precacheFallback: { fallbackURL: '/index.html' },
+            },
+          },
+          {
+            // 被排除在预缓存外的内容分包：访问过一次后可离线打开（文件名含内容哈希，陈旧副本不会被新版引用）
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin &&
+              /^\/assets\/(guides|templateDetails|vsPages|topicPages|en)-[\w-]+\.js$/.test(url.pathname),
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'content-chunks',
+              expiration: { maxEntries: 24, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
         ],

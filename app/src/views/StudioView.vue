@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { useIsPhone } from '@/composables/useMediaQuery'
@@ -49,6 +49,16 @@ const MOBILE_TABS = computed<{ key: MobileTab; label: string; icon: string }[]>(
     icon: 'M5 3h14v18H5zM8 7h8M8 11h8M8 15h5',
   },
 ])
+
+/** 导出弹窗「去映射」：手机端先切回设置页，再滚动到字段映射面板并聚焦 */
+async function focusMappingPanel() {
+  mobileTab.value = 'settings'
+  await nextTick()
+  const el = document.querySelector<HTMLElement>('[data-mapping-panel]')
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  el.focus({ preventScroll: true })
+}
 
 /** 模板已保存 toast（设计器保存 / 分享模板保存共用） */
 function toastTemplateSaved(name: string) {
@@ -264,7 +274,7 @@ onMounted(() => {
           isMobile ? 'h-[calc(100vh-180px)]' : '',
         ]"
       >
-        <PreviewArea />
+        <PreviewArea @focus-mapping="focusMappingPanel" />
       </div>
     </div>
 

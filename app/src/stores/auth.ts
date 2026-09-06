@@ -53,6 +53,29 @@ export function pendingInviteCode(): string {
   }
 }
 
+/**
+ * 「本浏览器曾登录过」标记：无标记的匿名访客首屏不再请求 /api/auth/me（省一次边缘调用）。
+ * 登录/注册成功或 /api/auth/me 返回 user 时置 1；登出或返回 user:null 时清除。
+ */
+export const HAS_ACCOUNT_KEY = 'seatmark:has-account'
+
+export function hasAccountMarker(): boolean {
+  try {
+    return localStorage.getItem(HAS_ACCOUNT_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function writeAccountMarker(present: boolean): void {
+  try {
+    if (present) localStorage.setItem(HAS_ACCOUNT_KEY, '1')
+    else localStorage.removeItem(HAS_ACCOUNT_KEY)
+  } catch {
+    // 隐私模式等存储异常：下次仍会走 /api/auth/me 兜底
+  }
+}
+
 export interface Captcha {
   /** 验证码图片（data:image/svg+xml;base64,...） */
   image: string
@@ -65,23 +88,57 @@ export interface CaptchaInput {
   captchaAnswer: string
 }
 
+/** 服务端账号服务不可用（AUTH_SECRET 缺失 / 存储降级）：503 或 body.code === 'auth_secret_missing' */
+export function isServiceUnavailableError(err: unknown): boolean {
+  if (!(err instanceof ApiError)) return false
+  return (
+    err.status === 503 ||
+    err.data.code === 'auth_secret_missing' ||
+    err.data.error === 'auth_secret_missing'
+  )
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<SessionUser | null>(null)
   /** 首次 /api/auth/me 是否已返回（避免登录态闪烁） */
   const ready = ref(false)
+  /** 账号服务暂时不可用（服务端 503）：登录/注册/找回表单禁用提交并显示服务提示 */
+  const serviceUnavailable = ref(false)
 
   const isLoggedIn = computed(() => user.value !== null)
+
+  function setUser(next: SessionUser | null): void {
+    user.value = next
+    writeAccountMarker(next !== null)
+  }
 
   async function refresh(): Promise<void> {
     try {
       const data = await apiFetch<{ user: SessionUser | null }>('/api/auth/me')
       // 接口异常返回 200 非 JSON 时 data.user 为 undefined，需归一为 null（isLoggedIn 以 !== null 判定）
-      user.value = data.user ?? null
-    } catch {
+      setUser(data.user ?? null)
+      serviceUnavailable.value = false
+    } catch (err) {
+      // 网络/网关异常不清标记（下次仍会再查）；只有服务端明确返回 user:null 才清
       user.value = null
+      // 503 是已知的服务端配置缺口，不是前端异常：只记状态，不抛出
+      if (isServiceUnavailableError(err)) serviceUnavailable.value = true
     } finally {
       ready.value = true
     }
+  }
+
+  /**
+   * 应用启动时的登录态引导：本浏览器从未登录过则直接判定匿名，不发请求；
+   * 需要准确登录态的入口（/account、?ref= 落地）应直接调用 refresh()。
+   */
+  async function bootstrap(): Promise<void> {
+    if (hasAccountMarker()) {
+      await refresh()
+      return
+    }
+    user.value = null
+    ready.value = true
   }
 
   async function sendCode(email: string): Promise<{ delivery: string; devCode?: string }> {
@@ -96,12 +153,19 @@ export const useAuthStore = defineStore('auth', () => {
       method: 'POST',
       body: { email, code },
     })
-    user.value = data.user
+    setUser(data.user)
     return data.user
   }
 
   async function fetchCaptcha(): Promise<Captcha> {
-    return apiFetch<Captcha>('/api/auth/captcha')
+    try {
+      const data = await apiFetch<Captcha>('/api/auth/captcha')
+      serviceUnavailable.value = false
+      return data
+    } catch (err) {
+      if (isServiceUnavailableError(err)) serviceUnavailable.value = true
+      throw err
+    }
   }
 
   async function register(
@@ -115,7 +179,7 @@ export const useAuthStore = defineStore('auth', () => {
         method: 'POST',
         body: inviteCode ? { email, password, inviteCode, ...captcha } : { email, password, ...captcha },
       })
-      user.value = data.user
+      setUser(data.user)
       try {
         localStorage.removeItem(INVITE_REF_KEY)
       } catch {
@@ -149,10 +213,15 @@ export const useAuthStore = defineStore('auth', () => {
           method: 'POST',
           body: { email, password, ...captcha },
         })
-        user.value = data.user
+        setUser(data.user)
         return data.user
       } catch (err) {
         lastError = err
+        // 服务端配置缺口（503）重试无意义：记状态后立即抛出
+        if (isServiceUnavailableError(err)) {
+          serviceUnavailable.value = true
+          throw err
+        }
         // 仅边缘网关 5xx 重试（凭据类 4xx 立即抛出，不重复计失败次数）
         if (!(err instanceof ApiError) || err.status < 500) throw err
       }
@@ -180,7 +249,7 @@ export const useAuthStore = defineStore('auth', () => {
           method: 'POST',
           body: { email, code, password },
         })
-        user.value = data.user
+        setUser(data.user)
         return data.user
       } catch (err) {
         lastError = err
@@ -210,15 +279,17 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await apiFetch('/api/auth/logout', { method: 'POST' })
     } finally {
-      user.value = null
+      setUser(null)
     }
   }
 
   return {
     user,
     ready,
+    serviceUnavailable,
     isLoggedIn,
     refresh,
+    bootstrap,
     sendCode,
     verify,
     fetchCaptcha,
