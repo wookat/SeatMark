@@ -60,6 +60,9 @@ describe('/en 内容站索引页外壳', () => {
       const links = notice.findAll('a').map((a) => a.attributes('href'))
       expect(links).toContain('/en/studio')
       expect(links).toContain('/en')
+      expect(notice.find('[data-testid="zh-only-notice-zh-link"]').attributes('href')).toBe(
+        view.path,
+      )
 
       expect(wrapper.find('h1').text()).not.toMatch(CJK)
       for (const btn of wrapper.findAll('button')) {

@@ -440,6 +440,8 @@ export interface SplitGroup {
   /** 该分组被拆到的桌数 */
   tableCount: number
   tableNames: string[]
+  /** 每桌的分组人数（按桌位顺序） */
+  tables: Array<{ name: string; count: number }>
 }
 
 /**
@@ -452,29 +454,30 @@ export function splitGroups(
   groups: BanquetGroup[],
 ): SplitGroup[] {
   const guestGroup = new Map(guests.map((g) => [g.id, g.groupId]))
-  const groupTables = new Map<string, Set<string>>()
+  const groupTables = new Map<string, Map<string, number>>()
   for (const table of tables) {
     for (const guestId of table.guestIds) {
       const groupId = guestGroup.get(guestId)
       if (!groupId) continue
-      let set = groupTables.get(groupId)
-      if (!set) {
-        set = new Set()
-        groupTables.set(groupId, set)
+      let counts = groupTables.get(groupId)
+      if (!counts) {
+        counts = new Map()
+        groupTables.set(groupId, counts)
       }
-      set.add(table.id)
+      counts.set(table.id, (counts.get(table.id) ?? 0) + 1)
     }
   }
   const tableName = new Map(tables.map((t) => [t.id, t.name]))
   const out: SplitGroup[] = []
   for (const group of groups) {
-    const set = groupTables.get(group.id)
-    if (!set || set.size < 2) continue
+    const counts = groupTables.get(group.id)
+    if (!counts || counts.size < 2) continue
     out.push({
       groupId: group.id,
       groupName: group.name,
-      tableCount: set.size,
-      tableNames: [...set].map((id) => tableName.get(id) ?? id),
+      tableCount: counts.size,
+      tableNames: [...counts.keys()].map((id) => tableName.get(id) ?? id),
+      tables: [...counts].map(([id, count]) => ({ name: tableName.get(id) ?? id, count })),
     })
   }
   return out

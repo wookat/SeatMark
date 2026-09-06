@@ -55,6 +55,7 @@
 
 import { getStorage, probeBlob } from './_storage.js'
 import { withSecurityHeaders } from './_security.js'
+import { json, clientIp, clientIpSource, sha256Hex } from './_http.js'
 import { randomInt, randomDigits, randomToken, randomToken36 } from './_random.js'
 
 // ---------- 配额与裂变参数（前端 quota.ts 与此保持一致；计数对象为无水印导出，带水印不限次） ----------
@@ -134,17 +135,6 @@ const REDEEM_BATCH_MAX = 200
 const REDEEM_DAYS_MAX = 3660
 /** 兑换码字符集：去除易混淆字符 0/O/1/I/L */
 const REDEEM_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'
-
-function json(data, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store',
-      ...extraHeaders,
-    },
-  })
-}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 function isValidEmail(email) {
@@ -239,19 +229,6 @@ function isAdmin(email, env) {
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean)
   return Boolean(email) && list.includes(email.toLowerCase())
-}
-
-function clientIp(request) {
-  return (
-    request.headers.get('EO-Connecting-IP') ||
-    request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ||
-    'unknown'
-  )
-}
-
-async function sha256Hex(text) {
-  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(text))
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 // ---------- 密码哈希（PBKDF2-SHA256，Web Crypto） ----------
@@ -682,11 +659,12 @@ function captchaErrorResponse(result, extraHeaders) {
   )
 }
 
-const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
-
-/** 是否本地开发环境：仅此时允许在邮件未配置的情况下把 devCode 返回给前端 */
-function isLocalDev(url, env) {
-  return LOCAL_HOSTNAMES.has(url.hostname) || Boolean(env && env.DEV)
+/**
+ * 是否本地开发环境：仅此时允许在邮件未配置的情况下把 devCode 返回给前端。
+ * 只看 env.DEV（本地 vite 中间件 devApi.mjs 注入），不看请求 Host——Host 头可由客户端伪造。
+ */
+function isLocalDev(env) {
+  return Boolean(env && env.DEV)
 }
 
 /**
@@ -732,7 +710,7 @@ async function handleRequest(context) {
 
   const { kv, storage, blobStore } = await getStorage(env)
   // Rev 标记仅用于部署观测：探针可确认线上边缘函数版本，改动本文件时递增
-  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r342' }
+  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r343' }
 
   // 开发默认密钥公开可见：生产缺失 AUTH_SECRET 时会话/验证码/重置码 JWT 可被任意伪造，
   // 必须 fail closed；仅显式放行的本地 dev / 测试允许回退默认值
@@ -910,7 +888,7 @@ async function handleRequest(context) {
     if (delivered) return json({ ok: true, delivery: 'email' }, 200, storageHeader)
     if (!configured) {
       // 邮件服务未配置：仅本地开发环境把 devCode 回显给前端供联调，线上一律报错
-      if (isLocalDev(url, env)) {
+      if (isLocalDev(env)) {
         return json({ ok: true, delivery: 'stub', devCode: code }, 200, storageHeader)
       }
       return json({ error: '邮件服务未配置，请联系管理员' }, 503, storageHeader)
@@ -1152,7 +1130,7 @@ async function handleRequest(context) {
     const { configured, delivered, errorCode } = await sendCodeMail(env, email, code, 'reset')
     if (delivered) return json({ ok: true, delivery: 'email' }, 200, storageHeader)
     if (!configured) {
-      if (isLocalDev(url, env)) {
+      if (isLocalDev(env)) {
         return json({ ok: true, delivery: 'stub', devCode: code }, 200, storageHeader)
       }
       return json({ error: '邮件服务未配置，请联系管理员' }, 503, storageHeader)
@@ -1527,6 +1505,8 @@ async function handleRequest(context) {
           mailConfigured: mailChannel(env) !== 'none',
           mailChannel: mailChannel(env),
           authSecretConfigured: Boolean(env && env.AUTH_SECRET),
+          // 限频桶所依赖的客户端 IP 头来源（只报来源不报值）：'eo' | 'xff' | 'none'
+          ipHeaderSource: clientIpSource(request),
         },
         200,
         storageHeader,

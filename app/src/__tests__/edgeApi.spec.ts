@@ -20,8 +20,9 @@ interface Env {
 }
 
 /** 测试默认走内存 KV 降级，需显式放行；用例可以传 '' 覆盖以验证 fail closed */
+/** 与 app/scripts/devApi.mjs 的本地联调 env 对齐：放行内存存储 + DEV 门控 devCode 回显 */
 function withTestEnv(env: Env): Env {
-  return { SEATMARK_ALLOW_MEMORY_STORAGE: "1", ...env };
+  return { SEATMARK_ALLOW_MEMORY_STORAGE: "1", DEV: "1", ...env };
 }
 
 /** 与 @edgeone/pages-blob Store 同接口子集的内存模拟 */
@@ -293,7 +294,7 @@ describe("AUTH_SECRET 缺失时 fail closed", () => {
 });
 
 describe("/api/auth/code devCode 环境限制", () => {
-  it("本地开发（localhost）未配邮件时返回 devCode", async () => {
+  it("本地开发（env.DEV）未配邮件时返回 devCode", async () => {
     const { response, data } = await call(
       "POST",
       "http://localhost:5173/api/auth/code",
@@ -312,11 +313,41 @@ describe("/api/auth/code devCode 环境限制", () => {
       "https://www.seatmark.cn/api/auth/code",
       {
         body: { email: "prod-user@example.com" },
+        env: { DEV: "" },
       },
     );
     expect(response.status).toBe(503);
     expect(data.devCode).toBeUndefined();
     expect(data.error).toBe("邮件服务未配置，请联系管理员");
+  });
+
+  it("仅伪造 Host 为 localhost（无 env.DEV）不返回 devCode", async () => {
+    for (const host of ["localhost:5173", "127.0.0.1", "[::1]"]) {
+      const { response, data } = await call(
+        "POST",
+        `http://${host}/api/auth/code`,
+        {
+          body: { email: `spoof-${host.replace(/[^a-z0-9]/gi, "")}@example.com` },
+          env: { DEV: "" },
+        },
+      );
+      expect(response.status).toBe(503);
+      expect(data.devCode).toBeUndefined();
+    }
+  });
+
+  it("重置码通道同样只受 env.DEV 门控（伪造 localhost Host 不回显）", async () => {
+    const email = "spoof-reset@example.com";
+    await call("POST", "https://www.seatmark.cn/api/auth/register", {
+      body: { email, password: "spoof-reset-pass-1" },
+    });
+    const { response, data } = await call(
+      "POST",
+      "http://localhost:5173/api/auth/reset-code",
+      { body: { email }, env: { DEV: "" } },
+    );
+    expect(response.status).toBe(503);
+    expect(data.devCode).toBeUndefined();
   });
 
   it("生产域名但显式设置 DEV 环境变量时仍可联调", async () => {
@@ -743,7 +774,41 @@ describe("/api/admin/health", () => {
       mailConfigured: false,
       mailChannel: "none",
       authSecretConfigured: true,
+      ipHeaderSource: "none",
     });
+  });
+
+  it("健康检查报告客户端 IP 头来源但不输出 IP 值", async () => {
+    const env: Env = { ADMIN_EMAILS: "admin@seatmark.cn" };
+    const { data: codeData } = await call(
+      "POST",
+      "http://localhost:5173/api/auth/code",
+      { body: { email: "admin@seatmark.cn" }, env },
+    );
+    const { response: verifyRes } = await call(
+      "POST",
+      "http://localhost:5173/api/auth/verify",
+      { body: { email: "admin@seatmark.cn", code: codeData.devCode }, env },
+    );
+    const cookie = (verifyRes.headers.get("Set-Cookie") || "").split(";")[0];
+    const fetchHealth = async (headers: Record<string, string>) => {
+      const response: Response = await onRequest({
+        request: new Request("https://www.seatmark.cn/api/admin/health", {
+          headers: { Cookie: cookie, ...headers },
+        }),
+        env: withTestEnv(env),
+      });
+      const text = await response.text();
+      return { text, data: JSON.parse(text) as Record<string, unknown> };
+    };
+    const eo = await fetchHealth({ "EO-Connecting-IP": "203.0.113.9", "X-Forwarded-For": "198.51.100.7" });
+    expect(eo.data.ipHeaderSource).toBe("eo");
+    expect(eo.text).not.toContain("203.0.113.9");
+    const xff = await fetchHealth({ "X-Forwarded-For": "198.51.100.7, 10.0.0.1" });
+    expect(xff.data.ipHeaderSource).toBe("xff");
+    expect(xff.text).not.toContain("198.51.100.7");
+    const none = await fetchHealth({});
+    expect(none.data.ipHeaderSource).toBe("none");
   });
 
   it("非管理员返回 403", async () => {

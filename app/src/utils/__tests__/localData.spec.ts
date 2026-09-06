@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { HAS_ACCOUNT_KEY } from '@/stores/auth'
 import { clearLocalData, isSeatMarkStorageKey } from '@/utils/localData'
 
 describe('clearLocalData', () => {
@@ -23,9 +24,19 @@ describe('clearLocalData', () => {
     expect(sessionStorage.getItem('other')).toBe('1')
   })
 
+  it('清除 stores/auth 的 seatmark:has-account 标记', () => {
+    localStorage.setItem(HAS_ACCOUNT_KEY, '1')
+    localStorage.setItem('seatmark:other-flag', '1')
+
+    expect(clearLocalData()).toBe(2)
+    expect(localStorage.getItem(HAS_ACCOUNT_KEY)).toBeNull()
+    expect(localStorage.getItem('seatmark:other-flag')).toBeNull()
+  })
+
   it('isSeatMarkStorageKey 识别前缀', () => {
     expect(isSeatMarkStorageKey('seatmark.locale')).toBe(true)
     expect(isSeatMarkStorageKey('sm-invite-ref')).toBe(true)
+    expect(isSeatMarkStorageKey('seatmark:has-account')).toBe(true)
     expect(isSeatMarkStorageKey('_ga')).toBe(false)
   })
 })

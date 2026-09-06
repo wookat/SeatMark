@@ -27,6 +27,7 @@
 
 import { withSecurityHeaders } from './_security.js'
 import { getStorage } from './_storage.js'
+import { json, clientIp, sha256Hex } from './_http.js'
 
 export const AI_MAX_BODY_BYTES = 32 * 1024
 export const AI_RATE_LIMIT = 30
@@ -44,26 +45,6 @@ const FALLBACK_MODEL = 'glm-4-flash'
 
 const POLLINATIONS_URL = 'https://text.pollinations.ai/openai'
 const POLLINATIONS_MODELS = ['openai', 'openai-fast']
-
-function json(data, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extraHeaders },
-  })
-}
-
-function clientIp(request) {
-  return (
-    request.headers.get('EO-Connecting-IP') ||
-    request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ||
-    'unknown'
-  )
-}
-
-async function sha256Hex(text) {
-  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(text))
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
-}
 
 /**
  * 按 IP 的 1 小时滑动窗口限频：KV 中存最近一小时内的请求时间戳数组。

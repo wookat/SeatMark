@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 
+import NextStepBar, { type NextStep } from '@/components/NextStepBar.vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import NumberField from '@/components/ui/NumberField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
@@ -361,6 +362,29 @@ function onDragPointerUp() {
 }
 
 const seatCount = computed(() => rows.value * cols.value)
+
+// ---------- 底部「下一步」操作条（只做导航，不碰数据） ----------
+const rosterSection = ref<HTMLElement | null>(null)
+const arrangeSection = ref<HTMLElement | null>(null)
+const exportSection = ref<HTMLElement | null>(null)
+const nextStep = computed<NextStep>(() => {
+  if (!filledCount.value) return 'import'
+  if (!arranged.value) return 'arrange'
+  return 'export'
+})
+const nextStepTarget = computed(() => {
+  switch (nextStep.value) {
+    case 'import':
+      return rosterSection.value
+    case 'arrange':
+      return arrangeSection.value
+    case 'export':
+      return exportSection.value
+  }
+})
+const nextStepProgress = computed(
+  () => `${filledCount.value} ${tr('人')} / ${seatCount.value} ${tr('座')}`,
+)
 const overflowCount = computed(() => Math.max(filledCount.value - seatCount.value, 0))
 
 // ---------- A4 横向预览（mm 排版 + 缩放适配容器） ----------
@@ -432,7 +456,7 @@ function toDeskLabels() {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-[1480px] px-4 py-6 sm:py-8">
+  <div class="mx-auto w-full max-w-[1480px] px-4 py-6 pb-20 sm:py-8 sm:pb-20">
     <div class="text-center">
       <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Seating Chart</p>
       <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
@@ -509,7 +533,7 @@ function toDeskLabels() {
           </div>
         </section>
 
-        <section class="panel-card">
+        <section ref="rosterSection" class="panel-card scroll-mt-4 outline-none">
           <div class="panel-head">
             <h2 class="section-title"><span class="step-chip">2</span>{{ tr('学生名单') }}</h2>
             <button type="button" class="btn btn-ghost btn-sm" @click="loadDemoNames">
@@ -532,7 +556,7 @@ function toDeskLabels() {
           </p>
         </section>
 
-        <section class="panel-card">
+        <section ref="arrangeSection" class="panel-card scroll-mt-4 outline-none">
           <h2 class="section-title"><span class="step-chip">3</span>{{ tr('随机排座') }}</h2>
           <div class="mt-3 flex flex-wrap gap-2">
             <button type="button" class="btn btn-secondary btn-sm" @click="randomizeAll">
@@ -584,7 +608,7 @@ function toDeskLabels() {
           </p>
         </section>
 
-        <section class="panel-card">
+        <section ref="exportSection" class="panel-card scroll-mt-4 outline-none">
           <h2 class="section-title"><span class="step-chip">4</span>{{ tr('输出') }}</h2>
           <div class="mt-3 flex flex-col gap-2">
             <button type="button" class="btn btn-primary btn-md" @click="doPrint">
@@ -775,6 +799,12 @@ function toDeskLabels() {
         </div>
       </div>
     </Teleport>
+    <NextStepBar
+      :step="nextStep"
+      :arrange-label="tr('随机排座')"
+      :progress="nextStepProgress"
+      :target="nextStepTarget"
+    />
   </div>
 </template>
 

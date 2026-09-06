@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 
+import NextStepBar, { type NextStep } from '@/components/NextStepBar.vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import ColorField from '@/components/ui/ColorField.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
@@ -21,6 +22,7 @@ import {
   nextGroupColor,
   parseBanquetGuests,
   snapshotTables,
+  splitGroups,
   summarizeAssignments,
   removeEmptyTables,
   summarizeBanquet,
@@ -212,6 +214,29 @@ function loadDemoGuests(count = 48) {
 
 /** 常驻状态条：已安排 / 未安排 / 空桌（与导出前检查、未安排列表同一口径） */
 const assignmentSummary = computed(() => summarizeAssignments(guests.value, tables.value))
+
+// ---------- 底部「下一步」操作条（只做导航，不碰数据） ----------
+const rosterSection = ref<HTMLElement | null>(null)
+const assignSection = ref<HTMLElement | null>(null)
+const exportSection = ref<HTMLElement | null>(null)
+const nextStep = computed<NextStep>(() => {
+  if (!guests.value.length) return 'import'
+  if (!assignmentSummary.value.assigned) return 'arrange'
+  return 'export'
+})
+const nextStepTarget = computed(() => {
+  switch (nextStep.value) {
+    case 'import':
+      return rosterSection.value
+    case 'arrange':
+      return assignSection.value
+    case 'export':
+      return exportSection.value
+  }
+})
+const nextStepProgress = computed(
+  () => `${tr('已安排')} ${assignmentSummary.value.assigned}/${guests.value.length}`,
+)
 
 // ---------- 第 2 步：场地布局 ----------
 
@@ -409,12 +434,36 @@ function autoAssign() {
       `${detail}。${tr('可增加餐桌或提高每桌座位数后重新分配')}`,
     )
   } else {
-    toast.success(tr('已自动分配座位'), `${detail}。${tr('同组宾客已尽量安排同桌，可拖拽宾客微调')}`)
+    const hint = s.splitGroups
+      ? tr('被拆开的分组已列在画布上方摘要中，可拖拽宾客微调')
+      : tr('同组宾客已安排同桌，可拖拽宾客微调')
+    toast.success(tr('已自动分配座位'), `${detail}。${hint}`)
   }
 }
 
 /** 画布上方的结果摘要（随安排实时变化，不仅限于自动排座后） */
 const summary = computed(() => summarizeBanquet(guests.value, tables.value, groups.value))
+
+/** 被拆到多桌的分组明细（摘要中「拆分分组」可展开查看） */
+const splitGroupDetails = computed(() => splitGroups(guests.value, tables.value, groups.value))
+const splitDetailsOpen = ref(false)
+watch(
+  () => splitGroupDetails.value.length,
+  (n) => {
+    if (!n) splitDetailsOpen.value = false
+  },
+)
+
+/** 摘要旁的「删除空桌」：与导出检查弹窗里的同一纯函数，默认桌名重新编号 */
+function removeEmptyTablesFromSummary() {
+  const before = tables.value.length
+  const kept = removeEmptyTables(tables.value)
+  const removed = before - kept.length
+  if (!removed) return
+  if (selectedId.value && !kept.some((t) => t.id === selectedId.value)) selectedId.value = null
+  tables.value = kept
+  toast.success(`${tr('已删除空桌')} ${removed} ${tr('桌')}`, tr('默认桌名已重新编号'))
+}
 
 /** 点击摘要中的空桌数：短暂高亮空桌并滚到首个空桌 */
 const highlightEmptyTables = ref(false)
@@ -698,14 +747,14 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-[1480px] px-4 py-6 sm:py-8">
+  <div class="mx-auto w-full max-w-[1480px] px-4 py-6 pb-20 sm:py-8 sm:pb-20">
     <div class="text-center">
       <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Banquet Seating</p>
       <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
         {{ tr('宴会座位表生成器') }}
       </h1>
       <p class="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-        {{ tr('婚宴、年会、答谢宴的桌位安排：粘贴宾客名单并分组，选圆桌/长桌/U 形等场地布局，一键自动分配（同组尽量同桌），拖拽微调后导出 A4/A3 高清座位图直接打印。数据全程在浏览器本地处理。') }}
+        {{ tr('婚宴、年会、答谢宴的桌位安排：粘贴宾客名单并分组，选圆桌/长桌/U 形等场地布局，一键自动分配（优先把同组宾客排在同桌），拖拽微调后导出 A4/A3 高清座位图直接打印。数据全程在浏览器本地处理。') }}
       </p>
       <p class="mt-2 text-xs text-slate-500">
         {{ tr('要排教室座位？用') }}
@@ -719,7 +768,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
       <!-- 设置面板 -->
       <aside class="flex min-w-0 flex-col gap-4">
         <!-- 第 1 步：宾客名单 -->
-        <section class="panel-card">
+        <section ref="rosterSection" class="panel-card scroll-mt-4 outline-none">
           <div class="panel-head">
             <h2 class="section-title"><span class="step-chip">1</span>{{ tr('宾客名单与分组') }}</h2>
             <button type="button" class="btn btn-ghost btn-sm" @click="loadDemoGuests()">
@@ -804,7 +853,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
               </div>
             </div>
             <p v-else class="mt-1 text-xs text-slate-500">
-              {{ tr('可选：加「男方亲友 / 女方亲友 / 同事」等分组，自动分配时同组尽量同桌。') }}
+              {{ tr('可选：加「男方亲友 / 女方亲友 / 同事」等分组。自动分配会优先把同组宾客排在同桌；座位不够时会在下方列出被拆开的分组。') }}
             </p>
           </div>
 
@@ -957,7 +1006,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         </section>
 
         <!-- 第 3 步：自动分配 -->
-        <section class="panel-card">
+        <section ref="assignSection" class="panel-card scroll-mt-4 outline-none">
           <h2 class="section-title"><span class="step-chip">3</span>{{ tr('分配座位') }}</h2>
           <p class="mt-1 text-xs leading-5 text-slate-500">
             {{ tr('先一键自动分配，再拖拽微调，最后到第 4 步导出。') }}
@@ -976,7 +1025,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         </section>
 
         <!-- 第 4 步：检查与导出 -->
-        <section class="panel-card">
+        <section ref="exportSection" class="panel-card scroll-mt-4 outline-none">
           <h2 class="section-title"><span class="step-chip">4</span>{{ tr('检查与导出') }}</h2>
           <div class="mt-3 grid grid-cols-2 gap-2.5">
             <div>
@@ -1055,8 +1104,30 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             >
               {{ tr('空桌') }} {{ summary.emptyTables }}
             </button>
+            <button
+              v-if="summary.emptyTables"
+              type="button"
+              class="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600"
+              data-testid="remove-empty-tables"
+              @click="removeEmptyTablesFromSummary"
+            >
+              {{ tr('删除空桌') }}
+            </button>
             <span aria-hidden="true">·</span>
-            <span>{{ tr('拆分分组') }} {{ summary.splitGroups }}</span>
+            <button
+              v-if="summary.splitGroups"
+              type="button"
+              class="rounded px-0.5 font-bold text-amber-600 transition-colors hover:bg-amber-50"
+              data-testid="split-groups-toggle"
+              :aria-expanded="splitDetailsOpen"
+              aria-controls="banquet-split-details"
+              :title="tr('点击查看被拆开的分组')"
+              @click="splitDetailsOpen = !splitDetailsOpen"
+            >
+              {{ tr('拆分分组') }} {{ summary.splitGroups }}
+              <span aria-hidden="true">{{ splitDetailsOpen ? '▴' : '▾' }}</span>
+            </button>
+            <span v-else>{{ tr('拆分分组') }} {{ summary.splitGroups }}</span>
             <span aria-hidden="true">·</span>
             <button
               type="button"
@@ -1070,6 +1141,20 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             </button>
           </p>
         </div>
+        <ul
+          v-if="splitDetailsOpen && splitGroupDetails.length"
+          id="banquet-split-details"
+          class="mb-2 space-y-1 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs leading-5 text-slate-700"
+          data-testid="split-groups-details"
+        >
+          <li v-for="g in splitGroupDetails" :key="g.groupId" class="flex flex-wrap items-baseline gap-x-1.5">
+            <span class="font-semibold text-slate-800">{{ g.groupName }}</span>
+            <span aria-hidden="true" class="text-slate-400">→</span>
+            <span>
+              {{ g.tables.map((x) => `${x.name}（${x.count} ${tr('人')}）`).join('、') }}
+            </span>
+          </li>
+        </ul>
         <div class="mb-1 flex items-center justify-between gap-2 text-[11px] leading-5 text-slate-400 sm:hidden">
           <p>{{ fitToWidth ? tr('已缩放至屏幕宽度，可切回原尺寸查看细节') : `← ${tr('画布超宽时可左右滑动查看')} →` }}</p>
           <button
@@ -1395,6 +1480,12 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         </div>
       </div>
     </Teleport>
+    <NextStepBar
+      :step="nextStep"
+      :arrange-label="tr('自动分配')"
+      :progress="nextStepProgress"
+      :target="nextStepTarget"
+    />
   </div>
 </template>
 

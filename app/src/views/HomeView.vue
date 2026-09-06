@@ -204,7 +204,7 @@ const FEATURES = computed(() => [
 
 const TRUST_STATS = computed(() => [
   { value: '100%', label: t('数据本地处理') },
-  { value: locale.value === 'en' ? `${TEMPLATE_COUNT}` : `${TEMPLATE_COUNT} 款`, label: t('内置专业模板') },
+  { value: locale.value === 'en' ? `${TEMPLATE_COUNT}` : `${TEMPLATE_COUNT} 款`, label: t('内置模板') },
   { value: '0.1mm', label: t('排版精度') },
   { value: t('免费'), label: t('无需注册即用') },
 ])
@@ -212,7 +212,7 @@ const TRUST_STATS = computed(() => [
 const FAQS = computed(() => [
   {
     q: t('除了考场座签还能生成什么？'),
-    a: t('150+ 款内置模板覆盖考场桌贴、座位号贴、考号贴、门贴门牌、会议桌牌 / 桌签 / 台签 / 席卡、医院床头卡、政务窗口牌、餐饮外卖架、图书馆索书标、驿站货架、学生证、工作证、胸卡出入证等场景，叠加纸张与设计器自定义，相当于数百种成品方案；字段、尺寸与排版都可自由调整。'),
+    a: t('150+ 款内置模板覆盖考场桌贴、座位号贴、考号贴、门贴门牌、会议桌牌 / 桌签 / 台签 / 席卡、医院床头卡、政务窗口牌、餐饮外卖架、图书馆索书标、驿站货架、学生证、工作证、胸卡出入证等场景；纸张与设计器可再自定义，字段、尺寸与排版都可自由调整。'),
   },
   {
     q: t('Excel 应该怎么准备？'),
@@ -269,20 +269,16 @@ const FAQS = computed(() => [
               <span class="text-brand-600"><span class="whitespace-nowrap">座签</span> · <span class="whitespace-nowrap">桌牌席卡</span> · <span class="whitespace-nowrap">门贴证卡</span></span>
             </template>
           </h1>
-          <p class="mt-4 max-w-lg text-base leading-7 text-slate-600">
+          <p class="mt-4 max-w-lg text-base leading-7 text-slate-600" data-testid="hero-steps">
             <template v-if="locale === 'en'">
-              Make wedding seating charts, place cards, table tent cards, classroom seating labels,
-              exam desk labels, door signs and name badges. {{ TEMPLATE_COUNT }} built-in templates
-              covering weddings, conferences, classrooms and offices: import your guest list and get
-              print-ready pages with millimetre-accurate layout, photo matching, open-source fonts
-              and a visual template designer.
+              <span class="block">Upload your Excel or paste a name list → preview the layout → export print-ready pages.</span>
+              <span class="block">You need: a spreadsheet with a header row (name, seat, table…) and an A4 printer.</span>
+              <span class="block">You get: seating charts, place cards, table tents, exam desk labels and name badges from {{ TEMPLATE_COUNT }} built-in templates — the whole flow runs locally in your browser.</span>
             </template>
             <template v-else>
-              制作考场座签、课桌桌贴、考号贴、会议桌牌 / 桌签 / 台签 / 席卡 /
-              坐席卡、座位背签、门贴门牌、学生证 / 工作证、胸卡出入证。{{ TEMPLATE_COUNT }}
-              款内置模板、数百种成品方案，覆盖考试、会议、婚庆、校园、医疗、政务、
-              餐饮与仓储物流等场景：导入名单即可输出排版精确到毫米的打印页，
-              支持照片核验、开源字体与自定义模板设计。
+              <span class="block">把 Excel 名单粘进来 → 先看预览 → 导出可打印的座签页。</span>
+              <span class="block">需要准备：一份带表头（姓名、考场、座位号等）的名单，以及一台 A4 打印机。</span>
+              <span class="block">最后得到：考场座签、桌牌席卡、门贴证卡等 {{ TEMPLATE_COUNT }} 款模板的打印页，排版精确到毫米，全程浏览器本地处理。</span>
             </template>
           </p>
           <div class="mt-7 flex flex-wrap gap-3">

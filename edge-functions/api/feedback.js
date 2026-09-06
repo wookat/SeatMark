@@ -11,20 +11,19 @@
  *
  * 存储：与主 API 同源的三级后备（KV → Blob → 内存，见 _storage.js）。
  * 反馈存档到 fb: 前缀供管理端 /api/admin/feedback 查看；限频计数用 rl:fb: 前缀。
+ *
+ * 防护：请求体 > 32KB → 413（先看 Content-Length，再看实际字节数，不先 JSON.parse 超大体）。
  */
 
 import { getStorage } from './_storage.js'
 import { withSecurityHeaders } from './_security.js'
 import { randomToken36 } from './_random.js'
+import { json, clientIp, sha256Hex } from './_http.js'
 
 const FEEDBACK_IP_DAILY_LIMIT = 10
+export const FEEDBACK_MAX_BODY_BYTES = 32 * 1024
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-  })
-}
+const encoder = new TextEncoder()
 
 export async function onRequest(context) {
   return withSecurityHeaders(await handleRequest(context))
@@ -36,9 +35,22 @@ async function handleRequest(context) {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 })
   if (request.method !== 'POST') return json({ error: '请求方法不支持' }, 405)
 
+  const declared = Number(request.headers.get('Content-Length'))
+  if (Number.isFinite(declared) && declared > FEEDBACK_MAX_BODY_BYTES) {
+    return json({ error: '请求体过大' }, 413)
+  }
+  let rawBody
+  try {
+    rawBody = await request.text()
+  } catch {
+    return json({ error: '请求体格式错误' }, 400)
+  }
+  if (encoder.encode(rawBody).length > FEEDBACK_MAX_BODY_BYTES) {
+    return json({ error: '请求体过大' }, 413)
+  }
   let payload
   try {
-    payload = await request.json()
+    payload = JSON.parse(rawBody)
   } catch {
     return json({ error: '请求体格式错误' }, 400)
   }
@@ -56,12 +68,7 @@ async function handleRequest(context) {
 
   // 防滥用：同一 IP 每日限量（IP 经单向哈希后仅用作限频计数）
   try {
-    const ip =
-      request.headers.get('EO-Connecting-IP') ||
-      request.headers.get('X-Forwarded-For') ||
-      'unknown'
-    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip))
-    const ipHash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
+    const ipHash = await sha256Hex(clientIp(request))
     const day = new Date().toISOString().slice(0, 10)
     const rlKey = `rl:fb:${ipHash}:${day}`
     const count = Number((await kv.get(rlKey)) || 0)

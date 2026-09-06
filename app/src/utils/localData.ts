@@ -3,7 +3,7 @@
  * （工坊名单暂存、座位表/宴会草稿、自定义模板、配额计数、界面偏好等）。
  * 只处理本站前缀键，不触碰第三方统计脚本或其他站点的数据；登录 Cookie 由退出登录处理。
  */
-const LOCAL_KEY_PREFIXES = ['seatmark.', 'seat-label-', 'sm-']
+const LOCAL_KEY_PREFIXES = ['seatmark.', 'seatmark:', 'seat-label-', 'sm-']
 
 export function isSeatMarkStorageKey(key: string): boolean {
   return LOCAL_KEY_PREFIXES.some((p) => key.startsWith(p))
