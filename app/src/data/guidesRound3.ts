@@ -8,7 +8,7 @@ import type { Guide } from './guides'
 export const guidesRound3: Guide[] = [
   {
     slug: 'classroom-seating-chart-print',
-    title: '班级座位表怎么在线制作打印？名单粘贴即出 A4 教室座位表（还能一键生成桌贴）',
+    title: '班级座位表怎么在线制作打印？名单粘贴即出 A4 教室座位表（同一名单可再出桌贴）',
     description:
       '不用 Excel 画格子：把学生名单粘贴进 SeatMark 座位表工具，设置排列与过道、标注讲台，直接生成 A4 教室平面座位表打印张贴，还能一键用同一份名单批量生成课桌桌贴。',
     keywords: ['班级座位表打印', '教室座位表制作', '座位表模板', '在线座位表生成', '座位表桌贴'],

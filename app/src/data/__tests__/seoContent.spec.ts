@@ -88,6 +88,16 @@ describe('教程内容质量', () => {
     expect(new Set(guides.map((g) => g.description)).size).toBe(guides.length)
   })
 
+  it('标题与摘要不含泛化承诺类禁用词', () => {
+    const banned = ['一键生成', '完整流程', '一次讲清', '全攻略', '一站式', '看完即可上手', '不出错', '保姆级']
+    const hits = guides.flatMap((g) =>
+      banned
+        .filter((w) => g.title.includes(w) || g.description.includes(w))
+        .map((w) => `${g.slug}: ${w}`),
+    )
+    expect(hits).toEqual([])
+  })
+
   it('正文字数达标（第二轮及以后新增 ≥1200，存量 ≥800）', () => {
     const longFormSlugs = new Set(
       [...guidesRound2, ...guidesRound3, ...guidesRound4, ...guidesRound5].map((g) => g.slug),

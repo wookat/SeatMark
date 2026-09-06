@@ -112,8 +112,9 @@ const vAutofit: Directive<HTMLElement, number> = {
 <script setup lang="ts">
 import { computed, type CSSProperties } from 'vue'
 
+import { localizeSampleText } from '@/data/demoDatasets'
 import { combineFontStacks, DEFAULT_FONT_STACK, withRareCJKFallback } from '@/data/fonts'
-import { t } from '@/i18n'
+import { currentLocale, t, t as tr } from '@/i18n'
 import { watermarkToneFor } from '@/utils/watermark'
 import type { LabelTemplate, TemplateField } from '@/types/template'
 
@@ -258,13 +259,16 @@ function textOf(field: TemplateField): string {
     ? (props.template.fields.find((f) => f.id === field.mirrorOf) ?? field)
     : field
   if (props.sampleMode) {
-    if (source.sample && source.sample !== 'photo') return source.sample
-    return (
-      props.template.sampleData?.[source.id] ??
-      SAMPLE_FALLBACK[source.id] ??
-      source.label ??
-      source.id
-    )
+    const sample =
+      source.sample && source.sample !== 'photo'
+        ? source.sample
+        : (props.template.sampleData?.[source.id] ??
+          SAMPLE_FALLBACK[source.id] ??
+          source.label ??
+          source.id)
+    return currentLocale() === 'en'
+      ? localizeSampleText(sample, source.label ?? source.id, tr)
+      : sample
   }
   return props.texts?.[source.id] ?? ''
 }
@@ -355,7 +359,7 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
         :style="fieldStyle(field)"
       >
         <span class="label-field__body">
-          <span v-if="field.caption" class="label-field__caption">{{ field.caption }}</span>
+          <span v-if="field.caption" class="label-field__caption">{{ tr(field.caption) }}</span>
           <span class="label-field__content">{{ textOf(field) }}</span>
         </span>
         <span v-if="isUnmapped(field)" class="label-field__unmapped" aria-hidden="true">
@@ -373,7 +377,7 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
           :src="imageSrcOf(field)!"
           :alt="field.imageSrc != null ? t('模板图片素材') : t('标签照片')"
         />
-        <span v-else class="label-field__placeholder">{{ field.imageSrc != null ? t('图片') : t('照片') }}</span>
+        <span v-else class="label-field__placeholder">{{ field.imageSrc != null ? tr('图片') : tr('照片') }}</span>
       </div>
     </template>
     <div

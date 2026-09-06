@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+import { useBatchedList } from '@/composables/useBatchedList'
+import ZhOnlyNotice from '@/components/ui/ZhOnlyNotice.vue'
 import { guides } from '@/data/guides'
+import { t as tr } from '@/i18n'
+import { useI18n } from '@/i18n'
 import { matchesChineseQuery } from '@/utils/pinyin'
+
+const { t, localePath } = useI18n()
 
 const activeCategory = ref('全部')
 const activeAudience = ref('全部')
@@ -18,6 +24,18 @@ const filteredGuides = computed(() =>
       (activeAudience.value === '全部' || g.audiences.includes(activeAudience.value)) &&
       matchesChineseQuery(`${g.title} ${g.description} ${g.category}`, searchQuery.value),
   ),
+)
+
+const {
+  visible: visibleGuides,
+  hasMore,
+  showMore,
+} = useBatchedList(filteredGuides, [activeCategory, activeAudience, searchQuery])
+
+const shownNote = computed(() =>
+  tr('已显示 {shown}/{total}')
+    .replace('{shown}', String(visibleGuides.value.length))
+    .replace('{total}', String(filteredGuides.value.length)),
 )
 
 function resetFilters() {
@@ -42,15 +60,20 @@ const recommendedGuides = computed(() => {
   <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
     <div class="text-center">
       <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Guides</p>
-      <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">教程中心</h1>
+      <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+        {{ t('教程中心') }}
+      </h1>
       <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-        座签、桌牌、席位卡、证卡的制作与打印实战教程：从 Excel 名单整理、模板选择到打印裁切，
-        问答式讲解常见坑点，看完即可上手。
+        {{ t('座签、桌牌、席位卡、证卡的制作与打印实战教程：从 Excel 名单整理、模板选择到打印裁切，问答式讲解常见坑点。') }}
       </p>
+      <ZhOnlyNotice />
     </div>
 
     <!-- 筛选器 -->
-    <div class="mt-8 grid gap-3">
+    <div
+      class="sticky top-14 z-20 -mx-4 mt-8 grid gap-3 border-b border-slate-200 bg-white px-4 py-3 min-[769px]:static min-[769px]:mx-0 min-[769px]:border-0 min-[769px]:bg-transparent min-[769px]:p-0"
+      data-testid="guides-filter-bar"
+    >
       <label class="relative mx-auto block w-full max-w-md">
         <svg
           class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-600"
@@ -67,12 +90,12 @@ const recommendedGuides = computed(() => {
         <input
           v-model="searchQuery"
           type="search"
-          placeholder="搜索教程，支持拼音、首字母，如“打印”“dayin”“jkz”"
+          :placeholder="t('搜索教程，支持拼音、首字母，如“打印”“dayin”“jkz”')"
           class="w-full rounded-lg border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm text-slate-700 shadow-sm placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
         />
       </label>
       <div class="flex flex-wrap items-center gap-2">
-        <span class="shrink-0 text-xs font-bold text-slate-600">主题</span>
+        <span class="shrink-0 text-xs font-bold text-slate-600">{{ t('主题') }}</span>
         <button
           v-for="cat in categories"
           :key="cat"
@@ -85,11 +108,11 @@ const recommendedGuides = computed(() => {
           "
           @click="activeCategory = cat"
         >
-          {{ cat }}
+          {{ t(cat) }}
         </button>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <span class="shrink-0 text-xs font-bold text-slate-600">群体</span>
+        <span class="shrink-0 text-xs font-bold text-slate-600">{{ t('群体') }}</span>
         <button
           v-for="aud in audiences"
           :key="aud"
@@ -102,26 +125,28 @@ const recommendedGuides = computed(() => {
           "
           @click="activeAudience = aud"
         >
-          {{ aud }}
+          {{ t(aud) }}
         </button>
       </div>
-      <p class="text-xs text-slate-600">共 {{ filteredGuides.length }} 篇教程</p>
+      <p class="text-xs text-slate-600">
+        {{ t('共 {n} 篇教程').replace('{n}', String(filteredGuides.length)) }}
+      </p>
     </div>
 
     <div
       v-if="filteredGuides.length === 0"
       class="mt-10 rounded-lg border border-slate-200 bg-slate-50 p-8 text-center"
     >
-      <p class="text-sm text-slate-600">该条件下暂无教程，换个关键词或筛选条件试试。</p>
+      <p class="text-sm text-slate-600">{{ t('该条件下暂无教程，换个关键词或筛选条件试试。') }}</p>
       <button
         type="button"
         class="mt-3 text-xs font-bold text-brand-600 hover:underline"
         @click="resetFilters"
       >
-        清除筛选
+        {{ t('清除筛选') }}
       </button>
       <div class="mt-6 border-t border-slate-200 pt-5 text-left">
-        <p class="text-xs font-bold text-slate-600">也许你想看这些教程</p>
+        <p class="text-xs font-bold text-slate-600">{{ t('也许你想看这些教程') }}</p>
         <div class="mt-3 grid gap-3 sm:grid-cols-3">
           <RouterLink
             v-for="rec in recommendedGuides"
@@ -140,14 +165,16 @@ const recommendedGuides = computed(() => {
 
     <div v-else class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       <RouterLink
-        v-for="guide in filteredGuides"
+        v-for="guide in visibleGuides"
         :key="guide.slug"
         :to="`/guides/${guide.slug}`"
         class="group flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-brand-300 hover:shadow-card-hover"
       >
         <div class="flex items-center gap-2 text-[11px] font-bold">
-          <span class="rounded-md bg-brand-50 px-2 py-0.5 text-brand-600">{{ guide.category }}</span>
-          <span class="text-slate-600">约 {{ guide.readingMinutes }} 分钟读完</span>
+          <span class="rounded-md bg-brand-50 px-2 py-0.5 text-brand-600">{{ t(guide.category) }}</span>
+          <span class="text-slate-600">
+            {{ t('约 {n} 分钟读完').replace('{n}', String(guide.readingMinutes)) }}
+          </span>
         </div>
         <h2
           class="mt-3 text-base leading-6 font-bold text-slate-900 group-hover:text-brand-600"
@@ -158,7 +185,7 @@ const recommendedGuides = computed(() => {
           {{ guide.description }}
         </p>
         <span class="mt-4 flex items-center gap-1 text-xs font-bold text-brand-600">
-          阅读全文
+          {{ t('阅读全文') }}
           <svg
             class="size-3.5 transition-transform duration-200 group-hover:translate-x-1"
             viewBox="0 0 16 16"
@@ -174,18 +201,28 @@ const recommendedGuides = computed(() => {
       </RouterLink>
     </div>
 
+    <div v-if="hasMore" class="mt-8 flex flex-col items-center gap-2">
+      <button type="button" class="btn btn-secondary btn-md" data-testid="load-more" @click="showMore">
+        {{ tr('加载更多') }}
+      </button>
+      <p class="text-xs text-slate-500">{{ shownNote }}</p>
+    </div>
+
     <!-- CTA -->
     <div
       class="mt-12 flex flex-col items-center justify-between gap-4 rounded-lg border border-brand-200 bg-brand-50/60 px-6 py-6 text-center sm:flex-row sm:text-left"
     >
       <div>
-        <h2 class="text-base font-bold text-slate-900">边看边做，效果最好</h2>
+        <h2 class="text-base font-bold text-slate-900">{{ t('边看边做，效果最好') }}</h2>
         <p class="mt-1 text-sm text-slate-600">
-          打开标签工坊，用演示数据即可完整体验教程里的每一步，全程免费。
+          {{ t('打开标签工坊，用演示数据即可完整体验教程里的每一步，全程免费。') }}
         </p>
       </div>
-      <RouterLink to="/studio?demo=1" class="btn btn-primary btn-md w-full shrink-0 sm:w-auto">
-        用演示数据试试
+      <RouterLink
+        :to="localePath('/studio?demo=1')"
+        class="btn btn-primary btn-md w-full shrink-0 sm:w-auto"
+      >
+        {{ t('用演示数据试试') }}
       </RouterLink>
     </div>
   </div>

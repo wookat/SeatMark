@@ -112,7 +112,13 @@ const categoryOptions = computed<{ id: CategoryFilter; name: string; count: numb
 const searchQuery = ref('')
 
 function matchesQuery(t: LabelTemplate, query: string): boolean {
-  return matchesChineseQuery(`${t.name} ${t.scenario ?? ''} ${t.description}`, query)
+  const haystack = `${t.name} ${t.scenario ?? ''} ${t.description}`
+  return (
+    matchesChineseQuery(haystack, query) ||
+    `${tr(t.name)} ${tr(t.scenario ?? '')} ${tr(t.description)}`
+      .toLowerCase()
+      .includes(query.toLowerCase())
+  )
 }
 
 const filteredTemplates = computed<LabelTemplate[]>(() => {
@@ -618,7 +624,7 @@ function confirmDelete() {
           </div>
           <p class="mt-1 text-[11px] text-slate-600">
             {{ t.label.width }} × {{ t.label.height }} mm · {{ t.page.cols * t.page.rows }}
-            {{ tr('枚/页') }}<template v-if="t.scenario"> · {{ tr(t.scenario) }}</template>
+            {{ tr('枚 / 页') }}<template v-if="t.scenario"> · {{ tr(t.scenario) }}</template>
           </p>
           <p
             v-if="fitOf(t)?.level === 'incompatible'"

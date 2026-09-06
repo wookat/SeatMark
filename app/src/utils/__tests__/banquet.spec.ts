@@ -5,6 +5,7 @@ import {
   buildVenuePreset,
   findOverlaps,
   parseBanquetGuests,
+  removeEmptyTables,
   splitGroups,
   summarizeBanquet,
   validateBanquet,
@@ -140,6 +141,52 @@ describe('validateBanquet', () => {
     expect(issues.emptyTables).toEqual(['B', 'C'])
     expect(issues.overlaps).toEqual([['A', 'B']])
     expect(issues.overCapacity).toEqual(['A'])
+  })
+})
+
+describe('removeEmptyTables', () => {
+  it('删除空桌，保留有人桌，默认桌名序号重新连续', () => {
+    const tables = [1, 2, 3, 4].map((n) => table(`t${n}`, 8, { name: `${n}号桌`, x: n * 100 }))
+    tables[0]!.guestIds = ['g1']
+    tables[2]!.guestIds = ['g2', 'g3']
+    const out = removeEmptyTables(tables)
+    expect(out.map((t) => t.id)).toEqual(['t1', 't3'])
+    expect(out.map((t) => t.name)).toEqual(['1号桌', '2号桌'])
+    expect(out[1]!.x).toBe(300)
+    expect(out[1]!.guestIds).toEqual(['g2', 'g3'])
+  })
+
+  it('自定义桌名不参与重排', () => {
+    const tables = [
+      table('a', 8, { name: '1号桌' }),
+      table('b', 8, { name: '主桌' }),
+      table('c', 8, { name: '3号桌', guestIds: ['g1'] }),
+    ]
+    tables[1]!.guestIds = ['g0']
+    const out = removeEmptyTables(tables)
+    expect(out.map((t) => t.name)).toEqual(['主桌', '2号桌'])
+  })
+
+  it('不修改入参；无空桌时桌对象按引用复用', () => {
+    const tables = [
+      table('a', 8, { name: '1号桌', guestIds: ['g1'] }),
+      table('b', 8, { name: '2号桌' }),
+      table('c', 8, { name: '3号桌', guestIds: ['g2'] }),
+    ]
+    const before = JSON.stringify(tables)
+    const out = removeEmptyTables(tables)
+    expect(JSON.stringify(tables)).toBe(before)
+    expect(out[0]).toBe(tables[0])
+    expect(out[1]).not.toBe(tables[2])
+    expect(out[1]!.name).toBe('2号桌')
+
+    const full = [
+      table('a', 8, { name: '1号桌', guestIds: ['g1'] }),
+      table('b', 8, { name: '2号桌', guestIds: ['g2'] }),
+    ]
+    const same = removeEmptyTables(full)
+    expect(same[0]).toBe(full[0])
+    expect(same[1]).toBe(full[1])
   })
 })
 
