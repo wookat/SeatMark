@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+
+import { t } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
 
 const toast = useToastStore()
@@ -10,23 +12,23 @@ const type = ref<'bug' | 'suggestion' | 'other'>('suggestion')
 const content = ref('')
 const contact = ref('')
 
-const TYPE_OPTIONS = [
+const TYPE_OPTIONS = computed(() => [
   {
     value: 'suggestion' as const,
-    label: '功能建议',
+    label: t('功能建议'),
     icon: 'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z',
   },
   {
     value: 'bug' as const,
-    label: '问题反馈',
+    label: t('问题反馈'),
     icon: 'M12 20a6 6 0 0 0 6-6v-2a6 6 0 1 0-12 0v2a6 6 0 0 0 6 6zM12 20v-8M6 13H3M21 13h-3M6.5 8 4 6M17.5 8 20 6M9 6a3 3 0 0 1 6 0',
   },
   {
     value: 'other' as const,
-    label: '其他',
+    label: t('其他'),
     icon: 'M21 12a8 8 0 0 1-11.6 7.1L4 20l1-5.1A8 8 0 1 1 21 12z',
   },
-]
+])
 
 function reset() {
   type.value = 'suggestion'
@@ -48,11 +50,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 async function submit() {
   if (!content.value.trim()) {
-    toast.warning('请填写反馈内容')
+    toast.warning(t('请填写反馈内容'))
     return
   }
   if (content.value.length > 2000) {
-    toast.warning('反馈内容不能超过 2000 字')
+    toast.warning(t('反馈内容不能超过 2000 字'))
     return
   }
 
@@ -69,10 +71,10 @@ async function submit() {
       }),
     })
     if (!res.ok) throw new Error()
-    toast.success('感谢反馈！', '已收到您的意见')
+    toast.success(t('感谢反馈！'), t('已收到您的意见'))
     close()
   } catch {
-    toast.danger('提交失败', '请稍后重试')
+    toast.danger(t('提交失败'), t('请稍后重试'))
   } finally {
     submitting.value = false
   }
@@ -83,7 +85,7 @@ async function submit() {
   <!-- 浮动按钮 -->
   <button
     class="no-print fixed right-5 bottom-5 z-50 flex size-12 items-center justify-center rounded-full bg-brand-600 text-white transition-all hover:bg-brand-700"
-    aria-label="反馈"
+    :aria-label="t('反馈')"
     @click="open = true"
   >
     <svg class="size-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -120,11 +122,11 @@ async function submit() {
         <div class="rounded-lg bg-white shadow-pop">
           <!-- 头部 -->
           <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-            <h3 class="text-base font-bold text-slate-900">意见反馈</h3>
+            <h3 class="text-base font-bold text-slate-900">{{ t('意见反馈') }}</h3>
             <button
               type="button"
               class="cursor-pointer text-slate-600 transition-colors hover:text-slate-600"
-              aria-label="关闭"
+              :aria-label="t('关闭')"
               @click="close"
             >
               <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -137,7 +139,7 @@ async function submit() {
           <div class="space-y-4 px-5 py-4">
             <!-- 类型选择 -->
             <div>
-              <label class="mb-2 block text-sm font-medium text-slate-700">反馈类型</label>
+              <label class="mb-2 block text-sm font-medium text-slate-700">{{ t('反馈类型') }}</label>
               <div class="flex gap-2">
                 <button
                   v-for="opt in TYPE_OPTIONS"
@@ -169,14 +171,14 @@ async function submit() {
             <!-- 内容 -->
             <div>
               <label class="mb-2 block text-sm font-medium text-slate-700">
-                反馈内容
-                <span class="ml-1 text-xs font-normal text-slate-600">（{{ content.length }}/2000）</span>
+                {{ t('反馈内容') }}
+                <span class="ml-1 text-xs font-normal text-slate-600">{{ t('（{n}/2000）').replace('{n}', String(content.length)) }}</span>
               </label>
               <textarea
                 v-model="content"
                 rows="4"
                 maxlength="2000"
-                placeholder="请描述您遇到的问题或建议..."
+                :placeholder="t('请描述您遇到的问题或建议...')"
                 class="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-600 focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               ></textarea>
             </div>
@@ -184,14 +186,14 @@ async function submit() {
             <!-- 联系方式 -->
             <div>
               <label class="mb-2 block text-sm font-medium text-slate-700">
-                联系方式
-                <span class="ml-1 text-xs font-normal text-slate-600">（选填）</span>
+                {{ t('联系方式') }}
+                <span class="ml-1 text-xs font-normal text-slate-600">{{ t('（选填）') }}</span>
               </label>
               <input
                 v-model="contact"
                 type="text"
                 maxlength="200"
-                placeholder="邮箱或手机号，方便我们回复您"
+                :placeholder="t('邮箱或手机号，方便我们回复您')"
                 class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-600 focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
             </div>
@@ -204,7 +206,7 @@ async function submit() {
               class="btn btn-ghost btn-sm"
               @click="close"
             >
-              取消
+              {{ t('取消') }}
             </button>
             <button
               type="button"
@@ -212,7 +214,7 @@ async function submit() {
               :disabled="submitting || !content.trim()"
               @click="submit"
             >
-              {{ submitting ? '提交中...' : '提交反馈' }}
+              {{ submitting ? t('提交中...') : t('提交反馈') }}
             </button>
           </div>
         </div>

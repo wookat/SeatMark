@@ -22,6 +22,8 @@ const BADGE_TONE_CLASS: Record<NonNullable<SelectOption['badgeTone']>, string> =
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+import { t } from '@/i18n'
+
 const props = withDefaults(
   defineProps<{
     modelValue?: string
@@ -102,7 +104,7 @@ onBeforeUnmount(() => {
       :aria-expanded="open"
       @click="open = !open"
     >
-      <span class="min-w-0 flex-1 truncate">{{ current?.label ?? placeholder }}</span>
+      <span class="min-w-0 flex-1 truncate">{{ current?.label ?? t(placeholder) }}</span>
       <svg
         class="size-3.5 shrink-0 text-slate-600 transition-transform"
         :class="{ 'rotate-180': open }"
