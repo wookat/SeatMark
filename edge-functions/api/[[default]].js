@@ -448,6 +448,12 @@ async function getRedeemRecord(kv, code) {
   }
 }
 
+/** 配额扣减幂等键（前端 crypto.randomUUID 生成）：小写十六进制与连字符，8~64 位；不合规返回 null */
+function normalizeExportId(input) {
+  if (typeof input !== 'string') return null
+  return /^[0-9a-f-]{8,64}$/.test(input) ? input : null
+}
+
 /** 归一化用户输入：容忍大小写/空格/丢失的连字符 */
 function normalizeRedeemCode(input) {
   const raw = String(input || '').toUpperCase().replace(/[^0-9A-Z]/g, '')
@@ -1392,12 +1398,21 @@ async function handleRequest(context) {
   if (path === '/api/quota/consume' && method === 'POST') {
     const email = await currentUserEmail(request, env)
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
+    // 幂等键：同一次导出重试（网络重发 / 5xx 重试）不重复扣减；非法或缺失按无键处理。
+    // KV 无条件写，本项为幂等而非严格原子，并发窗口与 redeem 两段式同级别
+    const body = await readBody()
+    const exportId = normalizeExportId(body?.exportId)
     const status = await quotaStatus(kv, email)
+    const idempotencyKey = exportId ? `usage:${email}:${status.date}:id:${exportId}` : null
+    if (idempotencyKey && (await kv.get(idempotencyKey))) {
+      return json({ ok: true, already: true, ...status }, 200, storageHeader)
+    }
     if (status.remaining <= 0) {
       return json({ error: '今日无水印导出次数已用完', ...status }, 429, storageHeader)
     }
     const used = status.used + 1
     await kv.put(`usage:${email}:${status.date}`, String(used), dailyTtl)
+    if (idempotencyKey) await kv.put(idempotencyKey, '1', dailyTtl)
     return json(
       { ok: true, ...status, used, remaining: status.limit - used },
       200,

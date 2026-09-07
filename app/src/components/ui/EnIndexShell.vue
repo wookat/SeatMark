@@ -21,6 +21,8 @@ const props = defineProps<{
   intro: string
   /** 精选入口，最多渲染 3 条 */
   featured?: EnIndexFeatured[]
+  /** 在每条精选入口旁渲染「Chinese」语言角标（字面英文，不走 i18n） */
+  langBadge?: boolean
 }>()
 
 const route = useRoute()
@@ -50,7 +52,14 @@ const picks = computed(() => (props.featured ?? []).slice(0, 3))
             :to="item.to"
             class="group flex items-center justify-between gap-3 py-2.5 text-sm font-semibold text-slate-800 hover:text-brand-600"
           >
-            <span>{{ item.title }}</span>
+            <span class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+              <span>{{ item.title }}</span>
+              <span
+                v-if="langBadge"
+                class="rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200"
+                data-testid="lang-badge-zh"
+              >Chinese</span>
+            </span>
             <svg
               class="size-3.5 shrink-0 text-slate-400 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-brand-600"
               viewBox="0 0 16 16"

@@ -203,6 +203,31 @@ describe('quota store（每日无水印导出配额）', () => {
     expect(auth.user.quota.remaining).toBe(2)
   })
 
+  it('已登录：每次 consume 请求 body 携带 CSPRNG 生成的 exportId 幂等键，且每次不同', async () => {
+    const auth = useAuthStore()
+    auth.user = mockUser()
+    const quota = useQuotaStore()
+
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, used: 1, limit: 3, remaining: 2 }), {
+        status: 200,
+      }),
+    )
+
+    await quota.tryConsume()
+    await quota.tryConsume()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const ids = fetchMock.mock.calls.map(([url, init]) => {
+      expect(url).toBe('/api/quota/consume')
+      expect(init?.method).toBe('POST')
+      const body = JSON.parse(String(init?.body)) as { exportId?: unknown }
+      expect(typeof body.exportId).toBe('string')
+      expect(body.exportId as string).toMatch(/^[0-9a-f-]{8,64}$/)
+      return body.exportId as string
+    })
+    expect(new Set(ids).size).toBe(2)
+  })
+
   it('已登录：consume 返回 401 时清空用户与 seatmark:has-account 标记并回落匿名计数', async () => {
     const auth = useAuthStore()
     auth.setUser(mockUser())

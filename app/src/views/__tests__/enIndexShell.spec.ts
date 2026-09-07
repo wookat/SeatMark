@@ -140,3 +140,55 @@ describe('第 350 轮：/en/guides /en/vs /en/papers 不再整列渲染中文卡
     })
   }
 })
+
+describe('第 356 轮：/en 模板与教程卡片「Chinese」语言角标', () => {
+  const BADGE = '[data-testid="lang-badge-zh"]'
+  const BADGE_CLASSES = ['text-[10px]', 'font-semibold', 'text-slate-500', 'bg-white/90', 'ring-1', 'ring-slate-200']
+
+  it('/en/templates：每张列表卡片含 Chinese 角标且与场景标签同容器；卡片链接目标不变', async () => {
+    const wrapper = await mountView(VIEWS[1], 'en')
+    const cards = wrapper.findAll('a[href^="/templates/"]')
+    expect(cards.length).toBeGreaterThan(3)
+    for (const card of cards) {
+      const badge = card.find(BADGE)
+      expect(badge.exists()).toBe(true)
+      expect(badge.text()).toBe('Chinese')
+      for (const cls of BADGE_CLASSES) expect(badge.classes()).toContain(cls)
+      // 与场景标签同一个右上角容器
+      expect(badge.element.parentElement?.classList.contains('absolute')).toBe(true)
+      expect(card.attributes('href')).toMatch(/^\/templates\/[A-Za-z0-9-]+$/)
+    }
+    wrapper.unmount()
+  })
+
+  it('/en/guides：精选教程入口含 Chinese 角标，链接仍指向中文详情页', async () => {
+    const wrapper = await mountView(VIEWS[0], 'en')
+    const featured = wrapper.findAll('[data-testid="en-index-featured"] a')
+    expect(featured.length).toBeGreaterThan(0)
+    for (const a of featured) {
+      const badge = a.find(BADGE)
+      expect(badge.exists()).toBe(true)
+      expect(badge.text()).toBe('Chinese')
+      for (const cls of BADGE_CLASSES) expect(badge.classes()).toContain(cls)
+      expect(a.attributes('href')).toMatch(/^\/guides\/[a-z0-9-]+$/)
+    }
+    wrapper.unmount()
+  })
+
+  it('/templates 与 /guides 中文站不渲染角标', async () => {
+    for (const view of [VIEWS[0], VIEWS[1]]) {
+      const wrapper = await mountView(view, 'zh')
+      expect(wrapper.find(BADGE).exists()).toBe(false)
+      expect(wrapper.text()).not.toContain('Chinese')
+      wrapper.unmount()
+    }
+  })
+
+  it('/en/vs 与 /en/papers 未开启角标（仅教程/模板卡片）', async () => {
+    for (const view of [VIEWS[2], VIEWS[3]]) {
+      const wrapper = await mountView(view, 'en')
+      expect(wrapper.find(BADGE).exists()).toBe(false)
+      wrapper.unmount()
+    }
+  })
+})

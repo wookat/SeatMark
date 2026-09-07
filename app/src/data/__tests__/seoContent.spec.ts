@@ -142,7 +142,7 @@ describe('教程内容质量', () => {
       if (tpl) {
         expect(templateIds.has(tpl), `${g.slug} quickStart 模板 ${tpl}`).toBe(true)
       } else {
-        expect(['/seating', '/papers'].some((p) => to.startsWith(p)), `${g.slug} quickStart 目标 ${to}`).toBe(true)
+        expect(['/seating', '/banquet', '/papers'].some((p) => to.startsWith(p)), `${g.slug} quickStart 目标 ${to}`).toBe(true)
       }
     }
   })

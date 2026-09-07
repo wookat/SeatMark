@@ -110,7 +110,7 @@ const recommendedGuides = computed(() => {
       <ZhOnlyNotice />
     </div>
 
-    <EnIndexShell v-if="locale === 'en'" :intro="EN_INTRO" :featured="EN_FEATURED" />
+    <EnIndexShell v-if="locale === 'en'" :intro="EN_INTRO" :featured="EN_FEATURED" lang-badge />
 
     <!-- 筛选器：移动端默认折叠为一行 sticky，展开时不再 sticky；桌面端始终展开且 static -->
     <div
