@@ -4,27 +4,38 @@ import { useRouter } from 'vue-router'
 
 import NextStepBar, { type NextStep } from '@/components/NextStepBar.vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
+import ModalDialog from '@/components/ui/ModalDialog.vue'
 import NumberField from '@/components/ui/NumberField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
 import { demoPersonNames } from '@/data/demoDatasets'
 import { currentLocale, localePath, t as tr } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
+import { useQuotaStore } from '@/stores/quota'
 import { fitScale, MM_TO_PX } from '@/utils/layout'
 import { listJoin } from '@/utils/listJoin'
 import { setPrintPageSize } from '@/utils/paper'
+import { exportPagedPng } from '@/utils/pngExport'
 import { printAndWaitUntilDone } from '@/utils/printing'
 import {
+  buildDisplayGrid,
+  buildSeatGrid,
+  buildSeats,
   interleaveByGender,
   parseSeatingRosterDetailed,
   SEATING_HANDOFF_KEY,
+  seatingExportFileName,
   shuffleEntries,
+  type Seat,
   type SeatingEntry,
+  type SeatingFillOrder,
   type SeatingHandoff,
+  type SeatingViewMode,
 } from '@/utils/seating'
 
 const router = useRouter()
 const toast = useToastStore()
+const quota = useQuotaStore()
 
 // ---------- 输入（持久化到本地，避免跨页返回丢失排座成果） ----------
 const SEATING_STATE_KEY = 'seatmark.seating-state.v1'
@@ -34,7 +45,7 @@ interface SeatingPersistedState {
   rows: number
   cols: number
   podium: 'top' | 'none'
-  fillOrder: 'rows' | 'serpentine'
+  fillOrder: SeatingFillOrder
   aisles: number[]
   namesText: string
   arranged: SeatingEntry[] | null
@@ -58,7 +69,7 @@ const title = ref(persisted?.title ?? tr('高三（2）班 期末考试'))
 const rows = ref(persisted?.rows ?? 6)
 const cols = ref(persisted?.cols ?? 8)
 const podium = ref<'top' | 'none'>(persisted?.podium ?? 'top')
-const fillOrder = ref<'rows' | 'serpentine'>(persisted?.fillOrder ?? 'rows')
+const fillOrder = ref<SeatingFillOrder>(persisted?.fillOrder ?? 'rows')
 /** 过道位置：第 n 列之后（1 起） */
 const aisles = ref(new Set<number>(persisted?.aisles ?? []))
 const namesText = ref(persisted?.namesText ?? '')
@@ -171,65 +182,20 @@ function restoreOrder() {
 }
 
 // ---------- 座位计算 ----------
-interface Seat {
-  row: number
-  col: number
-  seatNo: number
-  name: string
-  gender?: SeatingEntry['gender']
-}
-
-const seats = computed<Seat[]>(() => {
-  const out: Seat[] = []
-  let idx = 0
-  for (let r = 0; r < rows.value; r++) {
-    for (let c = 0; c < cols.value; c++) {
-      const col = fillOrder.value === 'serpentine' && r % 2 === 1 ? cols.value - 1 - c : c
-      const entry = entries.value[idx]
-      out.push({
-        row: r + 1,
-        col: col + 1,
-        seatNo: idx + 1,
-        name: entry?.name ?? '',
-        gender: entry?.gender,
-      })
-      idx++
-    }
-  }
-  return out
-})
+const seats = computed<Seat[]>(() =>
+  buildSeats(entries.value, rows.value, cols.value, fillOrder.value),
+)
 
 /** 按物理行列索引取座位（渲染网格用） */
-const seatGrid = computed(() => {
-  const grid: (Seat | null)[][] = Array.from({ length: rows.value }, () =>
-    Array.from({ length: cols.value }, () => null),
-  )
-  for (const seat of seats.value) grid[seat.row - 1]![seat.col - 1] = seat
-  return grid
-})
+const seatGrid = computed(() => buildSeatGrid(seats.value, rows.value, cols.value))
 
 // ---------- 视角切换（教师视角 / 学生视角左右镜像） ----------
-const viewMode = ref<'teacher' | 'student'>('teacher')
-
-interface DisplayCell {
-  seat: Seat | null
-  /** 展示序中该座位之后是否跟随过道 */
-  aisleAfter: boolean
-}
+const viewMode = ref<SeatingViewMode>('teacher')
 
 /** 展示网格：学生视角对每排做左右镜像，过道位置随之翻转 */
-const displayGrid = computed<DisplayCell[][]>(() => {
-  const mirrored = viewMode.value === 'student'
-  return seatGrid.value.map((rowSeats) => {
-    const ordered = mirrored ? [...rowSeats].reverse() : rowSeats
-    return ordered.map((seat, i) => {
-      if (i === ordered.length - 1) return { seat, aisleAfter: false }
-      // 物理列号：展示序第 i 格与第 i+1 格之间是否有过道
-      const physCol = mirrored ? cols.value - 1 - i : i + 1
-      return { seat, aisleAfter: aisles.value.has(physCol) }
-    })
-  })
-})
+const displayGrid = computed(() =>
+  buildDisplayGrid(seatGrid.value, cols.value, aisles.value, viewMode.value),
+)
 
 // ---------- 座位交换（点选互换 + 拖拽互换，含整排交换） ----------
 const selectedSeat = ref<number | null>(null)
@@ -444,6 +410,86 @@ async function doPrint() {
   printPending.value = false
 }
 
+// ---------- 导出 PNG（发群 / 贴 PPT）：离屏宿主 + html2canvas，口径同 /banquet ----------
+const exportChoiceOpen = ref(false)
+const exporting = ref(false)
+/** 本次导出是否叠加细线水印（带水印不限次，无水印计入每日配额） */
+const withWatermark = ref(false)
+const exportHost = ref<HTMLElement | null>(null)
+
+function startPngExport() {
+  if (printPending.value || exporting.value) return
+  if (!filledCount.value) {
+    toast.warning(tr('名单为空'), tr('请先在左侧粘贴学生名单，每行一个姓名'))
+    return
+  }
+  exportChoiceOpen.value = true
+}
+
+async function chooseWatermarked() {
+  exportChoiceOpen.value = false
+  withWatermark.value = true
+  await runPngExport()
+}
+
+async function chooseClean() {
+  if (quota.remaining <= 0) {
+    exportChoiceOpen.value = false
+    quota.limitDialogOpen = true
+    return
+  }
+  exportChoiceOpen.value = false
+  withWatermark.value = false
+  await runPngExport()
+}
+
+/** 重建离屏导出宿主：渲染异常（首次挂载竞态等）时卸掉重挂再重渲 */
+async function rebuildExportHost() {
+  renderHost.value = false
+  await nextTick()
+  renderHost.value = true
+  await nextTick()
+}
+
+function getExportPage(): HTMLElement {
+  const el = exportHost.value
+  if (!el) throw new Error(tr('导出页渲染失败'))
+  return el
+}
+
+async function runPngExport() {
+  if (exporting.value) return
+  exporting.value = true
+  renderHost.value = true
+  await nextTick()
+  try {
+    getExportPage()
+    await exportPagedPng({
+      pageCount: 1,
+      getPage: getExportPage,
+      rebuildHost: rebuildExportHost,
+      pageWidth: SHEET_W,
+      pageHeight: SHEET_H,
+      fileName: seatingExportFileName(title.value, viewMode.value, {
+        fallback: tr('教室座位表'),
+        teacher: tr('教师视角'),
+        student: tr('学生视角'),
+      }),
+    })
+    if (!withWatermark.value) await quota.tryConsume()
+    toast.success(
+      tr('PNG 已导出'),
+      viewMode.value === 'student' ? tr('当前为学生视角（镜像），与屏幕预览一致') : tr('当前为教师视角，与屏幕预览一致'),
+    )
+  } catch (error) {
+    toast.danger(tr('导出失败'), error instanceof Error ? error.message : String(error))
+  } finally {
+    renderHost.value = false
+    withWatermark.value = false
+    exporting.value = false
+  }
+}
+
 // ---------- 一键生成对应桌贴 ----------
 function toDeskLabels() {
   const filled = seats.value.filter((s) => s.name)
@@ -644,6 +690,27 @@ function toDeskLabels() {
               </svg>
               {{ tr('打印座位表（A4 横向）') }}
             </button>
+            <button
+              type="button"
+              class="btn btn-secondary btn-md"
+              :disabled="exporting"
+              :title="tr('当前视角的座位表存为一张 PNG 图片，方便发班群、贴进 PPT')"
+              data-testid="seating-export-png"
+              @click="startPngExport"
+            >
+              <svg
+                class="size-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 4v12m0 0 5-5m-5 5-5-5M4 20h16" />
+              </svg>
+              {{ exporting ? tr('导出中…') : tr('导出 PNG') }}
+            </button>
             <button type="button" class="btn btn-secondary btn-md" @click="toDeskLabels">
               <svg
                 class="size-4"
@@ -794,10 +861,30 @@ function toDeskLabels() {
       </div>
     </div>
 
-    <!-- 打印宿主：teleport 到 body，打印时只输出这一页 -->
+    <!-- 导出方式选择：带水印免费不限次 / 无水印计配额（口径同 /studio 与 /banquet） -->
+    <ModalDialog
+      :open="exportChoiceOpen"
+      :title="tr('导出 PNG')"
+      size="md"
+      @close="exportChoiceOpen = false"
+    >
+      <p class="text-sm text-slate-600">
+        {{ tr('带水印导出永远免费、不限次数（页脚一行 seatmark.cn 细线签名）；无水印导出今日剩余') }} {{ quota.remaining }}{{ tr('。') }}
+      </p>
+      <template #actions>
+        <button type="button" class="btn btn-secondary btn-md" data-testid="seating-export-watermarked" @click="chooseWatermarked">
+          {{ tr('带水印导出（免费）') }}
+        </button>
+        <button type="button" class="btn btn-primary btn-md" @click="chooseClean">
+          {{ tr('无水印导出') }}
+        </button>
+      </template>
+    </ModalDialog>
+
+    <!-- 打印 / PNG 导出宿主：teleport 到 body离屏渲染，打印时只输出这一页，html2canvas 截取同一节点 -->
     <Teleport to="body">
       <div v-if="renderHost" class="offscreen-host">
-        <div class="sheet-page seating-sheet">
+        <div ref="exportHost" class="sheet-page seating-sheet" data-testid="seating-export-sheet">
           <h2 class="seating-title">{{ title || tr('教室座位表') }}</h2>
           <div v-if="podium === 'top'" class="seating-podium">{{ tr('讲　台') }}</div>
           <div class="seating-grid">
@@ -815,6 +902,9 @@ function toDeskLabels() {
             {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} · {{ filledCount }} {{ tr('人') }} ·
             {{ viewMode === 'teacher' ? tr('教师视角') : tr('学生视角') }} · {{ tr('seatmark.cn 生成') }}
           </p>
+          <div v-if="withWatermark" class="sheet-watermark" aria-hidden="true">
+            SeatMark 座签 · seatmark.cn
+          </div>
         </div>
       </div>
     </Teleport>
