@@ -63,3 +63,10 @@ description: How to run and test SeatMark locally (vite dev server with edge-fun
 - To answer in tests, decode the page's current img src and extract chars in order: `atob(document.querySelector('form img').src.split(',')[1])` then regex `/>([2-9A-Z])<\/text>/g`. Must read the SAME img the page holds (token must match).
 - Refresh paths: 「换一张」button AND clicking the image itself both refresh; a wrong answer (e.g. "0000", impossible since charset lacks 0) returns 400 and the frontend auto-swaps the image.
 - Note: after an error message appears, the submit button shifts down ~25px — re-locate it before clicking.
+
+## Anonymous seating / banquet runtime checks
+- `/seating` and `/banquet` have a `用演示名单` button; no login is needed to test roster parsing, layout, and watermarked exports. Save the actual download and inspect its dimensions and full-page content instead of relying on the success toast.
+- If desktop text injection drops Chinese characters, use Playwright's rendered textarea `fill()` through CDP, then continue with the actual import button; inspect the resulting names before interpreting parser warnings.
+- Keep one CDP session for `Emulation.setDeviceMetricsOverride` and reset through that same session. After switching mobile/desktop, verify `innerWidth`; clearing overrides from a newly created session may leave the earlier viewport active.
+- For the mobile preview capsule, observe `data-hidden` mutations while using actual mouse-wheel scrolling; record transition timestamps, then allow the opacity transition to settle before asserting computed opacity.
+- For cleanup, clear sessionStorage before navigating to `about:blank`, then call `Storage.clearDataForOrigin` with `storageTypes: 'all'` on localhost. Clearing while the application remains active can let persistence watchers recreate data.
