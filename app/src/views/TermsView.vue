@@ -1,9 +1,93 @@
 <script setup lang="ts">
 import { LEGAL_UPDATED_AT, OPERATOR_NAME } from '@/data/site'
+import { useI18n } from '@/i18n'
+
+const { locale } = useI18n()
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-3xl px-4 py-10 sm:py-14">
+  <div v-if="locale === 'en'" lang="en" class="mx-auto w-full max-w-3xl px-4 py-10 sm:py-14" data-testid="legal-en-summary">
+    <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Terms of Service</p>
+    <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Terms of Service (English Summary)</h1>
+    <p class="mt-2 text-xs text-slate-600">Effective / last updated: {{ LEGAL_UPDATED_AT }}</p>
+
+    <div
+      role="note"
+      class="mt-6 rounded-lg border border-amber-200 bg-amber-50/70 px-4 py-3.5 text-sm leading-6 text-amber-900"
+      data-testid="legal-en-disclaimer"
+    >
+      <p>
+        This page is a convenience summary in English. <strong>The Chinese version is the legally binding text.</strong>
+        Where this summary and the Chinese text differ, the Chinese text prevails.
+      </p>
+      <p class="mt-1.5 font-semibold">
+        <RouterLink to="/terms" class="underline decoration-amber-400 underline-offset-2 hover:text-amber-950" data-testid="legal-zh-full-link">
+          Read the full Chinese text (用户协议)
+        </RouterLink>
+      </p>
+    </div>
+
+    <div class="mt-8 space-y-8 text-sm leading-7 text-slate-600">
+      <section>
+        <h2 class="text-lg font-bold text-slate-900">1. What the service is</h2>
+        <p class="mt-2">
+          SeatMark (www.seatmark.cn) is operated by {{ OPERATOR_NAME }}. It is a batch generator for seat labels,
+          place cards, table tents, door signs and ID badges that runs mainly in your browser. Using the service,
+          including as a guest, means you accept the Terms. Users under 18 should use it with a guardian's consent.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-bold text-slate-900">2. Service content and accounts</h2>
+        <ul class="mt-2 list-disc space-y-1.5 pl-5">
+          <li>Spreadsheet parsing, template design, batch layout, PDF export and printing all happen locally in your browser; the names and photos you import are not uploaded to our servers.</li>
+          <li>An optional email + password account raises the daily watermark-free export quota and enables referral rewards; the core features work without signing in.</li>
+          <li>The optional AI design feature forwards only your design prompt (never the roster) to a third-party model through our same-origin proxy.</li>
+          <li>All features are free during the beta. Any paid plan will be announced on the site in advance and will not affect data saved locally.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-bold text-slate-900">3. Your responsibilities</h2>
+        <ul class="mt-2 list-disc space-y-1.5 pl-5">
+          <li>You must have a lawful basis to use the names, photos and other personal data you import, especially for students and other minors; local processing does not change your duties as the data controller.</li>
+          <li>You own the labels and PDF files you generate and may use them for teaching, exams, events and commercial purposes.</li>
+          <li>You may not use the service for unlawful content, attack, scrape or reverse-engineer it, or abuse export quotas and referral mechanisms.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-bold text-slate-900">4. Intellectual property, liability and changes</h2>
+        <ul class="mt-2 list-disc space-y-1.5 pl-5">
+          <li>The software, UI, built-in templates, guides and branding belong to us; bundled open-source fonts keep their own licenses. Names in demo data are fictional.</li>
+          <li>The service is provided "as is". Test-print before a production run; we are not liable for indirect losses or for outages caused by your device, network or third-party services, to the extent permitted by law.</li>
+          <li>We may update the Terms and will publish changes on this page; continued use means acceptance. Disputes are governed by the laws of the People's Republic of China.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-bold text-slate-900">5. Contact</h2>
+        <p class="mt-2">
+          Use the in-app feedback entry or
+          <a
+            href="https://github.com/wookat/SeatMark/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-brand-600 hover:underline"
+          >GitHub Issues</a>. We reply within 15 working days.
+        </p>
+      </section>
+    </div>
+
+    <div class="mt-10 border-t border-slate-200 pt-6 text-xs text-slate-600">
+      Related:
+      <RouterLink to="/en/privacy" class="text-brand-600 hover:underline">Privacy Policy (English summary)</RouterLink>
+      ·
+      <RouterLink to="/terms" class="text-brand-600 hover:underline">Full Chinese text</RouterLink>
+    </div>
+  </div>
+
+  <div v-else class="mx-auto w-full max-w-3xl px-4 py-10 sm:py-14">
     <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Terms of Service</p>
     <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">用户协议</h1>
     <p class="mt-2 text-xs text-slate-600">生效日期 / 最后更新：{{ LEGAL_UPDATED_AT }}</p>

@@ -17,9 +17,7 @@ describe('zhOnlyRedirectTarget', () => {
     expect(zhOnlyRedirectTarget('/en/vs/canva')).toBe('/vs/canva')
   })
 
-  it('/en 下协议/隐私与专题落地页整路径映射到中文路径', () => {
-    expect(zhOnlyRedirectTarget('/en/terms')).toBe('/terms')
-    expect(zhOnlyRedirectTarget('/en/privacy')).toBe('/privacy')
+  it('/en 下专题落地页整路径映射到中文路径', () => {
     expect(zhOnlyRedirectTarget('/en/desk-card-generator')).toBe('/desk-card-generator')
     expect(zhOnlyRedirectTarget('/en/name-card-batch')).toBe('/name-card-batch')
   })
@@ -31,6 +29,9 @@ describe('zhOnlyRedirectTarget', () => {
     expect(zhOnlyRedirectTarget('/en/vs')).toBeNull()
     expect(zhOnlyRedirectTarget('/en')).toBeNull()
     expect(zhOnlyRedirectTarget('/en/banquet')).toBeNull()
+    // 第 349 轮：协议/隐私在 /en 下渲染英文摘要，不再重定向
+    expect(zhOnlyRedirectTarget('/en/terms')).toBeNull()
+    expect(zhOnlyRedirectTarget('/en/privacy')).toBeNull()
     expect(zhOnlyRedirectTarget('/guides/print-margin-calibration')).toBeNull()
   })
 })
@@ -61,12 +62,18 @@ describe('router /en 详情页守卫', () => {
     expect(router.currentRoute.value.name).toBe('en-guides')
   })
 
-  it('/en/terms 重定向到 /terms', async () => {
+  it('/en/terms 与 /en/privacy 保持英文路由（预渲染英文摘要页）', async () => {
     const router = createAppRouter()
     await router.push('/en/terms')
     await router.isReady()
-    expect(router.currentRoute.value.path).toBe('/terms')
-    expect(router.currentRoute.value.name).toBe('terms')
+    expect(router.currentRoute.value.path).toBe('/en/terms')
+    expect(router.currentRoute.value.name).toBe('en-terms')
+    await router.push('/en/privacy')
+    expect(router.currentRoute.value.path).toBe('/en/privacy')
+    expect(router.currentRoute.value.name).toBe('en-privacy')
+    const paths = await prerenderPaths()
+    expect(paths).toContain('/en/terms')
+    expect(paths).toContain('/en/privacy')
   })
 })
 

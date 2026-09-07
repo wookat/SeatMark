@@ -26,7 +26,7 @@ export interface PageSeo {
 }
 
 /** 已提供英文版内容的中文路径（/en 前缀镜像可被索引并互挂 hreflang） */
-const EN_LOCALIZED_BASES = ['/', '/studio', '/pricing', '/seating', '/banquet'] as const
+const EN_LOCALIZED_BASES = ['/', '/studio', '/pricing', '/seating', '/banquet', '/terms', '/privacy'] as const
 
 function enPathOf(base: string): string {
   return base === '/' ? '/en' : `/en${base}`
@@ -306,6 +306,36 @@ function resolveEnSeo(base: string): PageSeo | null {
         breadcrumb([
           { name: 'Home', path: '/en' },
           { name: 'Classroom Seating Chart', path: '/en/seating' },
+        ]),
+      ],
+    }
+  }
+
+  if (base === '/terms') {
+    return {
+      ...common,
+      title: 'Terms of Service (English Summary) | SeatMark',
+      description:
+        'English summary of the SeatMark Terms of Service: what the service does, your responsibilities, IP and liability. The Chinese version is the legally binding text.',
+      jsonLd: [
+        breadcrumb([
+          { name: 'Home', path: '/en' },
+          { name: 'Terms of Service', path: '/en/terms' },
+        ]),
+      ],
+    }
+  }
+
+  if (base === '/privacy') {
+    return {
+      ...common,
+      title: 'Privacy Policy (English Summary) | SeatMark',
+      description:
+        'English summary of the SeatMark Privacy Policy: rosters and photos are processed locally in your browser, never uploaded. The Chinese version is the legally binding text.',
+      jsonLd: [
+        breadcrumb([
+          { name: 'Home', path: '/en' },
+          { name: 'Privacy Policy', path: '/en/privacy' },
         ]),
       ],
     }

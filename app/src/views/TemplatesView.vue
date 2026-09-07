@@ -13,7 +13,16 @@ import { useI18n } from '@/i18n'
 import type { TemplateCategory } from '@/types/template'
 import { matchesChineseQuery } from '@/utils/pinyin'
 
-const { t, localePath } = useI18n()
+const { t, localePath, locale } = useI18n()
+
+const CJK_RE = /[\u4e00-\u9fff]/
+
+/** en 下卡片说明：优先读已有英文译文，缺失时隐藏中文段落而不外泄 */
+function cardText(text: string | undefined): string {
+  if (!text) return ''
+  const localized = t(text)
+  return locale.value === 'en' && CJK_RE.test(localized) ? '' : localized
+}
 
 const items = templateDetails
   .map((detail) => ({
@@ -300,9 +309,9 @@ const recommendedItems = computed(() => {
             </div>
             <div class="min-w-0">
               <h3 class="truncate text-sm font-bold text-slate-800 group-hover:text-brand-600">
-                {{ rec.template!.name }}
+                {{ t(rec.template!.name) }}
               </h3>
-              <p class="mt-0.5 truncate text-xs text-slate-600">{{ rec.template!.scenario }}</p>
+              <p v-if="cardText(rec.template!.scenario)" class="mt-0.5 truncate text-xs text-slate-600">{{ cardText(rec.template!.scenario) }}</p>
             </div>
           </RouterLink>
         </div>
@@ -329,17 +338,18 @@ const recommendedItems = computed(() => {
             </div>
           </div>
           <span
+            v-if="cardText(item.template!.scenario)"
             class="absolute top-3 right-3 rounded bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200"
           >
-            {{ item.template!.scenario }}
+            {{ cardText(item.template!.scenario) }}
           </span>
         </div>
         <div class="flex flex-1 flex-col p-4">
           <h2 class="text-sm font-bold text-slate-900 group-hover:text-brand-600">
-            {{ item.template!.name }}
+            {{ t(item.template!.name) }}
           </h2>
-          <p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">
-            {{ item.template!.description }}
+          <p v-if="cardText(item.template!.description)" class="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">
+            {{ cardText(item.template!.description) }}
           </p>
           <div class="mt-auto flex flex-wrap gap-1.5 pt-3">
             <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
