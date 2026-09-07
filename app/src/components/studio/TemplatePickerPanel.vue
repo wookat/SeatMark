@@ -86,7 +86,7 @@ const SCENE_CHIPS: { id: TemplateCategory; name: () => string }[] = [
   { id: 'exam', name: () => tr('考场') },
   { id: 'teaching', name: () => tr('教学') },
   { id: 'kids', name: () => tr('幼儿园') },
-  { id: 'event', name: () => tr('活动会议') },
+  { id: 'event', name: () => tr('会议活动') },
   { id: 'wedding', name: () => tr('婚宴') },
   { id: 'life', name: () => tr('生活') },
 ]

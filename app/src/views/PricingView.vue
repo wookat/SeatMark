@@ -4,7 +4,7 @@ import { computed, ref, watch } from 'vue'
 import { TEMPLATE_COUNT } from '@/data/templateMeta'
 
 import ModalDialog from '@/components/ui/ModalDialog.vue'
-import { localePath, t } from '@/i18n'
+import { currentLocale, localePath, t } from '@/i18n'
 import { PRICING_FAQS } from '@/data/seo'
 import { useAuthStore } from '@/stores/auth'
 import { QUOTA_ANON_DAILY, QUOTA_USER_DAILY } from '@/stores/quota'
@@ -13,6 +13,8 @@ import { apiFetch, ApiError, isValidEmail } from '@/utils/api'
 
 const auth = useAuthStore()
 const toast = useToastStore()
+/** 英文行内链接前后需要空格分词，中文不加 */
+const wordGap = computed(() => (currentLocale() === 'en' ? ' ' : ''))
 
 // 定价页展示「注册送 7 天」利益点前，探测一次账号服务是否可用（生产 AUTH_SECRET 缺失期间为 503）。
 // 直接落地 /pricing 时本组件的 mounted 先于 App 的 bootstrap，ready 尚为 false，需等 ready 后再探
@@ -39,7 +41,7 @@ interface Plan {
 const PLANS = computed<Plan[]>(() => [
   {
     name: t('免费版'),
-    price: '¥0',
+    price: t('¥0'),
     priceUnit: t('/月'),
     badge: null,
     tagline: t('个人日常制签'),
@@ -56,9 +58,9 @@ const PLANS = computed<Plan[]>(() => [
   },
   {
     name: t('专业版'),
-    price: '¥0',
+    price: t('¥0'),
     priceUnit: t('/月'),
-    originalPrice: '¥19',
+    originalPrice: t('¥19'),
     badge: auth.serviceUnavailable ? t('限时 0 折免费') : t('限时 0 折免费 · 注册送 7 天'),
     tagline: t('考务与会务重度用户'),
     features: [
@@ -78,9 +80,9 @@ const PLANS = computed<Plan[]>(() => [
   },
   {
     name: t('团队版'),
-    price: '¥0',
+    price: t('¥0'),
     priceUnit: t('/月'),
-    originalPrice: '¥49',
+    originalPrice: t('¥49'),
     badge: t('限时 0 折免费 · 可预订'),
     tagline: t('学校 / 机构多人协作'),
     features: [
@@ -290,7 +292,7 @@ async function submitReserve() {
         </svg>
       </RouterLink>
       <p class="mt-3 text-xs text-slate-600">
-        {{ t('还不确定？先看看') }}<RouterLink :to="localePath('/guides')" class="font-semibold text-brand-600 hover:underline">{{ t('教程中心') }}</RouterLink>{{ t('或') }}<RouterLink :to="localePath('/templates')" class="font-semibold text-brand-600 hover:underline">{{ t('模板库') }}</RouterLink>
+        {{ t('还不确定？先看看') }}{{ wordGap }}<RouterLink :to="localePath('/guides')" class="font-semibold text-brand-600 hover:underline">{{ t('教程中心') }}</RouterLink>{{ wordGap }}{{ t('或') }}{{ wordGap }}<RouterLink :to="localePath('/templates')" class="font-semibold text-brand-600 hover:underline">{{ t('模板库') }}</RouterLink>
       </p>
     </div>
 

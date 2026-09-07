@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
@@ -128,6 +128,38 @@ describe('PreviewArea 导出弹窗：未映射字段提示条', () => {
 
     wrapper.unmount()
   })
+
+  it('第 347 轮：已映射字段有空值时提示「N 行字段为空」，「去查看」带 missing 目标抛事件并关弹窗', async () => {
+    const workspace = useWorkspaceStore()
+    workspace.useDemoData()
+    const [first] = workspace.mappableFields
+    const header = workspace.mapping[first!.id]!
+    expect(header).toBeTruthy()
+    workspace.excel.rows = workspace.excel.rows.slice(0, 3).map((row) => {
+      const filled: Record<string, string> = {}
+      for (const h of workspace.excel.headers) filled[h] = String(row[h] ?? '').trim() || 'x'
+      return filled
+    })
+    expect(workspace.dataQuality.missingRows).toBe(0)
+    workspace.excel.rows[0]![header] = ''
+    workspace.excel.rows[2]![header] = ' '
+    expect(workspace.dataQuality.missingRows).toBe(2)
+
+    const wrapper = await mountPreview()
+    await openPdfExportDialog(wrapper)
+
+    const notice = wrapper.find('[data-testid="missing-rows-export-notice"]')
+    expect(notice.exists()).toBe(true)
+    expect(notice.text()).toContain('2')
+    expect(notice.text()).toContain('行字段为空，成品中将留空')
+
+    await wrapper.find('[data-testid="missing-rows-go-mapping"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.emitted('focusMapping')).toEqual([['missing']])
+    expect(wrapper.find('[data-testid="output-subtitles"]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
 })
 
 describe('第 346 轮：PNG 导出弹窗高级选项默认折叠', () => {
@@ -177,6 +209,96 @@ describe('第 346 轮：PNG 导出弹窗高级选项默认折叠', () => {
     expect(advanced.exists()).toBe(true)
     expect(advanced.element.hasAttribute('open')).toBe(true)
     expect(advanced.text()).toContain('分辨率预设（电子墨水屏）')
+
+    wrapper.unmount()
+  })
+})
+
+describe('第 347 轮：导出弹窗移动端主按钮首屏可见', () => {
+  const originalMatchMedia = window.matchMedia
+
+  beforeEach(() => {
+    vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+    localStorage.clear()
+    setActivePinia(createPinia())
+  })
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia
+  })
+
+  function mockViewport(maxWidth639Matches: boolean) {
+    window.matchMedia = ((query: string) =>
+      ({
+        matches: query.includes('max-width: 639px') ? maxWidth639Matches : false,
+        media: query,
+        onchange: null,
+        addListener() {},
+        removeListener() {},
+        addEventListener() {},
+        removeEventListener() {},
+        dispatchEvent: () => false,
+      }) as MediaQueryList) as typeof window.matchMedia
+  }
+
+  function selectEink(workspace: ReturnType<typeof useWorkspaceStore>) {
+    const eink = defaultTemplates.find((tpl) => tpl.id === 'eink800')
+    expect(eink).toBeTruthy()
+    workspace.selectTemplate(eink!)
+    expect(workspace.template.id).toBe('eink800')
+  }
+
+  it('两个导出按钮渲染在 ModalDialog 的 actions 区（不随高级选项内容滚动）', async () => {
+    mockViewport(true)
+    const workspace = useWorkspaceStore()
+    workspace.useDemoData()
+
+    const wrapper = await mountPreview()
+    await openPngExportDialog(wrapper)
+
+    const actions = wrapper.find('[data-testid="export-choice-actions"]')
+    expect(actions.exists()).toBe(true)
+    expect(actions.find('[data-testid="choose-clean"]').exists()).toBe(true)
+    expect(actions.find('[data-testid="choose-watermark"]').exists()).toBe(true)
+    expect(actions.text()).toContain('选择导出方式')
+    // actions 区位于滚动正文之外：其祖先链中没有 overflow-y-auto 的正文容器
+    const scrollBody = wrapper.find('[role="dialog"] .overflow-y-auto')
+    expect(scrollBody.exists()).toBe(true)
+    expect(scrollBody.find('[data-testid="choose-clean"]').exists()).toBe(false)
+    expect(scrollBody.find('[data-testid="choose-watermark"]').exists()).toBe(false)
+    expect(scrollBody.find('[data-testid="png-advanced-options"]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('移动端（<640px）eink800 高级选项默认折叠；预设 800×480 仍在折叠内保留', async () => {
+    mockViewport(true)
+    const workspace = useWorkspaceStore()
+    workspace.useDemoData()
+    selectEink(workspace)
+
+    const wrapper = await mountPreview()
+    await openPngExportDialog(wrapper)
+
+    const advanced = wrapper.find('[data-testid="png-advanced-options"]')
+    expect(advanced.exists()).toBe(true)
+    expect(advanced.element.hasAttribute('open')).toBe(false)
+    expect(advanced.text()).toContain('分辨率预设（电子墨水屏）')
+    expect(advanced.text()).toContain('800×480')
+
+    wrapper.unmount()
+  })
+
+  it('桌面端（≥640px）eink800 高级选项仍默认展开', async () => {
+    mockViewport(false)
+    const workspace = useWorkspaceStore()
+    workspace.useDemoData()
+    selectEink(workspace)
+
+    const wrapper = await mountPreview()
+    await openPngExportDialog(wrapper)
+
+    expect(wrapper.find('[data-testid="png-advanced-options"]').element.hasAttribute('open')).toBe(true)
 
     wrapper.unmount()
   })

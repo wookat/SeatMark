@@ -3,11 +3,19 @@ import { computed, ref } from 'vue'
 
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
-import { t } from '@/i18n'
+import { t, useI18n } from '@/i18n'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { isCompositeMapping, templateColumnsValid } from '@/utils/fieldTemplate'
 
 const workspace = useWorkspaceStore()
+const { locale } = useI18n()
+
+/** 「第 X 行：姓名、桌号 为空」——行号为名单表格原始行号 */
+function missingDetailText(item: { rowIndex: number; fields: string[] }): string {
+  const en = locale.value === 'en'
+  const fields = item.fields.map((f) => t(f)).join(en ? ', ' : '、')
+  return `${t('第 {n} 行').replace('{n}', String(item.rowIndex))}${en ? ': ' : '：'}${fields} ${t('为空')}`
+}
 const photoInput = ref<HTMLInputElement | null>(null)
 
 /** 下拉中「自定义组合」选项的哨兵值（不会与真实表头冲突） */
@@ -196,7 +204,24 @@ function onPhotoFiles(event: Event) {
       <p class="font-bold">{{ t('数据质量提醒') }}</p>
       <ul class="mt-1 list-inside list-disc space-y-0.5">
         <li v-if="workspace.dataQuality.missingRows">
-          {{ workspace.dataQuality.missingRows }} {{ t('行存在已映射字段为空') }}
+          <details class="inline" data-testid="missing-details">
+            <summary class="inline cursor-pointer underline decoration-dotted underline-offset-2">
+              {{ workspace.dataQuality.missingRows }} {{ t('行存在已映射字段为空') }}（{{ t('查看具体行') }}）
+            </summary>
+            <ul class="mt-1 ml-3 list-inside list-[circle] space-y-0.5 font-mono text-[11px]">
+              <li
+                v-for="item in workspace.dataQuality.missingDetails"
+                :key="item.rowIndex"
+                data-testid="missing-detail-row"
+              >
+                {{ missingDetailText(item) }}
+              </li>
+              <li v-if="workspace.dataQuality.missingMore" class="font-sans opacity-85">
+                {{ t('另有 {n} 行').replace('{n}', String(workspace.dataQuality.missingMore)) }}
+              </li>
+            </ul>
+            <p class="mt-1 font-sans opacity-85">{{ t('行号为名单表格的原始行号；空字段在成品中将留空，不会自动补全。') }}</p>
+          </details>
         </li>
         <li v-if="workspace.dataQuality.duplicateExamIds">
           {{ workspace.dataQuality.duplicateExamIds }} {{ t('个准考证号重复') }}

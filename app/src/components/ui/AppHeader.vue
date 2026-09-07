@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
@@ -57,6 +57,20 @@ function onSeatingClick() {
 
 const avatarLetter = computed(() => (auth.user ? auth.user.email[0]!.toUpperCase() : ''))
 
+/** <sm 汉堡抽屉：全部一级入口（桌面端内联导航不变） */
+const drawerOpen = ref(false)
+const drawerRef = ref<HTMLElement | null>(null)
+const DRAWER_LINKS = computed(() => [
+  { to: '/', name: 'home', label: t('首页') },
+  { to: '/templates', name: 'templates', label: t('模板') },
+  { to: '/seating', name: 'seating', label: t('教室座位表') },
+  { to: '/banquet', name: 'banquet', label: t('宴会排桌') },
+  { to: '/guides', name: 'guides', label: t('教程') },
+  { to: '/pricing', name: 'pricing', label: t('定价') },
+  { to: '/vs', name: 'vs-index', label: t('工具对比选型') },
+  { to: '/papers', name: 'papers', label: t('不干胶纸型库') },
+])
+
 function onDocClick(event: MouseEvent) {
   if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
     menuOpen.value = false
@@ -64,10 +78,30 @@ function onDocClick(event: MouseEvent) {
   if (seatingRef.value && !seatingRef.value.contains(event.target as Node)) {
     seatingOpen.value = false
   }
+  if (drawerRef.value && !drawerRef.value.contains(event.target as Node)) {
+    drawerOpen.value = false
+  }
 }
 
-onMounted(() => document.addEventListener('click', onDocClick))
-onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
+function onDocKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && drawerOpen.value) drawerOpen.value = false
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    drawerOpen.value = false
+  },
+)
+
+onMounted(() => {
+  document.addEventListener('click', onDocClick)
+  document.addEventListener('keydown', onDocKeydown)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocClick)
+  document.removeEventListener('keydown', onDocKeydown)
+})
 
 async function onLogout() {
   menuOpen.value = false
@@ -93,13 +127,14 @@ const SECTIONS = computed(() => [
     <div class="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 sm:gap-3">
       <RouterLink
         :to="localePath('/')"
-        class="group flex min-w-0 items-center gap-2.5 max-md:min-h-11 max-md:min-w-11"
+        class="group flex shrink-0 items-center gap-2.5 max-md:min-h-11 max-md:min-w-11"
         :aria-label="t('返回首页')"
+        data-testid="brand-link"
       >
         <BrandMark class="size-8 shrink-0 text-brand-600" />
-        <span class="truncate text-base font-bold tracking-tight text-slate-900">
-          <template v-if="locale === 'en'"><span class="hidden sm:inline">Seat<span class="text-brand-600">Mark</span></span></template>
-          <template v-else><span class="hidden sm:inline">SeatMark </span><span class="text-brand-600">座签</span></template>
+        <span class="text-base font-bold tracking-tight whitespace-nowrap text-slate-900">
+          <template v-if="locale === 'en'"><span class="hidden lg:inline">Seat<span class="text-brand-600">Mark</span></span></template>
+          <template v-else><span class="hidden md:inline">SeatMark </span><span class="text-brand-600">座签</span></template>
         </span>
       </RouterLink>
 
@@ -194,11 +229,10 @@ const SECTIONS = computed(() => [
         </div>
         <RouterLink
           :to="localePath('/guides')"
-          class="btn btn-ghost btn-sm max-md:min-h-11 max-md:min-w-11 max-sm:px-1.5"
+          class="btn btn-ghost btn-sm hidden max-md:min-h-11 max-md:min-w-11 sm:inline-flex"
           :class="{
             'bg-slate-100 text-brand-600':
               routeName === 'guides' || routeName === 'guide-article',
-            'hidden sm:inline-flex': locale === 'en',
           }"
         >
           {{ t('教程') }}
@@ -230,7 +264,7 @@ const SECTIONS = computed(() => [
 
         <RouterLink
           :to="switchTarget"
-          class="btn btn-ghost btn-sm max-md:min-h-11 max-md:min-w-11"
+          class="btn btn-ghost btn-sm hidden max-md:min-h-11 max-md:min-w-11 sm:inline-flex"
           :aria-label="locale === 'en' ? t('切换到中文') : 'Switch to English'"
           :title="locale === 'en' ? '中文' : 'English'"
           @click="onSwitchLocale"
@@ -245,7 +279,7 @@ const SECTIONS = computed(() => [
         <RouterLink
           v-if="!auth.user"
           :to="localePath('/account')"
-          class="btn btn-ghost btn-sm max-md:min-h-11 max-md:min-w-11 max-sm:px-1.5"
+          class="btn btn-ghost btn-sm hidden max-md:min-h-11 max-md:min-w-11 sm:inline-flex"
           :class="{ 'bg-slate-100 text-brand-600': routeName === 'account' }"
         >
           {{ t('登录') }}
@@ -306,6 +340,70 @@ const SECTIONS = computed(() => [
                 {{ t('退出登录') }}
               </button>
             </div>
+          </Transition>
+        </div>
+
+        <div ref="drawerRef" class="sm:hidden" data-testid="nav-drawer">
+          <button
+            type="button"
+            class="flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg text-slate-700 transition-colors hover:bg-slate-100"
+            :class="{ 'bg-slate-100 text-brand-600': drawerOpen }"
+            :aria-label="drawerOpen ? t('关闭菜单') : t('打开菜单')"
+            :aria-expanded="drawerOpen"
+            aria-controls="mobile-nav-drawer"
+            data-testid="nav-drawer-toggle"
+            @click.stop="drawerOpen = !drawerOpen"
+          >
+            <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <template v-if="drawerOpen"><path d="m6 6 12 12M18 6 6 18" /></template>
+              <template v-else><path d="M4 7h16M4 12h16M4 17h16" /></template>
+            </svg>
+          </button>
+          <Transition
+            enter-active-class="transition duration-150"
+            enter-from-class="opacity-0 -translate-y-1"
+            leave-active-class="transition duration-100"
+            leave-to-class="opacity-0"
+          >
+            <nav
+              v-if="drawerOpen"
+              id="mobile-nav-drawer"
+              class="absolute inset-x-0 top-14 z-50 max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-b border-slate-200 bg-white px-3 py-2 shadow-pop"
+              :aria-label="t('站点导航')"
+            >
+              <RouterLink
+                v-for="link in DRAWER_LINKS"
+                :key="link.to"
+                :to="localePath(link.to)"
+                class="flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                :class="{ 'bg-slate-50 text-brand-600': routeName === link.name }"
+                @click="drawerOpen = false"
+              >
+                {{ link.label }}
+              </RouterLink>
+              <div class="my-1.5 border-t border-slate-100" />
+              <RouterLink
+                :to="localePath('/account')"
+                class="flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                :class="{ 'bg-slate-50 text-brand-600': routeName === 'account' }"
+                data-testid="nav-drawer-account"
+                @click="drawerOpen = false"
+              >
+                {{ auth.user ? t('个人中心') : t('登录') }}
+              </RouterLink>
+              <RouterLink
+                :to="switchTarget"
+                class="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                data-testid="nav-drawer-locale"
+                @click="onSwitchLocale(); drawerOpen = false"
+              >
+                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+                {{ locale === 'en' ? '中文' : 'English' }}
+              </RouterLink>
+            </nav>
           </Transition>
         </div>
       </nav>

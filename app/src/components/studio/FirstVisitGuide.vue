@@ -40,7 +40,7 @@ const steps = computed(() => [
   },
   {
     title: t('核对字段映射与版式'),
-    desc: t('导入后自动匹配，一般无需改动'),
+    desc: t('字段已按表头自动匹配，若表头不同请手动选择'),
     done: false,
   },
   { title: t('导出打印'), desc: t('预览面板工具栏导出 PDF / 打印'), done: false },
@@ -79,7 +79,7 @@ function tryDemo() {
     data-testid="first-visit-guide"
   >
     <div class="flex items-start justify-between gap-2">
-      <p class="text-sm font-bold text-slate-900">{{ t('四步拿到成品') }}</p>
+      <p class="text-sm font-bold text-slate-900">{{ t('导入名单、选模板、核对预览、导出打印，4 步') }}</p>
       <button
         type="button"
         class="cursor-pointer rounded p-1 text-slate-600 transition-colors hover:bg-white hover:text-slate-600"

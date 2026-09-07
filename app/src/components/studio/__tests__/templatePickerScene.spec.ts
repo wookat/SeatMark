@@ -87,7 +87,7 @@ describe('第 346 轮：TemplatePickerPanel 场景 chips + ?scene= 深链', () =
     const wrapper = mount(TemplatePickerPanel, { global: { plugins: [router] } })
     const chips = wrapper.findAll('[data-testid="scene-chips"] button')
     expect(chips.map((c) => c.attributes('data-scene'))).toEqual([...SCENES])
-    expect(chips.map((c) => c.text())).toEqual(['考场', '教学', '幼儿园', '活动会议', '婚宴', '生活'])
+    expect(chips.map((c) => c.text())).toEqual(['考场', '教学', '幼儿园', '会议活动', '婚宴', '生活'])
     expect(dialog()).toBeNull()
 
     await wrapper.find('[data-scene="wedding"]').trigger('click')

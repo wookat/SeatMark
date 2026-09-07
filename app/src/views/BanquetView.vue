@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
+import MobilePreviewJump from '@/components/MobilePreviewJump.vue'
 import NextStepBar, { type NextStep } from '@/components/NextStepBar.vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import ColorField from '@/components/ui/ColorField.vue'
@@ -490,17 +491,74 @@ function autoAssign() {
   }
   const s = summary.value
   const detail = `${tr('已安排')} ${s.assigned}/${s.total} · ${tr('空桌')} ${s.emptyTables} · ${tr('拆分分组')} ${s.splitGroups} · ${tr('未安排')} ${s.unassigned}`
+  if (s.splitGroups) splitDetailsOpen.value = true
   if (s.unassigned) {
     toast.warning(
       `${tr('座位不够：未安排宾客')}: ${s.unassigned}`,
       `${detail}。${tr('可增加餐桌或提高每桌座位数后重新分配')}`,
     )
   } else {
-    const hint = s.splitGroups
-      ? tr('被拆开的分组已列在画布上方摘要中，可拖拽宾客微调')
-      : tr('同组宾客已安排同桌，可拖拽宾客微调')
-    toast.success(tr('已自动分配座位'), `${detail}。${hint}`)
+    const hints: string[] = []
+    if (s.splitGroups) {
+      hints.push(tr('拆分明细已在画布上方展开：可指定整组到某桌，或换策略重新分配'))
+    } else {
+      hints.push(tr('同组宾客已安排同桌，可拖拽宾客微调'))
+    }
+    if (s.emptyTables) {
+      hints.push(tr('空桌可在摘要栏一键删除，也可保留备用'))
+    }
+    toast.success(tr('已自动分配座位'), `${detail}。${hints.join(tr('；'))}`)
   }
+}
+
+/** 用指定策略重新一键分配（拆分明细里的快捷按钮，复用 autoAssign，不新增算法） */
+function reassignWith(strategy: AssignStrategy) {
+  assignStrategy.value = strategy
+  autoAssign()
+}
+
+/** 可容纳整组的桌：除去该组已在此桌的成员后，剩余座位 ≥ 组人数 */
+function tablesFittingGroup(groupId: string): BanquetTable[] {
+  const members = new Set(guests.value.filter((g) => g.groupId === groupId).map((g) => g.id))
+  return tables.value.filter((t) => {
+    const others = t.guestIds.filter((id) => !members.has(id)).length
+    return t.seats - others >= members.size
+  })
+}
+
+function moveGroupOptions(groupId: string): SelectOption[] {
+  const fitting = tablesFittingGroup(groupId)
+  if (!fitting.length) return [{ value: '', label: tr('没有一桌剩余座位够整组坐下') }]
+  return [
+    { value: '', label: tr('指定整组到某桌…') },
+    ...fitting.map((t) => ({
+      value: t.id,
+      label: `${t.name}${tr('（')}${tr('剩余')} ${t.seats - t.guestIds.filter((id) => guests.value.find((g) => g.id === id)?.groupId !== groupId).length} ${tr('座')}${tr('）')}`,
+    })),
+  ]
+}
+
+/** 把整组移到一桌：从其他桌撤下该组成员，目标桌补齐；容量不足时不动并提示 */
+function moveGroupToTable(groupId: string, tableId: string) {
+  if (!tableId) return
+  const target = tables.value.find((t) => t.id === tableId)
+  if (!target) return
+  if (!tablesFittingGroup(groupId).some((t) => t.id === tableId)) {
+    toast.warning(tr('该桌剩余座位不够'), tr('请选择剩余座位 ≥ 组人数的桌'))
+    return
+  }
+  const members = guests.value.filter((g) => g.groupId === groupId).map((g) => g.id)
+  const memberSet = new Set(members)
+  for (const t of tables.value) {
+    if (t.id !== tableId) t.guestIds = t.guestIds.filter((id) => !memberSet.has(id))
+  }
+  const kept = target.guestIds.filter((id) => !memberSet.has(id))
+  target.guestIds = [...kept, ...members]
+  const groupName = groupById.value.get(groupId)?.name ?? ''
+  toast.success(
+    tr('已将 {group} 整组移到 {table}').replace('{group}', groupName).replace('{table}', target.name),
+    `${tr('已安排')} ${summary.value.assigned}/${summary.value.total} · ${tr('拆分分组')} ${summary.value.splitGroups}`,
+  )
 }
 
 /** 画布上方的结果摘要（随安排实时变化，不仅限于自动排座后） */
@@ -1332,6 +1390,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
               type="button"
               class="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600"
               data-testid="remove-empty-tables"
+              :title="tr('删除全部空桌并重新编号；也可保留空桌备用，不影响导出')"
               @click="removeEmptyTablesFromSummary"
             >
               {{ tr('删除空桌') }}
@@ -1367,28 +1426,75 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         <ul
           v-if="splitDetailsOpen && splitGroupDetails.length"
           id="banquet-split-details"
-          class="mb-2 space-y-1 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs leading-5 text-slate-700"
+          class="space-y-1 rounded-t-lg border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs leading-5 text-slate-700"
           data-testid="split-groups-details"
         >
-          <li v-for="g in splitGroupDetails" :key="g.groupId" class="flex flex-wrap items-baseline gap-x-1.5" :data-split-reason="g.reason">
+          <li v-for="g in splitGroupDetails" :key="g.groupId" class="flex flex-wrap items-center gap-x-1.5 gap-y-1" :data-split-reason="g.reason">
             <span class="font-semibold text-slate-800">{{ splitReasonText(g) }}</span>
             <span aria-hidden="true" class="text-slate-400">→</span>
             <span>
               {{ tr('拆到') }}
               {{ listJoin(g.tables.map((x) => `${x.name}${tr('（')}${x.count} ${tr('人')}${tr('）')}`)) }}
             </span>
+            <span class="ml-auto flex items-center gap-1.5" data-testid="split-group-actions">
+              <SelectField
+                v-if="tablesFittingGroup(g.groupId).length"
+                class="w-44"
+                size="sm"
+                model-value=""
+                :options="moveGroupOptions(g.groupId)"
+                :data-testid="`move-group-${g.groupId}`"
+                @update:model-value="moveGroupToTable(g.groupId, $event)"
+              />
+              <span
+                v-else
+                class="rounded-md border border-dashed border-slate-300 px-2 py-1 text-[11px] text-slate-500"
+                :title="tr('没有一桌剩余座位够整组坐下')"
+                :data-testid="`move-group-${g.groupId}-disabled`"
+              >
+                {{ tr('无桌可整组容纳') }}
+              </span>
+            </span>
           </li>
         </ul>
-        <div class="mb-1 flex items-center justify-between gap-2 text-[11px] leading-5 text-slate-400 sm:hidden">
-          <p>{{ fitToWidth ? tr('已缩放至屏幕宽度，可切回原尺寸查看细节') : `← ${tr('画布超宽时可左右滑动查看')} →` }}</p>
+        <div
+          v-if="splitDetailsOpen && splitGroupDetails.length"
+          class="mb-2 flex flex-wrap items-center gap-1.5 rounded-b-lg border border-t-0 border-amber-200 bg-amber-50/60 px-3 py-1.5 text-xs leading-5 text-slate-700"
+          data-testid="split-reassign-actions"
+        >
+          <span class="text-slate-600">{{ tr('换策略重新分配：') }}</span>
+          <button
+            v-if="assignStrategy !== 'keep-groups'"
+            type="button"
+            class="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold text-slate-700 transition-colors hover:border-brand-400 hover:text-brand-600"
+            data-testid="reassign-keep-groups"
+            @click="reassignWith('keep-groups')"
+          >
+            {{ tr('换用「尽量不拆组」重新分配') }}
+          </button>
+          <button
+            v-if="assignStrategy !== 'fill-tables'"
+            type="button"
+            class="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold text-slate-700 transition-colors hover:border-brand-400 hover:text-brand-600"
+            data-testid="reassign-fill-tables"
+            @click="reassignWith('fill-tables')"
+          >
+            {{ tr('换用「优先坐满」重新分配') }}
+          </button>
+          <span v-if="summary.emptyTables" class="text-slate-500">
+            {{ tr('空桌可删除，也可保留备用（临时加人时直接落座）') }}
+          </span>
+        </div>
+        <div class="mb-1 flex items-center justify-between gap-2 text-[11px] leading-5 text-slate-400 md:hidden">
+          <p>{{ fitToWidth ? tr('已缩放至屏幕宽度，放大后可左右滑动查看细节') : `← ${tr('画布超宽时可左右滑动查看')} →` }}</p>
           <button
             type="button"
-            class="shrink-0 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
-            :aria-pressed="fitToWidth"
+            class="shrink-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+            :aria-pressed="!fitToWidth"
             data-testid="canvas-fit-toggle"
             @click="fitToWidth = !fitToWidth"
           >
-            {{ fitToWidth ? tr('原尺寸') : tr('适配屏宽') }}
+            {{ fitToWidth ? tr('放大查看') : tr('适配屏宽') }}
           </button>
         </div>
         <div
@@ -1851,6 +1957,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
       :progress="nextStepProgress"
       :target="nextStepTarget"
     />
+    <MobilePreviewJump :preview="canvasContainer" :settings="rosterSection" />
   </div>
 </template>
 

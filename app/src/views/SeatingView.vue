@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 
+import MobilePreviewJump from '@/components/MobilePreviewJump.vue'
 import NextStepBar, { type NextStep } from '@/components/NextStepBar.vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
@@ -373,6 +374,7 @@ const overflowCount = computed(() => Math.max(filledCount.value - seatCount.valu
 const SHEET_W = 297
 const SHEET_H = 210
 const previewContainer = ref<HTMLElement | null>(null)
+const basicSection = ref<HTMLElement | null>(null)
 const { width: containerWidth } = useElementSize(previewContainer)
 /** 「原尺寸」模式的缩放下限：座位点选目标不至于过小，超出部分靠容器横向滚动查看 */
 const MIN_SCALE = 0.45
@@ -538,7 +540,7 @@ function toDeskLabels() {
     <div class="mt-6 grid items-start gap-5 lg:grid-cols-[380px_minmax(0,1fr)]">
       <!-- 设置面板 -->
       <aside class="no-print flex min-w-0 flex-col gap-4">
-        <section class="panel-card">
+        <section ref="basicSection" class="panel-card scroll-mt-4">
           <h2 class="section-title"><span class="step-chip">1</span>{{ tr('基本信息') }}</h2>
           <div class="mt-3 grid grid-cols-2 gap-2.5">
             <div class="col-span-2">
@@ -775,16 +777,19 @@ function toDeskLabels() {
             {{ tr('载入示例') }}
           </button>
         </div>
-                <div class="mb-1 flex items-center justify-between gap-2 text-[11px] leading-5 text-slate-400 sm:hidden">
-          <p>{{ fitToWidth ? tr('已缩放至屏幕宽度，可切回原尺寸查看细节') : `← ${tr('座位表超宽时可左右滑动查看')} →` }}</p>
+        <p class="mb-1 text-[11px] leading-5 text-slate-500 md:hidden" data-testid="touch-swap-hint">
+          {{ tr('触屏：先点一个座位再点另一个即可互换（拖拽仅支持鼠标）') }}
+        </p>
+        <div class="mb-1 flex items-center justify-between gap-2 text-[11px] leading-5 text-slate-400 md:hidden">
+          <p>{{ fitToWidth ? tr('已缩放至屏幕宽度，放大后可左右滑动查看细节') : `← ${tr('座位表超宽时可左右滑动查看')} →` }}</p>
           <button
             type="button"
-            class="shrink-0 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
-            :aria-pressed="fitToWidth"
+            class="shrink-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+            :aria-pressed="!fitToWidth"
             data-testid="canvas-fit-toggle"
             @click="fitToWidth = !fitToWidth"
           >
-            {{ fitToWidth ? tr('原尺寸') : tr('适配屏宽') }}
+            {{ fitToWidth ? tr('放大查看') : tr('适配屏宽') }}
           </button>
         </div>
         <div
@@ -914,6 +919,7 @@ function toDeskLabels() {
       :progress="nextStepProgress"
       :target="nextStepTarget"
     />
+    <MobilePreviewJump :preview="previewContainer" :settings="basicSection" />
   </div>
 </template>
 
@@ -1015,7 +1021,7 @@ function toDeskLabels() {
 
 .seating-seat--empty {
   border-style: dashed;
-  color: #cbd5e1;
+  color: #64748b;
   cursor: default;
 }
 
@@ -1061,7 +1067,7 @@ function toDeskLabels() {
 }
 
 .seating-seat--empty .seating-seat-name {
-  color: #cbd5e1;
+  color: #64748b;
 }
 
 .seating-aisle {

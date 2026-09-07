@@ -705,8 +705,8 @@ const FAQS = computed(() => [
               </li>
               <li class="flex gap-2">
                 <svg class="mt-0.5 size-3.5 flex-none text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7" /></svg>
-                <template v-if="locale === 'en'">Photos and PDF rendering also stay in local memory — <strong>exports keep working offline</strong></template>
-                <template v-else>照片、PDF 渲染同样在本地内存中进行，<strong>断网也能继续导出</strong></template>
+                <template v-if="locale === 'en'">Photos and PDF rendering also stay in local memory — <strong>an already-open page keeps exporting if you go offline</strong></template>
+                <template v-else>照片、PDF 渲染同样在本地内存中进行，<strong>已打开的页面断网后仍可继续导出</strong></template>
               </li>
               <li class="flex gap-2">
                 <svg class="mt-0.5 size-3.5 flex-none text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7" /></svg>
