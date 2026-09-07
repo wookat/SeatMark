@@ -1,5 +1,6 @@
 import type { DataRow } from '@/types/template'
 import { parsePastedRoster } from '@/utils/excel'
+import { sanitizeFileNamePart } from '@/utils/pngExport'
 
 export type SeatingGender = '男' | '女'
 
@@ -192,6 +193,92 @@ export function interleaveByGender(
   }
   out.push(...rest)
   return out
+}
+
+// ---------- 座位网格与视角镜像 ----------
+
+export type SeatingFillOrder = 'rows' | 'serpentine'
+export type SeatingViewMode = 'teacher' | 'student'
+
+export interface Seat {
+  row: number
+  col: number
+  seatNo: number
+  name: string
+  gender?: SeatingGender
+}
+
+export interface SeatingDisplayCell {
+  seat: Seat | null
+  /** 展示序中该座位之后是否跟随过道 */
+  aisleAfter: boolean
+}
+
+/** 按填充顺序把名单铺进 rows×cols 的座位（座位号为名单序，蛇形时偶数排从右向左） */
+export function buildSeats(
+  entries: readonly SeatingEntry[],
+  rows: number,
+  cols: number,
+  fillOrder: SeatingFillOrder,
+): Seat[] {
+  const out: Seat[] = []
+  let idx = 0
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const col = fillOrder === 'serpentine' && r % 2 === 1 ? cols - 1 - c : c
+      const entry = entries[idx]
+      out.push({
+        row: r + 1,
+        col: col + 1,
+        seatNo: idx + 1,
+        name: entry?.name ?? '',
+        gender: entry?.gender,
+      })
+      idx++
+    }
+  }
+  return out
+}
+
+/** 按物理行列索引摆放座位（渲染网格用） */
+export function buildSeatGrid(seats: readonly Seat[], rows: number, cols: number): (Seat | null)[][] {
+  const grid: (Seat | null)[][] = Array.from({ length: rows }, () =>
+    Array.from({ length: cols }, () => null),
+  )
+  for (const seat of seats) grid[seat.row - 1]![seat.col - 1] = seat
+  return grid
+}
+
+/**
+ * 展示网格：学生视角对每排做左右镜像，过道位置随之翻转；
+ * aisles 为「第 n 列之后有过道」的物理列号集合（1 起）
+ */
+export function buildDisplayGrid(
+  seatGrid: readonly (readonly (Seat | null)[])[],
+  cols: number,
+  aisles: ReadonlySet<number>,
+  viewMode: SeatingViewMode,
+): SeatingDisplayCell[][] {
+  const mirrored = viewMode === 'student'
+  return seatGrid.map((rowSeats) => {
+    const ordered = mirrored ? [...rowSeats].reverse() : [...rowSeats]
+    return ordered.map((seat, i) => {
+      if (i === ordered.length - 1) return { seat, aisleAfter: false }
+      // 物理列号：展示序第 i 格与第 i+1 格之间是否有过道
+      const physCol = mirrored ? cols - 1 - i : i + 1
+      return { seat, aisleAfter: aisles.has(physCol) }
+    })
+  })
+}
+
+/** 导出 PNG 的文件名（不含扩展名）：标题清洗非法字符 + 视角后缀，空标题回退默认名 */
+export function seatingExportFileName(
+  title: string,
+  viewMode: SeatingViewMode,
+  labels: { fallback: string; teacher: string; student: string },
+): string {
+  const base = sanitizeFileNamePart(title) || labels.fallback
+  return `${base}-${viewMode === 'student' ? labels.student : labels.teacher}`
 }
 
 /** 座位表 → 标签工坊 一键带入名单的 localStorage 暂存键 */

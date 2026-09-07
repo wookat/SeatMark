@@ -38,6 +38,11 @@ const collator =
     : null
 
 const HAN_RE = /[\u4e00-\u9fff]/
+
+/** 姓名按拼音序比较（Intl.Collator 不可用时退回 localeCompare），供名单索引排序 */
+export function comparePinyin(a: string, b: string): number {
+  return collator ? collator.compare(a, b) : a.localeCompare(b, 'zh-Hans-CN')
+}
 const initialCache = new Map<string, string>()
 
 /** 单个字符的拼音首字母；英文/数字返回其小写本身，其他字符返回空串 */

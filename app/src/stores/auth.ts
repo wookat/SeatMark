@@ -104,6 +104,8 @@ export const useAuthStore = defineStore('auth', () => {
   const ready = ref(false)
   /** 账号服务暂时不可用（服务端 503）：登录/注册/找回表单禁用提交并显示服务提示 */
   const serviceUnavailable = ref(false)
+  /** 是否已向 /api/auth/me 探测过至少一次（无本地登录标记的匿名访客 bootstrap 不探测） */
+  const probed = ref(false)
 
   const isLoggedIn = computed(() => user.value !== null)
 
@@ -124,8 +126,15 @@ export const useAuthStore = defineStore('auth', () => {
       // 503 是已知的服务端配置缺口，不是前端异常：只记状态，不抛出
       if (isServiceUnavailableError(err)) serviceUnavailable.value = true
     } finally {
+      probed.value = true
       ready.value = true
     }
+  }
+
+  /** 只读探测一次账号服务状态（GET /api/auth/me，不写任何数据）；已探测过则跳过，失败静默 */
+  async function probeServiceOnce(): Promise<void> {
+    if (!ready.value || probed.value) return
+    await refresh()
   }
 
   /**
@@ -287,8 +296,10 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     ready,
     serviceUnavailable,
+    probed,
     isLoggedIn,
     refresh,
+    probeServiceOnce,
     bootstrap,
     sendCode,
     verify,

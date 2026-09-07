@@ -7,7 +7,7 @@ import { useLoadingStore } from '@/stores/loading'
 import { isValidTemplate } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import type { DataRow, FieldMapping, LabelTemplate, TemplateField } from '@/types/template'
-import { autoMapFields } from '@/utils/autoMap'
+import { autoMapFieldsDetailed } from '@/utils/autoMap'
 import { evaluateFieldTemplate, isCompositeMapping } from '@/utils/fieldTemplate'
 import {
   findUnsupportedChars,
@@ -145,6 +145,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let importedFile: File | null = null
   const isDemoData = ref(restoredRoster?.isDemoData ?? false)
   const mapping = reactive<FieldMapping>(restoredRoster?.mapping ?? {})
+  /** 自动映射中由同族回退得到的字段（fieldId → 表头），用户改选后消除 */
+  const mappingBorrowed = reactive<Record<string, string>>({})
 
   // ---------- 照片 ----------
   const photoColumn = ref(restoredRoster?.photoColumn ?? '')
@@ -497,11 +499,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     for (const key of Object.keys(mapping)) {
       if (!validIds.has(key)) delete mapping[key]
     }
+    for (const key of Object.keys(mappingBorrowed)) {
+      if (!validIds.has(key) || mappingBorrowed[key] !== mapping[key]) delete mappingBorrowed[key]
+    }
     if (!excel.headers.length) return
-    const auto = autoMapFields(template.value.fields, excel.headers)
+    const auto = autoMapFieldsDetailed(template.value.fields, excel.headers)
     for (const field of mappableFields.value) {
-      if (!mapping[field.id] && auto[field.id]) {
-        mapping[field.id] = auto[field.id]
+      if (!mapping[field.id] && auto.mapping[field.id]) {
+        mapping[field.id] = auto.mapping[field.id]
+        if (auto.borrowed[field.id]) mappingBorrowed[field.id] = auto.borrowed[field.id]
       }
     }
   }
@@ -526,7 +532,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     resetDataView()
     clearAllOverrides()
     for (const key of Object.keys(mapping)) delete mapping[key]
-    Object.assign(mapping, autoMapFields(template.value.fields, data.headers))
+    for (const key of Object.keys(mappingBorrowed)) delete mappingBorrowed[key]
+    const auto = autoMapFieldsDetailed(template.value.fields, data.headers)
+    Object.assign(mapping, auto.mapping)
+    Object.assign(mappingBorrowed, auto.borrowed)
   }
 
   /**
@@ -636,6 +645,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     excel.rows = []
     isDemoData.value = false
     for (const key of Object.keys(mapping)) delete mapping[key]
+    for (const key of Object.keys(mappingBorrowed)) delete mappingBorrowed[key]
     clearPhotos()
     resetDataView()
     clearAllOverrides({ silent: true })
@@ -646,6 +656,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function setMappingValue(fieldId: string, header: string) {
     if (header) mapping[fieldId] = header
     else delete mapping[fieldId]
+    delete mappingBorrowed[fieldId]
+  }
+
+  /** 该字段当前映射是否来自同族回退（供映射面板显示灰字提示） */
+  function isBorrowedMapping(fieldId: string): boolean {
+    const header = mappingBorrowed[fieldId]
+    return !!header && mapping[fieldId] === header
   }
 
   function setPhotoColumn(column: string) {
@@ -720,6 +737,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     excel,
     isDemoData,
     mapping,
+    mappingBorrowed,
+    isBorrowedMapping,
     photoColumn,
     photos,
     photoErrors,

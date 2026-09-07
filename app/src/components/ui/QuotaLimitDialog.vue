@@ -13,6 +13,8 @@ const quota = useQuotaStore()
 const toast = useToastStore()
 
 const isLoggedIn = computed(() => auth.isLoggedIn)
+/** 账号服务不可用（如 503）：隐藏注册/登录利益点与 CTA，只保留带水印导出的中性说明 */
+const serviceUnavailable = computed(() => auth.serviceUnavailable)
 
 const shareDailyCap = computed(() => auth.user?.share.bonusDailyCap ?? 10)
 
@@ -22,18 +24,22 @@ const shareLink = computed(() =>
 
 /** 价值阶梯：配额规则的完整展示，让用户一眼看清「怎么获得更多」 */
 const valueLadder = computed(() => [
-  {
-    key: 'login',
-    label: t('登录后每天 {n} 次无水印导出').replace('{n}', String(QUOTA_USER_DAILY)),
-    detail: t('注册即送 7 天专业版试用（无水印导出不限次），自定义模板可同步云端'),
-    active: !isLoggedIn.value,
-  },
-  {
-    key: 'share',
-    label: t('分享被点开 1 次再 +1 次（每日最多 {n} 次）').replace('{n}', String(shareDailyCap.value)),
-    detail: t('专属链接发给同事或群聊，服务端去重防刷'),
-    active: true,
-  },
+  ...(serviceUnavailable.value
+    ? []
+    : [
+        {
+          key: 'login',
+          label: t('登录后每天 {n} 次无水印导出').replace('{n}', String(QUOTA_USER_DAILY)),
+          detail: t('注册即送 7 天专业版试用（无水印导出不限次），自定义模板可同步云端'),
+          active: !isLoggedIn.value,
+        },
+        {
+          key: 'share',
+          label: t('分享被点开 1 次再 +1 次（每日最多 {n} 次）').replace('{n}', String(shareDailyCap.value)),
+          detail: t('专属链接发给同事或群聊，服务端去重防刷'),
+          active: true,
+        },
+      ]),
   {
     key: 'watermark',
     label: t('带水印导出永远免费、不限次数'),
@@ -80,7 +86,15 @@ function close() {
       </li>
     </ul>
 
-    <div class="mt-4 grid gap-2">
+    <p
+      v-if="serviceUnavailable"
+      data-testid="quota-service-unavailable"
+      class="mt-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"
+    >
+      {{ t('账号服务维护中，带水印导出不限次') }}
+    </p>
+
+    <div v-else class="mt-4 grid gap-2">
       <RouterLink
         v-if="!isLoggedIn"
         :to="localePath('/account')"

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { defaultTemplates } from '@/data/defaultTemplates'
 import type { TemplateField } from '@/types/template'
-import { autoMapFields } from '@/utils/autoMap'
+import { autoMapFields, autoMapFieldsDetailed } from '@/utils/autoMap'
 
 const standardFields = defaultTemplates[0]!.fields
 
@@ -100,5 +100,63 @@ describe('autoMapFields', () => {
     const mapping = autoMapFields([fixed, textField('name', '姓名')], ['姓名'])
     expect(mapping.caption).toBeUndefined()
     expect(mapping.name).toBe('姓名')
+  })
+
+  it('扩充同义词：职称/头衔→职务，企业/集团→单位，处室/科组→部门，名称/称呼→姓名', () => {
+    const fields = [
+      textField('position', '职务'),
+      textField('company', '单位'),
+      textField('department', '部门'),
+      textField('name', '姓名'),
+    ]
+    const mapping = autoMapFields(fields, ['称呼', '集团', '科组', '职称'])
+    expect(mapping).toEqual({ position: '职称', company: '集团', department: '科组', name: '称呼' })
+  })
+
+  it('同族回退：模板只有「单位」字段、名单只有「部门」列时映射 部门→单位并标记 borrowed', () => {
+    const fields = [textField('org', '单位'), textField('name', '姓名')]
+    const { mapping, borrowed } = autoMapFieldsDetailed(fields, ['姓名', '部门', '职务'])
+    expect(mapping.org).toBe('部门')
+    expect(mapping.name).toBe('姓名')
+    expect(borrowed).toEqual({ org: '部门' })
+  })
+
+  it('会议桌牌三字段（单位/姓名/职务）导入「姓名/部门/职务」后 0 个未映射', () => {
+    const fields = [textField('org', '单位'), textField('name', '姓名'), textField('title', '职务')]
+    const { mapping, borrowed } = autoMapFieldsDetailed(fields, ['姓名', '部门', '职务'])
+    expect(mapping).toEqual({ org: '部门', name: '姓名', title: '职务' })
+    expect(borrowed).toEqual({ org: '部门' })
+  })
+
+  it('职务列被 title（头衔）字段吸收，不算回退', () => {
+    const { mapping, borrowed } = autoMapFieldsDetailed([textField('title', '头衔')], ['姓名', '职务'])
+    expect(mapping.title).toBe('职务')
+    expect(borrowed).toEqual({})
+  })
+
+  it('精确匹配优先级不被回退破坏：单位/部门各归各', () => {
+    const fields = [textField('company', '单位'), textField('department', '部门')]
+    const { mapping, borrowed } = autoMapFieldsDetailed(fields, ['部门', '单位'])
+    expect(mapping).toEqual({ company: '单位', department: '部门' })
+    expect(borrowed).toEqual({})
+  })
+
+  it('同族回退只借未占用列：名单只有一列「部门」时不会同时给单位与部门', () => {
+    const fields = [textField('department', '部门'), textField('company', '单位')]
+    const { mapping, borrowed } = autoMapFieldsDetailed(fields, ['部门'])
+    expect(mapping.department).toBe('部门')
+    expect(mapping.company).toBeUndefined()
+    expect(borrowed).toEqual({})
+  })
+
+  it('学校字段可借用单位列（school ↔ company 同族）', () => {
+    const { mapping, borrowed } = autoMapFieldsDetailed([textField('school', '学校')], ['姓名', '单位'])
+    expect(mapping.school).toBe('单位')
+    expect(borrowed).toEqual({ school: '单位' })
+  })
+
+  it('非同族字段（考场/座位号）不参与回退', () => {
+    const mapping = autoMapFields(standardFields, ['部门', '职务'])
+    expect(mapping).toEqual({})
   })
 })

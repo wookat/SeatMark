@@ -21,6 +21,8 @@ import { randomToken36 } from './_random.js'
 import { json, clientIp, sha256Hex } from './_http.js'
 
 const FEEDBACK_IP_DAILY_LIMIT = 10
+/** 部署观测标记，与 [[default]].js 的 X-SeatMark-Rev 同步递增 */
+const SEATMARK_REV = 'r345'
 export const FEEDBACK_MAX_BODY_BYTES = 32 * 1024
 
 const encoder = new TextEncoder()
@@ -32,27 +34,29 @@ export async function onRequest(context) {
 async function handleRequest(context) {
   const { request, env } = context
 
+  let revHeader = { 'X-SeatMark-Rev': SEATMARK_REV }
+
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 })
-  if (request.method !== 'POST') return json({ error: '请求方法不支持' }, 405)
+  if (request.method !== 'POST') return json({ error: '请求方法不支持' }, 405, revHeader)
 
   const declared = Number(request.headers.get('Content-Length'))
   if (Number.isFinite(declared) && declared > FEEDBACK_MAX_BODY_BYTES) {
-    return json({ error: '请求体过大' }, 413)
+    return json({ error: '请求体过大' }, 413, revHeader)
   }
   let rawBody
   try {
     rawBody = await request.text()
   } catch {
-    return json({ error: '请求体格式错误' }, 400)
+    return json({ error: '请求体格式错误' }, 400, revHeader)
   }
   if (encoder.encode(rawBody).length > FEEDBACK_MAX_BODY_BYTES) {
-    return json({ error: '请求体过大' }, 413)
+    return json({ error: '请求体过大' }, 413, revHeader)
   }
   let payload
   try {
     payload = JSON.parse(rawBody)
   } catch {
-    return json({ error: '请求体格式错误' }, 400)
+    return json({ error: '请求体格式错误' }, 400, revHeader)
   }
 
   const type = payload && typeof payload.type === 'string' ? payload.type : ''
@@ -60,11 +64,12 @@ async function handleRequest(context) {
   const contact = payload && typeof payload.contact === 'string' ? payload.contact.trim() : ''
 
   const validTypes = ['bug', 'suggestion', 'other']
-  if (!validTypes.includes(type)) return json({ error: '反馈类型无效' }, 400)
-  if (!content || content.length > 2000) return json({ error: '请填写反馈内容（不超过 2000 字）' }, 400)
-  if (contact.length > 200) return json({ error: '联系方式过长' }, 400)
+  if (!validTypes.includes(type)) return json({ error: '反馈类型无效' }, 400, revHeader)
+  if (!content || content.length > 2000) return json({ error: '请填写反馈内容（不超过 2000 字）' }, 400, revHeader)
+  if (contact.length > 200) return json({ error: '联系方式过长' }, 400, revHeader)
 
-  const { kv } = await getStorage(env)
+  const { kv, storage } = await getStorage(env)
+  revHeader = { ...revHeader, 'X-SeatMark-Storage': storage }
 
   // 防滥用：同一 IP 每日限量（IP 经单向哈希后仅用作限频计数）
   try {
@@ -73,7 +78,7 @@ async function handleRequest(context) {
     const rlKey = `rl:fb:${ipHash}:${day}`
     const count = Number((await kv.get(rlKey)) || 0)
     if (count >= FEEDBACK_IP_DAILY_LIMIT) {
-      return json({ error: '今日反馈次数已达上限，请明天再试' }, 429)
+      return json({ error: '今日反馈次数已达上限，请明天再试' }, 429, revHeader)
     }
     await kv.put(rlKey, String(count + 1))
   } catch {
@@ -127,5 +132,5 @@ async function handleRequest(context) {
     }
   }
 
-  return json({ ok: true })
+  return json({ ok: true }, 200, revHeader)
 }

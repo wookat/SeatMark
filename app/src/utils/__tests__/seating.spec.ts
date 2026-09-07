@@ -1,11 +1,100 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildDisplayGrid,
+  buildSeatGrid,
+  buildSeats,
   interleaveByGender,
   parseSeatingRoster,
   parseSeatingRosterDetailed,
+  seatingExportFileName,
   shuffleEntries,
 } from '../seating'
+
+const NAME_LABELS = { fallback: '教室座位表', teacher: '教师视角', student: '学生视角' }
+
+describe('seatingExportFileName', () => {
+  it('标题清洗非法字符并追加视角后缀', () => {
+    expect(seatingExportFileName('高三（2）班 期末考试', 'teacher', NAME_LABELS)).toBe(
+      '高三（2）班 期末考试-教师视角',
+    )
+    expect(seatingExportFileName('考场/01: A*室?', 'student', NAME_LABELS)).toBe('考场01 A室-学生视角')
+  })
+
+  it('空标题 / 纯非法字符回退默认名', () => {
+    expect(seatingExportFileName('', 'teacher', NAME_LABELS)).toBe('教室座位表-教师视角')
+    expect(seatingExportFileName('  ::??  ', 'student', NAME_LABELS)).toBe('教室座位表-学生视角')
+  })
+
+  it('超长标题截断后仍带视角后缀', () => {
+    const name = seatingExportFileName('班'.repeat(200), 'teacher', NAME_LABELS)
+    expect(name.endsWith('-教师视角')).toBe(true)
+    expect(name.length).toBeLessThanOrEqual(80 + '-教师视角'.length)
+  })
+})
+
+describe('buildSeats / buildDisplayGrid 视角镜像', () => {
+  const entries = [
+    { name: 'A', gender: '男' as const },
+    { name: 'B', gender: '女' as const },
+    { name: 'C' },
+    { name: 'D' },
+    { name: 'E' },
+  ]
+  const rows = 2
+  const cols = 3
+  const names = (grid: ReturnType<typeof buildDisplayGrid>) =>
+    grid.map((row) => row.map((c) => c.seat?.name ?? ''))
+  const aisleFlags = (grid: ReturnType<typeof buildDisplayGrid>) =>
+    grid.map((row) => row.map((c) => c.aisleAfter))
+
+  it('教师视角：按行填充保持名单顺序，空位名为空串，过道在第 1 列之后', () => {
+    const seats = buildSeats(entries, rows, cols, 'rows')
+    expect(seats.map((s) => s.seatNo)).toEqual([1, 2, 3, 4, 5, 6])
+    expect(seats[0]).toMatchObject({ row: 1, col: 1, name: 'A', gender: '男' })
+    expect(seats[5]).toMatchObject({ row: 2, col: 3, name: '' })
+    const grid = buildDisplayGrid(buildSeatGrid(seats, rows, cols), cols, new Set([1]), 'teacher')
+    expect(names(grid)).toEqual([
+      ['A', 'B', 'C'],
+      ['D', 'E', ''],
+    ])
+    expect(aisleFlags(grid)).toEqual([
+      [true, false, false],
+      [true, false, false],
+    ])
+  })
+
+  it('学生视角：每排左右镜像，座位号与姓名绑定不变，过道随镜像翻到对侧', () => {
+    const seats = buildSeats(entries, rows, cols, 'rows')
+    const seatGrid = buildSeatGrid(seats, rows, cols)
+    const grid = buildDisplayGrid(seatGrid, cols, new Set([1]), 'student')
+    expect(names(grid)).toEqual([
+      ['C', 'B', 'A'],
+      ['', 'E', 'D'],
+    ])
+    expect(grid[0]!.map((c) => c.seat?.seatNo)).toEqual([3, 2, 1])
+    // 物理第 1 列之后的过道，镜像后位于展示序倒数第 2 格之后（最后一格不带过道）
+    expect(aisleFlags(grid)).toEqual([
+      [false, true, false],
+      [false, true, false],
+    ])
+    // 镜像不改变底层座位数据
+    expect(seatGrid[0]!.map((s) => s?.name)).toEqual(['A', 'B', 'C'])
+  })
+
+  it('蛇形填充：偶数排从右向左，学生视角镜像后回到名单顺序', () => {
+    const seats = buildSeats(entries, rows, cols, 'serpentine')
+    const seatGrid = buildSeatGrid(seats, rows, cols)
+    expect(names(buildDisplayGrid(seatGrid, cols, new Set(), 'teacher'))).toEqual([
+      ['A', 'B', 'C'],
+      ['', 'E', 'D'],
+    ])
+    expect(names(buildDisplayGrid(seatGrid, cols, new Set(), 'student'))).toEqual([
+      ['C', 'B', 'A'],
+      ['D', 'E', ''],
+    ])
+  })
+})
 
 describe('parseSeatingRoster', () => {
   it('每行一个姓名（旧行为兼容）', () => {

@@ -1,4 +1,4 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -28,22 +28,26 @@ describe('AccountView：账号服务 503 分支', () => {
     vi.restoreAllMocks()
   })
 
-  it('me/captcha 返回 503 时显示服务提示、禁用提交、验证码区不显示裸失败态', async () => {
+  it('me/captcha 返回 503 时只渲染降级卡：整张表单不渲染，卡内有返回工坊链接', async () => {
     const fetchMock = vi
       .spyOn(globalThis, 'fetch')
       .mockImplementation(async (input) => routeMock(String(input)))
-    const wrapper = mount(AccountView)
+    const wrapper = mount(AccountView, { global: { stubs: { RouterLink: RouterLinkStub } } })
     await flushPromises()
 
     const notice = wrapper.find('[data-testid="auth-service-unavailable"]')
     expect(notice.exists()).toBe(true)
     expect(notice.text()).toContain('账号服务暂时不可用，稍后再试')
     expect(notice.text()).toContain('导出与打印不受影响')
+    expect(notice.text()).toContain('返回工坊')
+    expect(
+      notice.findComponent(RouterLinkStub).props('to'),
+    ).toBe('/studio')
 
-    const submit = wrapper.find('button[type="submit"]')
-    expect(submit.attributes('disabled')).toBeDefined()
-
-    expect(wrapper.text()).toContain('暂不可用')
+    // 登录/注册/找回整张表单不渲染
+    expect(wrapper.find('form').exists()).toBe(false)
+    expect(wrapper.find('button[type="submit"]').exists()).toBe(false)
+    expect(wrapper.find('input[type="email"]').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('加载失败')
 
     // 挂载时无条件确认登录态 + 拉取验证码
@@ -61,9 +65,10 @@ describe('AccountView：账号服务 503 分支', () => {
       }
       return jsonResponse({}, 404)
     })
-    const wrapper = mount(AccountView)
+    const wrapper = mount(AccountView, { global: { stubs: { RouterLink: RouterLinkStub } } })
     await flushPromises()
     expect(wrapper.find('[data-testid="auth-service-unavailable"]').exists()).toBe(false)
+    expect(wrapper.find('form').exists()).toBe(true)
     expect(wrapper.find('button[type="submit"]').attributes('disabled')).toBeUndefined()
     expect(wrapper.find('form img').exists()).toBe(true)
   })
