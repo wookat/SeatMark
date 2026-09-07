@@ -6,7 +6,8 @@
  *
  * 主模型：DeepSeek v4 Flash（通过环境变量 DEEPSEEK_API_KEY 配置）
  * 兜底模型：智谱 glm-4-flash（通过环境变量 AI_API_KEY 配置，永久免费）
- * 无密钥兜底：服务端代理 Pollinations 匿名接口（浏览器直连受来源限制 402，服务端出口可用）
+ * 无密钥兜底：服务端代理 Pollinations 匿名接口。前端免费通道仅调本同源代理，
+ * 浏览器不直连任何第三方模型接口，所有兜底都在服务端完成。
  *
  * 环境变量（EdgeOne Pages 控制台配置）：
  * - DEEPSEEK_API_KEY  主模型密钥（DeepSeek 开放平台）
@@ -259,8 +260,7 @@ async function proxyUpstreams({ env, messages, signal }) {
     }
   }
 
-  // 无密钥兜底：服务端代理 Pollinations 匿名接口
-  // （浏览器直连会因来源限制返回 402，服务端出口不受影响）
+  // 无密钥兜底：服务端代理 Pollinations 匿名接口（前端不直连，这是唯一的第三方调用点）
   const attempts = []
   for (const model of POLLINATIONS_MODELS) {
     try {

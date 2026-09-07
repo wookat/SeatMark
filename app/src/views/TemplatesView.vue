@@ -313,6 +313,7 @@ const recommendedItems = computed(() => {
           v-model="searchQuery"
           type="search"
           :placeholder="t('搜索模板 / 场景，支持拼音、首字母')"
+          :title="t('搜索模板或场景名称，支持中文、拼音全拼与首字母')"
           class="w-full rounded-lg border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm text-slate-700 shadow-sm placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
         />
       </label>
@@ -384,6 +385,7 @@ const recommendedItems = computed(() => {
           v-model="searchQuery"
           type="search"
           :placeholder="t('搜索模板 / 场景，支持拼音、首字母')"
+          :title="t('搜索模板或场景名称，支持中文、拼音全拼与首字母')"
           class="w-full rounded-lg border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm text-slate-700 shadow-sm placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
         />
       </label>
@@ -479,14 +481,14 @@ const recommendedItems = computed(() => {
           <div class="absolute top-3 right-3 flex max-w-[calc(100%-1.5rem)] flex-wrap justify-end gap-1">
             <span
               v-if="cardText(item.template!.scenario)"
-              class="rounded bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200"
+              class="rounded bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200"
             >
               {{ cardText(item.template!.scenario) }}
             </span>
             <span
               v-if="locale === 'en'"
               lang="en"
-              class="rounded bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200"
+              class="rounded bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-slate-500 ring-1 ring-slate-200"
               data-testid="lang-badge-zh"
             >Chinese</span>
           </div>
@@ -499,10 +501,10 @@ const recommendedItems = computed(() => {
             {{ cardText(item.template!.description) }}
           </p>
           <div class="mt-auto flex flex-wrap gap-1.5 pt-3">
-            <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+            <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
               {{ item.template!.label.width }} × {{ item.template!.label.height }} mm
             </span>
-            <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+            <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
               {{ item.template!.page.cols * item.template!.page.rows }} {{ t('枚 / 页') }}
             </span>
           </div>

@@ -131,17 +131,35 @@ export async function createShortShareCode(payload: string): Promise<string | nu
   }
 }
 
-/** 按短码取回模板负载（5xx/网络失败自动重试）；不存在/仍失败返回 null */
-export async function fetchSharedPayload(code: string): Promise<string | null> {
-  if (!SHARE_SHORT_CODE_RE.test(code)) return null
+/** 服务端短码保留期（与 edge-functions TPLSHARE_TTL_SECONDS 一致），仅用于文案 */
+export const SHARE_SHORT_CODE_TTL_DAYS = 30
+
+export type SharedPayloadResult =
+  | { payload: string; reason?: undefined }
+  | { payload: null; reason: 'invalid' | 'not_found' | 'unavailable' }
+
+/**
+ * 按短码取回模板负载（5xx/网络失败自动重试），并区分失败原因：
+ * not_found = 服务端明确 404（已过期或不存在）；unavailable = 重试后仍 5xx/网络失败。
+ */
+export async function fetchSharedPayloadDetailed(code: string): Promise<SharedPayloadResult> {
+  if (!SHARE_SHORT_CODE_RE.test(code)) return { payload: null, reason: 'invalid' }
   try {
     const res = await apiFetchWithRetry<{ payload?: string }>(
       `/api/share/tpl?code=${encodeURIComponent(code)}`,
     )
-    return typeof res.payload === 'string' ? res.payload : null
-  } catch {
-    return null
+    return typeof res.payload === 'string'
+      ? { payload: res.payload }
+      : { payload: null, reason: 'unavailable' }
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return { payload: null, reason: 'not_found' }
+    return { payload: null, reason: 'unavailable' }
   }
+}
+
+/** 按短码取回模板负载；不存在/仍失败返回 null */
+export async function fetchSharedPayload(code: string): Promise<string | null> {
+  return (await fetchSharedPayloadDetailed(code)).payload
 }
 
 /**

@@ -56,7 +56,7 @@ const picks = computed(() => (props.featured ?? []).slice(0, 3))
               <span>{{ item.title }}</span>
               <span
                 v-if="langBadge"
-                class="rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200"
+                class="rounded bg-white/90 px-1.5 py-0.5 text-[11px] font-semibold text-slate-500 ring-1 ring-slate-200"
                 data-testid="lang-badge-zh"
               >Chinese</span>
             </span>

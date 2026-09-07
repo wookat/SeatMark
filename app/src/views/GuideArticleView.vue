@@ -105,9 +105,14 @@ function onArticleClick(event: MouseEvent) {
       </RouterLink>
     </div>
 
-    <!-- 正文（站内维护的受控 HTML） -->
+    <!-- 正文（站内维护的受控 HTML）；pb-20 + 末段 <sm 右侧留 3rem：滚到底部时右下反馈气泡（size-10 + right-3）不压正文最后一段右缘 -->
     <!-- eslint-disable-next-line vue/no-v-html -->
-    <article class="article-body mt-8" @click="onArticleClick" v-html="guide.body"></article>
+    <article
+      class="article-body mt-8 pb-20 max-sm:[&>*:last-child]:pr-12"
+      data-testid="guide-article-body"
+      @click="onArticleClick"
+      v-html="guide.body"
+    ></article>
 
     <!-- FAQ -->
     <section v-if="guide.faqs.length" class="mt-10">

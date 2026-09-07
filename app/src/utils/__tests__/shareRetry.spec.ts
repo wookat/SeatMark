@@ -17,6 +17,8 @@ import {
   createShortShareCode,
   createVerifiedShortShareCode,
   fetchSharedPayload,
+  fetchSharedPayloadDetailed,
+  SHARE_SHORT_CODE_TTL_DAYS,
 } from '@/utils/share'
 
 describe('短码分享 5xx 自动重试', () => {
@@ -70,12 +72,40 @@ describe('短码分享 5xx 自动重试', () => {
   })
 
   it('短码不存在（404）不重试', async () => {
-    apiFetchMock.mockRejectedValue(new ApiError(404, '短码不存在或已过期'))
+    apiFetchMock.mockRejectedValue(
+      new ApiError(404, '分享链接已过期或不存在', { code: 'tplshare_not_found' }),
+    )
 
     const promise = fetchSharedPayload('0123456789')
     await vi.runAllTimersAsync()
     expect(await promise).toBeNull()
     expect(apiFetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('第 357 轮：404 区分为 not_found，5xx 重试后仍失败为 unavailable，非法短码为 invalid', async () => {
+    apiFetchMock.mockRejectedValue(
+      new ApiError(404, '分享链接已过期或不存在', { code: 'tplshare_not_found' }),
+    )
+    const notFound = fetchSharedPayloadDetailed('0123456789')
+    await vi.runAllTimersAsync()
+    expect(await notFound).toEqual({ payload: null, reason: 'not_found' })
+    expect(apiFetchMock).toHaveBeenCalledTimes(1)
+
+    apiFetchMock.mockReset()
+    apiFetchMock.mockRejectedValue(new ApiError(503, '分享服务暂时不可用'))
+    const unavailable = fetchSharedPayloadDetailed('0123456789')
+    await vi.runAllTimersAsync()
+    expect(await unavailable).toEqual({ payload: null, reason: 'unavailable' })
+    expect(apiFetchMock).toHaveBeenCalledTimes(3)
+
+    apiFetchMock.mockReset()
+    expect(await fetchSharedPayloadDetailed('not-a-code')).toEqual({
+      payload: null,
+      reason: 'invalid',
+    })
+    expect(apiFetchMock).not.toHaveBeenCalled()
+
+    expect(SHARE_SHORT_CODE_TTL_DAYS).toBe(30)
   })
 })
 

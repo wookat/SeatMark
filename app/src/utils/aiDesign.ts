@@ -8,9 +8,8 @@ import { clamp, round1 } from '@/utils/layout'
  * 经过严格的清洗与边界约束后转为 TemplateField[]。
  *
  * 两种生成通道：
- * - free：免费通道，无需任何配置。优先走站点同源代理 /api/ai-design
- *   （EdgeOne Pages Function，站长可配置上游密钥），失败时自动回退到
- *   Pollinations 匿名公共接口（无需密钥，按 IP 限流）。
+ * - free：免费通道，无需任何配置。仅经站点同源代理 /api/ai-design
+ *   （EdgeOne Pages Function，上游模型与密钥由站长在服务端配置），浏览器不直连任何第三方。
  * - custom：用户自己的 OpenAI 兼容接口，地址与密钥仅保存在本机 localStorage，
  *   请求直接由浏览器发出。
  */
@@ -190,7 +189,7 @@ export class AiHttpError extends Error {
   }
 }
 
-/** 同源代理的 413/429 是面向用户的明确拒绝，不再落到后续兜底接口 */
+/** 同源代理的 413/429 是面向用户的明确拒绝，直接展示而不归入「通道不可用」 */
 export function proxyRejectionMessage(err: unknown): string | null {
   if (!(err instanceof AiHttpError)) return null
   if (err.status === 413) return t('设计要求或字段示例过长（超过 32KB），请精简后重试')
@@ -264,35 +263,32 @@ async function callChatCustom(
 }
 
 /**
- * 免费通道：依次尝试以下接口，任一成功即返回。
- * 1. 站点同源代理 /api/ai-design（部署了 EdgeOne Pages Function 且配置密钥时可用，
- *    未部署 / 未配置会快速返回 404 / 501，自动落到下一个）；
- * 2./3. Pollinations 匿名接口（无需密钥，按 IP 限流，繁忙时换模型再试一次）。
+ * 免费通道只走站点同源代理 /api/ai-design（上游模型、密钥与兜底都在服务端），
+ * 浏览器不直连任何第三方模型接口；代理失败则提示用户重试或切到「自定义 API」。
  */
-const FREE_ATTEMPTS: Array<{ url: string; model?: string; timeoutMs: number }> = [
+export const FREE_ATTEMPTS: ReadonlyArray<{ url: string; timeoutMs: number }> = [
   { url: '/api/ai-design', timeoutMs: 90_000 },
-  { url: 'https://text.pollinations.ai/openai', model: 'openai', timeoutMs: 90_000 },
-  { url: 'https://text.pollinations.ai/openai', model: 'openai-fast', timeoutMs: 90_000 },
 ]
 
 async function callChatFree(messages: ChatMessage[], signal?: AbortSignal): Promise<string> {
   let lastError = ''
   for (const attempt of FREE_ATTEMPTS) {
     try {
-      const body: Record<string, unknown> = { messages, temperature: 0.6 }
-      if (attempt.model) body.model = attempt.model
-      return await postChat(attempt.url, body, undefined, withTimeout(signal, attempt.timeoutMs))
+      return await postChat(
+        attempt.url,
+        { messages, temperature: 0.6 },
+        undefined,
+        withTimeout(signal, attempt.timeoutMs),
+      )
     } catch (err) {
       if (isUserAbort(err, signal)) throw err
-      if (attempt.url.startsWith('/')) {
-        const rejection = proxyRejectionMessage(err)
-        if (rejection) throw new Error(rejection)
-      }
+      const rejection = proxyRejectionMessage(err)
+      if (rejection) throw new Error(rejection)
       lastError = err instanceof Error ? err.message : String(err)
     }
   }
   throw new Error(
-    `免费通道暂时繁忙（${lastError}）。可稍等片刻重试，或切换到「自定义 API」使用自己的接口。`,
+    t('站点 AI 通道暂不可用（{reason}），可稍后重试或切换「自定义 API」').replace('{reason}', lastError),
   )
 }
 

@@ -12,7 +12,7 @@ import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
 import { GUEST_FILE_ACCEPT, useGuestFileImport } from '@/composables/useGuestFileImport'
 import { useQuotaBadge } from '@/composables/useQuotaBadge'
-import { useStickyActions } from '@/composables/useStickyActions'
+import { useCanvasSafeArea, useStickyActions } from '@/composables/useStickyActions'
 import { demoPersonNames } from '@/data/demoDatasets'
 import { currentLocale, localePath, t as tr } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
@@ -70,6 +70,7 @@ import { SEATING_HANDOFF_KEY, type SeatingHandoff } from '@/utils/seating'
 const router = useRouter()
 const toast = useToastStore()
 useStickyActions()
+useCanvasSafeArea()
 const quota = useQuotaStore()
 const auth = useAuthStore()
 const { badge: exportBadge, title: exportBadgeTitle } = useQuotaBadge(quota, auth, tr)
@@ -1395,7 +1396,7 @@ function toPlaceCards() {
               @click="applyPreset(p.id)"
             >
               <span class="block text-xs font-bold text-slate-700">{{ tr(p.name) }}</span>
-              <span class="block text-[10px] leading-4 text-slate-500">{{ tr(p.hint) }}</span>
+              <span class="block text-[11px] leading-4 text-slate-500">{{ tr(p.hint) }}</span>
             </button>
           </div>
           <div class="mt-2.5 flex flex-wrap gap-2">
@@ -1540,7 +1541,7 @@ function toPlaceCards() {
             >
               {{ exporting ? tr('导出中…') : tr('导出高清 PNG') }}
               <span
-                class="ml-1 rounded-full px-1.5 py-px text-[10px] font-semibold"
+                class="ml-1 rounded-full px-1.5 py-px text-[11px] font-semibold"
                 :class="exportBadge.cls"
                 data-testid="export-quota-badge"
               >{{ exportBadge.text }}</span>
@@ -1607,8 +1608,9 @@ function toPlaceCards() {
 
       <!-- 画布 -->
       <!-- ≥lg 画布列随左列滚动吸顶：顶栏 3.5rem + 1rem 间距；max-h 再扣除吸底下一步栏 3rem + 1rem 间距 -->
+      <!-- ≥md 右下预留 ≈64×80px 空区给反馈气泡（html.has-canvas-safe-area 时气泡缩小贴边），不压座位图 -->
       <div
-        class="min-w-0 lg:sticky lg:top-[4.5rem] lg:max-h-[calc(100vh-8.5rem)] lg:self-start lg:overflow-auto"
+        class="min-w-0 md:pr-16 md:pb-20 lg:sticky lg:top-[4.5rem] lg:max-h-[calc(100vh-8.5rem)] lg:self-start lg:overflow-auto"
         data-testid="banquet-canvas-column"
       >
         <div class="mb-2 flex flex-wrap items-center justify-between gap-2">

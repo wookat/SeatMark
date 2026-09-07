@@ -194,6 +194,65 @@ describe('parseSeatingRosterDetailed（Excel 多列粘贴）', () => {
   })
 })
 
+describe('第 357 轮：单列「Student1…」序号名单首行不再被误判为表头', () => {
+  it('单列 48 行 Student1…Student48 → 48 人、headerSkipped 为空', () => {
+    const text = Array.from({ length: 48 }, (_, i) => `Student${i + 1}`).join('\n')
+    const r = parseSeatingRosterDetailed(text)
+    expect(r.entries).toHaveLength(48)
+    expect(r.entries[0]!.name).toBe('Student1')
+    expect(r.entries[47]!.name).toBe('Student48')
+    expect(r.headerSkipped).toEqual([])
+    expect(r.columnMode).toBe(false)
+    expect(parseSeatingRoster(text)).toHaveLength(48)
+  })
+
+  it('「名字叫X」这类首行不是表头', () => {
+    const r = parseSeatingRosterDetailed('名字叫张三\n李四\n王五')
+    expect(r.entries.map((e) => e.name)).toEqual(['名字叫张三', '李四', '王五'])
+    expect(r.headerSkipped).toEqual([])
+  })
+
+  it.each(['Student', 'Students', 'Name', 'NAME', '姓名', '学生姓名', '名字'])(
+    '单列首行「%s」仍识别为表头并跳过',
+    (header) => {
+      const r = parseSeatingRosterDetailed(`${header}\n张伟\n王芳`)
+      expect(r.entries.map((e) => e.name)).toEqual(['张伟', '王芳'])
+      expect(r.headerSkipped).toEqual([header])
+    },
+  )
+
+  it('双列「姓名\\t性别」与「Name\\tGender」表头路径不回归', () => {
+    const zh = parseSeatingRosterDetailed('姓名\t性别\n张伟\t男\n王芳\t女')
+    expect(zh.entries).toEqual([
+      { name: '张伟', gender: '男' },
+      { name: '王芳', gender: '女' },
+    ])
+    expect(zh.headerSkipped).toEqual(['姓名', '性别'])
+    const en = parseSeatingRosterDetailed('Name\tGender\nTom\tM\nAmy\tF')
+    expect(en.entries).toEqual([
+      { name: 'Tom', gender: '男' },
+      { name: 'Amy', gender: '女' },
+    ])
+    expect(en.headerSkipped).toEqual(['Name', 'Gender'])
+    expect(en.genderColumn).toBe(true)
+  })
+
+  it('双列「Student1\\tGender1」首行是数据不是表头（gender 已锚定）', () => {
+    const r = parseSeatingRosterDetailed('Student1\tGender1\nStudent2\tGender2')
+    expect(r.headerSkipped).toEqual([])
+    expect(r.entries.map((e) => e.name)).toContain('Student1')
+  })
+
+  it('多列表头「Student Name」列仍被识别为姓名列（不在首列）', () => {
+    const r = parseSeatingRosterDetailed('ID\tStudent Name\tGender\n1\tTom\tM\n2\tAmy\tF')
+    expect(r.entries).toEqual([
+      { name: 'Tom', gender: '男' },
+      { name: 'Amy', gender: '女' },
+    ])
+    expect(r.ignoredColumns).toEqual(['ID'])
+  })
+})
+
 describe('第 348 轮：seatingRosterTextFromTable（Excel 文件 → 名单文本 → 座位名单）', () => {
   it('有表头（姓名/性别/学号）：表头保留，解析后取姓名与性别列、忽略学号列', () => {
     const headers = ['学号', '姓名', '性别']

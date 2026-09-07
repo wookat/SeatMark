@@ -5,7 +5,9 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
 import { setLocale } from '@/i18n'
+import { guides } from '@/data/guides'
 import BanquetView from '@/views/BanquetView.vue'
+import GuideArticleView from '@/views/GuideArticleView.vue'
 import SeatingView from '@/views/SeatingView.vue'
 
 class ResizeObserverStub {
@@ -17,10 +19,16 @@ class ResizeObserverStub {
 type IOCallback = (entries: Array<{ isIntersecting: boolean }>) => void
 /** 按被观察元素记录回调：页面上同时有预览区 / 名单输入区 / 下一步条三个观察者 */
 const ioCallbacks = new Map<Element, IOCallback>()
+/** 按被观察元素记录观察选项（rootMargin 等） */
+const ioOptions = new Map<Element, IntersectionObserverInit | undefined>()
 class IntersectionObserverStub {
-  constructor(private readonly cb: IOCallback) {}
+  constructor(
+    private readonly cb: IOCallback,
+    private readonly options?: IntersectionObserverInit,
+  ) {}
   observe(el: Element) {
     ioCallbacks.set(el, this.cb)
+    ioOptions.set(el, this.options)
   }
   unobserve() {}
   disconnect() {}
@@ -56,6 +64,7 @@ beforeEach(async () => {
   vi.stubGlobal('ResizeObserver', ResizeObserverStub)
   vi.stubGlobal('IntersectionObserver', IntersectionObserverStub)
   ioCallbacks.clear()
+  ioOptions.clear()
   Element.prototype.scrollIntoView = vi.fn()
   localStorage.clear()
   setActivePinia(createPinia())
@@ -277,5 +286,105 @@ describe('第 355 轮：胶囊改右下角 + 名单输入区滚入视口时自�
       expect(root.classes()).toContain('sm:pb-20')
       wrapper.unmount()
     }
+  })
+})
+
+describe('第 357 轮：反馈 FAB 与底部固定层对画布 / 过道按钮避让', () => {
+  it.each([
+    ['SeatingView', SeatingView, 'seating-preview-column'],
+    ['BanquetView', BanquetView, 'banquet-canvas-column'],
+  ] as const)(
+    '%s：挂载时 <html> 加 has-canvas-safe-area，卸载时移除；画布列 md:pr-16 md:pb-20 预留右下空区',
+    async (_name, view, columnTestId) => {
+      expect(document.documentElement.classList.contains('has-canvas-safe-area')).toBe(false)
+      const wrapper = await mountView(view)
+      expect(document.documentElement.classList.contains('has-canvas-safe-area')).toBe(true)
+      const column = wrapper.find(`[data-testid="${columnTestId}"]`)
+      expect(column.exists()).toBe(true)
+      expect(column.classes()).toContain('md:pr-16')
+      expect(column.classes()).toContain('md:pb-20')
+      wrapper.unmount()
+      expect(document.documentElement.classList.contains('has-canvas-safe-area')).toBe(false)
+    },
+  )
+
+  it('FeedbackButton：has-canvas-safe-area 页在 ≥md 缩为 size-10 / right-3（与预览列 pr-16 空区不交集），文本输入聚焦时窄屏收起', async () => {
+    const { default: FeedbackButton } = await import('@/components/ui/FeedbackButton.vue')
+    const fab = mount(FeedbackButton, {
+      global: { stubs: { Teleport: true, Transition: true } },
+      attachTo: document.body,
+    })
+    const btn = fab.find('button')
+    expect(btn.classes()).toContain('md:[.has-canvas-safe-area_&]:size-10')
+    expect(btn.classes()).toContain('md:[.has-canvas-safe-area_&]:right-3')
+    // 默认 right-5 / bottom-5 保留，非画布页不变
+    expect(btn.classes()).toContain('right-5')
+    expect(btn.classes()).toContain('bottom-5')
+    // ≥md 时：FAB 占用右侧 right-3(12px)+size-10(40px)=52px < 预览列 pr-16(64px)，横向无交集
+    expect(3 * 4 + 10 * 4).toBeLessThan(16 * 4)
+
+    expect(btn.attributes('data-collapsed')).toBe('false')
+    const textarea = document.createElement('textarea')
+    document.body.appendChild(textarea)
+    textarea.focus()
+    document.dispatchEvent(new FocusEvent('focusin'))
+    await fab.vm.$nextTick()
+    expect(btn.attributes('data-input-focused')).toBe('true')
+    expect(btn.attributes('data-collapsed')).toBe('true')
+    expect(btn.classes()).toContain('max-sm:opacity-0')
+    expect(btn.classes()).toContain('max-sm:pointer-events-none')
+    textarea.blur()
+    document.dispatchEvent(new FocusEvent('focusout'))
+    await fab.vm.$nextTick()
+    expect(btn.attributes('data-collapsed')).toBe('false')
+    textarea.remove()
+    fab.unmount()
+  })
+
+  it('GuideArticleView：正文 pb-20，<sm 末段 pr-12，滚到底部 FAB（right-3 + size-10 = 52px）不压最后一段右缘', async () => {
+    const slug = guides[0]!.slug
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: { template: '<div />' } },
+        { path: '/guides/:slug', component: GuideArticleView },
+      ],
+    })
+    await router.push(`/guides/${slug}`)
+    await router.isReady()
+    const wrapper = mount(GuideArticleView, {
+      global: { plugins: [router], stubs: { Teleport: true, Transition: true } },
+    })
+    await wrapper.vm.$nextTick()
+    const body = wrapper.find('[data-testid="guide-article-body"]')
+    expect(body.exists()).toBe(true)
+    expect(body.classes()).toContain('pb-20')
+    expect(body.classes()).toContain('max-sm:[&>*:last-child]:pr-12')
+    // pr-12 = 48px ≥ FAB 在 <sm 占用的 right-3(12px)+size-10(40px) − 页面 px-4(16px) = 36px
+    expect(12 * 4).toBeGreaterThanOrEqual(3 * 4 + 10 * 4 - 4 * 4)
+    wrapper.unmount()
+  })
+
+  it('SeatingView：过道「列间」按钮行落到视口底部条带（rootMargin -75%）时胶囊让位，离开后恢复', async () => {
+    const wrapper = await mountView(SeatingView)
+    const jump = wrapper.find('[data-testid="mobile-preview-jump"]')
+    const aisleRow = wrapper.find('[data-testid="aisle-row"]')
+    expect(aisleRow.exists()).toBe(true)
+    expect(aisleRow.findAll('button').length).toBeGreaterThan(0)
+    expect(aisleRow.findAll('button')[0]!.text()).toMatch(/^列间 1-2$/)
+    expect(ioCallbacks.has(aisleRow.element)).toBe(true)
+    expect(ioOptions.get(aisleRow.element)?.rootMargin).toBe('-75% 0px 0px 0px')
+    expect(jump.attributes('data-hidden')).toBe('false')
+
+    intersect(aisleRow.element, true)
+    await wrapper.vm.$nextTick()
+    expect(jump.attributes('data-avoid-near-bottom')).toBe('true')
+    expect(jump.attributes('data-hidden')).toBe('true')
+    expect(jump.classes()).toContain('pointer-events-none')
+
+    intersect(aisleRow.element, false)
+    await wrapper.vm.$nextTick()
+    expect(jump.attributes('data-hidden')).toBe('false')
+    wrapper.unmount()
   })
 })

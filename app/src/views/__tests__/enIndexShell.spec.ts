@@ -143,7 +143,7 @@ describe('第 350 轮：/en/guides /en/vs /en/papers 不再整列渲染中文卡
 
 describe('第 356 轮：/en 模板与教程卡片「Chinese」语言角标', () => {
   const BADGE = '[data-testid="lang-badge-zh"]'
-  const BADGE_CLASSES = ['text-[10px]', 'font-semibold', 'text-slate-500', 'bg-white/90', 'ring-1', 'ring-slate-200']
+  const BADGE_CLASSES = ['text-[11px]', 'font-semibold', 'text-slate-500', 'bg-white/90', 'ring-1', 'ring-slate-200']
 
   it('/en/templates：每张列表卡片含 Chinese 角标且与场景标签同容器；卡片链接目标不变', async () => {
     const wrapper = await mountView(VIEWS[1], 'en')

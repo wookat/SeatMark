@@ -10,7 +10,15 @@ const props = defineProps<{
   settings: HTMLElement | null
   /** 名单输入区（textarea 等）：滚入视口时胶囊自动隐藏，不压住输入控件 */
   avoid?: HTMLElement | null
+  /**
+   * 右对齐的行内按钮行（如过道「列间」按钮）：仅当它落在视口底部胶囊所在的条带内时才隐藏，
+   * 在视口上半部可见时不影响胶囊（与 avoid 的「整个视口可见即隐藏」不同）
+   */
+  avoidNearBottom?: HTMLElement | null
 }>()
+
+/** avoidNearBottom 的判定条带：视口底部 25%（rootMargin 把顶部 75% 裁掉） */
+const AVOID_NEAR_BOTTOM_ROOT_MARGIN = '-75% 0px 0px 0px'
 
 /** 回到页面顶部的判定阈值（px）：低于此值恢复显示胶囊 */
 const TOP_RESTORE_PX = 80
@@ -59,6 +67,26 @@ function observeAvoid(el: HTMLElement | null | undefined) {
 
 watch(() => props.avoid, observeAvoid, { immediate: true })
 
+const avoidNearBottomVisible = ref(false)
+let avoidNearBottomObserver: IntersectionObserver | null = null
+
+function observeAvoidNearBottom(el: HTMLElement | null | undefined) {
+  avoidNearBottomObserver?.disconnect()
+  avoidNearBottomObserver = null
+  avoidNearBottomVisible.value = false
+  if (!el || typeof IntersectionObserver === 'undefined') return
+  avoidNearBottomObserver = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[entries.length - 1]
+      if (entry) avoidNearBottomVisible.value = entry.isIntersecting
+    },
+    { rootMargin: AVOID_NEAR_BOTTOM_ROOT_MARGIN, threshold: 0 },
+  )
+  avoidNearBottomObserver.observe(el)
+}
+
+watch(() => props.avoidNearBottom, observeAvoidNearBottom, { immediate: true })
+
 /**
  * 窄屏让位逻辑：输入框聚焦 / 软键盘弹出时隐藏（避免压住输入区）；
  * 向下滚动时收起且不自动恢复（不常驻遮挡表单控件），仅在回到页顶、
@@ -105,6 +133,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   observer?.disconnect()
   avoidObserver?.disconnect()
+  avoidNearBottomObserver?.disconnect()
   document.removeEventListener('focusin', syncFocus)
   document.removeEventListener('focusout', syncFocus)
   window.removeEventListener('scroll', onScroll)
@@ -112,7 +141,12 @@ onBeforeUnmount(() => {
 })
 
 const hidden = computed(
-  () => inputFocused.value || keyboardOpen.value || collapsed.value || avoidVisible.value,
+  () =>
+    inputFocused.value ||
+    keyboardOpen.value ||
+    collapsed.value ||
+    avoidVisible.value ||
+    avoidNearBottomVisible.value,
 )
 
 const label = computed(() => (previewVisible.value ? tr('回到设置 ↑') : tr('查看座位预览 ↓')))
@@ -140,6 +174,7 @@ function go() {
     :data-state="previewVisible ? 'at-preview' : 'at-settings'"
     :data-hidden="hidden ? 'true' : 'false'"
     :data-avoid-visible="avoidVisible ? 'true' : 'false'"
+    :data-avoid-near-bottom="avoidNearBottomVisible ? 'true' : 'false'"
     @click="go"
   >
     {{ label }}

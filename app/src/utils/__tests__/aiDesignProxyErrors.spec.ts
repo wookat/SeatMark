@@ -17,7 +17,7 @@ describe('proxyRejectionMessage', () => {
     expect(proxyRejectionMessage(new AiHttpError(429, 'HTTP 429'))).toContain('请稍后再试')
   })
 
-  it('其他状态与普通错误返回 null（继续走兜底接口）', () => {
+  it('其他状态与普通错误返回 null（归入「站点 AI 通道暂不可用」提示）', () => {
     expect(proxyRejectionMessage(new AiHttpError(502, 'HTTP 502'))).toBeNull()
     expect(proxyRejectionMessage(new Error('boom'))).toBeNull()
   })

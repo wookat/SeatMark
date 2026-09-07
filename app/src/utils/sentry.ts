@@ -6,7 +6,8 @@ import { telemetryPath } from '@/router'
 
 /**
  * Sentry 懒初始化：主包只带本文件（类型导入不进产物），@sentry/vue 在 app.mount 后
- * 动态 import；初始化前的 window error / unhandledrejection 先入临时队列，init 后回放。
+ * 等浏览器空闲（或首个错误事件）再动态 import；初始化前的 window error / unhandledrejection
+ * 先入临时队列，init 后回放。
  */
 
 export const SENTRY_DSN =
@@ -154,4 +155,55 @@ export async function installSentry(app: App, router: Router, deps: InstallSentr
     sentry.captureException(pending.error, hint)
   }
   return true
+}
+
+/** requestIdleCallback 最迟触发时限 / 不支持时的 setTimeout 兜底延迟（ms） */
+export const SENTRY_IDLE_TIMEOUT_MS = 3000
+
+export interface ScheduleSentryDeps extends InstallSentryDeps {
+  /** 监听 error / idle 的窗口对象（默认 window） */
+  target?: Window
+  /** 实际执行加载与初始化的函数（默认 installSentry） */
+  install?: typeof installSentry
+  /** idle 时限 / 兜底延迟（默认 SENTRY_IDLE_TIMEOUT_MS） */
+  idleTimeoutMs?: number
+}
+
+/**
+ * 把 installSentry 从「挂载后立即」推迟到「浏览器空闲」：requestIdleCallback（带 timeout 上限，
+ * 不支持时 setTimeout 兜底）或首个 window error / unhandledrejection 事件，二者先到者触发，
+ * 且只触发一次。错误本身由（先于本函数注册的）预初始化队列缓存，init 后回放，不会丢失。
+ */
+export function scheduleSentryInstall(
+  app: App,
+  router: Router,
+  deps: ScheduleSentryDeps = {},
+): Promise<boolean> {
+  const target = deps.target ?? window
+  const queue = deps.queue ?? createPreInitErrorQueue(target)
+  const install = deps.install ?? installSentry
+  const idleTimeoutMs = deps.idleTimeoutMs ?? SENTRY_IDLE_TIMEOUT_MS
+  return new Promise<boolean>((resolve) => {
+    let fired = false
+    let idleHandle: number | undefined
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const fire = () => {
+      if (fired) return
+      fired = true
+      target.removeEventListener('error', fire)
+      target.removeEventListener('unhandledrejection', fire)
+      if (idleHandle !== undefined && typeof target.cancelIdleCallback === 'function') {
+        target.cancelIdleCallback(idleHandle)
+      }
+      if (timer !== undefined) clearTimeout(timer)
+      resolve(install(app, router, { queue, load: deps.load }))
+    }
+    target.addEventListener('error', fire)
+    target.addEventListener('unhandledrejection', fire)
+    if (typeof target.requestIdleCallback === 'function') {
+      idleHandle = target.requestIdleCallback(fire, { timeout: idleTimeoutMs })
+    } else {
+      timer = setTimeout(fire, idleTimeoutMs)
+    }
+  })
 }

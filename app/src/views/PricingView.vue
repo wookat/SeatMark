@@ -215,7 +215,7 @@ async function submitReserve() {
             >
               <path d="m3.5 8.5 3 3 6-7" />
             </svg>
-            {{ feature }}
+            <span class="min-w-0 break-keep [overflow-wrap:anywhere]">{{ feature }}</span>
           </li>
         </ul>
         <p

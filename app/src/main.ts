@@ -3,7 +3,7 @@ import { createApp } from 'vue'
 
 import App from '@/App.vue'
 import { router } from '@/router'
-import { createPreInitErrorQueue, installSentry, SENTRY_DSN } from '@/utils/sentry'
+import { createPreInitErrorQueue, scheduleSentryInstall, SENTRY_DSN } from '@/utils/sentry'
 
 import '@/assets/main.css'
 import '@/assets/fonts-plangothic.css'
@@ -19,9 +19,10 @@ app.use(createPinia()).use(router)
 // 不会出现「挂载清空 DOM → 路由 chunk 到达前正文空白」的窗口
 router.isReady().then(() => {
   app.mount('#app')
-  // @sentry/vue 在挂载后才动态加载，首屏主包不再携带 SDK；传入的正是上面已挂载的同一 app
+  // @sentry/vue 在挂载后等浏览器空闲（或首个错误事件）才动态加载，首屏主包与首屏带宽都不再携带 SDK；
+  // 传入的正是上面已挂载的同一 app
   if (preInitErrors) {
-    void installSentry(app, router, { queue: preInitErrors })
+    void scheduleSentryInstall(app, router, { queue: preInitErrors })
   }
 })
 
