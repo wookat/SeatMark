@@ -26,6 +26,8 @@ export interface PreInitErrorQueue {
   drain(): PendingError[]
   /** 解绑监听；init 成功后由 Sentry 自身的全局处理器接管 */
   dispose(): void
+  /** 当前已缓存的错误条数 */
+  size(): number
 }
 
 export function createPreInitErrorQueue(target: Window, max = 20): PreInitErrorQueue {
@@ -47,6 +49,9 @@ export function createPreInitErrorQueue(target: Window, max = 20): PreInitErrorQ
     dispose() {
       target.removeEventListener('error', onError)
       target.removeEventListener('unhandledrejection', onRejection)
+    },
+    size() {
+      return pending.length
     },
   }
 }
@@ -170,9 +175,10 @@ export interface ScheduleSentryDeps extends InstallSentryDeps {
 }
 
 /**
- * 把 installSentry 从「挂载后立即」推迟到「浏览器空闲」：requestIdleCallback（带 timeout 上限，
- * 不支持时 setTimeout 兜底）或首个 window error / unhandledrejection 事件，二者先到者触发，
- * 且只触发一次。错误本身由（先于本函数注册的）预初始化队列缓存，init 后回放，不会丢失。
+ * 把 installSentry 从「挂载后立即」推迟到「浏览器空闲」：等 window load（首屏资源都拿到）之后
+ * requestIdleCallback（带 timeout 上限，不支持时 setTimeout 兜底），或首个 window error /
+ * unhandledrejection 事件，二者先到者触发，且只触发一次；调度时队列里已有挂载期错误则立即触发。
+ * 错误本身由（先于本函数注册的）预初始化队列缓存，init 后回放，不会丢失。
  */
 export function scheduleSentryInstall(
   app: App,
@@ -192,18 +198,32 @@ export function scheduleSentryInstall(
       fired = true
       target.removeEventListener('error', fire)
       target.removeEventListener('unhandledrejection', fire)
+      target.removeEventListener('load', scheduleIdle)
       if (idleHandle !== undefined && typeof target.cancelIdleCallback === 'function') {
         target.cancelIdleCallback(idleHandle)
       }
       if (timer !== undefined) clearTimeout(timer)
       resolve(install(app, router, { queue, load: deps.load }))
     }
+    function scheduleIdle() {
+      if (fired) return
+      if (typeof target.requestIdleCallback === 'function') {
+        idleHandle = target.requestIdleCallback(fire, { timeout: idleTimeoutMs })
+      } else {
+        timer = setTimeout(fire, idleTimeoutMs)
+      }
+    }
     target.addEventListener('error', fire)
     target.addEventListener('unhandledrejection', fire)
-    if (typeof target.requestIdleCallback === 'function') {
-      idleHandle = target.requestIdleCallback(fire, { timeout: idleTimeoutMs })
+    if (queue.size() > 0) {
+      fire()
+      return
+    }
+    const doc: Document | undefined = target.document
+    if (doc && doc.readyState !== 'complete') {
+      target.addEventListener('load', scheduleIdle, { once: true })
     } else {
-      timer = setTimeout(fire, idleTimeoutMs)
+      scheduleIdle()
     }
   })
 }

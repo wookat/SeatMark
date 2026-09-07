@@ -215,4 +215,53 @@ describe('第 357 轮：scheduleSentryInstall 推迟到 idle / 首个错误事�
     vi.advanceTimersByTime(10_000)
     expect(install).toHaveBeenCalledTimes(1)
   })
+
+  it('调度时队列里已有挂载期错误：不等 idle，立即调用一次', () => {
+    const target = makeTarget(true)
+    const { app, router } = makeApp()
+    const queue = actual.createPreInitErrorQueue(target)
+    const boom = new Error('during-mount')
+    target.dispatchEvent(new ErrorEvent('error', { error: boom, message: 'during-mount' }))
+    expect(queue.size()).toBe(1)
+    const install = vi.fn<typeof actual.installSentry>(async () => true)
+    void actual.scheduleSentryInstall(app, router, { target, install, queue })
+    expect(install).toHaveBeenCalledTimes(1)
+    expect(idleCallbacks).toHaveLength(0)
+    expect(queue.drain().map((p) => p.error)).toEqual([boom])
+  })
+
+  it('文档尚未 load 完成：先等 window load 再 requestIdleCallback；期间 error 仍立即触发', () => {
+    const target = makeTarget(true) as Window & { document: Document }
+    Object.defineProperty(target, 'document', { value: { readyState: 'interactive' }, configurable: true })
+    const { app, router } = makeApp()
+    const install = vi.fn<typeof actual.installSentry>(async () => true)
+    void actual.scheduleSentryInstall(app, router, { target, install })
+    expect(idleCallbacks).toHaveLength(0)
+    target.dispatchEvent(new Event('load'))
+    expect(idleCallbacks).toHaveLength(1)
+    expect(install).not.toHaveBeenCalled()
+    idleCallbacks[0]!.cb({ didTimeout: false, timeRemaining: () => 50 })
+    expect(install).toHaveBeenCalledTimes(1)
+
+    // 另一份：load 前就出错 → 立即装，load 到来后也不再注册 idle
+    idleCallbacks = []
+    const target2 = makeTarget(true) as Window & { document: Document }
+    Object.defineProperty(target2, 'document', { value: { readyState: 'loading' }, configurable: true })
+    const install2 = vi.fn<typeof actual.installSentry>(async () => true)
+    void actual.scheduleSentryInstall(app, router, { target: target2, install: install2 })
+    target2.dispatchEvent(new ErrorEvent('error', { message: 'pre-load' }))
+    expect(install2).toHaveBeenCalledTimes(1)
+    target2.dispatchEvent(new Event('load'))
+    expect(idleCallbacks).toHaveLength(0)
+    expect(install2).toHaveBeenCalledTimes(1)
+  })
+
+  it('文档已 load 完成（readyState complete）：直接 requestIdleCallback', () => {
+    const target = makeTarget(true) as Window & { document: Document }
+    Object.defineProperty(target, 'document', { value: { readyState: 'complete' }, configurable: true })
+    const { app, router } = makeApp()
+    const install = vi.fn<typeof actual.installSentry>(async () => true)
+    void actual.scheduleSentryInstall(app, router, { target, install })
+    expect(idleCallbacks).toHaveLength(1)
+  })
 })
