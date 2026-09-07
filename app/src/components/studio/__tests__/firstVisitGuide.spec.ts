@@ -102,7 +102,9 @@ describe('第 346 轮：FirstVisitGuide compact 折叠态', () => {
   it('en：折叠态文案为英文', async () => {
     await setLocale('en')
     const wrapper = mount(FirstVisitGuide, { props: { compact: true } })
-    expect(wrapper.text()).toContain('Getting-started guide (4 steps)')
+    // 第 355 轮：390px 下胶囊不再截断为「Getting-started gu…」，英文改短为「Guide ▸」
+    expect(wrapper.text()).toContain('Guide')
+    expect(wrapper.text()).not.toContain('Getting-started')
     expect(wrapper.text()).not.toMatch(CJK)
   })
 })

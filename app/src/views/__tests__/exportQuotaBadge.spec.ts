@@ -56,13 +56,19 @@ describe('导出按钮额度角标（/seating 与 /banquet）', () => {
     expect(seatingBadge.exists()).toBe(true)
     expect(seatingBadge.text()).toBe(`今日剩余 ${QUOTA_ANON_DAILY} 次`)
     expect(seatingBadge.classes()).toContain('bg-emerald-100')
-    // 角标不改变按钮自身文案
-    expect(seating.find('[data-testid="seating-export-png"]').text()).toBe('导出 PNG')
+    // 第 355 轮：额度文字改为按钮内联次要文字（不再绝对定位骑压按钮边缘）
+    const seatingBtn = seating.find('[data-testid="seating-export-png"]')
+    expect(seatingBtn.text()).toBe(`导出 PNG 今日剩余 ${QUOTA_ANON_DAILY} 次`)
+    expect(seatingBtn.element.contains(seatingBadge.element)).toBe(true)
+    expect(seatingBadge.classes()).not.toContain('absolute')
 
     const banquet = await mountView(BanquetView, '/banquet')
     const banquetBadge = banquet.find('[data-testid="export-quota-badge"]')
     expect(banquetBadge.text()).toBe(seatingBadge.text())
-    expect(banquet.find('[data-testid="banquet-export-png"]').text()).toBe('导出高清 PNG')
+    const banquetBtn = banquet.find('[data-testid="banquet-export-png"]')
+    expect(banquetBtn.text()).toBe(`导出高清 PNG 今日剩余 ${QUOTA_ANON_DAILY} 次`)
+    expect(banquetBtn.element.contains(banquetBadge.element)).toBe(true)
+    expect(banquetBadge.classes()).not.toContain('absolute')
     seating.unmount()
     banquet.unmount()
   })

@@ -40,7 +40,7 @@ export const lifeTemplates: LabelTemplate[] = [
     accent: '#0369a1',
     sampleData: {
       bedNo: '12 床',
-      name: '許長安',
+      name: '胡军',
       doctor: '程医生',
       nurse: '苏护士',
       careLevel: '二级护理',
@@ -63,7 +63,7 @@ export const lifeTemplates: LabelTemplate[] = [
         background: '#e0f2fe',
         radius: 1,
       }),
-      text('name', '姓名', { x: 28, y: 5, width: 58, height: 13 }, '許長安', {
+      text('name', '姓名', { x: 28, y: 5, width: 58, height: 13 }, '胡军', {
         fontSize: 14,
         fontWeight: 'bold',
         align: 'left',
@@ -254,7 +254,7 @@ export const lifeTemplates: LabelTemplate[] = [
     description: '2 列 × 5 行，窗口号色块 + 经办人姓名工号与办理事项，政务大厅亮明身份规范服务。',
     scenario: '政务窗口岗位',
     accent: '#b91c1c',
-    sampleData: { windowNo: '06', name: '温良玉', staffNo: '工号 0312', service: '社保 · 医保业务' },
+    sampleData: { windowNo: '06', name: '周海燕', staffNo: '工号 0312', service: '社保 · 医保业务' },
     label: plainLabel(90, 48, '#7f1d1d'),
     page: gridPage('A4', 2, 5, 90, 48, 8, 6),
     fields: [
@@ -278,7 +278,7 @@ export const lifeTemplates: LabelTemplate[] = [
         align: 'left',
       }),
       hairline('rule', { x: 30.5, y: 19.5, width: 55, height: 0.22 }),
-      text('name', '经办人', { x: 30, y: 22.5, width: 56, height: 9 }, '温良玉', {
+      text('name', '经办人', { x: 30, y: 22.5, width: 56, height: 9 }, '周海燕', {
         caption: '经办人',
         fontSize: 8.5,
         align: 'left',
@@ -333,7 +333,7 @@ export const lifeTemplates: LabelTemplate[] = [
     scenario: '岗位公示 / 服务监督',
     accent: '#0e7490',
     sampleData: {
-      name: '桑云野',
+      name: '吴霞',
       post: '大堂服务岗',
       staffNo: 'NO.2088',
       phone: '0571-8800-1234',
@@ -361,7 +361,7 @@ export const lifeTemplates: LabelTemplate[] = [
         borderWidth: 0.2,
         borderColor: '#94a3b8',
       },
-      text('name', '姓名', { x: 33, y: 10, width: 53, height: 11 }, '桑云野', {
+      text('name', '姓名', { x: 33, y: 10, width: 53, height: 11 }, '吴霞', {
         fontSize: 12,
         fontWeight: 'bold',
         align: 'left',
@@ -429,7 +429,7 @@ export const lifeTemplates: LabelTemplate[] = [
     description: '3 列 × 8 行圆角贴，「访客」色块 + 姓名与到访对象/有效时段，前台登记即打即贴。',
     scenario: '前台访客登记',
     accent: '#d97706',
-    sampleData: { name: '路远舟', host: '市场部 王经理', valid: '5 月 20 日 14:00–18:00' },
+    sampleData: { name: '杨帆', host: '市场部 王经理', valid: '5 月 20 日 14:00–18:00' },
     label: { width: 60, height: 32, radius: 2.5, borderWidth: 0.35, borderColor: '#d97706', background: '#ffffff' },
     page: gridPage('A4', 3, 8, 60, 32, 4, 2.8),
     fields: [
@@ -449,7 +449,7 @@ export const lifeTemplates: LabelTemplate[] = [
         letterSpacing: 0.2,
         background: 'transparent',
       }),
-      text('name', '姓名', { x: 17, y: 3.5, width: 40, height: 10 }, '路远舟', {
+      text('name', '姓名', { x: 17, y: 3.5, width: 40, height: 10 }, '杨帆', {
         fontSize: 10.5,
         fontWeight: 'bold',
         align: 'left',

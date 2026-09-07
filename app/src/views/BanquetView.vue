@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 import MobilePreviewJump from '@/components/MobilePreviewJump.vue'
 import NextStepBar, { type NextStep } from '@/components/NextStepBar.vue'
@@ -26,6 +27,7 @@ import {
   BANQUET_STATE_KEY,
   explainSplit,
   type SplitExplanation,
+  buildBanquetHandoffRows,
   buildGuestQuickReference,
   buildVenuePreset,
   countAssignedGuests,
@@ -63,7 +65,9 @@ import { setPrintPageSize } from '@/utils/paper'
 import { downloadBlob, exportPagedPng, sanitizeFileNamePart } from '@/utils/pngExport'
 import { printAndWaitUntilDone } from '@/utils/printing'
 import { defaultPdfFileName, exportPagedPdf } from '@/utils/pdfExport'
+import { SEATING_HANDOFF_KEY, type SeatingHandoff } from '@/utils/seating'
 
+const router = useRouter()
 const toast = useToastStore()
 useStickyActions()
 const quota = useQuotaStore()
@@ -1128,6 +1132,29 @@ function tableGuests(t: BanquetTable): BanquetGuest[] {
 
 const guestCount = computed(() => guests.value.filter((g) => g.name.trim()).length)
 const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 0))
+
+// ---------- 一键生成席位卡 / 桌号牌（同一份名单带到 /studio，仍全部本地） ----------
+const handoffRows = computed(() => buildBanquetHandoffRows(guests.value, tables.value, groups.value))
+const canHandoff = computed(() => handoffRows.value.length > 0)
+
+function toPlaceCards() {
+  if (!canHandoff.value) {
+    toast.warning(tr('还没有已安排的宾客'), tr('先在第 3 步一键自动分配或拖拽安排宾客，再生成席位卡'))
+    return
+  }
+  const handoff: SeatingHandoff = {
+    title: title.value,
+    source: 'banquet',
+    rows: handoffRows.value,
+  }
+  try {
+    localStorage.setItem(SEATING_HANDOFF_KEY, JSON.stringify(handoff))
+  } catch {
+    toast.danger(tr('无法暂存名单'), tr('浏览器存储不可用，请改用 Excel 上传方式'))
+    return
+  }
+  void router.push(localePath('/studio?from=banquet'))
+}
 </script>
 
 <template>
@@ -1503,24 +1530,21 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             </div>
           </div>
           <div class="mt-3 flex flex-col gap-2">
-            <div class="relative flex">
-              <button
-                type="button"
-                class="btn btn-primary btn-md flex-1"
-                :disabled="exporting"
-                :title="exportBadgeTitle"
-                data-testid="banquet-export-png"
-                @click="startExport('png')"
-              >
-                {{ exporting ? tr('导出中…') : tr('导出高清 PNG') }}
-              </button>
+            <button
+              type="button"
+              class="btn btn-primary btn-md"
+              :disabled="exporting"
+              :title="exportBadgeTitle"
+              data-testid="banquet-export-png"
+              @click="startExport('png')"
+            >
+              {{ exporting ? tr('导出中…') : tr('导出高清 PNG') }}
               <span
-                class="pointer-events-none absolute -top-2.5 right-0 rounded-full px-1.5 py-px text-[9px] font-bold ring-1 ring-white"
+                class="ml-1 rounded-full px-1.5 py-px text-[10px] font-semibold"
                 :class="exportBadge.cls"
-                :title="exportBadgeTitle"
                 data-testid="export-quota-badge"
               >{{ exportBadge.text }}</span>
-            </div>
+            </button>
             <button
               type="button"
               class="btn btn-secondary btn-md"
@@ -1555,6 +1579,26 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
               </div>
               <p class="mt-1.5 text-xs leading-5 text-slate-500">
                 {{ tr('速查表为 A4 纵向：前半按姓名拼音索引「姓名 → 桌名」，后半按桌列名单，方便签到台快速查桌。') }}
+              </p>
+            </div>
+            <div class="mt-1 border-t border-slate-100 pt-3">
+              <p class="text-xs font-bold text-slate-700">{{ tr('席位卡 / 桌号牌') }}</p>
+              <button
+                type="button"
+                class="btn btn-secondary btn-sm mt-2 w-full"
+                :disabled="!canHandoff"
+                :title="canHandoff ? '' : tr('先在第 3 步安排宾客，再生成席位卡')"
+                data-testid="banquet-place-cards"
+                @click="toPlaceCards"
+              >
+                {{ tr('一键生成席位卡 / 桌号牌') }}
+              </button>
+              <p class="mt-1.5 text-xs leading-5 text-slate-500">
+                {{
+                  canHandoff
+                    ? `${tr('已安排')} ${handoffRows.length} ${tr('位宾客的姓名与桌号会带到座签工坊，选席位卡模板即可批量导出；名单仍不出浏览器。')}`
+                    : tr('安排宾客后可用：姓名与桌号直接带到座签工坊生成席位卡，不用二次录入。')
+                }}
               </p>
             </div>
           </div>
@@ -2306,7 +2350,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
       :quota-badge="exportBadge"
       :quota-badge-title="exportBadgeTitle"
     />
-    <MobilePreviewJump :preview="canvasContainer" :settings="rosterSection" />
+    <MobilePreviewJump :preview="canvasContainer" :settings="rosterSection" :avoid="pasteInput" />
   </div>
 </template>
 

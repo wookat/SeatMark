@@ -49,7 +49,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '180×90 mm 桌牌，单侧粗黑竖线 + 底部细线收边，极简黑白任何打印机零损失。',
     scenario: '极简风会议桌牌',
     accent: '#111827',
-    sampleData: { name: '费临舟', org: '临舟设计事务所', title: '创始合伙人' },
+    sampleData: { name: '吴建平', org: '远见设计事务所', title: '创始合伙人' },
     label: decorLabel(
       180,
       90,
@@ -63,13 +63,13 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     ),
     page: gridPage('A4', 1, 3, 180, 90, 0, 5),
     fields: [
-      text('org', '单位', { x: 22, y: 16, width: 148, height: 9 }, '临舟设计事务所', {
+      text('org', '单位', { x: 22, y: 16, width: 148, height: 9 }, '远见设计事务所', {
         fontSize: 10,
         color: INK_MUTED,
         align: 'left',
         letterSpacing: 0.1,
       }),
-      text('name', '姓名', { x: 22, y: 30, width: 148, height: 32 }, '费临舟', {
+      text('name', '姓名', { x: 22, y: 30, width: 148, height: 32 }, '吴建平', {
         fontSize: 42,
         fontWeight: 'bold',
         align: 'left',
@@ -92,7 +92,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '60×32 mm 一页 24 枚，右侧黑块反白座位号 + 左侧信息列，黑白打印锐利醒目。',
     scenario: '极简风考场座签',
     accent: '#111827',
-    sampleData: { seatNo: '18', name: '宁远舟', room: '第 03 考场' },
+    sampleData: { seatNo: '18', name: '孙晓东', room: '第 03 考场' },
     label: decorLabel(
       60,
       32,
@@ -105,7 +105,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     ),
     page: gridPage('A4', 3, 8, 60, 32, 4, 4),
     fields: [
-      text('name', '姓名', { x: 3, y: 4, width: 36, height: 13 }, '宁远舟', {
+      text('name', '姓名', { x: 3, y: 4, width: 36, height: 13 }, '孙晓东', {
         fontSize: 12.5,
         fontWeight: 'bold',
         align: 'left',
@@ -131,7 +131,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '90×45 mm 一页 10 枚，四角极细角标框住大字姓名，克制留白出版物气质。',
     scenario: '极简风课桌姓名贴',
     accent: '#111827',
-    sampleData: { name: '苏晚晴', className: '高二（6）班' },
+    sampleData: { name: '李娜', className: '高二（6）班' },
     label: decorLabel(
       90,
       45,
@@ -145,7 +145,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     ),
     page: gridPage('A4', 2, 5, 90, 45, 6, 5),
     fields: [
-      text('name', '姓名', { x: 10, y: 8, width: 70, height: 22 }, '苏晚晴', {
+      text('name', '姓名', { x: 10, y: 8, width: 70, height: 22 }, '李娜', {
         fontSize: 26,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -166,7 +166,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '180×90 mm 桌牌，藏青色底带金色细线收边，姓名反白大字，政企商务稳重大气。',
     scenario: '商务深蓝会议桌牌',
     accent: '#1e3a5f',
-    sampleData: { name: '霍云峥', org: '华瀚控股集团', title: '副总裁' },
+    sampleData: { name: '徐强', org: '华瀚控股集团', title: '副总裁' },
     label: decorLabel(
       180,
       90,
@@ -186,7 +186,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
         color: '#c9d6e8',
         letterSpacing: 0.15,
       }),
-      text('name', '姓名', { x: 15, y: 29, width: 150, height: 32 }, '霍云峥', {
+      text('name', '姓名', { x: 15, y: 29, width: 150, height: 32 }, '徐强', {
         fontSize: 42,
         fontWeight: 'bold',
         color: '#ffffff',
@@ -208,7 +208,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '90×55 mm 胸牌，藏青顶带 + 金线分隔，姓名大字与单位职务分层，别针挂绳皆宜。',
     scenario: '商务深蓝参会证',
     accent: '#1e3a5f',
-    sampleData: { name: '祁明萱', org: '中环资本', role: '嘉宾 GUEST' },
+    sampleData: { name: '徐文娟', org: '中环资本', role: '嘉宾 GUEST' },
     label: decorLabel(
       90,
       55,
@@ -228,7 +228,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
         color: '#ffffff',
         letterSpacing: 0.25,
       }),
-      text('name', '姓名', { x: 5, y: 19, width: 80, height: 18 }, '祁明萱', {
+      text('name', '姓名', { x: 5, y: 19, width: 80, height: 18 }, '徐文娟', {
         fontSize: 20,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -247,7 +247,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '140×90 mm 台签，深蓝底金色双线框，讲者姓名与议程角色反白居中，讲台庄重压场。',
     scenario: '商务深蓝讲台台签',
     accent: '#1e3a5f',
-    sampleData: { name: '温子昂', topic: '宏观经济与资产配置展望' },
+    sampleData: { name: '宋健', topic: '宏观经济与资产配置展望' },
     label: decorLabel(
       140,
       90,
@@ -261,7 +261,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     ),
     page: gridPage('A4', 1, 3, 140, 90, 0, 8),
     fields: [
-      text('name', '讲者', { x: 12, y: 22, width: 116, height: 26 }, '温子昂', {
+      text('name', '讲者', { x: 12, y: 22, width: 116, height: 26 }, '宋健', {
         caption: '主讲人',
         fontSize: 25,
         fontWeight: 'bold',
@@ -283,7 +283,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '90×55 mm 席位卡，朱红底鎏金双线与回纹角饰，宾客姓名金字，中式婚礼喜庆隆重。',
     scenario: '中式婚礼席位卡',
     accent: '#9f1239',
-    sampleData: { name: '陆呈之 先生', tableNo: '第 6 桌' },
+    sampleData: { name: '张伟 先生', tableNo: '第 6 桌' },
     label: decorLabel(
       90,
       55,
@@ -307,7 +307,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
         color: '#e7c873',
         letterSpacing: 0.3,
       }),
-      text('name', '姓名', { x: 10, y: 20, width: 70, height: 18 }, '陆呈之 先生', {
+      text('name', '姓名', { x: 10, y: 20, width: 70, height: 18 }, '张伟 先生', {
         fontSize: 17,
         fontWeight: 'bold',
         color: '#ffffff',
@@ -364,7 +364,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '180×90 mm 年会桌牌，白底朱红宽边与鎏金内线，姓名墨字部门红字，年会颁奖两相宜。',
     scenario: '中式红金年会桌牌',
     accent: '#b91c1c',
-    sampleData: { name: '安若飞', dept: '销售一部 · 年度冠军团队' },
+    sampleData: { name: '张建华', dept: '销售一部 · 年度冠军团队' },
     label: decorLabel(
       180,
       90,
@@ -381,7 +381,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     ),
     page: gridPage('A4', 1, 3, 180, 90, 0, 5),
     fields: [
-      text('name', '姓名', { x: 15, y: 22, width: 150, height: 34 }, '安若飞', {
+      text('name', '姓名', { x: 15, y: 22, width: 150, height: 34 }, '张建华', {
         fontSize: 44,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -599,7 +599,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '180×90 mm 桌牌，深空底青紫极光斜切光带，姓名反白大字，新品发布会未来感十足。',
     scenario: '科技渐变发布会桌牌',
     accent: '#0ea5e9',
-    sampleData: { name: '钟无衍', org: '深流科技 DeepFlow', title: '首席产品官' },
+    sampleData: { name: '马超', org: '深流科技 DeepFlow', title: '首席产品官' },
     label: decorLabel(
       180,
       90,
@@ -620,7 +620,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
         color: '#7dd3fc',
         letterSpacing: 0.2,
       }),
-      text('name', '姓名', { x: 15, y: 28, width: 150, height: 33 }, '钟无衍', {
+      text('name', '姓名', { x: 15, y: 28, width: 150, height: 33 }, '马超', {
         fontSize: 43,
         fontWeight: 'bold',
         color: '#ffffff',
@@ -683,7 +683,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '90×55 mm 参会证，深空底渐变光带过肩，姓名反白 + 单位与类别，科技峰会统一视觉。',
     scenario: '科技渐变参会证',
     accent: '#0ea5e9',
-    sampleData: { name: '路远歌', org: 'AI Infra 大会', role: '开发者 DEV' },
+    sampleData: { name: '高翔', org: 'AI Infra 大会', role: '开发者 DEV' },
     label: decorLabel(
       90,
       55,
@@ -705,7 +705,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
         align: 'left',
         letterSpacing: 0.3,
       }),
-      text('name', '姓名', { x: 5, y: 20, width: 80, height: 17 }, '路远歌', {
+      text('name', '姓名', { x: 5, y: 20, width: 80, height: 17 }, '高翔', {
         fontSize: 19,
         fontWeight: 'bold',
         color: '#ffffff',
@@ -800,7 +800,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '90×60 mm 寄语卡，信纸横线 + 邮票角饰，老师给学生的期末寄语一人一句暖心话。',
     scenario: '手写风寄语卡片',
     accent: '#f59e0b',
-    sampleData: { name: '致 江晓白', message: '愿你眼里有光，脚下有路，一路生花。', from: '—— 班主任 林老师' },
+    sampleData: { name: '致 李秀英', message: '愿你眼里有光，脚下有路，一路生花。', from: '—— 班主任 林老师' },
     label: decorLabel(
       90,
       60,
@@ -815,7 +815,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     ),
     page: gridPage('A4', 2, 4, 90, 60, 8, 6),
     fields: [
-      text('name', '收信人', { x: 8, y: 7, width: 62, height: 10 }, '致 江晓白', {
+      text('name', '收信人', { x: 8, y: 7, width: 62, height: 10 }, '致 李秀英', {
         fontSize: 11,
         fontWeight: 'bold',
         color: '#92400e',
@@ -845,7 +845,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '180×90 mm 席签，米色底双线花框与桂枝角饰，获奖人姓名大字 + 奖项名，颁奖台上一眼认人。',
     scenario: '复古证书风颁奖席',
     accent: '#8a6d3b',
-    sampleData: { name: '穆清和', award: '年度杰出贡献奖' },
+    sampleData: { name: '孙丽', award: '年度杰出贡献奖' },
     label: decorLabel(
       180,
       90,
@@ -867,7 +867,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
         color: '#8a6d3b',
         letterSpacing: 0.4,
       }),
-      text('name', '姓名', { x: 25, y: 26, width: 130, height: 32 }, '穆清和', {
+      text('name', '姓名', { x: 25, y: 26, width: 130, height: 32 }, '孙丽', {
         fontSize: 40,
         fontWeight: 'bold',
         color: '#3f3222',
@@ -889,7 +889,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '140×90 mm 桌牌，牛皮纸色绶带徽章角饰 + 细线框，表彰会先进个人桌牌沉稳有分量。',
     scenario: '复古证书风表彰会',
     accent: '#8a6d3b',
-    sampleData: { name: '柏景行', honor: '三十年工龄 · 匠心传承奖' },
+    sampleData: { name: '王建国', honor: '三十年工龄 · 匠心传承奖' },
     label: decorLabel(
       140,
       90,
@@ -905,7 +905,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     ),
     page: gridPage('A4', 1, 3, 140, 90, 0, 8),
     fields: [
-      text('name', '姓名', { x: 12, y: 24, width: 116, height: 28 }, '柏景行', {
+      text('name', '姓名', { x: 12, y: 24, width: 116, height: 28 }, '王建国', {
         fontSize: 32,
         fontWeight: 'bold',
         color: '#3f3222',
@@ -926,7 +926,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '90×55 mm 标签，米底双线框 + 中缝丝带结，获奖学生姓名与奖项，贴证书袋奖品盒。',
     scenario: '复古证书风奖品标签',
     accent: '#8a6d3b',
-    sampleData: { name: '尹初晴', award: '校园书香少年 · 一等奖' },
+    sampleData: { name: '赵晓红', award: '校园书香少年 · 一等奖' },
     label: decorLabel(
       90,
       55,
@@ -941,7 +941,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     ),
     page: gridPage('A4', 2, 4, 90, 55, 8, 6),
     fields: [
-      text('name', '姓名', { x: 10, y: 13, width: 70, height: 18 }, '尹初晴', {
+      text('name', '姓名', { x: 10, y: 13, width: 70, height: 18 }, '赵晓红', {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#3f3222',
@@ -962,7 +962,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     description: '90×55 mm 席位卡，橄榄绿枝叶线描环抱姓名，森系户外婚礼与草坪晚宴清新雅致。',
     scenario: '森系婚礼席位卡',
     accent: '#4d7c0f',
-    sampleData: { name: '阮青栀 小姐', tableNo: '橄榄桌' },
+    sampleData: { name: '孙丽 小姐', tableNo: '橄榄桌' },
     label: decorLabel(
       90,
       55,
@@ -978,7 +978,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     ),
     page: gridPage('A4', 2, 4, 90, 55, 8, 6),
     fields: [
-      text('name', '姓名', { x: 10, y: 17, width: 70, height: 17 }, '阮青栀 小姐', {
+      text('name', '姓名', { x: 10, y: 17, width: 70, height: 17 }, '孙丽 小姐', {
         fontSize: 15,
         fontWeight: 'bold',
         color: '#365314',

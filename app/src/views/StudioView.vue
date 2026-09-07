@@ -240,6 +240,30 @@ onMounted(() => {
       }
     }
   }
+  // 从宴会排桌一键带入已安排宾客的姓名 + 桌号，默认用婚礼席位卡模板
+  if (route.query.from === 'banquet') {
+    const handoff = takeSeatingHandoff()
+    if (handoff) {
+      workspace.applyDataset(
+        `${handoff.title || t('宴会座位表')}.${t('名单')}`,
+        Object.keys(handoff.rows[0]!),
+        handoff.rows,
+      )
+      // 当前模板对不上「姓名 + 桌号」两列（如上次用的是考场 / 证卡类模板）时切到婚礼席位卡
+      const mappedHeaders = new Set(Object.values(workspace.mapping))
+      if (!(workspace.mapping.name && mappedHeaders.has('桌号'))) {
+        const place = library.findById('weddingPlace')
+        if (place) {
+          workspace.selectTemplate(place, { silent: true })
+          toast.info(t('已切换到婚礼席位卡模板'), t('姓名与桌号已自动对应；可在「模板」中更换其他宴会款式'))
+        }
+      }
+      toast.success(
+        t('排桌名单已带入'),
+        t('共 {n} 位已安排宾客，选好模板即可批量生成席位卡').replace('{n}', String(handoff.rows.length)),
+      )
+    }
+  }
   // 从主页「从空白新建模板」进入时直接打开设计器
   if (route.query.design === 'new') {
     openDesigner(null)
@@ -297,6 +321,17 @@ onMounted(() => {
         <TemplatePickerPanel :scene="initialScene" @open-designer="openDesigner" />
         <DataImportPanel />
         <MappingPanel v-if="workspace.excel.rows.length" />
+        <section
+          v-else
+          class="panel-card border-dashed bg-slate-50/60 py-3 shadow-none"
+          aria-disabled="true"
+          data-testid="mapping-placeholder"
+        >
+          <h2 class="section-title text-slate-500">
+            <span class="step-chip bg-slate-300">3</span>{{ t('字段映射') }}
+            <span class="text-xs font-normal text-slate-500">· {{ t('导入名单后出现') }}</span>
+          </h2>
+        </section>
         <LayoutPanel @open-designer="openDesigner" />
       </aside>
 

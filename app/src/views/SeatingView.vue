@@ -27,6 +27,7 @@ import {
   buildSeatGrid,
   buildSeats,
   dedupeSeatingEntries,
+  findSeatsByName,
   interleaveByGender,
   parseSeatingRosterDetailed,
   SEATING_HANDOFF_KEY,
@@ -470,6 +471,46 @@ watchEffect(() => {
   setPrintPageSize(SHEET_W, SHEET_H)
 })
 
+// ---------- 查找学生（口径同 /banquet 宾客搜索：≥ 1 字即时匹配，重名多命中） ----------
+const findQuery = ref('')
+const findInput = ref<HTMLInputElement | null>(null)
+const findHits = computed(() => findSeatsByName(seats.value, findQuery.value))
+const findHitSeatNos = computed(() => new Set(findHits.value.map((s) => s.seatNo)))
+const FIND_HINT_MAX = 3
+
+function seatPositionText(seat: Seat): string {
+  return tr('第 {r} 排 第 {c} 列 · 座位号 {n}')
+    .replace('{r}', String(seat.row))
+    .replace('{c}', String(seat.col))
+    .replace('{n}', String(seat.seatNo))
+}
+
+const findHint = computed(() => {
+  if (!findQuery.value.trim()) return ''
+  const hits = findHits.value
+  if (!hits.length) return tr('未找到')
+  const parts = hits.slice(0, FIND_HINT_MAX).map((s) => `${s.name}：${seatPositionText(s)}`)
+  if (hits.length > FIND_HINT_MAX) parts.push('…')
+  const prefix = hits.length > 1 ? `${tr('命中 {n} 个座位').replace('{n}', String(hits.length))}：` : ''
+  return prefix + parts.join(tr('；'))
+})
+
+function clearFind() {
+  findQuery.value = ''
+}
+
+/** 首个命中座位滚入视口（预览容器内横向 + 页面纵向） */
+watch(
+  () => findHits.value[0]?.seatNo,
+  (seatNo) => {
+    if (seatNo == null) return
+    void nextTick(() => {
+      const el = previewContainer.value?.querySelector<HTMLElement>(`[data-seat-no="${seatNo}"]`)
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+    })
+  },
+)
+
 // ---------- 打印 ----------
 const renderHost = ref(false)
 
@@ -842,35 +883,32 @@ function toDeskLabels() {
               </svg>
               {{ tr('打印座位表（A4 横向）') }}
             </button>
-            <div class="relative flex">
-              <button
-                type="button"
-                class="btn btn-secondary btn-md flex-1"
-                :disabled="exporting"
-                :title="`${tr('当前视角的座位表存为一张 PNG 图片，方便发班群、贴进 PPT')}。${exportBadgeTitle}`"
-                data-testid="seating-export-png"
-                @click="startPngExport"
+            <button
+              type="button"
+              class="btn btn-secondary btn-md"
+              :disabled="exporting"
+              :title="`${tr('当前视角的座位表存为一张 PNG 图片，方便发班群、贴进 PPT')}。${exportBadgeTitle}`"
+              data-testid="seating-export-png"
+              @click="startPngExport"
+            >
+              <svg
+                class="size-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
               >
-                <svg
-                  class="size-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M12 4v12m0 0 5-5m-5 5-5-5M4 20h16" />
-                </svg>
-                {{ exporting ? tr('导出中…') : tr('导出 PNG') }}
-              </button>
+                <path d="M12 4v12m0 0 5-5m-5 5-5-5M4 20h16" />
+              </svg>
+              {{ exporting ? tr('导出中…') : tr('导出 PNG') }}
               <span
-                class="pointer-events-none absolute -top-2.5 right-0 rounded-full px-1.5 py-px text-[9px] font-bold ring-1 ring-white"
+                class="ml-1 rounded-full px-1.5 py-px text-[10px] font-semibold"
                 :class="exportBadge.cls"
-                :title="exportBadgeTitle"
                 data-testid="export-quota-badge"
               >{{ exportBadge.text }}</span>
-            </div>
+            </button>
             <button
               type="button"
               class="btn btn-secondary btn-md"
@@ -939,6 +977,44 @@ function toDeskLabels() {
           </div>
           <p v-if="selectedSeat != null || selectedRow != null" class="text-xs font-semibold text-brand-600">
             {{ selectedRow != null ? `${tr('已选中排')} ${selectedRow + 1}，${tr('点另一排把手交换')}` : tr('已选中座位，点另一个座位交换') }}
+          </p>
+        </div>
+        <div v-if="filledCount" class="mb-2 flex flex-wrap items-center gap-2" data-testid="seating-find">
+          <label class="sr-only" for="seating-find-input">{{ tr('查找学生') }}</label>
+          <div class="relative w-full sm:w-56">
+            <input
+              id="seating-find-input"
+              ref="findInput"
+              v-model="findQuery"
+              type="search"
+              class="input-field w-full py-1.5 pr-8 text-xs"
+              :placeholder="tr('查找学生：输姓名或拼音')"
+              autocomplete="off"
+              enterkeyhint="search"
+              data-testid="seating-find-input"
+              @keydown.esc.prevent="clearFind"
+            />
+            <button
+              v-if="findQuery"
+              type="button"
+              class="absolute top-1/2 right-1.5 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:text-slate-600"
+              :aria-label="tr('清除查找')"
+              data-testid="seating-find-clear"
+              @click="clearFind(); findInput?.focus()"
+            >
+              <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          </div>
+          <p
+            v-if="findHint"
+            class="min-w-0 flex-1 text-xs leading-5"
+            :class="findHits.length ? 'font-semibold text-amber-700' : 'text-slate-500'"
+            role="status"
+            data-testid="seating-find-hint"
+          >
+            {{ findHint }}
           </p>
         </div>
         <div
@@ -1017,6 +1093,7 @@ function toDeskLabels() {
                             'seating-seat--girl': cell.seat?.gender === '女',
                             'seating-seat--drop-target':
                               dragging && cell.seat && dropSeatTarget === cell.seat.seatNo - 1,
+                            'seating-seat--found': cell.seat && findHitSeatNos.has(cell.seat.seatNo),
                           }"
                           role="button"
                           tabindex="0"
@@ -1099,7 +1176,7 @@ function toDeskLabels() {
       :quota-badge="exportBadge"
       :quota-badge-title="exportBadgeTitle"
     />
-    <MobilePreviewJump :preview="previewContainer" :settings="basicSection" />
+    <MobilePreviewJump :preview="previewContainer" :settings="basicSection" :avoid="namesInput" />
   </div>
 </template>
 
@@ -1221,6 +1298,12 @@ function toDeskLabels() {
 }
 
 /* 鼠标拖拽时的落点高亮 */
+.seating-seat--found {
+  border-color: #d97706;
+  border-style: solid;
+  box-shadow: 0 0 0 1mm rgba(217, 119, 6, 0.35);
+  background: #fffbeb;
+}
 .seating-seat--drop-target {
   border-color: #16a34a;
   border-style: solid;

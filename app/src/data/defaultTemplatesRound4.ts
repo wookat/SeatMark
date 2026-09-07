@@ -79,7 +79,7 @@ export const round4Templates: LabelTemplate[] = [
     description: '2 列 × 6 行小券式排版，房号 + 姓名 + 用餐日期，配「凭卡用餐」提示条。',
     scenario: '酒店早餐 / 团餐券位',
     accent: '#b45309',
-    sampleData: { roomNo: '1208', name: '沈知遥', date: '8 月 13 日早餐' },
+    sampleData: { roomNo: '1208', name: '陈志强', date: '8 月 13 日早餐' },
     label: plainLabel(90, 40, '#92400e'),
     page: gridPage('A4', 2, 6, 90, 40, 8, 4),
     fields: [
@@ -96,7 +96,7 @@ export const round4Templates: LabelTemplate[] = [
         color: '#fde68a',
         background: 'transparent',
       }),
-      text('name', '姓名', { x: 30, y: 7, width: 56, height: 12 }, '沈知遥', {
+      text('name', '姓名', { x: 30, y: 7, width: 56, height: 12 }, '陈志强', {
         fontSize: 13,
         fontWeight: 'bold',
         align: 'left',
@@ -588,7 +588,7 @@ export const round4Templates: LabelTemplate[] = [
     description: '2 列 × 4 行，参赛编号 + 姓名大字与组别，宋体气质契合书法赛事氛围。',
     scenario: '书法 / 绘画比赛席位',
     accent: '#991b1b',
-    sampleData: { entryNo: '032', name: '顾砚秋', group: '少年组 · 毛笔' },
+    sampleData: { entryNo: '032', name: '杨丽华', group: '少年组 · 毛笔' },
     label: plainLabel(95, 60, '#7f1d1d'),
     page: gridPage('A4', 2, 4, 95, 60, 6, 6),
     fields: [
@@ -605,7 +605,7 @@ export const round4Templates: LabelTemplate[] = [
         color: '#fecaca',
         background: 'transparent',
       }),
-      text('name', '姓名', { x: 28, y: 10, width: 62, height: 22 }, '顾砚秋', {
+      text('name', '姓名', { x: 28, y: 10, width: 62, height: 22 }, '杨丽华', {
         fontSize: 22,
         fontWeight: 'bold',
         emphasis: 'hero',

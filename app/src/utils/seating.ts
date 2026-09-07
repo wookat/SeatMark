@@ -1,5 +1,6 @@
 import type { DataRow } from '@/types/template'
 import { parsePastedRoster } from '@/utils/excel'
+import { matchesChineseQuery } from '@/utils/pinyin'
 import { sanitizeFileNamePart } from '@/utils/pngExport'
 
 export type SeatingGender = '男' | '女'
@@ -364,11 +365,25 @@ export function seatingExportFileName(
   return `${base}-${viewMode === 'student' ? labels.student : labels.teacher}`
 }
 
-/** 座位表 → 标签工坊 一键带入名单的 localStorage 暂存键 */
+/**
+ * 查找学生：姓名包含 query（大小写不敏感）或纯字母 query 命中拼音（口径同 /banquet 宾客搜索），
+ * 按座位号升序返回全部命中（重名多命中）；空 query 或仅空白返回空数组，空座位不参与匹配。
+ */
+export function findSeatsByName(seats: readonly Seat[], query: string): Seat[] {
+  const q = query.trim()
+  if (!q) return []
+  return seats
+    .filter((s) => s.name.trim() && matchesChineseQuery(s.name, q))
+    .sort((a, b) => a.seatNo - b.seatNo)
+}
+
+/** 座位表 / 宴会排桌 → 标签工坊 一键带入名单的 localStorage 暂存键 */
 export const SEATING_HANDOFF_KEY = 'seatmark.seating-handoff.v1'
 
 export interface SeatingHandoff {
   title: string
+  /** 名单来源：教室座位表（默认）/ 宴会排桌 */
+  source?: 'seating' | 'banquet'
   /** 可选考场号：非空时每行带「考场」列（= 考场号）；为空则不带该列 */
   roomNo?: string
   rows: DataRow[]

@@ -8,6 +8,8 @@ const props = defineProps<{
   preview: HTMLElement | null
   /** 第 1 个设置区块：「回到设置 ↑」的滚动目标 */
   settings: HTMLElement | null
+  /** 名单输入区（textarea 等）：滚入视口时胶囊自动隐藏，不压住输入控件 */
+  avoid?: HTMLElement | null
 }>()
 
 /** 回到页面顶部的判定阈值（px）：低于此值恢复显示胶囊 */
@@ -36,6 +38,26 @@ function observe(el: HTMLElement | null) {
 }
 
 watch(() => props.preview, observe, { immediate: true })
+
+const avoidVisible = ref(false)
+let avoidObserver: IntersectionObserver | null = null
+
+function observeAvoid(el: HTMLElement | null | undefined) {
+  avoidObserver?.disconnect()
+  avoidObserver = null
+  avoidVisible.value = false
+  if (!el || typeof IntersectionObserver === 'undefined') return
+  avoidObserver = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[entries.length - 1]
+      if (entry) avoidVisible.value = entry.isIntersecting
+    },
+    { threshold: 0.2 },
+  )
+  avoidObserver.observe(el)
+}
+
+watch(() => props.avoid, observeAvoid, { immediate: true })
 
 /**
  * 窄屏让位逻辑：输入框聚焦 / 软键盘弹出时隐藏（避免压住输入区）；
@@ -82,13 +104,16 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   observer?.disconnect()
+  avoidObserver?.disconnect()
   document.removeEventListener('focusin', syncFocus)
   document.removeEventListener('focusout', syncFocus)
   window.removeEventListener('scroll', onScroll)
   window.visualViewport?.removeEventListener('resize', syncKeyboard)
 })
 
-const hidden = computed(() => inputFocused.value || keyboardOpen.value || collapsed.value)
+const hidden = computed(
+  () => inputFocused.value || keyboardOpen.value || collapsed.value || avoidVisible.value,
+)
 
 const label = computed(() => (previewVisible.value ? tr('回到设置 ↑') : tr('查看座位预览 ↓')))
 
@@ -107,13 +132,14 @@ function go() {
   <button
     v-if="preview"
     type="button"
-    class="no-print fixed bottom-4 left-4 z-30 inline-flex min-h-11 items-center gap-1 rounded-full border border-slate-200 bg-white/95 px-4 text-xs font-semibold text-slate-700 shadow-pop backdrop-blur transition-[opacity,transform,color,border-color] duration-200 hover:border-brand-400 hover:text-brand-600 md:hidden [.has-next-step-bar_&]:bottom-[4.25rem] [.has-sticky-actions_&]:bottom-[4.25rem]"
+    class="no-print fixed right-14 bottom-4 z-30 inline-flex min-h-11 items-center gap-1 rounded-full border border-slate-200 bg-white/95 px-4 text-xs font-semibold text-slate-700 shadow-pop backdrop-blur transition-[opacity,transform,color,border-color] duration-200 hover:border-brand-400 hover:text-brand-600 md:hidden [.has-next-step-bar_&]:bottom-[4.25rem] [.has-sticky-actions_&]:bottom-[4.25rem]"
     :class="hidden ? 'pointer-events-none translate-y-2 opacity-0' : 'translate-y-0 opacity-100'"
     :aria-hidden="hidden ? 'true' : undefined"
     :tabindex="hidden ? -1 : undefined"
     data-testid="mobile-preview-jump"
     :data-state="previewVisible ? 'at-preview' : 'at-settings'"
     :data-hidden="hidden ? 'true' : 'false'"
+    :data-avoid-visible="avoidVisible ? 'true' : 'false'"
     @click="go"
   >
     {{ label }}

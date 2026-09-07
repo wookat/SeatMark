@@ -145,3 +145,44 @@ describe('第 352 轮：Studio 手机端首屏引导默认折叠', () => {
     wrapper.unmount()
   })
 })
+
+describe('第 355 轮：Studio 侧栏步骤编号 1-2-3-4 连续', () => {
+  beforeEach(async () => {
+    vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }),
+    )
+    localStorage.clear()
+    setActivePinia(createPinia())
+    studioGuideDismissed.value = true
+    await setLocale('zh')
+  })
+
+  it('无数据时渲染折叠占位「3 字段映射 · 导入名单后出现」；导入名单后占位消失、真正的 MappingPanel 出现', async () => {
+    const wrapper = await mountStudio()
+    const placeholder = wrapper.find('[data-testid="mapping-placeholder"]')
+    expect(placeholder.exists()).toBe(true)
+    expect(placeholder.text().replace(/\s+/g, ' ')).toBe('3字段映射 · 导入名单后出现')
+    expect(placeholder.find('.step-chip').text()).toBe('3')
+    expect(wrapper.findComponent({ name: 'MappingPanel' }).exists()).toBe(false)
+
+    useWorkspaceStore().excel.rows = [{ 姓名: '张伟' }]
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[data-testid="mapping-placeholder"]').exists()).toBe(false)
+    expect(wrapper.findComponent({ name: 'MappingPanel' }).exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('en：占位文案为英文', async () => {
+    await setLocale('en')
+    const wrapper = await mountStudio()
+    const placeholder = wrapper.find('[data-testid="mapping-placeholder"]')
+    expect(placeholder.text().replace(/\s+/g, ' ')).toBe('3Field mapping · appears after you import a list')
+    wrapper.unmount()
+  })
+})
