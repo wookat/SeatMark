@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
 
 import AnnouncementBar from '@/components/ui/AnnouncementBar.vue'
 import {
@@ -22,6 +23,7 @@ function stubFetch(text = '公告') {
 
 describe('AnnouncementBar sessionStorage 会话缓存', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     sessionStorage.clear()
     localStorage.removeItem('seatmark.announcement-dismissed.v1')
   })

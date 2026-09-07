@@ -8,6 +8,11 @@ const sentinelIds = new Map<symbol, number>()
 /** 各哨兵推入时的页面地址：回收前校验路由未变，避免与导航竞态 */
 const sentinelHrefs = new Map<number, string>()
 
+/** 未触发的哨兵回收定时器句柄：卸载/触发时清理，避免测试环境 window 销毁后回调再访问 history */
+const pendingSentinelTimers = new Set<number>()
+/** 当前已挂载的弹窗实例数：最后一个卸载时才清空待回收定时器 */
+let mountedInstances = 0
+
 const SENTINEL_KEY = 'seatmarkModalSentinel'
 /** 任意弹窗打开期间标记在 <html> 上的 class：ToastHost 据此在窄屏把 toast 落到顶部，不压弹窗底部选项 */
 export const MODAL_OPEN_CLASS = 'has-modal'
@@ -71,11 +76,20 @@ function consumeSentinel(id: symbol) {
   if (typeof window === 'undefined' || serial === undefined) return
   const href = sentinelHrefs.get(serial)
   sentinelHrefs.delete(serial)
-  window.setTimeout(() => {
+  const timer = window.setTimeout(() => {
+    pendingSentinelTimers.delete(timer)
+    if (typeof window === 'undefined' || !document.defaultView) return
     if (stateSentinelId(window.history.state) !== serial) return
     if (href !== undefined && window.location.href !== href) return
     window.history.back()
   }, 50)
+  pendingSentinelTimers.add(timer)
+}
+
+function clearPendingSentinelTimers() {
+  if (typeof window === 'undefined') return
+  for (const timer of pendingSentinelTimers) window.clearTimeout(timer)
+  pendingSentinelTimers.clear()
 }
 </script>
 
@@ -173,14 +187,19 @@ watch(
   { immediate: true },
 )
 
-onMounted(() => window.addEventListener('keydown', onKeydown))
+onMounted(() => {
+  mountedInstances += 1
+  window.addEventListener('keydown', onKeydown)
+})
 onBeforeUnmount(() => {
+  mountedInstances = Math.max(0, mountedInstances - 1)
   window.removeEventListener('keydown', onKeydown)
   const idx = openStack.indexOf(instanceId)
   if (idx >= 0) openStack.splice(idx, 1)
   syncModalClass()
   closeHandlers.delete(instanceId)
   sentinelIds.delete(instanceId)
+  if (mountedInstances === 0) clearPendingSentinelTimers()
 })
 </script>
 

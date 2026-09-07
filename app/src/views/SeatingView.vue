@@ -20,7 +20,7 @@ import { useQuotaStore } from '@/stores/quota'
 import { fitScale, MM_TO_PX } from '@/utils/layout'
 import { listJoin } from '@/utils/listJoin'
 import { setPrintPageSize } from '@/utils/paper'
-import { exportPagedPng } from '@/utils/pngExport'
+import { downloadBlob, exportPagedPng, sanitizeFileNamePart } from '@/utils/pngExport'
 import { printAndWaitUntilDone } from '@/utils/printing'
 import {
   buildDisplayGrid,
@@ -40,6 +40,7 @@ import {
   type SeatingHandoff,
   type SeatingViewMode,
 } from '@/utils/seating'
+import { seatingCsvHasGender, seatingRosterCsv } from '@/utils/seatingCsv'
 
 const router = useRouter()
 const toast = useToastStore()
@@ -53,6 +54,8 @@ const SEATING_STATE_KEY = 'seatmark.seating-state.v1'
 
 interface SeatingPersistedState {
   title: string
+  /** 可选考场号：只用于 handoff 的「考场」列，不参与座位表标题 */
+  roomNo?: string
   rows: number
   cols: number
   podium: 'top' | 'none'
@@ -78,6 +81,7 @@ function loadPersistedState(): SeatingPersistedState | null {
 const persisted = loadPersistedState()
 
 const title = ref(persisted?.title ?? tr('高三（2）班 期末考试'))
+const roomNo = ref(typeof persisted?.roomNo === 'string' ? persisted.roomNo : '')
 const rows = ref(persisted?.rows ?? 6)
 const cols = ref(persisted?.cols ?? 8)
 const podium = ref<'top' | 'none'>(persisted?.podium ?? 'top')
@@ -183,11 +187,12 @@ watch([namesText, keepDuplicates], () => {
 })
 
 watch(
-  [title, rows, cols, podium, fillOrder, aisles, namesText, arranged, keepDuplicates],
+  [title, roomNo, rows, cols, podium, fillOrder, aisles, namesText, arranged, keepDuplicates],
   () => {
     try {
       const state: SeatingPersistedState = {
         title: title.value,
+        roomNo: roomNo.value,
         rows: rows.value,
         cols: cols.value,
         podium: podium.value,
@@ -567,6 +572,24 @@ async function runPngExport() {
   }
 }
 
+// ---------- 座位清单 CSV（排/列/座位号/姓名[/性别]）：全部浏览器本地生成 ----------
+function downloadRosterCsv() {
+  const filled = seats.value.filter((s) => s.name)
+  if (!filled.length) {
+    toast.warning(tr('名单为空'), tr('请先在左侧粘贴学生名单，每行一个姓名'))
+    return
+  }
+  const baseName = sanitizeFileNamePart(title.value) || tr('教室座位表')
+  const blob = new Blob([seatingRosterCsv(seats.value)], { type: 'text/csv;charset=utf-8' })
+  downloadBlob(blob, `${baseName}-${tr('座位清单')}.csv`)
+  toast.success(
+    tr('CSV 已下载'),
+    seatingCsvHasGender(seats.value)
+      ? tr('列：排 / 列 / 座位号 / 姓名 / 性别，可直接用 Excel 打开')
+      : tr('列：排 / 列 / 座位号 / 姓名，可直接用 Excel 打开'),
+  )
+}
+
 // ---------- 一键生成对应桌贴 ----------
 function toDeskLabels() {
   const filled = seats.value.filter((s) => s.name)
@@ -574,16 +597,18 @@ function toDeskLabels() {
     toast.warning(tr('名单为空'), tr('请先在左侧粘贴学生名单，每行一个姓名'))
     return
   }
+  const room = roomNo.value.trim()
   const handoff: SeatingHandoff = {
     title: title.value,
+    roomNo: room || undefined,
+    // 「考场」列只在填了考场号时存在：标准考场版的考场位显示考场号或留空，不再填整句标题
     rows: filled.map((s) => ({
       姓名: s.name,
       座位号: String(s.seatNo),
       排: String(s.row),
       列: String(s.col),
       班级: title.value,
-      // 标准考场版等考务模板的「考场」字段以此命中，自动映射不再只对上 2/4
-      考场: title.value,
+      ...(room ? { 考场: room } : {}),
     })),
   }
   try {
@@ -620,15 +645,29 @@ function toDeskLabels() {
         <section ref="basicSection" class="panel-card scroll-mt-4">
           <h2 class="section-title"><span class="step-chip">1</span>{{ tr('基本信息') }}</h2>
           <div class="mt-3 grid grid-cols-2 gap-2.5">
-            <div class="col-span-2">
-              <label class="field-label" for="seating-title">{{ tr('班级 / 考场标题') }}</label>
-              <input
-                id="seating-title"
-                v-model="title"
-                type="text"
-                class="input-field"
-                :placeholder="tr('如：高三（2）班 期末考试')"
-              />
+            <div class="col-span-2 grid grid-cols-[minmax(0,1fr)_6.5rem] gap-2.5">
+              <div class="min-w-0">
+                <label class="field-label" for="seating-title">{{ tr('班级 / 考场标题') }}</label>
+                <input
+                  id="seating-title"
+                  v-model="title"
+                  type="text"
+                  class="input-field"
+                  :placeholder="tr('如：高三（2）班 期末考试')"
+                />
+              </div>
+              <div>
+                <label class="field-label" for="seating-room-no">{{ tr('考场号') }}</label>
+                <input
+                  id="seating-room-no"
+                  v-model="roomNo"
+                  type="text"
+                  class="input-field"
+                  data-testid="seating-room-no"
+                  :placeholder="tr('选填')"
+                  :title="tr('选填：一键生成桌贴时填入模板的「考场」位，如 03')"
+                />
+              </div>
             </div>
             <div>
               <label class="field-label">{{ tr('排数（前后）') }}</label>
@@ -832,6 +871,26 @@ function toDeskLabels() {
                 data-testid="export-quota-badge"
               >{{ exportBadge.text }}</span>
             </div>
+            <button
+              type="button"
+              class="btn btn-secondary btn-md"
+              :title="tr('列：排 / 列 / 座位号 / 姓名（有性别时加性别列），空座位不输出；浏览器本地生成，不上传')"
+              data-testid="seating-roster-csv"
+              @click="downloadRosterCsv"
+            >
+              <svg
+                class="size-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M4 4h10l6 6v10H4zM14 4v6h6M8 14h8M8 18h8" />
+              </svg>
+              {{ tr('导出座位清单 .csv') }}
+            </button>
             <button type="button" class="btn btn-secondary btn-md" @click="toDeskLabels">
               <svg
                 class="size-4"

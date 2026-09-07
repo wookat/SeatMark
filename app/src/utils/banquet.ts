@@ -1,6 +1,6 @@
 import { currentLocale, t } from '@/i18n'
 import { uid } from '@/utils/id'
-import { comparePinyin } from '@/utils/pinyin'
+import { comparePinyin, matchesChineseQuery } from '@/utils/pinyin'
 
 /** 宴会座位表本地持久化 key（口径同 SeatingView 的 seatmark.seating-state.v1） */
 export const BANQUET_STATE_KEY = 'seatmark.banquet-state.v1'
@@ -32,6 +32,8 @@ export interface BanquetTable {
   height: number
   seats: number
   guestIds: string[]
+  /** 已锁定：自动分配不动这桌及其已就座宾客 */
+  locked?: boolean
 }
 
 export type MarkerKind = 'entrance' | 'stage' | 'dance'
@@ -449,6 +451,31 @@ export function buildVenuePreset(preset: VenuePresetId): BanquetTable[] {
  */
 export type AssignStrategy = 'keep-groups' | 'fill-tables'
 
+export interface AutoAssignOptions {
+  /** 默认 true：锁定桌保持原样，其已就座宾客不进待分配集合 */
+  respectLocked?: boolean
+}
+
+/** 命中搜索的宾客及所在桌（tableId 为 null = 未安排） */
+export interface GuestSearchHit {
+  guest: BanquetGuest
+  tableId: string | null
+}
+
+/** 按姓名 / 拼音首字母检索宾客（query 为空返回空），保持名单顺序 */
+export function searchGuests(
+  guests: BanquetGuest[],
+  tables: BanquetTable[],
+  query: string,
+): GuestSearchHit[] {
+  if (!query.trim()) return []
+  const tableOf = new Map<string, string>()
+  for (const t of tables) for (const id of t.guestIds) tableOf.set(id, t.id)
+  return guests
+    .filter((g) => matchesChineseQuery(g.name, query))
+    .map((g) => ({ guest: g, tableId: tableOf.get(g.id) ?? null }))
+}
+
 /** 按分组聚合宾客：大组优先（稳定），未分组永远最后，组内保持名单顺序 */
 function groupGuestsForAssign(guests: BanquetGuest[]): Array<[string, BanquetGuest[]]> {
   const byGroup = new Map<string, BanquetGuest[]>()
@@ -475,11 +502,24 @@ function groupGuestsForAssign(guests: BanquetGuest[]): Array<[string, BanquetGue
  */
 export function autoAssignGuests(
   guests: BanquetGuest[],
-  tables: BanquetTable[],
+  allTables: BanquetTable[],
   strategy: AssignStrategy = 'keep-groups',
+  opts: AutoAssignOptions = {},
 ): Map<string, string[]> {
-  const groupsSorted = groupGuestsForAssign(guests)
-  const assigned = new Map<string, string[]>(tables.map((t) => [t.id, []]))
+  const respectLocked = opts.respectLocked ?? true
+  const assigned = new Map<string, string[]>()
+  const lockedGuestIds = new Set<string>()
+  const tables: BanquetTable[] = []
+  for (const t of allTables) {
+    if (respectLocked && t.locked) {
+      assigned.set(t.id, [...t.guestIds])
+      for (const id of t.guestIds) lockedGuestIds.add(id)
+    } else {
+      assigned.set(t.id, [])
+      tables.push(t)
+    }
+  }
+  const groupsSorted = groupGuestsForAssign(guests.filter((g) => !lockedGuestIds.has(g.id)))
   const free = new Map<string, number>(tables.map((t) => [t.id, t.seats]))
   const order = tables.map((t) => t.id)
 

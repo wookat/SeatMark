@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 /**
  * 第 351 轮：座位表 → 标签工坊字段带入补全——
- * handoff 行新增「考场」列（= 座位表标题），标准考场版自动映射 姓名/座位号/考场 三项命中，
+ * handoff 行新增「考场」列，标准考场版自动映射 姓名/座位号/考场 三项命中，
+ * 第 354 轮：「考场」列来自可选的考场号输入（不再 = 标题），为空时省略该列；「班级」仍 = 标题。
  * /studio?from=seating 带入后对仍未映射的字段（准考证号）追加 toast.info 提示。
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -50,7 +51,7 @@ beforeEach(async () => {
 })
 
 describe('第 351 轮：座位表 → 标签工坊字段带入', () => {
-  it('SeatingView「一键生成对应桌贴」写入的 handoff 每行含 考场 列（= 标题）', async () => {
+  async function mountSeating() {
     const router = await makeRouter('/seating')
     const wrapper = mount(SeatingView, {
       global: { plugins: [router], stubs: { Teleport: true, Transition: true } },
@@ -59,23 +60,57 @@ describe('第 351 轮：座位表 → 标签工坊字段带入', () => {
     await wrapper.vm.$nextTick()
     await wrapper.get('textarea').setValue(['张伟', '李娜', '王芳'].join('\n'))
     await flushPromises()
+    return { router, wrapper }
+  }
 
+  async function clickHandoff(wrapper: ReturnType<typeof mount>) {
     const button = wrapper.findAll('button').find((b) => b.text().includes('一键生成对应桌贴'))
     expect(button).toBeTruthy()
     await button!.trigger('click')
     await flushPromises()
-
     const raw = localStorage.getItem(SEATING_HANDOFF_KEY)
     expect(raw).toBeTruthy()
-    const handoff = JSON.parse(raw!) as SeatingHandoff
+    return JSON.parse(raw!) as SeatingHandoff
+  }
+
+  it('填了考场号：handoff 每行 考场 = 考场号，班级 = 标题', async () => {
+    const { router, wrapper } = await mountSeating()
+    await wrapper.get('[data-testid="seating-room-no"]').setValue(' 03 ')
+
+    const handoff = await clickHandoff(wrapper)
+    expect(handoff.roomNo).toBe('03')
     expect(handoff.rows).toHaveLength(3)
     expect(Object.keys(handoff.rows[0]!)).toEqual(HANDOFF_HEADERS)
     for (const row of handoff.rows) {
-      expect(row['考场']).toBe(handoff.title)
+      expect(row['考场']).toBe('03')
       expect(row['班级']).toBe(handoff.title)
+      expect(row['考场']).not.toBe(handoff.title)
       expect(row['姓名']).toBeTruthy()
     }
     expect(router.currentRoute.value.fullPath).toBe('/studio?from=seating')
+    wrapper.unmount()
+  })
+
+  it('考场号为空（默认）：handoff 省略 考场 列，班级 仍 = 标题', async () => {
+    const { wrapper } = await mountSeating()
+    expect((wrapper.get('[data-testid="seating-room-no"]').element as HTMLInputElement).value).toBe('')
+
+    const handoff = await clickHandoff(wrapper)
+    expect(handoff.roomNo).toBeUndefined()
+    expect(Object.keys(handoff.rows[0]!)).toEqual(['姓名', '座位号', '排', '列', '班级'])
+    for (const row of handoff.rows) {
+      expect('考场' in row).toBe(false)
+      expect(row['班级']).toBe(handoff.title)
+    }
+    wrapper.unmount()
+  })
+
+  it('考场号随 seating 本地状态持久化', async () => {
+    const { wrapper } = await mountSeating()
+    await wrapper.get('[data-testid="seating-room-no"]').setValue('12')
+    await flushPromises()
+    const state = JSON.parse(localStorage.getItem('seatmark.seating-state.v1')!) as { roomNo?: string }
+    expect(state.roomNo).toBe('12')
     wrapper.unmount()
   })
 
@@ -127,6 +162,36 @@ describe('第 351 轮：座位表 → 标签工坊字段带入', () => {
     expect(info?.title).toBe('还有 1 个字段未映射：准考证号')
     expect(info?.text).toContain('「字段映射」')
     expect(localStorage.getItem(SEATING_HANDOFF_KEY)).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('考场号为空的 handoff（无 考场 列）带入标准考场版：2/4 命中不自动切模板，考场位留空并提示未映射', async () => {
+    const handoff: SeatingHandoff = {
+      title: '高三(2)班 期末考试',
+      rows: [{ 姓名: '张伟', 座位号: '1', 排: '1', 列: '1', 班级: '高三(2)班 期末考试' }],
+    }
+    localStorage.setItem(SEATING_HANDOFF_KEY, JSON.stringify(handoff))
+    const router = await makeRouter('/studio?from=seating')
+    const wrapper = mount(StudioView, {
+      global: {
+        plugins: [router],
+        stubs: {
+          PreviewArea: true,
+          TemplateDesigner: true,
+          DataImportPanel: true,
+          MappingPanel: true,
+          LayoutPanel: true,
+          TemplatePickerPanel: true,
+        },
+      },
+    })
+    await flushPromises()
+    const workspace = useWorkspaceStore()
+    const toast = useToastStore()
+    expect(workspace.template.id).toBe('standard')
+    expect(workspace.mapping.room).toBeUndefined()
+    expect(workspace.unmappedFields.map((f) => f.id)).toEqual(['room', 'examId'])
+    expect(toast.toasts.some((t) => t.title === '已切换到课桌贴模板')).toBe(false)
     wrapper.unmount()
   })
 

@@ -228,7 +228,7 @@ export const enTemplateDescriptions: Record<string, string> = {
     '4 cols × 9 rows small vouchers: large meal with number and pick-up point. Tear a corner to validate — no system needed.',
   '1 列 × 3 行宽幅，服务点名称大字 + 服务内容与值守时段，大型活动志愿岗位统一标识。':
     '1 col × 3 rows wide sign: large service point name with services and duty hours for volunteer posts.',
-  'A4 半页对折，「欢迎签到」衬线大字 + 新人名与婚期，酒红描边，迎宾区第一眼的仪式感。':
+  'A4 半页对折，「欢迎签到」衬线大字 + 新人名与婚期，酒红描边，宾客到场第一眼就找到签到台。':
     'Half-A4 folded tent: serif "Welcome" headline with couple names and date in a burgundy frame for the welcome area.',
   'A5 半页对折立牌，桌号超大衬线字 + 桌名雅称，婚宴与宴会厅远距离找桌，插座立放皆宜。':
     'Half-A5 folded stand: huge serif table number with table name, readable across a ballroom. Stands or slots in.',
@@ -320,9 +320,9 @@ export const enTemplateDescriptions: Record<string, string> = {
     '96×62 mm annual party card with a red ribbon across the corner and a red-gold gradient line. Festive, not gaudy.',
   '90×55 mm 席位卡 A4 一页 10 枚，对角橄榄绿枝叶花边手绘质感，森系户外婚礼与草坪宴首选。':
     '90×55 mm place card, 10 per A4, with hand-drawn olive foliage on opposite corners. Ideal for forest and lawn weddings.',
-  '90×55 mm 席位卡，杏金拱门线条 + 弦月弧与星点，极简法式浪漫，室内仪式感婚宴适用。':
+  '90×55 mm 席位卡，杏金拱门线条 + 弦月弧与星点，极简法式浪漫，适合室内婚宴摆台。':
     '90×55 mm place card with apricot-gold arch lines, a crescent and stars. Minimal French romance for indoor weddings.',
-  '96×96 mm 方形桌号牌 A4 一页 4 枚，金色交叠双环象征缔结，桌号特大字居中，摆台即有仪式感。':
+  '96×96 mm 方形桌号牌 A4 一页 4 枚，金色交叠双环象征缔结，桌号特大字居中，宾客远处一眼认桌。':
     '96×96 mm square table number, 4 per A4, with interlocking gold rings and a centred extra-large number.',
   '90×55 mm 席位卡，四角绯粉水彩晕染渐隐 + 细金内框，柔和甜美，酒店婚宴席位卡百搭款。':
     '90×55 mm place card with fading blush watercolour corners and a thin gold frame. A versatile hotel wedding card.',
@@ -342,7 +342,7 @@ export const enTemplateDescriptions: Record<string, string> = {
     '64×38 mm name sticker, 21 per A4, with cream macaron clouds and a little sun. Soft and sweet for kindergarten.',
   '90×50 mm 桌贴 A4 一页 10 枚，顶部黑色信息条 + 座位号反白大字，机构感网格排版，远看一目了然。':
     '90×50 mm desk label, 10 per A4, with a black info bar and reversed large seat number in a crisp grid. Readable from afar.',
-  '190×88 mm 班级门牌，墨绿黑板底 + 粉笔手绘边框与星星点缀，班级名粉笔白大字，教室门口的温暖仪式感。':
+  '190×88 mm 班级门牌，墨绿黑板底 + 粉笔手绘边框与星星点缀，班级名粉笔白大字，教室门口一眼认班。':
     '190×88 mm class sign on a dark green chalkboard with chalk borders and stars, class name in chalk white.',
   '180×90 mm 桌牌，朱砂红回纹样条上下呼应 + 鎏金细线，取意传统纹样的国风会议桌牌，宋体大字庄重大气。':
     '180×90 mm tent with vermilion meander bands and fine gold rules. A Chinese-style meeting tent in a stately serif.',
@@ -428,7 +428,7 @@ export const enTemplateDescriptions: Record<string, string> = {
     '90×45 mm name label with cream ground, washi-tape accents and journal dashes. Warm for early grades.',
   '90×60 mm 寄语卡，信纸横线 + 邮票角饰，老师给学生的期末寄语一人一句暖心话。':
     '90×60 mm message card with letter lines and a stamp corner. One warm end-of-term line per student.',
-  '180×90 mm 席签，米色底双线花框与桂枝角饰，获奖人姓名大字 + 奖项名，典礼仪式感。':
+  '180×90 mm 席签，米色底双线花框与桂枝角饰，获奖人姓名大字 + 奖项名，颁奖台上一眼认人。':
     '180×90 mm seat card on cream with a double floral frame and laurel corners, large recipient name and award.',
   '140×90 mm 桌牌，牛皮纸色绶带徽章角饰 + 细线框，表彰会先进个人桌牌沉稳有分量。':
     '140×90 mm tent in kraft tones with a ribbon rosette corner and thin frame. Weighty for recognition events.',

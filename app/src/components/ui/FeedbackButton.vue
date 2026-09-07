@@ -97,7 +97,7 @@ async function submit() {
       }),
     })
     if (!res.ok) throw new Error()
-    toast.success(t('感谢反馈！'), t('已收到您的意见'))
+    toast.success(t('感谢反馈！'), t('已收到你的意见'))
     close()
   } catch {
     toast.danger(t('提交失败'), t('请稍后重试'))
@@ -206,7 +206,7 @@ async function submit() {
                 v-model="content"
                 rows="4"
                 maxlength="2000"
-                :placeholder="t('请描述您遇到的问题或建议...')"
+                :placeholder="t('请描述你遇到的问题或建议...')"
                 class="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-600 focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               ></textarea>
             </div>
@@ -221,7 +221,7 @@ async function submit() {
                 v-model="contact"
                 type="text"
                 maxlength="200"
-                :placeholder="t('邮箱或手机号，方便我们回复您')"
+                :placeholder="t('邮箱或手机号，方便我们回复你')"
                 class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-600 focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
             </div>

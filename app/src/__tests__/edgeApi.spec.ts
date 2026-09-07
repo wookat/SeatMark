@@ -294,6 +294,8 @@ describe("AUTH_SECRET 缺失时 fail closed", () => {
       env: noSecret,
     });
     expect(ann.response.status).toBe(200);
+    // 第 354 轮：公告随附账号服务可用性，首页等匿名页面不额外探测也能收起「注册送 7 天」
+    expect(ann.data.authService).toBe("auth_secret_missing");
     const health = await call(
       "GET",
       "https://www.seatmark.cn/api/admin/health",
@@ -1504,15 +1506,16 @@ describe("feedback.js 观测头 X-SeatMark-Rev", () => {
   });
 });
 
-describe("第 353 轮：三条边缘函数统一 X-SeatMark-Rev = r353 与公告短缓存", () => {
-  it("_rev.js 导出 r353", () => {
-    expect(SEATMARK_REV).toBe("r353");
+describe("第 354 轮：三条边缘函数统一 X-SeatMark-Rev = r354 与公告短缓存", () => {
+  it("_rev.js 导出 r354", () => {
+    expect(SEATMARK_REV).toBe("r354");
   });
 
-  it("/api/announcement GET 带 r353 与 Cache-Control 短缓存", async () => {
-    const { response } = await call("GET", "https://www.seatmark.cn/api/announcement");
+  it("/api/announcement GET 带 r354 与 Cache-Control 短缓存", async () => {
+    const { response, data } = await call("GET", "https://www.seatmark.cn/api/announcement");
     expect(response.status).toBe(200);
-    expect(response.headers.get("X-SeatMark-Rev")).toBe("r353");
+    expect(data.authService).toBe("ok");
+    expect(response.headers.get("X-SeatMark-Rev")).toBe("r354");
     expect(ANNOUNCEMENT_CACHE_CONTROL).toBe(
       "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
     );
@@ -1522,10 +1525,10 @@ describe("第 353 轮：三条边缘函数统一 X-SeatMark-Rev = r353 与公告
   it("其余 JSON 响应保持 no-store（不受公告缓存影响）", async () => {
     const { response } = await call("GET", "https://www.seatmark.cn/api/auth/me");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
-    expect(response.headers.get("X-SeatMark-Rev")).toBe("r353");
+    expect(response.headers.get("X-SeatMark-Rev")).toBe("r354");
   });
 
-  it("/api/feedback 405 / 200 响应均带 r353", async () => {
+  it("/api/feedback 405 / 200 响应均带 r354", async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore JS 模块无类型声明
     const { onRequest: onFeedback } = await import("../../../edge-functions/api/feedback.js");
@@ -1534,7 +1537,7 @@ describe("第 353 轮：三条边缘函数统一 X-SeatMark-Rev = r353 与公告
       env: withTestEnv({}),
     });
     expect(get.status).toBe(405);
-    expect(get.headers.get("X-SeatMark-Rev")).toBe("r353");
+    expect(get.headers.get("X-SeatMark-Rev")).toBe("r354");
     const ok: Response = await onFeedback({
       request: new Request("http://localhost:5173/api/feedback", {
         method: "POST",
@@ -1544,10 +1547,10 @@ describe("第 353 轮：三条边缘函数统一 X-SeatMark-Rev = r353 与公告
       env: withTestEnv({}),
     });
     expect(ok.status).toBe(200);
-    expect(ok.headers.get("X-SeatMark-Rev")).toBe("r353");
+    expect(ok.headers.get("X-SeatMark-Rev")).toBe("r354");
   });
 
-  it("/api/ai-design 405 / 413 / 200 响应均带 r353", async () => {
+  it("/api/ai-design 405 / 413 / 200 响应均带 r354", async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore JS 模块无类型声明
     const { onRequest: onAi, AI_MAX_BODY_BYTES } = await import("../../../edge-functions/api/ai-design.js");
@@ -1576,19 +1579,19 @@ describe("第 353 轮：三条边缘函数统一 X-SeatMark-Rev = r353 与公告
         env,
       });
       expect(notAllowed.status).toBe(405);
-      expect(notAllowed.headers.get("X-SeatMark-Rev")).toBe("r353");
+      expect(notAllowed.headers.get("X-SeatMark-Rev")).toBe("r354");
       const tooLarge: Response = await onAi({
         request: post("{}", { "Content-Length": String(AI_MAX_BODY_BYTES + 1) }),
         env,
       });
       expect(tooLarge.status).toBe(413);
-      expect(tooLarge.headers.get("X-SeatMark-Rev")).toBe("r353");
+      expect(tooLarge.headers.get("X-SeatMark-Rev")).toBe("r354");
       const ok: Response = await onAi({
         request: post(JSON.stringify({ messages: [{ role: "user", content: "hi" }] })),
         env,
       });
       expect(ok.status).toBe(200);
-      expect(ok.headers.get("X-SeatMark-Rev")).toBe("r353");
+      expect(ok.headers.get("X-SeatMark-Rev")).toBe("r354");
     } finally {
       globalThis.fetch = originalFetch;
     }

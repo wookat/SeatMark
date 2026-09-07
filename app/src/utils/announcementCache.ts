@@ -9,9 +9,18 @@ export interface AnnouncementPayload {
   updatedAt: string
 }
 
+/** 公告接口随附的账号服务可用性（边缘函数 GET /api/announcement） */
+export type AuthServiceState = 'ok' | 'auth_secret_missing'
+
+export interface AnnouncementResponse {
+  announcement: AnnouncementPayload | null
+  authService?: AuthServiceState
+}
+
 export interface AnnouncementCacheEntry {
   announcement: AnnouncementPayload | null
   fetchedAt: number
+  authService?: AuthServiceState
 }
 
 export const ANNOUNCEMENT_CACHE_KEY = 'seatmark.announcement-cache.v1'
@@ -24,7 +33,13 @@ export function readAnnouncementCache(now: number = Date.now()): AnnouncementCac
     const parsed = JSON.parse(raw) as Partial<AnnouncementCacheEntry>
     if (typeof parsed.fetchedAt !== 'number' || !Number.isFinite(parsed.fetchedAt)) return null
     if (now - parsed.fetchedAt >= ANNOUNCEMENT_CACHE_TTL_MS) return null
-    return { announcement: parsed.announcement ?? null, fetchedAt: parsed.fetchedAt }
+    return {
+      announcement: parsed.announcement ?? null,
+      fetchedAt: parsed.fetchedAt,
+      ...(parsed.authService === 'ok' || parsed.authService === 'auth_secret_missing'
+        ? { authService: parsed.authService }
+        : {}),
+    }
   } catch {
     return null
   }

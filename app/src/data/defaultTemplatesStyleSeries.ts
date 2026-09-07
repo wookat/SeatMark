@@ -12,7 +12,7 @@ import { fixed, gridPage, INK_MUTED, INK_SOFT, text } from './templateFactory'
  * - 清新马卡龙（macaron）：低饱和粉彩圆角波浪，幼儿园专属；
  * - 科技渐变（tech）：青紫渐变光带与电路角饰，发布会电竞；
  * - 手写温暖（warm）：奶油底虚线手账风，家长会寄语场景；
- * - 复古证书（retro）：双线花框绶带，颁奖典礼仪式感；
+ * - 复古证书（retro）：双线花框绶带，颁奖典礼场合；
  * - 森系自然（forest）：橄榄绿枝叶线描，森系婚礼与绿植。
  * decorSvg viewBox 用户单位 = mm；配色均验证过黑白打印灰阶不脏。
  */
@@ -842,7 +842,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     id: 'retroAwardSeat',
     name: '复古系·颁奖席签',
     category: 'event',
-    description: '180×90 mm 席签，米色底双线花框与桂枝角饰，获奖人姓名大字 + 奖项名，典礼仪式感。',
+    description: '180×90 mm 席签，米色底双线花框与桂枝角饰，获奖人姓名大字 + 奖项名，颁奖台上一眼认人。',
     scenario: '复古证书风颁奖席',
     accent: '#8a6d3b',
     sampleData: { name: '穆清和', award: '年度杰出贡献奖' },

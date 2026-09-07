@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
-import { useAuthStore } from '@/stores/auth'
+import { isServiceUnavailableError, useAuthStore } from '@/stores/auth'
 import { apiFetch, ApiError } from '@/utils/api'
 
 /** 与 edge-functions/api/[[default]].js 保持一致（计数对象：无水印导出/打印） */
@@ -102,6 +102,7 @@ export const useQuotaStore = defineStore('quota', () => {
           // 会话失效：清用户与 has-account 标记，退回未登录本地计数（下次 bootstrap 不再空发 /api/auth/me）
           auth.setUser(null)
         } else {
+          if (isServiceUnavailableError(err)) auth.serviceUnavailable = true
           // 接口 5xx / 离线：不阻塞导出（离线可用是产品承诺），但按本地计数与账号额度判定，
           // 避免服务端不可用时无限次无水印导出
           return consumeLocal(auth.user.quota.limit || QUOTA_ANON_DAILY, 'user-limit')

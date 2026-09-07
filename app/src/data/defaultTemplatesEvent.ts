@@ -561,7 +561,7 @@ export const eventTemplates: LabelTemplate[] = [
     id: 'weddingCheckin',
     name: '婚礼签到处牌',
     category: 'wedding',
-    description: 'A4 半页对折，「欢迎签到」衬线大字 + 新人名与婚期，酒红描边，迎宾区第一眼的仪式感。',
+    description: 'A4 半页对折，「欢迎签到」衬线大字 + 新人名与婚期，酒红描边，宾客到场第一眼就找到签到台。',
     scenario: '婚礼签到迎宾',
     accent: '#9f1239',
     fontFamily: SERIF_ZH,
