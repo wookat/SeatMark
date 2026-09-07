@@ -863,7 +863,7 @@ const hintKey = ref<HintKey | null>(null)
       <div v-if="workspace.totalPages > 0" class="flex items-center gap-1.5">
         <button
           type="button"
-          class="btn btn-secondary btn-sm !px-2"
+          class="btn btn-secondary btn-sm !px-2 max-sm:min-h-9 max-sm:min-w-9"
           :aria-label="t('上一页')"
           :disabled="workspace.previewPage <= 1"
           @click="workspace.previewPage--"
@@ -887,7 +887,7 @@ const hintKey = ref<HintKey | null>(null)
             min="1"
             :max="workspace.totalPages"
             :aria-label="t('跳转到页码')"
-            class="input-field w-14 text-center"
+            class="input-field w-14 text-center max-sm:min-h-9"
             @change="jumpToPage"
             @keyup.enter="jumpToPage"
           />
@@ -895,7 +895,7 @@ const hintKey = ref<HintKey | null>(null)
         </div>
         <button
           type="button"
-          class="btn btn-secondary btn-sm !px-2"
+          class="btn btn-secondary btn-sm !px-2 max-sm:min-h-9 max-sm:min-w-9"
           :aria-label="t('下一页')"
           :disabled="workspace.previewPage >= workspace.totalPages"
           @click="workspace.previewPage++"
@@ -918,7 +918,7 @@ const hintKey = ref<HintKey | null>(null)
         <SelectField v-model="zoomMode" class="w-24" size="sm" :options="ZOOM_OPTIONS" />
         <button
           type="button"
-          class="btn btn-secondary btn-sm sm:hidden"
+          class="btn btn-secondary btn-sm min-h-9 sm:hidden"
           :aria-expanded="displayOptionsOpen"
           @click="displayOptionsOpen = !displayOptionsOpen"
         >
@@ -997,7 +997,7 @@ const hintKey = ref<HintKey | null>(null)
         </span>
         <button
           type="button"
-          class="btn btn-secondary btn-sm"
+          class="btn btn-secondary btn-sm max-sm:min-h-9"
           :title="calibrationStore.active ? t('打印校准已生效：导出与打印自动应用偏移/缩放补偿') : t('打印跑偏、尺寸不准？打印一页标尺校准页，量两下即可全局补偿')"
           @click="calibrationOpen = true"
         >
@@ -1013,7 +1013,7 @@ const hintKey = ref<HintKey | null>(null)
         </div>
         <button
           type="button"
-          class="btn btn-primary btn-sm relative"
+          class="btn btn-primary btn-sm relative max-sm:min-h-9"
           :title="t('经浏览器打印对话框输出：选「另存为 PDF」可得到矢量 PDF；直接打印请用对应纸张、无边距、缩放 100%')"
           :disabled="!workspace.excel.rows.length"
           @click="openExportChoice('print')"
@@ -1033,7 +1033,7 @@ const hintKey = ref<HintKey | null>(null)
         </button>
         <button
           type="button"
-          class="btn btn-secondary btn-sm relative"
+          class="btn btn-secondary btn-sm relative max-sm:min-h-9"
           :title="t('逐页渲染为高清图片后合成 PDF，所见即所得、任何设备打开都一致（推荐）；文字不可选中，如需矢量文字请用「打印 / 矢量 PDF」')"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="openExportChoice('pdf')"
@@ -1059,7 +1059,7 @@ const hintKey = ref<HintKey | null>(null)
         </button>
         <button
           type="button"
-          class="btn btn-secondary btn-sm"
+          class="btn btn-secondary btn-sm max-sm:min-h-9"
           :title="t('按标签逐张导出 PNG 图片：每一张标签单独成图，单张直接下载，多张自动打包 zip；电子座签模板支持精确 800×480 像素输出')"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="openExportChoice('png')"
@@ -1315,7 +1315,7 @@ const hintKey = ref<HintKey | null>(null)
                 v-for="header in workspace.excel.headers"
                 :key="header"
                 type="button"
-                class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700"
+                class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700 max-sm:min-h-9 max-sm:px-3"
                 @click="appendNameField(header)"
               >
                 {{ header }}

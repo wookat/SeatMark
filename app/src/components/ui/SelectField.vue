@@ -121,7 +121,7 @@ onBeforeUnmount(() => {
       ref="trigger"
       type="button"
       class="input-field flex cursor-pointer items-center justify-between gap-1.5 text-left"
-      :class="size === 'sm' ? '!py-1 text-xs' : ''"
+      :class="size === 'sm' ? '!py-1 text-xs max-sm:min-h-9' : ''"
       aria-haspopup="listbox"
       :aria-expanded="open"
       @click="toggle"
@@ -161,7 +161,7 @@ onBeforeUnmount(() => {
             type="button"
             class="flex w-full items-center justify-between gap-2 rounded-lg text-left"
             :class="[
-              size === 'sm' ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-2 text-sm',
+              size === 'sm' ? 'px-2 py-1.5 text-xs max-sm:min-h-9' : 'px-2.5 py-2 text-sm',
               option.disabled
                 ? 'cursor-not-allowed text-slate-600 opacity-60'
                 : 'cursor-pointer hover:bg-slate-50',

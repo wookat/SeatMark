@@ -267,8 +267,8 @@ const FAQS = computed(() => [
             class="mt-4 text-3xl leading-tight font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl"
           >
             <template v-if="locale === 'en'">
-              Upload a spreadsheet, batch-create <br />
-              <span class="text-brand-600"><span class="whitespace-nowrap">seating charts</span> · <span class="whitespace-nowrap">place cards</span> · <span class="whitespace-nowrap">name tags</span></span>
+              Excel in, print-ready<br />
+              <span class="text-brand-600 whitespace-nowrap">seating charts out</span>
             </template>
             <template v-else>
               上传 Excel，批量生成<br />
@@ -277,9 +277,8 @@ const FAQS = computed(() => [
           </h1>
           <p class="mt-4 max-w-lg text-base leading-7 text-slate-600" data-testid="hero-steps">
             <template v-if="locale === 'en'">
-              <span class="block">Upload your Excel or paste a name list → preview the layout → export print-ready pages.</span>
-              <span class="block">You need: a spreadsheet with a header row (name, seat, table…) and an A4 printer.</span>
-              <span class="block">You get: seating charts, place cards, table tents, exam desk labels and name badges from {{ TEMPLATE_COUNT }} built-in templates — the whole flow runs locally in your browser.</span>
+              <span class="block">Upload Excel or paste a name list → preview → export print-ready pages.</span>
+              <span class="block">{{ TEMPLATE_COUNT }} templates · all in your browser.</span>
             </template>
             <template v-else>
               <span class="block">把 Excel 名单粘进来 → 先看预览 → 导出可打印的座签页。</span>
