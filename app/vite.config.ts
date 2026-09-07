@@ -50,7 +50,10 @@ export default defineConfig(({ isSsrBuild }) => ({
         // 预缓存只收核心工具链（入口/工坊/导出 vendor/默认模板/字体图标）：
         // - 生僻字扩展字库共 ~11MB，浏览器按 unicode-range 按需下载；
         // - 内容站分包（教程/模板详情/对比页/专题页/英文字典）走下方 StaleWhileRevalidate 运行时缓存，访问过一次后才可离线；
-        // - jspdf.html() 的可选依赖（html2canvas.esm / canvg index.es / dompurify purify.es）本项目从不调用，不预缓存；
+        // - jspdf.html()/addSvgAsImage 的可选依赖（html2canvas / canvg / dompurify）本项目从不调用，
+        //   已由 resolve.alias 指向空模块桩，这里保留忽略规则以防桩失效时回潮；
+        // - pinyin-pro 全拼词典（仅用户输入长字母串时懒加载）与 Sentry SDK（app.mount 后运行时 import）
+        //   都不在首访关键路径上，不预缓存；
         // - og-image 仅供社交平台抓取。
         globIgnores: [
           'fonts/plangothic/**',
@@ -62,6 +65,8 @@ export default defineConfig(({ isSsrBuild }) => ({
           'assets/html2canvas.esm-*.js',
           'assets/index.es-*.js',
           'assets/purify.es-*.js',
+          'assets/vendor-pinyin-*.js',
+          'assets/vendor-sentry-*.js',
           'og-image.png',
         ],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
@@ -108,9 +113,14 @@ export default defineConfig(({ isSsrBuild }) => ({
     host: true,
   },
   resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-    },
+    alias: [
+      { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
+      // jspdf ESM 内部对 html2canvas / dompurify / canvg 是 import() 懒加载（jspdf.html() / addSvgAsImage），
+      // 本项目只用 addImage，指向空模块桩避免打出三个从不加载的 chunk（注意不影响 html2canvas-pro）
+      { find: /^html2canvas$/, replacement: fileURLToPath(new URL('./src/stubs/empty-module.ts', import.meta.url)) },
+      { find: /^dompurify$/, replacement: fileURLToPath(new URL('./src/stubs/empty-module.ts', import.meta.url)) },
+      { find: /^canvg$/, replacement: fileURLToPath(new URL('./src/stubs/empty-module.ts', import.meta.url)) },
+    ],
   },
   build: {
     chunkSizeWarningLimit: 1500,
@@ -124,6 +134,8 @@ export default defineConfig(({ isSsrBuild }) => ({
               if (id.includes('vite/preload-helper')) return 'vendor-preload'
               if (/node_modules\/(jspdf|html2canvas-pro)\//.test(id)) return 'vendor-pdf'
               if (/node_modules\/xlsx\//.test(id)) return 'vendor-xlsx'
+              // 全拼词典 ~300 KiB，归为有语义名的分块便于 globIgnores 排除预缓存
+              if (/node_modules\/pinyin-pro\//.test(id)) return 'vendor-pinyin'
               // Sentry SDK 在 app.mount 后才 import()，独立成块便于 Network 面板确认其在主包之后加载
               if (/node_modules\/@sentry(-internal)?\//.test(id)) return 'vendor-sentry'
               return undefined

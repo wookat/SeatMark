@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch, watchEffect } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch, watchEffect } from 'vue'
 
 import LabelSheet from '@/components/label/LabelSheet.vue'
 import CalibrationDialog from '@/components/studio/CalibrationDialog.vue'
@@ -52,6 +52,7 @@ import {
   type LabelExportItem,
 } from '@/utils/pngExport'
 import { templateColumnsValid } from '@/utils/fieldTemplate'
+import { buildUnmappedNotice } from '@/utils/unmappedNotice'
 
 const workspace = useWorkspaceStore()
 const toast = useToastStore()
@@ -165,12 +166,7 @@ const unmappedAcknowledged = ref(false)
 const emit = defineEmits<{ focusMapping: [target?: 'missing'] }>()
 
 /** 未映射字段提示条文案：最多列 3 个字段名作例 */
-const unmappedNotice = computed(() => {
-  const fields = workspace.unmappedFields
-  if (!fields.length) return null
-  const examples = fields.slice(0, 3).map((f) => f.label).join(t('、'))
-  return { count: fields.length, examples: fields.length > 3 ? `${examples}…` : examples }
-})
+const unmappedNotice = computed(() => buildUnmappedNotice(workspace.unmappedFields, t('、')))
 
 function goToMapping(target?: 'missing') {
   exportChoiceOpen.value = false
@@ -408,25 +404,76 @@ async function copyReferralLink() {
   dismissSharePrompt()
 }
 
-/** Edit One 首次使用引导气泡：只展示一次，关闭或用过一次后不再出现 */
+/**
+ * Edit One 首次使用引导气泡：只展示一次，关闭 / 用过一次 / 自动收起后不再出现。
+ * 时序：预览首帧（有名单行）后延迟 4s 出现、10s 后自动收起；用户滚动或点击预览即收起；
+ * <1024px 视口不展示（小屏气泡会盖住预览上方的标签）。
+ */
 const EDIT_ONE_HINT_KEY = 'seatmark.edit-one-hint-dismissed.v1'
+const EDIT_ONE_HINT_DELAY_MS = 4000
+const EDIT_ONE_HINT_AUTO_HIDE_MS = 10000
+/** 导出成功 toast 时长：固定 4s，避免长时间盖在预览区标签上 */
+const EXPORT_TOAST_MS = 4000
+const EDIT_ONE_HINT_MIN_VIEWPORT = 1024
 const editOneHintVisible = ref(false)
+let editOneHintShowTimer: number | null = null
+let editOneHintHideTimer: number | null = null
 
-onMounted(() => {
+function editOneHintDismissed(): boolean {
   try {
-    editOneHintVisible.value = !localStorage.getItem(EDIT_ONE_HINT_KEY)
+    return !!localStorage.getItem(EDIT_ONE_HINT_KEY)
   } catch {
-    editOneHintVisible.value = false
+    return true
   }
-})
+}
+
+function clearEditOneHintTimers() {
+  if (editOneHintShowTimer != null) window.clearTimeout(editOneHintShowTimer)
+  if (editOneHintHideTimer != null) window.clearTimeout(editOneHintHideTimer)
+  editOneHintShowTimer = null
+  editOneHintHideTimer = null
+}
+
+function scheduleEditOneHint() {
+  clearEditOneHintTimers()
+  if (editOneHintVisible.value || editOneHintDismissed()) return
+  if (!workspace.excel.rows.length) return
+  if (window.innerWidth < EDIT_ONE_HINT_MIN_VIEWPORT) return
+  editOneHintShowTimer = window.setTimeout(() => {
+    editOneHintShowTimer = null
+    if (editOneHintDismissed() || !workspace.excel.rows.length) return
+    editOneHintVisible.value = true
+    editOneHintHideTimer = window.setTimeout(() => {
+      editOneHintHideTimer = null
+      dismissEditOneHint()
+    }, EDIT_ONE_HINT_AUTO_HIDE_MS)
+  }, EDIT_ONE_HINT_DELAY_MS)
+}
+
+watch(
+  () => workspace.excel.rows.length > 0,
+  (hasRows) => {
+    if (hasRows) scheduleEditOneHint()
+    else clearEditOneHintTimers()
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(clearEditOneHintTimers)
 
 function dismissEditOneHint() {
+  clearEditOneHintTimers()
   editOneHintVisible.value = false
   try {
     localStorage.setItem(EDIT_ONE_HINT_KEY, '1')
   } catch {
     /* 隐私模式：下次仍会展示，可接受 */
   }
+}
+
+/** 用户滚动 / 点击预览区：已展示的气泡立即收起（未到展示时刻的不受影响） */
+function onPreviewInteract() {
+  if (editOneHintVisible.value) dismissEditOneHint()
 }
 
 function openEditOne(row: DataRow) {
@@ -584,9 +631,11 @@ async function doExportPdf() {
         workspace.setLoading(true, t('已完成 {done}/{total} 页，正在写入 PDF...').replace('{done}', String(done)).replace('{total}', String(total)), cancel),
     })
     await consumeQuotaAfterSuccess()
-    toast.success(
+    toast.push(
+      'success',
       t('图片版 PDF 已生成'),
       t('每页为 {dpi}dpi 高清栅格，放大打印仍清晰；文字需可选中请用「打印 / 矢量 PDF」').replace('{dpi}', String(rasterDpi(scale))),
+      EXPORT_TOAST_MS,
     )
     maybeShowSharePrompt()
   } catch (err) {
@@ -700,7 +749,8 @@ async function doExportPng() {
     const exactW = pngPreset.value?.width ?? pngExactWidth.value
     const unitCount = perLabel ? pngTotalLabels.value : pageCount
     const unitWord = perLabel ? t('张标签') : t('页')
-    toast.success(
+    toast.push(
+      'success',
       unitCount === 1
         ? t('PNG 图片已生成')
         : t('PNG 图片已生成（{n} {unit}打包为 zip）')
@@ -715,6 +765,7 @@ async function doExportPng() {
         : perLabel
           ? t('每一张标签单独成图（尺寸=标签实际尺寸×清晰度），可直接逐张打印或屏显')
           : t('每页一张高清 PNG，可直接用于屏显或二次编辑'),
+      EXPORT_TOAST_MS,
     )
     maybeShowSharePrompt()
   } catch (err) {
@@ -799,11 +850,13 @@ async function doMobilePrint() {
       return
     }
     await consumeQuotaAfterSuccess()
-    toast.success(
+    toast.push(
+      'success',
       t('打印 PDF 已生成'),
       delivery === 'shared'
         ? t('在分享面板选「打印」或用 PDF 应用打开后打印即可')
         : t('已打开 / 下载 PDF，用系统 PDF 查看器的打印功能输出即可'),
+      EXPORT_TOAST_MS,
     )
     maybeShowSharePrompt()
   } catch (err) {
@@ -1187,6 +1240,9 @@ const hintKey = ref<HintKey | null>(null)
       ref="previewContainer"
       tabindex="0"
       :aria-label="t('标签预览区')"
+      data-testid="preview-scroll"
+      @scroll.passive="onPreviewInteract"
+      @click="onPreviewInteract"
       class="no-print relative mt-3 flex-1 overflow-auto rounded-lg border border-slate-200/80 bg-[radial-gradient(circle,#cbd5e1_1px,transparent_1px)] bg-slate-100/70 bg-[size:16px_16px] p-3 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)]"
     >
       <div v-if="!workspace.excel.rows.length" class="flex h-full items-center justify-center py-12">
@@ -1219,6 +1275,7 @@ const hintKey = ref<HintKey | null>(null)
       <div v-else class="flex w-fit min-w-full justify-center">
         <div
           v-if="editOneHintVisible"
+          data-testid="edit-one-hint"
           class="absolute top-2 left-2 z-10 flex max-w-xs items-start gap-2 rounded-lg border border-brand-200 bg-white/95 px-3 py-2.5 shadow-pop backdrop-blur"
         >
           <span class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600">

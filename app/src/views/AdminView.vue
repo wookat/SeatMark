@@ -175,7 +175,12 @@ async function saveAnnouncement() {
       method: 'PUT',
       body: { text: announcementText.value, enabled: announcementEnabled.value },
     })
-    toast.success('公告已保存', announcementEnabled.value ? '全站顶部横幅已启用' : '公告已停用')
+    toast.success(
+      '公告已保存',
+      announcementEnabled.value
+        ? '全站顶部横幅已启用，最多 5 分钟后对访客生效'
+        : '公告已停用，最多 5 分钟后对访客生效',
+    )
   } catch (err) {
     toast.danger('保存失败', err instanceof ApiError ? err.message : '请稍后再试')
   } finally {

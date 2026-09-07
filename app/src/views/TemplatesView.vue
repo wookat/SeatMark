@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import { useBatchedList } from '@/composables/useBatchedList'
+import { useIsNarrow } from '@/composables/useMediaQuery'
 import ZhOnlyNotice from '@/components/ui/ZhOnlyNotice.vue'
 import { defaultTemplates, TEMPLATE_CATEGORIES } from '@/data/defaultTemplates'
 import { templateDetails } from '@/data/templateDetails'
@@ -183,6 +184,17 @@ function resetSearch() {
   activeSubcategory.value = 'all'
 }
 
+/**
+ * <640px 窄屏：吸顶区只保留一行横向滚动的分类 chips + 「筛选 (N)」按钮，
+ * 搜索框与子分类折进按钮展开的面板（非吸顶，占位在列表上方）；≥640px 维持原多行布局。
+ */
+const isNarrow = useIsNarrow()
+const filterPanelOpen = ref(false)
+/** 折起面板内已生效的筛选数（搜索词 / 子分类），显示在按钮角标 */
+const extraFilterCount = computed(
+  () => (searchActive.value ? 1 : 0) + (activeSubcategory.value !== 'all' ? 1 : 0),
+)
+
 /** 搜索无结果时的推荐：当前分类下的模板优先，否则用常用模板兜底 */
 const recommendedItems = computed(() => {
   const inCategory =
@@ -208,8 +220,53 @@ const recommendedItems = computed(() => {
 
     <div
       class="sticky top-14 z-20 -mx-4 mt-8 flex flex-col items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 min-[769px]:static min-[769px]:mx-0 min-[769px]:border-0 min-[769px]:bg-transparent min-[769px]:p-0"
+      :class="isNarrow ? 'py-2' : ''"
       data-testid="templates-filter-bar"
     >
+      <div v-if="isNarrow" class="flex w-full items-center gap-2">
+        <div
+          class="scrollbar-none flex min-w-0 flex-1 snap-x snap-mandatory gap-1.5 overflow-x-auto"
+          data-testid="templates-category-chips"
+        >
+          <button
+            v-for="opt in categoryOptions"
+            :key="opt.id"
+            type="button"
+            class="shrink-0 cursor-pointer snap-start rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap transition-colors duration-150"
+            :class="
+              activeCategory === opt.id
+                ? 'border-brand-500 bg-brand-600 text-white shadow-sm'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600'
+            "
+            @click="selectCategory(opt.id)"
+          >
+            {{ opt.name }}
+            <span :class="activeCategory === opt.id ? 'text-brand-100' : 'text-slate-600'">
+              {{ opt.count }}
+            </span>
+          </button>
+        </div>
+        <button
+          type="button"
+          class="relative inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition-colors duration-150"
+          :class="
+            filterPanelOpen || extraFilterCount > 0
+              ? 'border-brand-300 bg-brand-50 text-brand-700'
+              : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600'
+          "
+          :aria-expanded="filterPanelOpen"
+          aria-controls="templates-filter-panel"
+          data-testid="templates-filter-toggle"
+          @click="filterPanelOpen = !filterPanelOpen"
+        >
+          <svg class="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 4h12M4.5 8h7M7 12h2" />
+          </svg>
+          {{ tr('筛选') }}
+          <span v-if="extraFilterCount > 0" data-testid="templates-filter-count">({{ extraFilterCount }})</span>
+        </button>
+      </div>
+      <template v-else>
       <label class="relative block w-full max-w-md">
         <svg
           class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-600"
@@ -271,6 +328,59 @@ const recommendedItems = computed(() => {
           </span>
         </button>
       </div>
+      </template>
+    </div>
+
+    <!-- 窄屏展开的筛选面板：不吸顶，占位在列表上方 -->
+    <div
+      v-if="isNarrow && filterPanelOpen"
+      id="templates-filter-panel"
+      class="mt-3 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+      data-testid="templates-filter-panel"
+    >
+      <label class="relative block w-full">
+        <svg
+          class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-600"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="7" cy="7" r="4.5" />
+          <path d="m10.5 10.5 3 3" />
+        </svg>
+        <input
+          v-model="searchQuery"
+          type="search"
+          :placeholder="t('搜索模板 / 场景，支持拼音、首字母')"
+          class="w-full rounded-lg border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm text-slate-700 shadow-sm placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none"
+        />
+      </label>
+      <p v-if="searchScopeNote" class="text-xs text-slate-500">
+        {{ searchScopeNote }}
+      </p>
+      <div v-if="subcategoryOptions.length > 0" class="flex flex-wrap gap-1.5">
+        <button
+          v-for="sub in subcategoryOptions"
+          :key="sub.id"
+          type="button"
+          class="cursor-pointer rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors duration-150"
+          :class="
+            activeSubcategory === sub.id
+              ? 'border-brand-300 bg-brand-50 text-brand-700'
+              : 'border-transparent bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-700'
+          "
+          @click="activeSubcategory = sub.id"
+        >
+          {{ t(sub.name) }}
+          <span :class="activeSubcategory === sub.id ? 'text-brand-400' : 'text-slate-600'">
+            {{ sub.count }}
+          </span>
+        </button>
+      </div>
+      <p v-else class="text-xs text-slate-500">{{ tr('选中一个分类后可按子类继续筛选') }}</p>
     </div>
 
     <div

@@ -32,14 +32,14 @@ const TONE_PATH: Record<ToastType, string> = {
 <template>
   <!-- 堆叠位置：
        · 窄屏（<sm）右下，避开右下角反馈按钮；底部操作条可见（html.has-next-step-bar）或页面带吸底按钮栏（.has-sticky-actions）时
-         抬到 8rem，高于操作条（3rem）+ 反馈按钮（4.25rem 起），不遮导出 / 下一步按钮；
-       · ≥sm 右上（top-20 right-4），不覆盖页面中部的预览内容；但带 .has-sticky-actions 的页面（工坊预览区吸顶工具栏的导出按钮恰在右上）
-         仍走右下车道，避免盖住操作按钮 -->
+         抬到 8rem + 底部安全区（env(safe-area-inset-bottom)），高于操作条（3rem）+ 反馈按钮（4.25rem 起），不遮导出 / 下一步按钮；
+       · ≥sm 右上（top-20 right-4，位于 3.5rem 吸顶头部下方），不覆盖页面中部的预览内容；
+       · 带 .has-sticky-actions 的页面（工坊）：sm–lg 仍走右下车道避开导出按钮，≥lg 预览区已够高、右下是标签成品，改走右上。 -->
   <div
     role="status"
     aria-live="polite"
     :aria-label="t('操作提示')"
-    class="no-print pointer-events-none fixed right-3 bottom-20 z-[70] flex w-[calc(100vw-1.5rem)] max-w-80 flex-col-reverse gap-2 sm:top-20 sm:right-4 sm:bottom-auto sm:flex-col [.has-next-step-bar_&]:bottom-[8rem] [.has-sticky-actions_&]:bottom-[8rem] [.has-sticky-actions_&]:sm:top-auto [.has-sticky-actions_&]:sm:flex-col-reverse"
+    class="no-print pointer-events-none fixed right-3 bottom-20 z-[70] flex w-[calc(100vw-1.5rem)] max-w-80 flex-col-reverse gap-2 sm:top-20 sm:right-4 sm:bottom-auto sm:flex-col [.has-next-step-bar_&]:bottom-[calc(8rem_+_env(safe-area-inset-bottom,0px))] [.has-sticky-actions_&]:bottom-[calc(8rem_+_env(safe-area-inset-bottom,0px))] [.has-sticky-actions_&]:sm:top-auto [.has-sticky-actions_&]:sm:flex-col-reverse [.has-sticky-actions_&]:lg:top-20 [.has-sticky-actions_&]:lg:bottom-auto [.has-sticky-actions_&]:lg:flex-col"
     data-testid="toast-host"
   >
     <TransitionGroup

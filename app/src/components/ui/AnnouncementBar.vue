@@ -2,26 +2,35 @@
 import { onMounted, ref } from 'vue'
 
 import { t } from '@/i18n'
+import {
+  type AnnouncementPayload as Announcement,
+  readAnnouncementCache,
+  writeAnnouncementCache,
+} from '@/utils/announcementCache'
 import { apiFetch } from '@/utils/api'
-
-interface Announcement {
-  text: string
-  enabled: boolean
-  updatedAt: string
-}
 
 const announcement = ref<Announcement | null>(null)
 const dismissed = ref(false)
 
 const DISMISS_KEY = 'seatmark.announcement-dismissed.v1'
 
+async function loadAnnouncement(): Promise<Announcement | null> {
+  const now = Date.now()
+  const cached = readAnnouncementCache(now)
+  if (cached) return cached.announcement
+  const data = await apiFetch<{ announcement: Announcement | null }>('/api/announcement')
+  const value = data.announcement ?? null
+  writeAnnouncementCache({ announcement: value, fetchedAt: now })
+  return value
+}
+
 onMounted(async () => {
   try {
-    const data = await apiFetch<{ announcement: Announcement | null }>('/api/announcement')
-    if (data.announcement?.enabled && data.announcement.text) {
-      announcement.value = data.announcement
+    const current = await loadAnnouncement()
+    if (current?.enabled && current.text) {
+      announcement.value = current
       try {
-        dismissed.value = localStorage.getItem(DISMISS_KEY) === data.announcement.updatedAt
+        dismissed.value = localStorage.getItem(DISMISS_KEY) === current.updatedAt
       } catch {
         dismissed.value = false
       }

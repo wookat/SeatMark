@@ -788,7 +788,7 @@ export const guides: Guide[] = [
 <tr><td>内网环境只有 WPS、没有浏览器</td><td>邮件合并（SeatMark 首次加载后可离线用，可覆盖部分场景）</td></tr>
 </tbody>
 </table>
-<p>更系统的两种方案对比（含照片支持、数据检查等维度）见<a href="/guides/wps-word-mail-merge-vs-online">邮件合并 vs 在线工具选型指南</a>。如果决定试试在线方式，打开<a href="/studio">标签工坊</a>用演示数据几分钟就能走完全程，Beta 期间<a href="/pricing">全部功能免费</a>。</p>
+<p>更系统的两种方案对比（含照片支持、数据检查等维度）见<a href="/guides/wps-word-mail-merge-vs-online">邮件合并 vs 在线工具选型指南</a>。如果决定试试在线方式，打开<a href="/studio">标签工坊</a>用演示数据走一遍「名单→预览→导出 PDF」，不用注册，Beta 期间<a href="/pricing">全部功能免费</a>。</p>
 `,
   },
   {
@@ -913,7 +913,7 @@ export const guides: Guide[] = [
       },
       {
         q: '考前一晚名单变了怎么办？',
-        a: '这是常态（缺考、转班、补报名）。SeatMark 的模板与字段映射保存在浏览器本地，名单改完重新上传 Excel 即可重新生成，几分钟内出新 PDF；建议只重打有变化的考场页。',
+        a: '这是常态（缺考、转班、补报名）。SeatMark 的模板与字段映射保存在浏览器本地，名单改完重新上传 Excel 即可重新生成新 PDF，页面顺序跟随名单顺序；建议只重打有变化的考场页。',
       },
     ],
     related: ['final-exam-materials-timeline', 'exam-seating-arrangement-rules', 'exam-room-door-sign'],
@@ -1001,7 +1001,7 @@ export const guides: Guide[] = [
       },
       {
         q: '每期开班都要重做一遍吗？',
-        a: '模板做一次就固定了。SeatMark 会把模板保存在浏览器本地，新班只需上传新学员名单，几分钟出全部物料；连锁机构可用模板分享链接把校区统一版式发给各教务。',
+        a: '模板做一次就固定了。SeatMark 会把模板保存在浏览器本地，新班只需上传新学员名单，表头与上次一致就直接套用字段映射输出；连锁机构可用模板分享链接把校区统一版式发给各教务。',
       },
       {
         q: '结业证书也能批量做吗？',
@@ -1183,7 +1183,7 @@ export const guides: Guide[] = [
       },
       {
         q: '婚礼前两天名单还在变怎么办？',
-        a: '这是常态。名单维护在 Excel 里，改完重新上传即可重新生成；只重打有变化的桌，几分钟的事。建议多备 10 张空白卡，当天临时到场的宾客手写补上。',
+        a: '这是常态。名单维护在 Excel 里，改完重新上传即可重新生成；只重打有变化的那几页。建议多备 10 张空白卡，当天临时到场的宾客手写补上。',
       },
     ],
     related: ['hr-annual-meeting-materials', 'a4-seat-card-size-layout', 'rare-character-font-issue'],
@@ -1524,7 +1524,7 @@ export const guides: Guide[] = [
 <tr><td>第 02 考场</td><td>教学楼 2 楼 202</td><td>20230131–20230160</td><td>全科</td></tr>
 </tbody>
 </table>
-<p>在<a href="/studio">SeatMark 标签工坊</a>选<a href="/templates/fullPage">整页名牌</a>或<a href="/templates/classDoor">班级门牌</a>模板，上传这张表：考场号映射到大字主字段，范围与时间映射到副字段，几十个考场的门贴一次生成。在设计器里可以把考点名称（「XX 中学考点」）加为固定文本字段，全套门贴自动带统一抬头。</p>
+<p>在<a href="/studio">SeatMark 标签工坊</a>选<a href="/templates/fullPage">整页名牌</a>或<a href="/templates/classDoor">班级门牌</a>模板，上传这张表：考场号映射到大字主字段，范围与时间映射到副字段，每行输出一页门贴，考场数即页数。在设计器里可以把考点名称（「XX 中学考点」）加为固定文本字段，全套门贴自动带统一抬头。</p>
 
 <h2>楼道引导牌与配套标识</h2>
 <p>引导牌内容更简单（「第 05–08 考场 →」「洗手间 ←」），同样用整页模板批量出。规划方法：沿考生动线从校门走到最远考场，凡是需要拐弯、上楼、二选一的节点都放一张。常见配套标识一并打印：</p>
@@ -1732,7 +1732,7 @@ export const guides: Guide[] = [
       },
       {
         q: '访客证需要做姓名吗？',
-        a: '访客流动大，常见做法是做「编号版」访客证（访客 001–050），配合前台登记表使用，可重复利用；重要接待再临时打印带姓名的一批，几分钟的事。',
+        a: '访客流动大，常见做法是做「编号版」访客证（访客 001–050），配合前台登记表使用，可重复利用；重要接待再临时上传一份当日名单打印带姓名的一批。',
       },
     ],
     related: ['photo-verification-label', 'hr-annual-meeting-materials', 'interview-recruitment-materials'],
@@ -1802,7 +1802,7 @@ export const guides: Guide[] = [
       },
       {
         q: '老师给全班做和家长给自己孩子做，方法一样吗？',
-        a: '工具一样，数据源不同：老师上传全班名单一次生成全班的贴纸；家长只做一个孩子，用一行数据的表格或直接在模板里改成固定文本重复打印一页即可。',
+        a: '工具一样，数据源不同：老师上传全班名单，每行输出一枚贴纸；家长只做一个孩子，用一行数据的表格或直接在模板里改成固定文本重复打印一页即可。',
       },
     ],
     related: ['back-to-school-checklist', 'dorm-class-door-sign', 'parent-meeting-desk-card'],
@@ -1821,7 +1821,7 @@ export const guides: Guide[] = [
 </table>
 <p>说明一下边界：需要机洗的衣物名字贴属于烫印/织唛工艺，纸质打印覆不住这个场景，直接买成品更合适；其余纸面与硬物表面场景，自己批量打印又快又省。</p>
 
-<h2>老师版：全班姓名贴一次生成</h2>
+<h2>老师版：全班名单上传，每行输出一枚姓名贴</h2>
 <p>班主任的典型任务是开学前给全班 30–50 个孩子做齐几类贴纸。用<a href="/studio">SeatMark 标签工坊</a>的流程：</p>
 <ol>
 <li>班级名单 Excel（姓名一列即够；想加学号、班级则加列）；</li>
@@ -1896,7 +1896,7 @@ export const guides: Guide[] = [
 <tr><td>302</td><td>3 楼</td><td>陈晨、刘洋、杨帆、周涛</td><td>计算机 2302</td></tr>
 </tbody>
 </table>
-<p>系统导出常是一行一人，用数据透视或 TEXTJOIN 公式（<code>=TEXTJOIN("、",TRUE,IF(A:A=D2,B:B,""))</code> 数组公式）把同房间姓名合并到一格。整理好后，在<a href="/studio">SeatMark 标签工坊</a>选<a href="/templates/dormDoor">宿舍门贴</a>模板上传：房间号映射到大字主字段，成员与班级映射到副字段，全楼门贴一次生成。</p>
+<p>系统导出常是一行一人，用数据透视或 TEXTJOIN 公式（<code>=TEXTJOIN("、",TRUE,IF(A:A=D2,B:B,""))</code> 数组公式）把同房间姓名合并到一格。整理好后，在<a href="/studio">SeatMark 标签工坊</a>选<a href="/templates/dormDoor">宿舍门贴</a>模板上传：房间号映射到大字主字段，成员与班级映射到副字段，每行（每间）输出一页门贴；成员较多时字号会自动缩小，一间超过 8 人建议改用每人一行的床位牌。</p>
 
 <h2>班级门牌：一学年用的正式标识</h2>
 <p>班级门牌信息简单（「高二（3）班」+ 班主任姓名 + 可选班训），数量少但正式感要求高：</p>

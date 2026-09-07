@@ -338,6 +338,7 @@ export const en: Record<string, string> = {
   '第一行默认作为表头，支持 .xlsx / .xls / .csv；不确定格式可先下载样例 Excel':
     'The first row is treated as the header. Supports .xlsx / .xls / .csv — download the sample Excel if unsure about the format',
   '筛选': 'Filter',
+  '选中一个分类后可按子类继续筛选': 'Pick a category first to filter by sub-type',
   '管理后台': 'Admin',
   '粘贴名单导入': 'Paste list to import',
   '精确像素（电子墨水屏 800×480）': 'Exact pixels (e-ink 800×480)',
@@ -1520,6 +1521,8 @@ export const en: Record<string, string> = {
   '原模板字段与座位名单不匹配；可在「模板」中更换其他样式': 'The previous template fields did not match the seating roster. You can pick another style under "Templates".',
   '座位表名单已带入': 'Seating roster imported',
   '共 {n} 人，选好模板即可批量生成桌贴': '{n} people in total. Pick a template to batch-generate desk labels.',
+  '还有 {n} 个字段未映射：{fields}': '{n} field(s) still unmapped: {fields}',
+  '导出前请在「字段映射」中选择列或换模板，否则成品中该字段留空': 'Before exporting, pick a column under "Field Mapping" or switch templates; otherwise the field stays blank on the output',
   '按「{col}」升序': 'Sorted by "{col}" ascending',
   '按「{col}」降序': 'Sorted by "{col}" descending',
   '筛选后 {shown}/{total} 条': 'Filtered: {shown}/{total} rows',

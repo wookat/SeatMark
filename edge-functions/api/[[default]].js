@@ -57,6 +57,7 @@ import { getStorage, probeBlob } from './_storage.js'
 import { withSecurityHeaders } from './_security.js'
 import { json, clientIp, clientIpSource, sha256Hex } from './_http.js'
 import { randomInt, randomDigits, randomToken, randomToken36 } from './_random.js'
+import { SEATMARK_REV, REV_HEADER_NAME } from './_rev.js'
 
 /**
  * 受控并发 map：每批最多 limit 个元素 Promise.all，批与批之间串行；结果顺序与 items 一致。
@@ -143,6 +144,8 @@ function isMemoryUnsafeRoute(path, method) {
 
 /** 不依赖 AUTH_SECRET 的公开只读端点：密钥缺失时仍可响应 */
 const NO_SECRET_PATHS = new Set(['/api/announcement'])
+/** 公告 GET 的缓存策略：浏览器 60s，边缘 300s，过期后 600s 内先用旧值后台刷新 */
+export const ANNOUNCEMENT_CACHE_CONTROL = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
 
 /** 本地 dev 中间件 / Vitest 显式放行标记：与内存存储放行共用同一开关 */
 function isDevAllowed(env) {
@@ -186,6 +189,7 @@ function b64urlDecode(str) {
 }
 
 async function hmacKey(secret) {
+  if (typeof secret !== 'string' || !secret) throw new Error('jwt secret missing')
   return crypto.subtle.importKey(
     'raw',
     encoder.encode(secret),
@@ -224,8 +228,14 @@ async function verifyJwt(token, secret) {
   }
 }
 
-function getSecret(env) {
-  return (env && env.AUTH_SECRET) || 'seatmark-dev-secret-do-not-use-in-prod'
+/**
+ * JWT 签名密钥：生产只认 env.AUTH_SECRET；本地 dev / 测试显式放行时才回退开发默认值，
+ * 否则返回 null（handleRequest 入口的 fail-closed 门已拦下该分支，这里不再为生产路径提供兼底密钥）
+ */
+export function getSecret(env) {
+  if (hasAuthSecret(env)) return env.AUTH_SECRET
+  if (isDevAllowed(env)) return 'seatmark-dev-secret-do-not-use-in-prod'
+  return null
 }
 
 function parseCookies(request) {
@@ -801,8 +811,8 @@ async function handleRequest(context) {
   if (method === 'OPTIONS') return new Response(null, { status: 204 })
 
   const { kv, storage, blobStore } = await getStorage(env)
-  // Rev 标记仅用于部署观测：探针可确认线上边缘函数版本，改动本文件时递增
-  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r350' }
+  // Rev 标记仅用于部署观测：探针可确认线上边缘函数版本，改动边缘函数时在 _rev.js 递增
+  const storageHeader = { 'X-SeatMark-Storage': storage, [REV_HEADER_NAME]: SEATMARK_REV }
 
   // 开发默认密钥公开可见：生产缺失 AUTH_SECRET 时会话/验证码/重置码 JWT 可被任意伪造，
   // 必须 fail closed；仅显式放行的本地 dev / 测试允许回退默认值
@@ -1542,14 +1552,15 @@ async function handleRequest(context) {
     return json({ ok: true }, 200, storageHeader)
   }
 
-  // ----- 公告（公开读取） -----
+  // ----- 公告（公开读取；极少变化，允许边缘/浏览器短缓存，管理端 PUT 后最多 5 分钟内对访客生效） -----
   if (path === '/api/announcement' && method === 'GET') {
+    const cacheHeader = { ...storageHeader, 'Cache-Control': ANNOUNCEMENT_CACHE_CONTROL }
     const raw = await kv.get('announcement')
-    if (!raw) return json({ announcement: null }, 200, storageHeader)
+    if (!raw) return json({ announcement: null }, 200, cacheHeader)
     try {
-      return json({ announcement: JSON.parse(raw) }, 200, storageHeader)
+      return json({ announcement: JSON.parse(raw) }, 200, cacheHeader)
     } catch {
-      return json({ announcement: null }, 200, storageHeader)
+      return json({ announcement: null }, 200, cacheHeader)
     }
   }
 

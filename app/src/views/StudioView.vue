@@ -28,6 +28,7 @@ import { applyLabelPaper } from '@/utils/labelPaper'
 import { evaluatePaperFit, FIT_LEVEL_LABELS } from '@/utils/paperFit'
 import { takeSeatingHandoff } from '@/utils/seating'
 import { decodeSharedTemplate, extractSharePayload } from '@/utils/share'
+import { buildUnmappedNotice } from '@/utils/unmappedNotice'
 
 const { locale } = useI18n()
 const route = useRoute()
@@ -224,6 +225,16 @@ onMounted(() => {
         t('座位表名单已带入'),
         t('共 {n} 人，选好模板即可批量生成桌贴').replace('{n}', String(handoff.rows.length)),
       )
+      // 带入后仍有字段没对上列（如标准考场版的准考证号）：提前告知，避免导出时才发现留空
+      const unmapped = buildUnmappedNotice(workspace.unmappedFields, t('、'))
+      if (unmapped) {
+        toast.info(
+          t('还有 {n} 个字段未映射：{fields}')
+            .replace('{n}', String(unmapped.count))
+            .replace('{fields}', unmapped.examples),
+          t('导出前请在「字段映射」中选择列或换模板，否则成品中该字段留空'),
+        )
+      }
     }
   }
   // 从主页「从空白新建模板」进入时直接打开设计器

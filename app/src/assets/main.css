@@ -61,6 +61,14 @@
   }
 }
 
+/* 横向 chips 行：可滚动但不显示滚动条（移动端筛选栏） */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer components {
   .btn {
     @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded border border-transparent font-semibold transition-colors duration-150 select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 disabled:cursor-not-allowed disabled:opacity-50;

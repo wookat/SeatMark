@@ -183,3 +183,69 @@ describe('第 350 轮：webhook 文本页面字段与存档同规格截断', () 
     expect([...store.keys()].some((k) => k.startsWith('rl:fb:'))).toBe(true)
   })
 })
+
+describe('第 351 轮：webhook 按平台分发 schema', () => {
+  function kvEnv(webhook: string): Env {
+    const store = new Map<string, string>()
+    return {
+      FEEDBACK_WEBHOOK: webhook,
+      seatmark_kv: {
+        async get(k: string) {
+          return store.get(k) ?? null
+        },
+        async put(k: string, v: string) {
+          store.set(k, v)
+        },
+        async delete(k: string) {
+          store.delete(k)
+        },
+      },
+    }
+  }
+
+  function captureFetch() {
+    const bodies: string[] = []
+    globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+      bodies.push(String(init?.body ?? ''))
+      return new Response('{}', { status: 200 })
+    }) as typeof fetch
+    return bodies
+  }
+
+  it('钉钉 oapi.dingtalk.com：body 为 { msgtype:"text", text:{ content } }', async () => {
+    const bodies = captureFetch()
+    const { response } = await send(
+      post(JSON.stringify({ type: 'bug', content: '钉钉分发', page: '/studio' })),
+      kvEnv('https://oapi.dingtalk.com/robot/send?access_token=test'),
+    )
+    expect(response.status).toBe(200)
+    expect(bodies).toHaveLength(1)
+    const body = JSON.parse(bodies[0]!) as { msgtype: string; text: { content: string }; msg_type?: unknown }
+    expect(body.msgtype).toBe('text')
+    expect(body.text.content).toContain('钉钉分发')
+    expect(body.msg_type).toBeUndefined()
+  })
+
+  it('企业微信 qyapi.weixin.qq.com：同为 msgtype/text.content', async () => {
+    const bodies = captureFetch()
+    await send(
+      post(JSON.stringify({ type: 'bug', content: '企微分发' })),
+      kvEnv('https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test'),
+    )
+    const body = JSON.parse(bodies[0]!) as { msgtype: string; text: { content: string } }
+    expect(body.msgtype).toBe('text')
+    expect(body.text.content).toContain('企微分发')
+  })
+
+  it('飞书维持默认 { msg_type:"text", content:{ text } }', async () => {
+    const bodies = captureFetch()
+    await send(
+      post(JSON.stringify({ type: 'bug', content: '飞书分发' })),
+      kvEnv('https://open.feishu.cn/open-apis/bot/v2/hook/test'),
+    )
+    const body = JSON.parse(bodies[0]!) as { msg_type: string; content: { text: string }; msgtype?: unknown }
+    expect(body.msg_type).toBe('text')
+    expect(body.content.text).toContain('飞书分发')
+    expect(body.msgtype).toBeUndefined()
+  })
+})
