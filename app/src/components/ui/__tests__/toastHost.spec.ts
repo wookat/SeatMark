@@ -4,6 +4,7 @@ import { defineComponent, h } from 'vue'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
+import ModalDialog, { MODAL_OPEN_CLASS } from '@/components/ui/ModalDialog.vue'
 import ToastHost from '@/components/ui/ToastHost.vue'
 import {
   STICKY_ACTIONS_CLASS,
@@ -42,6 +43,17 @@ describe('ToastHost 与底部操作条安全区', () => {
     wrapper.unmount()
   })
 
+  it('第 353 轮：弹窗打开期间（html.has-modal）窄屏改落顶部：带 [.has-modal_&]:max-sm:top-16 / bottom-auto，≥sm 定位 class 不变', () => {
+    setActivePinia(createPinia())
+    const wrapper = mount(ToastHost)
+    const host = wrapper.get('[role="status"]')
+    expect(host.classes()).toContain('[.has-modal_&]:max-sm:top-16')
+    expect(host.classes()).toContain('[.has-modal_&]:max-sm:bottom-auto')
+    expect(host.classes()).toContain('sm:top-20')
+    expect(host.classes()).toContain('sm:bottom-auto')
+    wrapper.unmount()
+  })
+
   it('有 toast 时渲染在同一容器内（堆叠整体随容器上移）', async () => {
     setActivePinia(createPinia())
     const wrapper = mount(ToastHost, { global: { stubs: { TransitionGroup: false } } })
@@ -50,6 +62,40 @@ describe('ToastHost 与底部操作条安全区', () => {
     const host = wrapper.get('[role="status"]')
     expect(host.text()).toContain('已导入')
     wrapper.unmount()
+  })
+})
+
+describe('第 353 轮：ModalDialog 打开期间在 <html> 标记 has-modal（多弹窗计数）', () => {
+  afterEach(() => {
+    document.documentElement.classList.remove(MODAL_OPEN_CLASS)
+    document.body.innerHTML = ''
+  })
+
+  function mountModal(open: boolean) {
+    return mount(ModalDialog, {
+      props: { open, title: 't' },
+      global: { stubs: { Teleport: true, Transition: true } },
+      attachTo: document.body,
+    })
+  }
+
+  it('open 时添加，两个弹窗叠加时关掉一个仍保留，全部关闭/卸载后移除', async () => {
+    expect(document.documentElement.classList.contains(MODAL_OPEN_CLASS)).toBe(false)
+    const a = mountModal(true)
+    expect(document.documentElement.classList.contains(MODAL_OPEN_CLASS)).toBe(true)
+    const b = mountModal(true)
+    expect(document.documentElement.classList.contains(MODAL_OPEN_CLASS)).toBe(true)
+
+    await a.setProps({ open: false })
+    expect(document.documentElement.classList.contains(MODAL_OPEN_CLASS)).toBe(true)
+    await b.setProps({ open: false })
+    expect(document.documentElement.classList.contains(MODAL_OPEN_CLASS)).toBe(false)
+
+    await b.setProps({ open: true })
+    expect(document.documentElement.classList.contains(MODAL_OPEN_CLASS)).toBe(true)
+    b.unmount()
+    expect(document.documentElement.classList.contains(MODAL_OPEN_CLASS)).toBe(false)
+    a.unmount()
   })
 })
 

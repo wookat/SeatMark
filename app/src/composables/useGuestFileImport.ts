@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 
 import type { DataRow } from '@/types/template'
+import { assertImportFileSize } from '@/utils/importLimits'
 
 /** 名单文件读取结果：Excel 走表格（表头 + 数据行），TXT/CSV 走纯文本 */
 export type GuestFileContent =
@@ -13,8 +14,10 @@ export const GUEST_FILE_ACCEPT = '.txt,.csv,.xlsx,.xls,text/plain,text/csv'
 /**
  * 浏览器本地读取名单文件（不触发任何网络请求）：
  * .xlsx/.xls 懒加载 @/utils/excel 的 parseExcelFile；其余按 TXT/CSV 文本解码（UTF-8 → GB18030 回退）。
+ * 体积超过 IMPORT_FILE_MAX_BYTES 的文件在读取/加载解析库之前就拒绝。
  */
 export async function readGuestFile(file: File): Promise<GuestFileContent> {
+  assertImportFileSize(file)
   if (/\.xlsx?$/i.test(file.name)) {
     const { parseExcelFile } = await import('@/utils/excel')
     const { headers, rows } = await parseExcelFile(file)

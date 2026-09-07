@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
+import { useIsPhone } from '@/composables/useMediaQuery'
 import { TEMPLATE_CATEGORIES } from '@/data/defaultTemplates'
 import { t as tr } from '@/i18n'
 import { TEMPLATE_SUBCATEGORIES, subcategoryOf } from '@/data/templateTaxonomy'
@@ -54,18 +55,21 @@ function sortByFit(list: LabelTemplate[]): LabelTemplate[] {
 }
 
 // ---------- 面板只露出少量模板，全部模板用弹窗浏览 ----------
-const COLLAPSED_COUNT = 3
+/** 折叠张数：<md 手机只露 1 张（已选模板），让「导入数据」进首屏；≥md 露 3 张 */
+const isPhone = useIsPhone()
+const collapsedCount = computed(() => (isPhone.value ? 1 : 3))
 
 const visibleTemplates = computed<LabelTemplate[]>(() => {
+  const limit = collapsedCount.value
   const sorted = sortByFit(library.allTemplates)
   // 自定义模板置顶：用户自建的模板刷新后直接可见，无需进「浏览全部」弹窗
   const all = [...sorted.filter((t) => !t.builtin), ...sorted.filter((t) => t.builtin)]
-  if (all.length <= COLLAPSED_COUNT) return all
-  const head = all.slice(0, COLLAPSED_COUNT)
+  if (all.length <= limit) return all
+  const head = all.slice(0, limit)
   if (head.some((t) => t.id === workspace.selectedTemplateId)) return head
   // 选中的模板不在前几位时，置顶展示，保证折叠状态下也能看到当前选择
   const selected = all.find((t) => t.id === workspace.selectedTemplateId)
-  return selected ? [selected, ...head.slice(0, COLLAPSED_COUNT - 1)] : head
+  return selected ? [selected, ...head.slice(0, limit - 1)] : head
 })
 
 // ---------- 全部模板弹窗：按场景分类筛选 ----------

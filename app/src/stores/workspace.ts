@@ -611,7 +611,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         toast.success('Excel 导入成功', `已读取 ${parsed.rows.length} 条数据${multiSheetNote}`)
         void warnRareChars(parsed.rows)
       } catch (err) {
-        toast.danger('Excel 导入失败', err instanceof Error ? err.message : String(err))
+        toast.danger(tr('Excel 导入失败'), tr(err instanceof Error ? err.message : String(err)))
       }
     })
   }

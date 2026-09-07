@@ -56,7 +56,7 @@
 import { getStorage, probeBlob } from './_storage.js'
 import { withSecurityHeaders } from './_security.js'
 import { json, clientIp, clientIpSource, sha256Hex } from './_http.js'
-import { randomInt, randomDigits, randomToken, randomToken36 } from './_random.js'
+import { randomId, randomInt, randomDigits, randomToken, randomToken36 } from './_random.js'
 import { SEATMARK_REV, REV_HEADER_NAME } from './_rev.js'
 
 /**
@@ -704,15 +704,20 @@ function captchaSvg(code) {
 }
 
 /**
- * 验证表单验证码：令牌为服务端签名 JWT，5 分钟内有效。
- * 令牌无状态，以 token 摘要为 key 在 KV 标记已消费（TTL 与令牌一致），同一令牌不能重复提交。
- * 本函数只校验（读 usedKey），标记已用由调用方在校验通过后、返回响应前同步 `await markCaptchaUsed`：
+ * 验证表单验证码：令牌为服务端签名 JWT，5 分钟内有效，载荷只带 { typ, cid, exp }。
+ * 答案哈希不进 JWT（令牌可被客户端 base64 解码，不给离线碎答案的机会），而是存在 KV `captcha:ans:<cid>`（TTL 与令牌一致），
+ * 校验时读 KV 比对；另以 token 摘要为 key 在 KV 标记已消费，同一令牌不能重复提交。
+ * 本函数只校验（读 ansKey / usedKey），标记已用由调用方在校验通过后、返回响应前同步 `await markCaptchaUsed`：
  * 标记同步写，关闭后台写链 150ms 延起带来的同一令牌双用窗口（其余非安全写入仍走 deferWrite）。
  * 同一 isolate 内的并发重复提交由 pendingCaptchaUsed（usedKey → 令牌过期毫秒）在读 usedKey 与写入之间占位拦截，
  * 调用方在校验后、标记前提前返回（如 429）的占位随令牌过期一起清理。
- * 返回 { result: 'ok' | 'invalid' | 'used', usedKey, exp }。
+ * 返回 { result: 'ok' | 'invalid' | 'used', usedKey, ansKey, exp }。
  */
 const pendingCaptchaUsed = new Map()
+
+function captchaAnswerKey(cid) {
+  return `captcha:ans:${cid}`
+}
 
 function prunePendingCaptcha(now) {
   for (const [key, expMs] of pendingCaptchaUsed) {
@@ -721,39 +726,44 @@ function prunePendingCaptcha(now) {
 }
 
 async function verifyCaptcha(env, kv, token, answer) {
-  if (typeof token !== 'string' || answer === undefined || answer === null) {
-    return { result: 'invalid', usedKey: null, exp: 0 }
-  }
+  const invalid = { result: 'invalid', usedKey: null, ansKey: null, exp: 0 }
+  if (typeof token !== 'string' || answer === undefined || answer === null) return invalid
   const payload = await verifyJwt(token, getSecret(env))
-  if (!payload || payload.typ !== 'captcha' || typeof payload.cap !== 'string') {
-    return { result: 'invalid', usedKey: null, exp: 0 }
+  if (!payload || payload.typ !== 'captcha' || typeof payload.cid !== 'string' || !payload.cid) {
+    return invalid
   }
-  if (payload.cap !== (await captchaAnswerHash(answer, getSecret(env)))) {
-    return { result: 'invalid', usedKey: null, exp: 0 }
-  }
+  const ansKey = captchaAnswerKey(payload.cid)
   const usedKey = `captcha:used:${(await sha256Hex(token)).slice(0, 32)}`
-  if (await kv.get(usedKey)) return { result: 'used', usedKey, exp: payload.exp }
+  // 答案键已删（成功消费后删除）而已用标记存在 → 报 used，给前端「请刷新」的准确提示
+  const expectedHash = await kv.get(ansKey)
+  if (typeof expectedHash !== 'string' || !expectedHash) {
+    if (await kv.get(usedKey)) return { result: 'used', usedKey, ansKey, exp: payload.exp }
+    return invalid
+  }
+  if (expectedHash !== (await captchaAnswerHash(answer, getSecret(env)))) return invalid
+  if (await kv.get(usedKey)) return { result: 'used', usedKey, ansKey, exp: payload.exp }
   // 读到未用→占位之间无 await：同 isolate 并发的第二个请求在此被拦下
   prunePendingCaptcha(Date.now())
-  if (pendingCaptchaUsed.has(usedKey)) return { result: 'used', usedKey, exp: payload.exp }
+  if (pendingCaptchaUsed.has(usedKey)) return { result: 'used', usedKey, ansKey, exp: payload.exp }
   pendingCaptchaUsed.set(usedKey, Number(payload.exp) * 1000 || Date.now() + CAPTCHA_TTL_SECONDS * 1000)
-  return { result: 'ok', usedKey, exp: payload.exp }
+  return { result: 'ok', usedKey, ansKey, exp: payload.exp }
 }
 
 /**
- * 标记验证码已消费（同步写，调用方 await）。写失败只记日志不阻断登录/注册：
- * 令牌本身 5 分钟内失效，验证码只是防机器人门槛而非凭据。值内 exp 供人工排查。
+ * 标记验证码已消费（同步写，调用方 await）：写已用标记 + 删除答案键，使答案不再可比对。
+ * 写失败只记日志不阻断登录/注册：令牌本身 5 分钟内失效，验证码只是防机器人门槛而非凭据。值内 exp 供人工排查。
  */
 async function markCaptchaUsed(kv, captcha) {
-  try {
-    await kv.put(captcha.usedKey, JSON.stringify({ exp: captcha.exp }), {
+  const results = await Promise.allSettled([
+    kv.put(captcha.usedKey, JSON.stringify({ exp: captcha.exp }), {
       expirationTtl: CAPTCHA_TTL_SECONDS,
-    })
-  } catch (err) {
-    console.error('[seatmark-api] captcha 消费标记写入失败:', err)
-  } finally {
-    pendingCaptchaUsed.delete(captcha.usedKey)
+    }),
+    captcha.ansKey ? kv.delete(captcha.ansKey) : Promise.resolve(),
+  ])
+  for (const r of results) {
+    if (r.status === 'rejected') console.error('[seatmark-api] captcha 消费标记写入失败:', r.reason)
   }
+  pendingCaptchaUsed.delete(captcha.usedKey)
 }
 
 function captchaErrorResponse(result, extraHeaders) {
@@ -945,10 +955,15 @@ async function handleRequest(context) {
     for (let i = 0; i < CAPTCHA_LENGTH; i++) {
       code += CAPTCHA_CHARSET[randomInt(CAPTCHA_CHARSET.length)]
     }
+    // 答案哈希只落 KV，令牌仅携带 CSPRNG 生成的答案键 ID
+    const cid = randomId()
+    await kv.put(captchaAnswerKey(cid), await captchaAnswerHash(code, getSecret(env)), {
+      expirationTtl: CAPTCHA_TTL_SECONDS,
+    })
     const token = await signJwt(
       {
         typ: 'captcha',
-        cap: await captchaAnswerHash(code, getSecret(env)),
+        cid,
         exp: Math.floor(Date.now() / 1000) + CAPTCHA_TTL_SECONDS,
       },
       getSecret(env),

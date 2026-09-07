@@ -83,7 +83,7 @@ async function submit() {
 <template>
   <!-- 浮动按钮 -->
   <button
-    class="no-print fixed right-5 bottom-5 z-50 flex size-12 items-center justify-center rounded-full bg-brand-600 text-white transition-all hover:bg-brand-700 [.has-next-step-bar_&]:bottom-[4.25rem]"
+    class="no-print fixed right-5 bottom-5 z-50 flex size-12 items-center justify-center rounded-full bg-brand-600 text-white transition-all hover:bg-brand-700 max-sm:right-3 max-sm:size-10 [.has-next-step-bar_&]:bottom-[4.25rem] [.has-sticky-actions_&]:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]"
     :aria-label="t('反馈')"
     @click="open = true"
   >

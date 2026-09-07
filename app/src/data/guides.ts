@@ -6,6 +6,7 @@
 
 import type { TemplateCategory } from '@/types/template'
 
+import { EXAM_DEMO_ROW_COUNT } from './demoDatasets'
 import { guidesRound2 } from './guidesRound2'
 import { guidesRound3 } from './guidesRound3'
 import { guidesRound4 } from './guidesRound4'
@@ -123,7 +124,7 @@ export const guides: Guide[] = [
 <li>匹配结果会显示为「已自动匹配 4/4 个字段」，有缺口时会以醒目颜色提示，点开下拉框手动选择对应列即可；</li>
 <li>数据质量检查会自动统计缺失项、重复准考证号、同考场重复座位号，帮你在打印前发现名单问题。</li>
 </ul>
-<p>没有现成名单想先体验的话，点「用演示数据先试试」即可载入 30 条示例数据走完整个流程。</p>
+<p>没有现成名单想先体验的话，点「用演示数据先试试」即可载入 ${EXAM_DEMO_ROW_COUNT} 条示例数据走完整个流程。</p>
 
 <h2>第四步：预览检查，别急着打印</h2>
 <p>右侧预览区显示的就是最终打印效果，按实际纸张逐页排版。打印前建议逐项检查：</p>

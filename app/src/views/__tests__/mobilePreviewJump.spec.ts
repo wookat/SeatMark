@@ -138,27 +138,42 @@ describe('第 349 轮：390 宽下浮动胶囊让位', () => {
     wrapper.unmount()
   })
 
-  it('BanquetView：向下滚动时收起，停止滚动 300ms 后恢复；向上滚动不收起', async () => {
+  function scrollTo(y: number) {
+    Object.defineProperty(window, 'scrollY', { value: y, configurable: true, writable: true })
+    window.dispatchEvent(new Event('scroll'))
+  }
+
+  it('BanquetView（第 353 轮）：向下滚动后收起且停止滚动也不自动恢复；预览区不在视口时向上滚动恢复；回顶 <80px 恢复', async () => {
     vi.useFakeTimers()
     try {
       const wrapper = await mountView(BanquetView)
       const jump = wrapper.find('[data-testid="mobile-preview-jump"]')
       expect(jump.attributes('data-hidden')).toBe('false')
 
-      Object.defineProperty(window, 'scrollY', { value: 120, configurable: true, writable: true })
-      window.dispatchEvent(new Event('scroll'))
+      scrollTo(120)
       await wrapper.vm.$nextTick()
       expect(jump.attributes('data-hidden')).toBe('true')
 
-      vi.advanceTimersByTime(200)
+      // 停止滚动任意时长都不再自动恢复
+      vi.advanceTimersByTime(2000)
       await wrapper.vm.$nextTick()
       expect(jump.attributes('data-hidden')).toBe('true')
-      vi.advanceTimersByTime(100)
+
+      // 继续向下仍收起
+      scrollTo(600)
+      await wrapper.vm.$nextTick()
+      expect(jump.attributes('data-hidden')).toBe('true')
+
+      // 预览区不在视口，向上滚动 → 恢复
+      scrollTo(500)
       await wrapper.vm.$nextTick()
       expect(jump.attributes('data-hidden')).toBe('false')
 
-      Object.defineProperty(window, 'scrollY', { value: 40, configurable: true, writable: true })
-      window.dispatchEvent(new Event('scroll'))
+      // 再向下 → 收起；回到顶部 (<80) → 恢复
+      scrollTo(700)
+      await wrapper.vm.$nextTick()
+      expect(jump.attributes('data-hidden')).toBe('true')
+      scrollTo(40)
       await wrapper.vm.$nextTick()
       expect(jump.attributes('data-hidden')).toBe('false')
       wrapper.unmount()
@@ -168,13 +183,42 @@ describe('第 349 轮：390 宽下浮动胶囊让位', () => {
     }
   })
 
+  it('SeatingView（第 353 轮）：预览区在视口内时向上滚动不恢复（不遮画布），离开视口后再向上才恢复', async () => {
+    try {
+      const wrapper = await mountView(SeatingView)
+      const jump = wrapper.find('[data-testid="mobile-preview-jump"]')
+      scrollTo(900)
+      await wrapper.vm.$nextTick()
+      expect(jump.attributes('data-hidden')).toBe('true')
+
+      ioCallback?.([{ isIntersecting: true }])
+      scrollTo(850)
+      await wrapper.vm.$nextTick()
+      expect(jump.attributes('data-hidden')).toBe('true')
+
+      ioCallback?.([{ isIntersecting: false }])
+      scrollTo(800)
+      await wrapper.vm.$nextTick()
+      expect(jump.attributes('data-hidden')).toBe('false')
+      wrapper.unmount()
+    } finally {
+      Object.defineProperty(window, 'scrollY', { value: 0, configurable: true, writable: true })
+    }
+  })
+
   it('底部操作条（h-12 = 3rem）可见时，胶囊与客服 FAB 都抬到 4.25rem：与操作条留 ≥ 8px 间距', async () => {
     const wrapper = await mountView(SeatingView)
     const jump = wrapper.find('[data-testid="mobile-preview-jump"]')
     expect(jump.classes()).toContain('[.has-next-step-bar_&]:bottom-[4.25rem]')
+    expect(jump.classes()).toContain('[.has-sticky-actions_&]:bottom-[4.25rem]')
     const { default: FeedbackButton } = await import('@/components/ui/FeedbackButton.vue')
     const fab = mount(FeedbackButton, { global: { stubs: { Teleport: true, Transition: true } } })
     expect(fab.find('button').classes()).toContain('[.has-next-step-bar_&]:bottom-[4.25rem]')
+    expect(fab.find('button').classes()).toContain(
+      '[.has-sticky-actions_&]:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]',
+    )
+    expect(fab.find('button').classes()).toContain('max-sm:size-10')
+    expect(fab.find('button').classes()).toContain('max-sm:right-3')
     // 4.25rem − 3rem（操作条高）= 1.25rem = 20px ≥ 8px
     expect(4.25 * 16 - 3 * 16).toBeGreaterThanOrEqual(8)
     fab.unmount()

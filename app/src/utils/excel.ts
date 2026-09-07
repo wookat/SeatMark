@@ -1,6 +1,7 @@
 import type { SampleExcel } from '@/data/demoDatasets'
 import { sampleExcelFor } from '@/data/demoDatasets'
 import type { DataRow, LabelTemplate, ParsedExcel } from '@/types/template'
+import { assertImportFileSize, assertImportRowCount } from '@/utils/importLimits'
 
 /** 表头行探测时最多跳过的前置标题/空行数 */
 export const MAX_TITLE_ROWS = 3
@@ -31,6 +32,7 @@ export function decodeCsvText(bytes: Uint8Array): string {
 
 /** 解析 Excel 文件指定（默认首个）工作表：自动跳过前置大标题/空行定位表头行，其余为数据行 */
 export async function parseExcelFile(file: File, targetSheet?: string): Promise<ParsedExcel> {
+  assertImportFileSize(file)
   const XLSX = await loadXlsx()
 
   let buffer: ArrayBuffer
@@ -128,6 +130,7 @@ export async function parseExcelFile(file: File, targetSheet?: string): Promise<
       })
       return record
     })
+  assertImportRowCount(rows.length)
 
   return { fileName: file.name, sheetName, sheetNames, headers, rows }
 }
