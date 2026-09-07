@@ -142,8 +142,14 @@ function isMemoryUnsafeRoute(path, method) {
   return Boolean(methods && methods.includes(method))
 }
 
-/** 不依赖 AUTH_SECRET 的公开只读端点：密钥缺失时仍可响应 */
+/** 不依赖 AUTH_SECRET 的公开只读端点：密钥缺失时仍可响应（仅 GET / HEAD） */
 const NO_SECRET_PATHS = new Set(['/api/announcement'])
+const NO_SECRET_METHODS = new Set(['GET', 'HEAD'])
+
+/** HEAD 复用 GET 处理：同状态、同头（含 Cache-Control / X-SeatMark-Rev），不返回 body */
+function headOf(response) {
+  return new Response(null, { status: response.status, headers: response.headers })
+}
 /** 公告 GET 的缓存策略：浏览器 60s，边缘 300s，过期后 600s 内先用旧值后台刷新 */
 export const ANNOUNCEMENT_CACHE_CONTROL = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
 
@@ -825,7 +831,7 @@ async function handleRequest(context) {
         storageHeader,
       )
     }
-    if (!(NO_SECRET_PATHS.has(path) && method === 'GET')) {
+    if (!(NO_SECRET_PATHS.has(path) && NO_SECRET_METHODS.has(method))) {
       console.error('[seatmark-api] AUTH_SECRET 未配置，拒绝请求:', method, path)
       return json({ error: 'auth_secret_missing' }, 503, storageHeader)
     }
@@ -1553,15 +1559,19 @@ async function handleRequest(context) {
   }
 
   // ----- 公告（公开读取；极少变化，允许边缘/浏览器短缓存，管理端 PUT 后最多 5 分钟内对访客生效） -----
-  if (path === '/api/announcement' && method === 'GET') {
+  if (path === '/api/announcement' && (method === 'GET' || method === 'HEAD')) {
     const cacheHeader = { ...storageHeader, 'Cache-Control': ANNOUNCEMENT_CACHE_CONTROL }
     const raw = await kv.get('announcement')
-    if (!raw) return json({ announcement: null }, 200, cacheHeader)
-    try {
-      return json({ announcement: JSON.parse(raw) }, 200, cacheHeader)
-    } catch {
-      return json({ announcement: null }, 200, cacheHeader)
+    let res
+    if (!raw) res = json({ announcement: null }, 200, cacheHeader)
+    else {
+      try {
+        res = json({ announcement: JSON.parse(raw) }, 200, cacheHeader)
+      } catch {
+        res = json({ announcement: null }, 200, cacheHeader)
+      }
     }
+    return method === 'HEAD' ? headOf(res) : res
   }
 
   // ----- 管理端 -----

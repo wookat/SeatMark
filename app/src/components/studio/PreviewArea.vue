@@ -8,6 +8,8 @@ import CheckboxField from '@/components/ui/CheckboxField.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
+import { useQuotaBadge } from '@/composables/useQuotaBadge'
+import { STUDIO_TOOLBAR_BOTTOM_VAR } from '@/composables/useStickyActions'
 import { t } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useCalibrationStore } from '@/stores/calibration'
@@ -80,6 +82,33 @@ const duplexGuideOpen = ref(false)
 
 const previewContainer = ref<HTMLElement | null>(null)
 const { width: containerWidth } = useElementSize(previewContainer)
+
+/**
+ * 预览工具栏（sticky）的自然底边（未滚动时相对视口）写入 html 的 --studio-toolbar-bottom，
+ * 供 ToastHost 在 ≥lg 时把右上角的 toast 落到工具栏下方，不遮「图片版 PDF / PNG」按钮。
+ * 工具栏高度随视口宽度换行而变，故用 ResizeObserver 跟随而不写死常量。
+ */
+const toolbarEl = ref<HTMLElement | null>(null)
+const { height: toolbarHeight } = useElementSize(toolbarEl)
+function publishToolbarBottom() {
+  if (typeof document === 'undefined') return
+  const el = toolbarEl.value
+  const anchor = el?.parentElement
+  if (!el || !anchor) {
+    document.documentElement.style.removeProperty(STUDIO_TOOLBAR_BOTTOM_VAR)
+    return
+  }
+  // 父容器不启用 sticky，其文档坐标顶边即工具栏的自然顶边（不受当前滚动位置影响）
+  const naturalTop = anchor.getBoundingClientRect().top + window.scrollY
+  const bottom = Math.round(naturalTop + el.getBoundingClientRect().height)
+  document.documentElement.style.setProperty(STUDIO_TOOLBAR_BOTTOM_VAR, `${bottom}px`)
+}
+watch([toolbarEl, toolbarHeight], publishToolbarBottom, { flush: 'post' })
+if (typeof window !== 'undefined') window.addEventListener('resize', publishToolbarBottom)
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') window.removeEventListener('resize', publishToolbarBottom)
+  if (typeof document !== 'undefined') document.documentElement.style.removeProperty(STUDIO_TOOLBAR_BOTTOM_VAR)
+})
 
 const ZOOM_OPTIONS = computed<SelectOption[]>(() => [
   { value: 'fit', label: t('适应宽度') },
@@ -872,21 +901,7 @@ async function doMobilePrint() {
   }
 }
 
-/**
- * 导出按钮角标：额度 > 0 时正向展示「今日剩余 n 次」（与导出弹窗口径一致），用完后不再展示刺眼的 0，
- * 改为强调「带水印导出永远免费、不限次数」（与价值阶梯弹窗口径一致）
- */
-const exportBadge = computed(() =>
-  quota.remaining > 0
-    ? { text: `${t('今日剩余')} ${quota.remaining} ${t('次')}`, cls: 'bg-emerald-100 text-emerald-700' }
-    : { text: t('带水印免费'), cls: 'bg-sky-100 text-sky-700' },
-)
-const exportBadgeTitle = computed(
-  () =>
-    `${t('带水印导出永远免费、不限次数；无水印今日剩余')} ${quota.remaining}/${quota.limit} ${t('次')}${
-      auth.isLoggedIn ? '' : `${t('，免费登录后每天')} ${QUOTA_USER_DAILY} ${t('次')}`
-    }`,
-)
+const { badge: exportBadge, title: exportBadgeTitle } = useQuotaBadge(quota, auth, t)
 
 /** 未映射字段集合：预览中展示轻量占位提示（导出 / 打印宿主不传，成品不含占位） */
 const unmappedFieldIds = computed(() => new Set(workspace.unmappedFields.map((f) => f.id)))
@@ -909,7 +924,9 @@ const hintKey = ref<HintKey | null>(null)
 <template>
   <section class="flex h-full flex-col">
     <div
+      ref="toolbarEl"
       class="no-print sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200/80 bg-white/95 px-3 py-2.5 shadow-card backdrop-blur sm:px-4"
+      data-testid="preview-toolbar"
     >
       <div class="flex items-center gap-1.5 text-xs">
         <span

@@ -10,9 +10,11 @@ import NumberField from '@/components/ui/NumberField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
 import { GUEST_FILE_ACCEPT, useGuestFileImport } from '@/composables/useGuestFileImport'
+import { useQuotaBadge } from '@/composables/useQuotaBadge'
 import { useStickyActions } from '@/composables/useStickyActions'
 import { demoPersonNames } from '@/data/demoDatasets'
 import { currentLocale, localePath, t as tr } from '@/i18n'
+import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useQuotaStore } from '@/stores/quota'
 import { fitScale, MM_TO_PX } from '@/utils/layout'
@@ -43,6 +45,8 @@ const router = useRouter()
 const toast = useToastStore()
 useStickyActions()
 const quota = useQuotaStore()
+const auth = useAuthStore()
+const { badge: exportBadge, title: exportBadgeTitle } = useQuotaBadge(quota, auth, tr)
 
 // ---------- 输入（持久化到本地，避免跨页返回丢失排座成果） ----------
 const SEATING_STATE_KEY = 'seatmark.seating-state.v1'
@@ -799,27 +803,35 @@ function toDeskLabels() {
               </svg>
               {{ tr('打印座位表（A4 横向）') }}
             </button>
-            <button
-              type="button"
-              class="btn btn-secondary btn-md"
-              :disabled="exporting"
-              :title="tr('当前视角的座位表存为一张 PNG 图片，方便发班群、贴进 PPT')"
-              data-testid="seating-export-png"
-              @click="startPngExport"
-            >
-              <svg
-                class="size-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+            <div class="relative flex">
+              <button
+                type="button"
+                class="btn btn-secondary btn-md flex-1"
+                :disabled="exporting"
+                :title="`${tr('当前视角的座位表存为一张 PNG 图片，方便发班群、贴进 PPT')}。${exportBadgeTitle}`"
+                data-testid="seating-export-png"
+                @click="startPngExport"
               >
-                <path d="M12 4v12m0 0 5-5m-5 5-5-5M4 20h16" />
-              </svg>
-              {{ exporting ? tr('导出中…') : tr('导出 PNG') }}
-            </button>
+                <svg
+                  class="size-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 4v12m0 0 5-5m-5 5-5-5M4 20h16" />
+                </svg>
+                {{ exporting ? tr('导出中…') : tr('导出 PNG') }}
+              </button>
+              <span
+                class="pointer-events-none absolute -top-2.5 right-0 rounded-full px-1.5 py-px text-[9px] font-bold ring-1 ring-white"
+                :class="exportBadge.cls"
+                :title="exportBadgeTitle"
+                data-testid="export-quota-badge"
+              >{{ exportBadge.text }}</span>
+            </div>
             <button type="button" class="btn btn-secondary btn-md" @click="toDeskLabels">
               <svg
                 class="size-4"
@@ -1025,6 +1037,8 @@ function toDeskLabels() {
       :arrange-label="tr('随机排座')"
       :progress="nextStepProgress"
       :target="nextStepTarget"
+      :quota-badge="exportBadge"
+      :quota-badge-title="exportBadgeTitle"
     />
     <MobilePreviewJump :preview="previewContainer" :settings="basicSection" />
   </div>

@@ -62,15 +62,26 @@ function tryDemo() {
     :aria-label="t('首次使用引导')"
     data-testid="first-visit-guide-compact"
   >
-    <button
-      type="button"
-      class="flex w-full cursor-pointer items-center justify-between gap-2 text-left text-xs font-bold text-slate-800 transition-colors hover:text-brand-700"
-      :aria-expanded="false"
-      @click="manuallyExpanded = true"
-    >
-      <span>{{ t('新手四步引导') }}</span>
-      <span class="text-slate-500" aria-hidden="true">▸</span>
-    </button>
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        class="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 text-left text-xs font-bold text-slate-800 transition-colors hover:text-brand-700"
+        :aria-expanded="false"
+        @click="manuallyExpanded = true"
+      >
+        <span class="truncate">{{ t('新手四步引导') }}</span>
+        <span class="text-slate-500" aria-hidden="true">▸</span>
+      </button>
+      <button
+        v-if="!hasRows"
+        type="button"
+        class="btn btn-primary btn-sm shrink-0 whitespace-nowrap"
+        data-testid="first-visit-guide-demo"
+        @click="tryDemo"
+      >
+        {{ t('用演示数据先试试') }}
+      </button>
+    </div>
   </section>
   <section
     v-else-if="visible"

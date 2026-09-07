@@ -5,7 +5,11 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
 import ToastHost from '@/components/ui/ToastHost.vue'
-import { STICKY_ACTIONS_CLASS, useStickyActions } from '@/composables/useStickyActions'
+import {
+  STICKY_ACTIONS_CLASS,
+  STUDIO_TOOLBAR_BOTTOM_VAR,
+  useStickyActions,
+} from '@/composables/useStickyActions'
 import { useToastStore } from '@/stores/toast'
 
 describe('ToastHost 与底部操作条安全区', () => {
@@ -20,7 +24,7 @@ describe('ToastHost 与底部操作条安全区', () => {
     wrapper.unmount()
   })
 
-  it('≥sm 定位到右上（top-20 right-4），带吸底按钮栏的页面 sm–lg 走右下车道、≥lg 回到右上', () => {
+  it('≥sm 定位到右上（top-20 right-4），带吸底按钮栏的页面 sm–lg 走右下车道、≥lg 回到右上但落在工坊工具栏下方', () => {
     setActivePinia(createPinia())
     const wrapper = mount(ToastHost)
     const host = wrapper.get('[role="status"]')
@@ -28,7 +32,11 @@ describe('ToastHost 与底部操作条安全区', () => {
     expect(host.classes()).toContain('sm:right-4')
     expect(host.classes()).toContain('sm:bottom-auto')
     expect(host.classes()).toContain('[.has-sticky-actions_&]:sm:top-auto')
-    expect(host.classes()).toContain('[.has-sticky-actions_&]:lg:top-20')
+    // ≥lg：top 跟随 PreviewArea 写入的 --studio-toolbar-bottom（工具栏实际底边）+ 0.5rem；无变量时回退 4.5rem + 0.5rem = top-20
+    expect(host.classes()).not.toContain('[.has-sticky-actions_&]:lg:top-20')
+    expect(host.classes()).toContain(
+      `[.has-sticky-actions_&]:lg:top-[calc(var(${STUDIO_TOOLBAR_BOTTOM_VAR},4.5rem)_+_0.5rem)]`,
+    )
     expect(host.classes()).toContain('[.has-sticky-actions_&]:lg:bottom-auto')
     expect(host.classes()).toContain('[.has-sticky-actions_&]:lg:flex-col')
     wrapper.unmount()

@@ -3,10 +3,11 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import NotFoundView from '@/views/NotFoundView.vue'
-import { findTopicPage } from '@/data/topicPages'
+import { findTopicPage, topicStepsHeading } from '@/data/topicPages'
 
 const route = useRoute()
 const page = computed(() => findTopicPage(route.path))
+const stepsHeading = computed(() => (page.value ? topicStepsHeading(page.value) : ''))
 </script>
 
 <template>
@@ -41,12 +42,14 @@ const page = computed(() => findTopicPage(route.path))
           {{ page.secondaryCta.label }}
         </RouterLink>
       </div>
-      <p class="mt-3 text-xs text-slate-500">免费 · 免登录 · 名单不出浏览器</p>
+      <p class="mt-3 text-xs text-slate-500">不用注册；名单只在你的浏览器里解析，关闭页面即清除</p>
     </header>
 
-    <!-- 三步用法 -->
+    <!-- 分步用法 -->
     <section class="mt-12">
-      <h2 class="text-center text-xl font-bold tracking-tight text-slate-900">三步完成</h2>
+      <h2 class="text-center text-xl font-bold tracking-tight text-slate-900" data-testid="topic-steps-heading">
+        {{ stepsHeading }}
+      </h2>
       <div class="mt-5 grid gap-4 sm:grid-cols-3">
         <div
           v-for="(step, i) in page.steps"
@@ -100,7 +103,7 @@ const page = computed(() => findTopicPage(route.path))
     >
       <div>
         <h2 class="text-base font-bold text-white">现在就把名单变成打印页</h2>
-        <p class="mt-1 text-sm text-brand-100">免费、免登录，上传名单即生成打印页。</p>
+        <p class="mt-1 text-sm text-brand-100">免费、不用注册：上传名单 → 预览 → 打印或导出 PDF。</p>
       </div>
       <RouterLink
         :to="page.cta.to"

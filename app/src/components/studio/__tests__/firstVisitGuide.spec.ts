@@ -106,3 +106,44 @@ describe('第 346 轮：FirstVisitGuide compact 折叠态', () => {
     expect(wrapper.text()).not.toMatch(CJK)
   })
 })
+
+describe('第 352 轮：FirstVisitGuide compact 行保留演示数据按钮', () => {
+  beforeEach(async () => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    studioGuideDismissed.value = false
+    await setLocale('zh')
+  })
+
+  it('compact + 无数据：单行内渲染「用演示数据先试试」小按钮（btn-sm，与展开箭头同行）；点击后导入演示数据并隐藏按钮', async () => {
+    const wrapper = mount(FirstVisitGuide, { props: { compact: true } })
+    const demo = wrapper.get('[data-testid="first-visit-guide-demo"]')
+    expect(demo.text()).toBe('用演示数据先试试')
+    expect(demo.classes()).toEqual(expect.arrayContaining(['btn', 'btn-sm', 'shrink-0']))
+    const row = demo.element.parentElement!
+    expect(row.classList.contains('flex')).toBe(true)
+    expect(row.querySelector('[aria-expanded]')).toBeTruthy()
+    expect(wrapper.findAll('li')).toHaveLength(0)
+
+    await demo.trigger('click')
+    expect(useWorkspaceStore().excel.rows.length).toBeGreaterThan(0)
+    expect(wrapper.find('[data-testid="first-visit-guide-demo"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="first-visit-guide-compact"]').exists()).toBe(true)
+  })
+
+  it('compact + 已有数据：不渲染演示按钮；点击箭头仍展开完整四步', async () => {
+    useWorkspaceStore().useDemoData()
+    const wrapper = mount(FirstVisitGuide, { props: { compact: true } })
+    expect(wrapper.find('[data-testid="first-visit-guide-demo"]').exists()).toBe(false)
+    await wrapper.get('[data-testid="first-visit-guide-compact"] button[aria-expanded]').trigger('click')
+    expect(wrapper.find('[data-testid="first-visit-guide"]').exists()).toBe(true)
+    expect(wrapper.findAll('li')).toHaveLength(4)
+    expect(wrapper.findAll('li')[1]!.text()).toContain('名单已就绪')
+  })
+
+  it('en：compact 行演示按钮为英文', async () => {
+    await setLocale('en')
+    const wrapper = mount(FirstVisitGuide, { props: { compact: true } })
+    expect(wrapper.get('[data-testid="first-visit-guide-demo"]').text()).not.toMatch(CJK)
+  })
+})

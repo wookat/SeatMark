@@ -42,6 +42,25 @@ describe('NextStepBar', () => {
     )
   })
 
+  it('export 步骤带 quotaBadge 时在主按钮上渲染额度角标；其他步骤不渲染', () => {
+    const target = document.createElement('section')
+    const badge = { text: '今日剩余 1 次', cls: 'bg-emerald-100 text-emerald-700' }
+    const exporting = mount(NextStepBar, {
+      props: { step: 'export', arrangeLabel: '随机排座', target, quotaBadge: badge, quotaBadgeTitle: '额度说明' },
+    })
+    const badgeEl = exporting.find('[data-testid="next-step-quota-badge"]')
+    expect(badgeEl.exists()).toBe(true)
+    expect(badgeEl.text()).toBe('今日剩余 1 次')
+    expect(badgeEl.classes()).toContain('bg-emerald-100')
+    expect(exporting.find('[data-testid="next-step-action"]').attributes('title')).toBe('额度说明')
+
+    const arranging = mount(NextStepBar, {
+      props: { step: 'arrange', arrangeLabel: '随机排座', target, quotaBadge: badge },
+    })
+    expect(arranging.find('[data-testid="next-step-quota-badge"]').exists()).toBe(false)
+    expect(mountBar({ step: 'export', arrangeLabel: '随机排座', target }).find('[data-testid="next-step-quota-badge"]').exists()).toBe(false)
+  })
+
   it('无目标区块时不渲染', () => {
     const wrapper = mountBar({ step: 'import', arrangeLabel: '随机排座', target: null })
     expect(wrapper.find('[data-testid="next-step-bar"]').exists()).toBe(false)

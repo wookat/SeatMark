@@ -261,7 +261,7 @@ const FAQS = computed(() => [
             >
               <path d="M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3z" />
             </svg>
-            {{ t('免费 · 无需注册 · 数据不出浏览器') }}
+            {{ t('免费 · 不用注册 · 名单只在你的浏览器里解析') }}
           </p>
           <h1
             class="mt-4 text-3xl leading-tight font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl"
@@ -271,7 +271,7 @@ const FAQS = computed(() => [
               <span class="text-brand-600 whitespace-nowrap">seating charts out</span>
             </template>
             <template v-else>
-              上传 Excel，批量生成<br />
+              上传 Excel 名单，导出可打印的<br />
               <span class="text-brand-600"><span class="whitespace-nowrap">座签</span> · <span class="whitespace-nowrap">桌牌席卡</span> · <span class="whitespace-nowrap">门贴证卡</span></span>
             </template>
           </h1>
@@ -420,7 +420,7 @@ const FAQS = computed(() => [
       </div>
     </section>
 
-    <!-- 三步流程 -->
+    <!-- 流程步骤（STEPS 数据驱动） -->
     <section id="how" class="scroll-mt-16 border-b border-slate-200 bg-slate-50/70">
       <div
         class="mx-auto flex w-full max-w-6xl flex-col items-stretch gap-4 px-4 py-8 sm:flex-row sm:items-center"
@@ -710,7 +710,7 @@ const FAQS = computed(() => [
               </li>
               <li class="flex gap-2">
                 <svg class="mt-0.5 size-3.5 flex-none text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7" /></svg>
-                {{ t('名单只暂存在本标签页，关闭即清除；座位表草稿留在本机浏览器，可在隐私页一键清除') }}
+                {{ t('名单只暂存在本标签页，关闭即清除；座位表草稿留在本机浏览器，可在隐私页随时清除') }}
               </li>
             </ul>
           </div>
@@ -812,7 +812,7 @@ const FAQS = computed(() => [
         <div class="relative">
           <h2 class="text-xl font-bold text-white sm:text-2xl">{{ t('开始生成你的标签') }}</h2>
           <p class="mt-1.5 text-sm text-brand-100">
-            {{ t('选择模板、上传 Excel 名单，直接导出一批座签、门贴或证卡。无需注册，数据不出浏览器。') }}
+            {{ t('选择模板、上传 Excel 名单，导出一批座签、门贴或证卡。不用注册，名单只在本机浏览器解析。') }}
           </p>
         </div>
         <RouterLink
