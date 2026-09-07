@@ -57,7 +57,7 @@ The 图片 PNG dialog remembers the last export mode (整页 vs 逐张) across e
 ## Response-header / security checks
 - `curl -sSD - -o /dev/null https://www.seatmark.cn/<path>` for `/`, `/studio`, `/templates`, `/assets/<js>`, `/api/quota`.
 - EdgeOne **merges** the `/*` and `/assets/*` `headers` blocks (only same-key entries are overridden, e.g. Cache-Control). Do not expect a more specific `source` to replace the whole header set.
-- `/api/*` is served by edge functions (`edge-functions/api/[[default]].js` `json()` builds its own `Response`), so `edgeone.json` headers never apply there. Report as platform behaviour, not a bug.
+- `/api/*` is served by edge functions (`edge-functions/api/[[default]].js` `json()` builds its own `Response`). **Observed r351 (2026-09):** the `edgeone.json` `/*` block IS now applied on top of edge-function responses — `/api/announcement` came back with `cache-control: no-cache, must-revalidate` and a `permissions-policy` header even though `json()` sets `Cache-Control` itself and `_security.js` sets no Permissions-Policy. So a per-route `Cache-Control` set in function code is overridden by the platform; to publish a different value for an API route add a more specific `source` block in `edgeone.json` (done for `/api/announcement`). Verify with `curl -sD - "…/api/<path>?cb=$RANDOM"`.
 - Cache buster (`?cb=$RANDOM`) forces `eo-cache-status: Cache Miss`; plain requests can serve `Cache Hit` copies with pre-deploy headers for a few minutes.
 
 ## PWA service-worker pitfall (very important for header/security testing)
