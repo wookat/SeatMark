@@ -26,10 +26,12 @@ import {
   buildVenuePreset,
   countAssignedGuests,
   defaultTableName,
+  detectBanquetPasteLayout,
   MARKER_PRESETS,
   nextGroupColor,
   parseBanquetGuests,
   parseBanquetGuestsFromTable,
+  type BanquetParseMode,
   type ParsedBanquetGuests,
   quickReferenceCsv,
   snapshotTables,
@@ -196,8 +198,53 @@ function applyParsedGuests(parsed: ParsedBanquetGuests): boolean {
   return true
 }
 
+/**
+ * 粘贴解析预览：各行列数一致但无清晰分组信号时不再静默拆 token，
+ * 先展示识别结果（分组与各组人数），由用户选择解析方式后再导入。
+ */
+type PreviewParseMode = Exclude<BanquetParseMode, 'auto'>
+const parsePreview = ref<{ text: string; columnCount: number } | null>(null)
+const parsePreviewMode = ref<PreviewParseMode>('column')
+const parsePreviewModes = computed<Array<{ value: PreviewParseMode; label: string; hint: string }>>(() => [
+  { value: 'column', label: tr('按列分组'), hint: tr('第一列为姓名，第二列为分组/桌名') },
+  { value: 'nameOnly', label: tr('仅第一列为姓名'), hint: tr('其余列忽略，不建分组') },
+  { value: 'tokens', label: tr('全部按姓名拆分'), hint: tr('每一格都是一位宾客') },
+])
+const parsePreviewResult = computed<ParsedBanquetGuests | null>(() =>
+  parsePreview.value ? parseBanquetGuests(parsePreview.value.text, parsePreviewMode.value) : null,
+)
+const parsePreviewGroups = computed<Array<{ name: string; count: number }>>(() => {
+  const groupMap = parsePreviewResult.value?.groups
+  if (!groupMap) return []
+  const counts = new Map<string, number>()
+  for (const name of parsePreviewResult.value?.names ?? []) {
+    const group = groupMap[name]
+    if (group) counts.set(group, (counts.get(group) ?? 0) + 1)
+  }
+  return [...counts].map(([name, count]) => ({ name, count }))
+})
+const parsePreviewNames = computed(() => {
+  const names = parsePreviewResult.value?.names ?? []
+  return names.length > 8 ? `${names.slice(0, 8).join(tr('、'))}…` : names.join(tr('、'))
+})
+
 function importPasted() {
-  if (applyParsedGuests(parseBanquetGuests(pasteText.value))) pasteText.value = ''
+  const text = pasteText.value
+  const layout = detectBanquetPasteLayout(text)
+  if (layout.mode === 'ambiguous') {
+    parsePreviewMode.value = 'column'
+    parsePreview.value = { text, columnCount: layout.columnCount }
+    return
+  }
+  if (applyParsedGuests(parseBanquetGuests(text))) pasteText.value = ''
+}
+
+function confirmParsePreview() {
+  const preview = parsePreview.value
+  if (!preview) return
+  const parsed = parseBanquetGuests(preview.text, parsePreviewMode.value)
+  parsePreview.value = null
+  if (applyParsedGuests(parsed)) pasteText.value = ''
 }
 
 /** TXT/CSV/Excel 名单文件入口：Excel 取「姓名」与「分组」列（无表头则取前两列），文本追加到粘贴框 */
@@ -1769,7 +1816,12 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         >
           {{ tr('删除空桌后导出') }}
         </button>
-        <button type="button" class="btn btn-primary btn-md" @click="confirmIssuesAndExport">
+        <button
+          type="button"
+          class="btn btn-primary btn-md"
+          data-testid="banquet-issues-confirm"
+          @click="confirmIssuesAndExport"
+        >
           {{
             onlyEmptyTableIssues
               ? posterLayout
@@ -1803,6 +1855,65 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         </button>
         <button type="button" class="btn btn-danger btn-md" @click="confirmDestructive">
           {{ pendingDestructive?.kind === 'clear' ? tr('清空安排') : tr('清空并切换') }}
+        </button>
+      </template>
+    </ModalDialog>
+
+    <!-- 粘贴解析预览：各行列数一致但无法确定第二列含义时，确认解析方式后再导入 -->
+    <ModalDialog
+      :open="parsePreview !== null"
+      :title="tr('确认名单解析方式')"
+      size="md"
+      @close="parsePreview = null"
+    >
+      <p class="text-sm leading-6 text-slate-700">
+        {{ tr('检测到每行') }} {{ parsePreview?.columnCount ?? 0 }} {{ tr('列，但无法确定第二列是分组还是另一位宾客，请选择解析方式：') }}
+      </p>
+      <fieldset class="mt-3 flex flex-col gap-2" data-testid="parse-preview-modes">
+        <legend class="sr-only">{{ tr('解析方式') }}</legend>
+        <label
+          v-for="m in parsePreviewModes"
+          :key="m.value"
+          class="flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
+          :class="parsePreviewMode === m.value ? 'border-brand-400 bg-brand-50' : 'border-slate-200 hover:bg-slate-50'"
+        >
+          <input
+            v-model="parsePreviewMode"
+            type="radio"
+            name="banquet-parse-mode"
+            :value="m.value"
+            class="mt-1 accent-brand-600"
+          />
+          <span class="min-w-0">
+            <span class="block font-medium text-slate-800">{{ m.label }}</span>
+            <span class="block text-xs text-slate-500">{{ m.hint }}</span>
+          </span>
+        </label>
+      </fieldset>
+      <div
+        class="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600"
+        data-testid="parse-preview-summary"
+        aria-live="polite"
+      >
+        <p>
+          {{ tr('将导入') }} {{ parsePreviewResult?.names.length ?? 0 }} {{ tr('位宾客') }}<template v-if="parsePreviewGroups.length">{{ tr('、') }}{{ parsePreviewGroups.length }} {{ tr('个分组') }}</template>{{ tr('：') }}{{ parsePreviewNames }}
+        </p>
+        <ul v-if="parsePreviewGroups.length" class="mt-1 flex flex-wrap gap-1.5">
+          <li
+            v-for="g in parsePreviewGroups"
+            :key="g.name"
+            class="rounded-md border border-slate-200 bg-white px-2 py-0.5"
+          >
+            {{ g.name }} · {{ g.count }} {{ tr('人') }}
+          </li>
+        </ul>
+      </div>
+      <template #actions>
+        <button type="button" class="btn btn-secondary btn-md" @click="parsePreview = null">
+          {{ tr('取消') }}
+        </button>
+        <button type="button" class="btn btn-primary btn-md" data-testid="parse-preview-confirm" @click="confirmParsePreview">
+          {{ tr('确认导入') }}
         </button>
       </template>
     </ModalDialog>

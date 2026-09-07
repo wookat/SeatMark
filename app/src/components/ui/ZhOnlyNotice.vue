@@ -31,7 +31,7 @@ const zhPath = computed(() => stripLocalePrefix(route.path))
         class="underline decoration-amber-400 underline-offset-2 hover:text-amber-950"
         data-testid="zh-only-notice-zh-link"
       >
-        View in Chinese
+        Browse in Chinese
       </RouterLink>
       <RouterLink to="/en/studio" class="underline decoration-amber-400 underline-offset-2 hover:text-amber-950">
         Open Studio

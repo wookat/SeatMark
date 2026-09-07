@@ -697,7 +697,7 @@ export const guidesRound4: Guide[] = [
 <p>配套物料一次做齐：<a href="/templates/weddingTableNo">桌号牌</a>、<a href="/templates/weddingCheckin">签到台指引</a>、<a href="/templates/weddingCandy">喜糖贴</a>，同一份名单与风格体系复用。</p>
 
 <h2>第三步：打印、裁切、按桌分装</h2>
-<p>打印建议：200g 以上哑光卡纸（文具店与打印店都有），激光打印色彩更稳；家用打印机走手动进纸口防卡纸。裁切环节强烈建议开启<a href="/guides/cut-stack-sort-order">裁切排序（摞优先）</a>：名单已按桌号排序，多页叠裁后<strong>每摞正好一桌</strong>，装进标注桌号的信封，现场摆放效率翻倍。</p>
+<p>打印建议：200g 以上哑光卡纸（文具店与打印店都有），激光打印色彩更稳；家用打印机走手动进纸口防卡纸。裁切环节强烈建议开启<a href="/guides/cut-stack-sort-order">裁切排序（摞优先）</a>：名单已按桌号排序，多页叠裁后<strong>每摞正好一桌</strong>，装进标注桌号的信封，现场按桌取一封即可摆放。</p>
 
 <h2>第四步：婚礼当天的摆放流程</h2>
 <ul>

@@ -766,7 +766,7 @@ const FAQS = computed(() => [
     <!-- FAQ -->
     <section id="faq" class="mx-auto w-full max-w-6xl scroll-mt-16 px-4 py-10 sm:py-14">
       <div v-reveal class="text-center">
-        <p class="section-eyebrow">FAQ</p>
+        <p class="section-eyebrow">{{ locale === 'en' ? 'Help' : 'FAQ' }}</p>
         <h2 class="section-heading">{{ t('常见问题') }}</h2>
         <p class="section-sub">
           <template v-if="locale === 'en'">

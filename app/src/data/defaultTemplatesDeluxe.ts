@@ -86,7 +86,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '180×90 mm 桌牌，四角建筑感细线角饰 + 顶部双细线，克制的黑白灰设计，黑白打印同样干净。',
     scenario: '董事会 / 商务会议',
     accent: '#0f172a',
-    sampleData: { name: '司徒文渊', org: '华建集团战略发展部', title: '总经理' },
+    sampleData: { name: '周文渊', org: '华建集团战略发展部', title: '总经理' },
     label: decorLabel(
       180,
       90,
@@ -111,7 +111,7 @@ export const deluxeTemplates: LabelTemplate[] = [
         color: INK_MUTED,
         letterSpacing: 0.2,
       }),
-      text('name', '姓名', { x: 20, y: 31, width: 140, height: 32 }, '司徒文渊', {
+      text('name', '姓名', { x: 20, y: 31, width: 140, height: 32 }, '周文渊', {
         fontSize: 42,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -133,7 +133,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '180×90 mm 桌牌，左右两侧低饱和三角几何底纹渐隐，信息区留白充足，适合科技论坛与行业峰会。',
     scenario: '科技论坛 / 行业峰会',
     accent: '#0e7490',
-    sampleData: { name: '慕容雪松', org: '青云数据研究院', title: '院长 · 特邀报告人' },
+    sampleData: { name: '林雪松', org: '青云数据研究院', title: '院长 · 特邀报告人' },
     label: decorLabel(
       180,
       90,
@@ -153,7 +153,7 @@ export const deluxeTemplates: LabelTemplate[] = [
         color: INK_MUTED,
         letterSpacing: 0.14,
       }),
-      text('name', '姓名', { x: 30, y: 29, width: 120, height: 33 }, '慕容雪松', {
+      text('name', '姓名', { x: 30, y: 29, width: 120, height: 33 }, '林雪松', {
         fontSize: 43,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -175,7 +175,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '180×90 mm 桌牌，内外双线鎏金边框 + 菱形角饰，庄重典雅，政企年度会议与颁奖典礼皆宜。',
     scenario: '年度大会 / 颁奖典礼',
     accent: '#a16207',
-    sampleData: { name: '上官澜庭', org: '金桥控股集团有限公司', title: '董事长' },
+    sampleData: { name: '陈立群', org: '金桥控股集团有限公司', title: '董事长' },
     label: decorLabel(
       180,
       90,
@@ -197,7 +197,7 @@ export const deluxeTemplates: LabelTemplate[] = [
         letterSpacing: 0.16,
         fontFamily: SERIF_ZH,
       }),
-      text('name', '姓名', { x: 25, y: 29, width: 130, height: 33 }, '上官澜庭', {
+      text('name', '姓名', { x: 25, y: 29, width: 130, height: 33 }, '陈立群', {
         fontSize: 43,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -264,7 +264,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '96×62 mm 贵宾席卡，浅灰云石脉络纹理铺底 + 炭金双线框，低调高级，酒会晚宴贵宾席位。',
     scenario: '贵宾席 / 晚宴酒会',
     accent: '#57534e',
-    sampleData: { name: '皇甫云舒', title: '特邀贵宾' },
+    sampleData: { name: '杨云舒', title: '特邀贵宾' },
     label: decorLabel(
       96,
       62,
@@ -287,7 +287,7 @@ export const deluxeTemplates: LabelTemplate[] = [
         color: '#a16207',
         letterSpacing: 0.6,
       }),
-      text('name', '姓名', { x: 12, y: 20, width: 76, height: 22 }, '皇甫云舒', {
+      text('name', '姓名', { x: 12, y: 20, width: 76, height: 22 }, '杨云舒', {
         fontSize: 26,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -312,7 +312,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '180×90 mm 年会桌牌，四角金色星芒放射线与散点星光，白底金饰黑白打印不发闷，年会颁奖两相宜。',
     scenario: '公司年会 / 表彰晚会',
     accent: '#b45309',
-    sampleData: { name: '夏侯明玥', org: '晨风网络 2026 年度盛典', title: '年度优秀员工' },
+    sampleData: { name: '赵明玥', org: '晨风网络 2026 年度盛典', title: '年度优秀员工' },
     label: decorLabel(
       180,
       90,
@@ -338,7 +338,7 @@ export const deluxeTemplates: LabelTemplate[] = [
         color: '#92400e',
         letterSpacing: 0.16,
       }),
-      text('name', '姓名', { x: 30, y: 29, width: 120, height: 33 }, '夏侯明玥', {
+      text('name', '姓名', { x: 30, y: 29, width: 120, height: 33 }, '赵明玥', {
         fontSize: 43,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -360,7 +360,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '96×62 mm 年会席卡，左上角中国红绶带斜披 + 底部红金渐变线，喜庆而不俗，年会答谢宴通用。',
     scenario: '年会晚宴 / 答谢会',
     accent: '#b91c1c',
-    sampleData: { name: '独孤若飞', org: '销售一部' },
+    sampleData: { name: '刘若飞', org: '销售一部' },
     label: decorLabel(
       96,
       62,
@@ -381,7 +381,7 @@ export const deluxeTemplates: LabelTemplate[] = [
         color: '#b91c1c',
         letterSpacing: 0.5,
       }),
-      text('name', '姓名', { x: 10, y: 18, width: 80, height: 23 }, '独孤若飞', {
+      text('name', '姓名', { x: 10, y: 18, width: 80, height: 23 }, '刘若飞', {
         fontSize: 27,
         fontWeight: 'bold',
         emphasis: 'hero',

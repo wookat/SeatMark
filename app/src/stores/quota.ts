@@ -99,8 +99,8 @@ export const useQuotaStore = defineStore('quota', () => {
           return { ok: false, reason: 'user-limit' }
         }
         if (err instanceof ApiError && err.status === 401) {
-          auth.user = null
-          // 会话失效则退回未登录本地计数
+          // 会话失效：清用户与 has-account 标记，退回未登录本地计数（下次 bootstrap 不再空发 /api/auth/me）
+          auth.setUser(null)
         } else {
           // 接口 5xx / 离线：不阻塞导出（离线可用是产品承诺），但按本地计数与账号额度判定，
           // 避免服务端不可用时无限次无水印导出

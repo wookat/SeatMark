@@ -87,8 +87,8 @@ node scripts/i18n-audit.mjs   # /en 中文泄漏守卫，exit 0 = 0 条非允许
 
 ## 测试报告与计划存放约定
 
-- `test-report.md`（仓库根）：**追加式**，每轮一节 `# 第 N 轮（日期）：…`，含环境（生产、匿名）、逐判据 PASS/FAIL、收尾（存储已清、未登录未发信）与录屏路径。
-- `test-plan-roundN.md`（仓库根）：每轮生产复测前的计划，列判据与依据的源码行。
+- `docs/test-plans/test-report.md`（第 349 轮起由仓库根归档至此）：**追加式**，每轮一节 `# 第 N 轮（日期）：…`，含环境（生产、匿名）、逐判据 PASS/FAIL、收尾（存储已清、未登录未发信）与录屏路径。
+- `docs/test-plans/test-plan-roundN.md`（同上，原仓库根 `test-plan-round*.md`/`research-round324.md` 已一并归档）：每轮生产复测前的计划，列判据与依据的源码行。
 - `docs/ops-roundN.md` + `docs/ops-roundN-evidence/`：运营轮次的证据归档。
 - 本地测试技能：`.agents/skills/testing-seatmark-local/SKILL.md`；生产 E2E 技能：`.agents/skills/testing-seatmark/SKILL.md`。
 

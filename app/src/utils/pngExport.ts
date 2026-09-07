@@ -203,6 +203,99 @@ export function pngRasterScale(designWidthMm: number): number {
   return Math.min(Math.max(PNG_BASE_SCALE, need), PNG_MAX_SCALE)
 }
 
+/** 输出画布长宽比与页面 mm 尺寸的相对偏差容差（渲染取整误差远小于此，纸张方向错误时偏差达数百分之一百） */
+export const CANVAS_ASPECT_TOLERANCE = 0.03
+
+/**
+ * 输出画布长宽比与 pageWidth/pageHeight 不符：克隆文档丢样式退回默认纸张方向（横版座位表
+ * 导出成 2481×3509 竖版）的直接特征；尺寸为 0 由空白判据负责，这里不重复报。
+ */
+export function canvasAspectMismatch(
+  canvas: { width: number; height: number },
+  pageWidth: number,
+  pageHeight: number,
+  tolerance = CANVAS_ASPECT_TOLERANCE,
+): boolean {
+  if (!canvas.width || !canvas.height || !pageWidth || !pageHeight) return false
+  const expected = pageWidth / pageHeight
+  const actual = canvas.width / canvas.height
+  return Math.abs(actual - expected) / expected > tolerance
+}
+
+/**
+ * 整页内容分布校验（对缩采样后的像素）：满版页面（座位网格撑满宽度 + 底部页脚）
+ * 右上区（右侧 1/3 × 上半）与下部 1/3 必有墨迹。样式丢失后的纯文本堆叠只占左侧一列，
+ * 右侧仅剩底边水印，右上区纯白，据此判为无网格/边框的坏图。
+ * 仅由保证整页有内容的调用方（/seating）启用，稀疏末页等模板不适用。
+ */
+export function isProbeMissingEdgeInk(
+  data: ArrayLike<number>,
+  width: number,
+  height: number,
+): boolean {
+  if (width <= 0 || height <= 0) return false
+  const rightStart = Math.floor((width * 2) / 3)
+  const upperEnd = Math.ceil(height / 2)
+  const bottomStart = Math.floor((height * 2) / 3)
+  let rightInk = false
+  let bottomInk = false
+  for (let y = 0; y < height && !(rightInk && bottomInk); y++) {
+    for (let x = 0; x < width; x++) {
+      const inRight = x >= rightStart && y < upperEnd
+      const inBottom = y >= bottomStart
+      if (!inRight && !inBottom) continue
+      const i = (y * width + x) * 4
+      const a = data[i + 3] ?? 0
+      const dark = (data[i] ?? 255) < 250 || (data[i + 1] ?? 255) < 250 || (data[i + 2] ?? 255) < 250
+      if (a > 0 && dark) {
+        if (inRight) rightInk = true
+        if (inBottom) bottomInk = true
+      }
+    }
+  }
+  return !(rightInk && bottomInk)
+}
+
+/** 整页内容分布校验：整幅缩到小画布后交给 isProbeMissingEdgeInk；环境不支持 2D 上下文时放行 */
+export function isCanvasMissingEdgeInk(canvas: HTMLCanvasElement): boolean {
+  if (!canvas.width || !canvas.height) return false
+  try {
+    const sampleW = Math.min(canvas.width, 128)
+    const sampleH = Math.min(canvas.height, 128)
+    const probe = document.createElement('canvas')
+    probe.width = sampleW
+    probe.height = sampleH
+    const ctx = probe.getContext('2d', { willReadFrequently: true })
+    if (!ctx) return false
+    ctx.drawImage(canvas, 0, 0, sampleW, sampleH)
+    const { data } = ctx.getImageData(0, 0, sampleW, sampleH)
+    return isProbeMissingEdgeInk(data, sampleW, sampleH)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 组装整页完整性校验：长宽比必查；fullPageInk 打开时追加右侧/下部内容分布校验。
+ * 不通过时 throw，由 createPageRenderer 重试 → rebuildHost → 报错。
+ */
+export function createCanvasIntegrityCheck(options: {
+  pageWidth: number
+  pageHeight: number
+  fullPageInk?: boolean
+}): (canvas: HTMLCanvasElement) => void {
+  return (canvas) => {
+    if (canvasAspectMismatch(canvas, options.pageWidth, options.pageHeight)) {
+      throw new Error(
+        `页面尺寸渲染错误（输出 ${canvas.width}×${canvas.height}，预期 ${options.pageWidth}×${options.pageHeight}mm 比例）`,
+      )
+    }
+    if (options.fullPageInk && isCanvasMissingEdgeInk(canvas)) {
+      throw new Error('页面渲染不完整（缺少座位网格与边框）')
+    }
+  }
+}
+
 /** 逐标签导出时单页内一枚标签的裁剪区域（mm，相对页面左上角）与文件名 */
 export interface LabelExportItem {
   rect: { x: number; y: number; width: number; height: number }
@@ -251,6 +344,11 @@ export interface PngExportOptions {
   pageTimeoutMs?: number
   rebuildHost?: () => Promise<void> | void
   onProgress?: (done: number, total: number) => void
+  /**
+   * 整页内容分布校验：页面右侧与下部必有内容（座位表网格 + 页脚），
+   * 缺失则视为丢样式的坏图重渲；稀疏末页可能合法留白的模板不要打开
+   */
+  fullPageInk?: boolean
 }
 
 /** 渲染画布 → 目标 PNG 画布：精确像素缩放（可选源区域裁剪）+ 可选二值化 */
@@ -383,6 +481,7 @@ export async function exportPagedPng(options: PngExportOptions): Promise<void> {
       signal: options.signal,
       pageTimeoutMs: options.pageTimeoutMs,
       rebuildHost: options.rebuildHost,
+      verifyCanvas: createCanvasIntegrityCheck(options),
     },
     html2canvas,
   )
@@ -460,6 +559,11 @@ async function exportPerLabelPng(
       // 逐标签链路自带逐张空白校验（renderAndCutPage），整页右侧留白判据
       // 对每页单枚、文字居中的模板（如电子座签）会把合法留白误判为截断
       skipTruncationCheck: true,
+      // 裁剪按画布实际尺寸 ÷ 页面 mm 换算，页面长宽比错了每枚标签都会变形，同样必查
+      verifyCanvas: createCanvasIntegrityCheck({
+        pageWidth: options.pageWidth,
+        pageHeight: options.pageHeight,
+      }),
     },
     html2canvas,
   )

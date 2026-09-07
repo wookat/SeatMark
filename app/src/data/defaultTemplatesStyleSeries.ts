@@ -560,7 +560,7 @@ export const styleSeriesTemplates: LabelTemplate[] = [
     id: 'macaronMeal',
     name: '马卡龙·餐点座位贴',
     category: 'kids',
-    description: '90×40 mm 餐位贴，奶黄底波浪分隔 + 姓名与餐点提示（过敏忌口），分餐对号不出错。',
+    description: '90×40 mm 餐位贴，奶黄底波浪分隔 + 姓名与餐点提示（过敏忌口），分餐时按名对号。',
     scenario: '马卡龙风餐点座位',
     accent: '#fcd34d',
     sampleData: { name: '果果', meal: '牛奶过敏 · 换豆浆' },

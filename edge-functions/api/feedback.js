@@ -22,7 +22,7 @@ import { json, clientIp, sha256Hex } from './_http.js'
 
 const FEEDBACK_IP_DAILY_LIMIT = 10
 /** 部署观测标记，与 [[default]].js 的 X-SeatMark-Rev 同步递增 */
-const SEATMARK_REV = 'r346'
+const SEATMARK_REV = 'r349'
 export const FEEDBACK_MAX_BODY_BYTES = 32 * 1024
 
 const encoder = new TextEncoder()

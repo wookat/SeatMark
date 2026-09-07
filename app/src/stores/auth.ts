@@ -298,6 +298,7 @@ export const useAuthStore = defineStore('auth', () => {
     serviceUnavailable,
     probed,
     isLoggedIn,
+    setUser,
     refresh,
     probeServiceOnce,
     bootstrap,

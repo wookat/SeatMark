@@ -70,6 +70,18 @@ async function exportAndCapturePage(
   // 圆桌预设 8 桌，48 人坐满 6 桌后剩 2 空桌：导出前检查提示空桌
   const keepEmpty = wrapper.findAll('button').find((b) => b.text().includes(emptyTableAction))
   expect(keepEmpty).toBeTruthy()
+  // 「跳过/保留空桌，继续导出」是唯一主按钮（brand 实底）且排最后：桌面居右、移动端（ModalDialog 竖排反序）置顶
+  expect(keepEmpty!.attributes('data-testid')).toBe('banquet-issues-confirm')
+  expect(keepEmpty!.classes()).toContain('btn-primary')
+  const actionBtns = wrapper.findAll('[data-testid="modal-actions"] button')
+  expect(actionBtns.length).toBeGreaterThanOrEqual(2)
+  expect(actionBtns[actionBtns.length - 1]!.element).toBe(keepEmpty!.element)
+  for (const b of actionBtns.slice(0, -1)) {
+    expect(b.classes()).toContain('btn-secondary')
+    expect(b.classes()).not.toContain('btn-primary')
+  }
+  const actions = wrapper.find('[data-testid="modal-actions"]')
+  expect(actions.classes()).toContain('max-sm:flex-col-reverse')
   await keepEmpty!.trigger('click')
   await wrapper.vm.$nextTick()
   const watermarked = wrapper.findAll('button').find((b) => b.text().includes('带水印导出（免费）'))

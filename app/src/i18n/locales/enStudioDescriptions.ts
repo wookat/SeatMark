@@ -206,7 +206,7 @@ export const enTemplateDescriptions: Record<string, string> = {
     '1 col × 2 rows half-page door sign: large venue name with topic and time slot for multi-room forums.',
   '2 列 × 5 行，奖项名金色小字压顶、获奖者姓名大字居中，颁奖典礼后台备卡上台不乱序。':
     '2 cols × 5 rows: small gold award name on top, centred large recipient name. Keeps ceremony cards in order.',
-  '2 列 × 5 行，双细线描边的礼宾版式，姓名衬线大字 + 敬语题头与席位号，接待规格拉满。':
+  '2 列 × 5 行，双细线描边的礼宾版式，姓名衬线大字 + 敬语题头与席位号，适合贵宾接待。':
     '2 cols × 5 rows protocol layout with a double hairline frame: serif name, honorific header and seat number.',
   '2 列 × 6 行，「媒体」识别色块 + 媒体名称大字与记者姓名，发布会媒体区快速对位。':
     '2 cols × 6 rows: "Media" colour block with large outlet name and reporter for quick press-area seating.',
@@ -270,7 +270,7 @@ export const enTemplateDescriptions: Record<string, string> = {
     '2 cols × 4 rows: huge pick-up number range with platform zone note so couriers grab the right order at peak.',
   '3 列 × 7 行，菜名大字 + 辣度/忌口与价格分列，自助餐台、称重快餐与食堂窗口逐菜标注。':
     '3 cols × 7 rows: large dish name with spice/dietary and price columns for buffets, canteens and counters.',
-  '5 列 × 10 行圆角小贴，品名加粗 + 甜度冰量与单号，奶茶咖啡出杯贴杯即核，高峰不出错。':
+  '5 列 × 10 行圆角小贴，品名加粗 + 甜度冰量与单号，奶茶咖啡出杯贴杯即核，高峰期按单号对杯。':
     '5 cols × 10 rows small rounded stickers: bold drink with sugar/ice and order number for tea and coffee cups.',
   '2 列 × 4 行，「已预订」题头 + 宾客称呼大字与时间人数，餐厅饭店饭市前批量摆台。':
     '2 cols × 4 rows: "Reserved" header with large guest name, time and party size for pre-service table setup.',
@@ -352,7 +352,7 @@ export const enTemplateDescriptions: Record<string, string> = {
     '2 cols × 6 rows voucher layout: room number, name and meal date with a "present at breakfast" strip.',
   'A4 一页 3 枚横向门牌，包厢名大字 + 编号与容纳人数，深色底条醒目分区。':
     '3 landscape signs per A4: large room name with number and capacity on a dark accent bar.',
-  '2 列 × 4 行，宠物名大字 + 品种/主人电话/喂食要点三行信息，交接不出错。':
+  '2 列 × 4 行，宠物名大字 + 品种/主人电话/喂食要点三行信息，交接时逐项核对。':
     '2 cols × 4 rows: large pet name with breed, owner phone and feeding lines for error-free handovers.',
   '2 列 × 5 行，房间号色条 + 宝妈姓名、宝宝信息与责任护理师，温馨低饱和配色。':
     '2 cols × 5 rows: room colour bar with mother\'s name, baby info and primary caregiver in soft muted tones.',
@@ -378,7 +378,7 @@ export const enTemplateDescriptions: Record<string, string> = {
     '2 cols × 4 rows: entry number with large name and group in a serif that suits calligraphy contests.',
   '2 列 × 4 行台号牌，台号超大字 + 红黑双方姓名分列，象棋围棋赛场对局分台。':
     '2 cols × 4 rows board sign: huge board number with red and black player columns for chess tournaments.',
-  'A4 一页 3 枚横牌，选手 ID 大字 + 战队与位置，深色块碰撞排版电竞氛围拉满。':
+  'A4 一页 3 枚横牌，选手 ID 大字 + 战队与位置，深色块碰撞排版，赛桌上远看即可辨认。':
     '3 landscape signs per A4: large player ID with team and position on clashing dark blocks for esports.',
   'A4 一页 3 枚横向台牌，项目名大字 + 发起单位与说明，义卖募捐现场庄重可信。':
     '3 landscape desk signs per A4: large project name with organizer and notes for credible charity stalls.',
@@ -414,7 +414,7 @@ export const enTemplateDescriptions: Record<string, string> = {
     '60×30 mm dense stickers: mint rounded frame with lemon dots for cubbies, cup slots and racks.',
   '90×55 mm 生日牌，三色气球与彩旗线描，宝贝姓名大字 + 生日日期，班级生日会主角感。':
     '90×55 mm birthday card with line-drawn balloons and bunting, large name and date. Star of the class party.',
-  '90×40 mm 餐位贴，奶黄底波浪分隔 + 姓名与餐点提示（过敏忌口），分餐对号不出错。':
+  '90×40 mm 餐位贴，奶黄底波浪分隔 + 姓名与餐点提示（过敏忌口），分餐时按名对号。':
     '90×40 mm meal seat sticker: cream ground with wave divider, name and meal note (allergies) for error-free serving.',
   '180×90 mm 桌牌，深空底青紫极光斜切光带，姓名反白大字，新品发布会未来感十足。':
     '180×90 mm tent on deep space with a diagonal cyan-violet aurora band and reversed large name. Futuristic for launches.',

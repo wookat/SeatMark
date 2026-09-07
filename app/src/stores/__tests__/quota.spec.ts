@@ -6,7 +6,7 @@ function localToday(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-import { useAuthStore, type SessionUser } from '@/stores/auth'
+import { HAS_ACCOUNT_KEY, useAuthStore, type SessionUser } from '@/stores/auth'
 import { QUOTA_ANON_DAILY, useQuotaStore } from '@/stores/quota'
 
 function mockUser(overrides: Partial<SessionUser['quota']> = {}): SessionUser {
@@ -201,5 +201,22 @@ describe('quota store（每日无水印导出配额）', () => {
     const result = await quota.tryConsume()
     expect(result.ok).toBe(true)
     expect(auth.user.quota.remaining).toBe(2)
+  })
+
+  it('已登录：consume 返回 401 时清空用户与 seatmark:has-account 标记并回落匿名计数', async () => {
+    const auth = useAuthStore()
+    auth.setUser(mockUser())
+    expect(localStorage.getItem(HAS_ACCOUNT_KEY)).toBe('1')
+    const quota = useQuotaStore()
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 }),
+    )
+
+    const result = await quota.tryConsume()
+    expect(result.ok).toBe(true)
+    expect(auth.user).toBeNull()
+    expect(auth.isLoggedIn).toBe(false)
+    expect(localStorage.getItem(HAS_ACCOUNT_KEY)).toBeNull()
+    expect(JSON.parse(localStorage.getItem('seatmark.clean-export-usage.v1')!).used).toBe(1)
   })
 })

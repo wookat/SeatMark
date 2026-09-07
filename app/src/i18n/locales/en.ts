@@ -1659,6 +1659,12 @@ export const en: Record<string, string> = {
   '座位安排状态': 'Seating status',
   '已合并': 'Merged',
   '个重复姓名': 'duplicate name(s)',
+  // 第 349 轮：教室座位表名单重名合并 / 保留同名开关
+  '已保留': 'Kept',
+  '个重复姓名并加序号区分': 'duplicate name(s), numbered to tell them apart',
+  '同名学生不会被排进两个座位；如确有同名同学，可勾选「保留同名」':
+    'A student with the same name will not take two seats; if they really are different students, tick "Keep same-name students".',
+  '保留同名（自动加 ①② 后缀区分）': 'Keep same-name students (auto-suffixed ①②)',
   '选预设或自建桌位；下一步一键自动分配，再拖拽微调。已有安排时切预设会先确认。': 'Pick a preset or add tables; next, auto-assign and fine-tune by dragging. Switching presets asks first when seats are already assigned.',
   '先一键自动分配，再拖拽微调，最后到第 4 步导出。': 'Auto-assign first, drag to fine-tune, then export in step 4.',
   '同名宾客': 'Guests with the same name',
@@ -1702,4 +1708,19 @@ export const en: Record<string, string> = {
   '识别到性别列，可用男女混排': 'Gender column detected — boy/girl alternating is available',
   '名学生': 'students',
   '）；': '); ',
+
+  // 第 349 轮：/banquet 粘贴解析预览确认
+  '确认名单解析方式': 'Confirm how to read this list',
+  '检测到每行': 'Each line has',
+  '列，但无法确定第二列是分组还是另一位宾客，请选择解析方式：':
+    'columns, but it is unclear whether the second column is a group or another guest. Choose how to read it:',
+  '解析方式': 'Parsing mode',
+  '按列分组': 'Group by column',
+  '第一列为姓名，第二列为分组/桌名': 'First column = name, second column = group / table',
+  '仅第一列为姓名': 'First column only',
+  '其余列忽略，不建分组': 'Ignore other columns; no groups created',
+  '全部按姓名拆分': 'Every cell is a name',
+  '每一格都是一位宾客': 'Each cell becomes one guest',
+  '将导入': 'Will import',
+  '确认导入': 'Import',
 }

@@ -26,7 +26,7 @@ export interface PageSeo {
 }
 
 /** 已提供英文版内容的中文路径（/en 前缀镜像可被索引并互挂 hreflang） */
-const EN_LOCALIZED_BASES = ['/', '/studio', '/pricing', '/seating', '/banquet'] as const
+const EN_LOCALIZED_BASES = ['/', '/studio', '/pricing', '/seating', '/banquet', '/terms', '/privacy'] as const
 
 function enPathOf(base: string): string {
   return base === '/' ? '/en' : `/en${base}`
@@ -306,6 +306,36 @@ function resolveEnSeo(base: string): PageSeo | null {
         breadcrumb([
           { name: 'Home', path: '/en' },
           { name: 'Classroom Seating Chart', path: '/en/seating' },
+        ]),
+      ],
+    }
+  }
+
+  if (base === '/terms') {
+    return {
+      ...common,
+      title: 'Terms of Service (English Summary) | SeatMark',
+      description:
+        'English summary of the SeatMark Terms of Service: what the service does, your responsibilities, IP and liability. The Chinese version is the legally binding text.',
+      jsonLd: [
+        breadcrumb([
+          { name: 'Home', path: '/en' },
+          { name: 'Terms of Service', path: '/en/terms' },
+        ]),
+      ],
+    }
+  }
+
+  if (base === '/privacy') {
+    return {
+      ...common,
+      title: 'Privacy Policy (English Summary) | SeatMark',
+      description:
+        'English summary of the SeatMark Privacy Policy: rosters and photos are processed locally in your browser, never uploaded. The Chinese version is the legally binding text.',
+      jsonLd: [
+        breadcrumb([
+          { name: 'Home', path: '/en' },
+          { name: 'Privacy Policy', path: '/en/privacy' },
         ]),
       ],
     }
@@ -693,7 +723,7 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
 
   if (p === '/seating') {
     return {
-      title: '班级座位表在线制作打印，一键生成桌贴 - SeatMark 座签',
+      title: '班级座位表在线制作打印，同名单生成桌贴 - SeatMark 座签',
       description:
         '免费在线生成教室座位表：粘贴学生名单、设置排列与过道、标注讲台，生成 A4 教室平面座位表直接打印；还能一键把同一份名单带入标签工坊批量生成课桌桌贴。数据不出浏览器。',
       path: '/seating',
@@ -703,7 +733,7 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
           { name: '粘贴名单', text: '把学生姓名粘贴进名单框，每行一人，支持逗号、顿号分隔。' },
           { name: '设置教室布局', text: '设置排数与列数，点击列间隙添加过道，可标注讲台位置。' },
           { name: '预览并打印', text: '确认 A4 横向座位表效果后直接打印，或另存为 PDF。' },
-          { name: '一键生成桌贴', text: '同一份名单带入标签工坊，选模板即可批量生成课桌桌贴。' },
+          { name: '生成对应桌贴', text: '同一份名单带入标签工坊，选模板即可批量生成课桌桌贴。' },
         ]),
         breadcrumb([
           { name: '首页', path: '/' },

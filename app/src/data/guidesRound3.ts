@@ -87,7 +87,7 @@ export const guidesRound3: Guide[] = [
 <ul>
 <li><strong>日常班级管理</strong>：月度轮换座位后，打一张贴教室门口、一张发家长群；</li>
 <li><strong>考试编排</strong>：按考场生成座位表交监考老师，同一份名单顺手出全套桌贴；</li>
-<li><strong>讲座与培训</strong>：固定签到座位，座位表贴入口，桌贴贴座位，引导入座效率翻倍。</li>
+<li><strong>讲座与培训</strong>：固定签到座位，座位表贴入口，桌贴贴座位，来宾按图自行入座。</li>
 </ul>
 `,
   },

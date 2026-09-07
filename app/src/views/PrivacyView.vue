@@ -2,8 +2,10 @@
 import { ref } from 'vue'
 
 import { LEGAL_UPDATED_AT, OPERATOR_NAME } from '@/data/site'
+import { useI18n } from '@/i18n'
 import { clearLocalData } from '@/utils/localData'
 
+const { locale } = useI18n()
 const clearedCount = ref<number | null>(null)
 
 function onClearLocalData() {
@@ -12,7 +14,100 @@ function onClearLocalData() {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-3xl px-4 py-10 sm:py-14">
+  <div v-if="locale === 'en'" lang="en" class="mx-auto w-full max-w-3xl px-4 py-10 sm:py-14" data-testid="legal-en-summary">
+    <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Privacy Policy</p>
+    <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Privacy Policy (English Summary)</h1>
+    <p class="mt-2 text-xs text-slate-600">Effective / last updated: {{ LEGAL_UPDATED_AT }}</p>
+
+    <div
+      role="note"
+      class="mt-6 rounded-lg border border-amber-200 bg-amber-50/70 px-4 py-3.5 text-sm leading-6 text-amber-900"
+      data-testid="legal-en-disclaimer"
+    >
+      <p>
+        This page is a convenience summary in English. <strong>The Chinese version is the legally binding text.</strong>
+        Where this summary and the Chinese text differ, the Chinese text prevails.
+      </p>
+      <p class="mt-1.5 font-semibold">
+        <RouterLink to="/privacy" class="underline decoration-amber-400 underline-offset-2 hover:text-amber-950" data-testid="legal-zh-full-link">
+          Read the full Chinese text (隐私政策)
+        </RouterLink>
+      </p>
+    </div>
+
+    <div class="mt-6 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50/70 px-4 py-3.5">
+      <svg
+        class="mt-0.5 size-5 shrink-0 text-emerald-600"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3z" />
+        <path d="M9 12l2 2 4-4" />
+      </svg>
+      <p class="text-sm leading-6 font-medium text-emerald-800">
+        Core promise: the spreadsheets, photos and seating plans you import are
+        <strong>parsed and laid out only in your browser and are never sent to our servers</strong>.
+        Only optional features (account, feedback, AI design) send a small amount of data to the backend.
+      </p>
+    </div>
+
+    <div class="mt-8 space-y-8 text-sm leading-7 text-slate-600">
+      <section>
+        <h2 class="text-lg font-bold text-slate-900">1. Data we never collect: rosters and photos</h2>
+        <p class="mt-2">
+          Spreadsheet parsing, photo matching, layout, PDF/PNG export and printing run entirely in your browser.
+          Rosters in the Studio live only until you close the tab; seating and banquet drafts and custom templates are
+          stored in this browser's local storage and can be wiped with the "clear local data" control on the Chinese page.
+          The core features work offline.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-bold text-slate-900">2. Data we collect for optional features</h2>
+        <ul class="mt-2 list-disc space-y-1.5 pl-5">
+          <li>Account: your email address and an irreversible salted password hash; after sign-in an encrypted HttpOnly session cookie keeps you logged in.</li>
+          <li>Quota and referral counters tied to your account or a one-way hashed IP; Team-plan reservation details and feedback you submit voluntarily; optional online fonts load from a public CDN and AI design forwards only your prompt through our same-origin proxy.</li>
+          <li>Access statistics: Google Analytics and Baidu Analytics collect anonymous page-view data (visits, dwell time, device type), never your roster; you can limit them with Do-Not-Track or content blockers.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-bold text-slate-900">3. Storage, protection and your rights</h2>
+        <ul class="mt-2 list-disc space-y-1.5 pl-5">
+          <li>Server-side data is stored on cloud nodes inside mainland China and is not transferred abroad; account data is kept until you delete the account, quota counters expire daily, and feedback and reservations are cleared once handled.</li>
+          <li>You may access, correct, export or delete your personal information, and withdraw consent by stopping use of the optional features.</li>
+          <li>Because rosters stay local, you remain responsible for the roster files you hold, especially those containing students' or other minors' data.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-bold text-slate-900">4. Updates and contact</h2>
+        <p class="mt-2">
+          We publish policy updates on this page and highlight major changes on the site. Questions: use the in-app
+          feedback entry or
+          <a
+            href="https://github.com/wookat/SeatMark/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-brand-600 hover:underline"
+          >GitHub Issues</a>; {{ OPERATOR_NAME }} replies within 15 working days.
+        </p>
+      </section>
+    </div>
+
+    <div class="mt-10 border-t border-slate-200 pt-6 text-xs text-slate-600">
+      Related:
+      <RouterLink to="/en/terms" class="text-brand-600 hover:underline">Terms of Service (English summary)</RouterLink>
+      ·
+      <RouterLink to="/privacy" class="text-brand-600 hover:underline">Full Chinese text</RouterLink>
+    </div>
+  </div>
+
+  <div v-else class="mx-auto w-full max-w-3xl px-4 py-10 sm:py-14">
     <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Privacy Policy</p>
     <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">隐私政策</h1>
     <p class="mt-2 text-xs text-slate-600">生效日期 / 最后更新：{{ LEGAL_UPDATED_AT }}</p>

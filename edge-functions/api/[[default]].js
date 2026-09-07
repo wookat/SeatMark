@@ -84,6 +84,8 @@ const CODE_TTL_MS = 10 * 60 * 1000
 const CODE_RESEND_INTERVAL_MS = 60 * 1000
 const CODE_MAX_ATTEMPTS = 5
 const CODE_IP_DAILY_LIMIT = 20
+/** 每邮箱每日发码上限（登录码 + 重置码合计），防止换 IP 对单一邮箱轰炸 */
+const CODE_EMAIL_DAILY_LIMIT = 10
 const PASSWORD_MIN_LENGTH = 8
 const PASSWORD_MAX_LENGTH = 72
 const PBKDF2_ITERATIONS = 100000
@@ -313,6 +315,49 @@ async function getCounter(kv, key) {
   const raw = await kv.get(key)
   const n = Number(raw)
   return Number.isFinite(n) ? n : 0
+}
+
+/**
+ * 发码限频（/api/auth/code 与 /api/auth/reset-code 共用）：
+ * IP 日限 + 每邮箱日限 + 同邮箱 60s 重发间隔。IP 与邮箱超限返回同一 429 响应，
+ * 不泄露该邮箱是否已注册；通过时返回 commit()，由调用方在落码前累加两个计数。
+ */
+async function checkCodeRateLimit(kv, { ip, email, recordKey }) {
+  const date = today()
+  const ipKey = `rl:ip:${await sha256Hex(ip)}:${date}`
+  const emailKey = `rl:code:${await sha256Hex(email)}:${date}`
+  const [ipCount, emailCount] = await Promise.all([
+    getCounter(kv, ipKey),
+    getCounter(kv, emailKey),
+  ])
+  if (ipCount >= CODE_IP_DAILY_LIMIT || emailCount >= CODE_EMAIL_DAILY_LIMIT) {
+    return { limited: 'daily' }
+  }
+  const existingRaw = await kv.get(recordKey)
+  if (existingRaw) {
+    try {
+      const existing = JSON.parse(existingRaw)
+      if (Date.now() - existing.sentAt < CODE_RESEND_INTERVAL_MS) return { limited: 'interval' }
+    } catch {
+      // 记录损坏则直接覆盖
+    }
+  }
+  return {
+    limited: null,
+    commit: async () => {
+      await Promise.all([
+        kv.put(ipKey, String(ipCount + 1)),
+        kv.put(emailKey, String(emailCount + 1)),
+      ])
+    },
+  }
+}
+
+function codeRateLimitResponse(limited, storageHeader) {
+  if (limited === 'interval') {
+    return json({ error: '发送太频繁，请稍后再试', code: 'code_resend_too_soon' }, 429, storageHeader)
+  }
+  return json({ error: '请求过于频繁，请明天再试', code: 'code_daily_limit' }, 429, storageHeader)
 }
 
 async function quotaStatus(kv, email, user) {
@@ -724,7 +769,7 @@ async function handleRequest(context) {
 
   const { kv, storage, blobStore } = await getStorage(env)
   // Rev 标记仅用于部署观测：探针可确认线上边缘函数版本，改动本文件时递增
-  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r346' }
+  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r349' }
 
   // 开发默认密钥公开可见：生产缺失 AUTH_SECRET 时会话/验证码/重置码 JWT 可被任意伪造，
   // 必须 fail closed；仅显式放行的本地 dev / 测试允许回退默认值
@@ -869,34 +914,16 @@ async function handleRequest(context) {
     const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
     if (!isValidEmail(email)) return json({ error: '邮箱格式不正确' }, 400, storageHeader)
 
-    // IP 日限频
-    const ip = clientIp(request)
-    const ipKey = `rl:ip:${await sha256Hex(ip)}:${today()}`
-    const ipCount = await getCounter(kv, ipKey)
-    if (ipCount >= CODE_IP_DAILY_LIMIT) {
-      return json({ error: '请求过于频繁，请明天再试' }, 429, storageHeader)
-    }
-
-    // 邮箱 60s 重发间隔
     const codeKey = `code:${email}`
-    const existingRaw = await kv.get(codeKey)
-    if (existingRaw) {
-      try {
-        const existing = JSON.parse(existingRaw)
-        if (Date.now() - existing.sentAt < CODE_RESEND_INTERVAL_MS) {
-          return json({ error: '发送太频繁，请稍后再试' }, 429, storageHeader)
-        }
-      } catch {
-        // 记录损坏则直接覆盖
-      }
-    }
+    const limit = await checkCodeRateLimit(kv, { ip: clientIp(request), email, recordKey: codeKey })
+    if (limit.limited) return codeRateLimitResponse(limit.limited, storageHeader)
 
     const code = randomDigits(6)
     await kv.put(
       codeKey,
       JSON.stringify({ code, sentAt: Date.now(), exp: Date.now() + CODE_TTL_MS, attempts: 0 }),
     )
-    await kv.put(ipKey, String(ipCount + 1))
+    await limit.commit()
 
     const { configured, delivered, errorCode } = await sendCodeMail(env, email, code)
     if (delivered) return json({ ok: true, delivery: 'email' }, 200, storageHeader)
@@ -1106,28 +1133,12 @@ async function handleRequest(context) {
     const captcha = await verifyCaptcha(env, kv, body?.captchaToken, body?.captchaAnswer)
     if (captcha.result !== 'ok') return captchaErrorResponse(captcha.result, storageHeader)
 
-    const ip = clientIp(request)
-    const ipKey = `rl:ip:${await sha256Hex(ip)}:${today()}`
-    const ipCount = await getCounter(kv, ipKey)
-    if (ipCount >= CODE_IP_DAILY_LIMIT) {
-      return json({ error: '请求过于频繁，请明天再试' }, 429, storageHeader)
-    }
+    const resetKey = `reset:${email}`
+    const limit = await checkCodeRateLimit(kv, { ip: clientIp(request), email, recordKey: resetKey })
+    if (limit.limited) return codeRateLimitResponse(limit.limited, storageHeader)
     await deferWrite(() => markCaptchaUsed(kv, captcha))
 
-    const resetKey = `reset:${email}`
-    const existingRaw = await kv.get(resetKey)
-    if (existingRaw) {
-      try {
-        const existing = JSON.parse(existingRaw)
-        if (Date.now() - existing.sentAt < CODE_RESEND_INTERVAL_MS) {
-          return json({ error: '发送太频繁，请稍后再试' }, 429, storageHeader)
-        }
-      } catch {
-        // 记录损坏则直接覆盖
-      }
-    }
-
-    await kv.put(ipKey, String(ipCount + 1))
+    await limit.commit()
 
     const user = await getUser(kv, email)
     if (!user || !user.passwordHash) {
