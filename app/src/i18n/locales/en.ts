@@ -765,6 +765,8 @@ export const en: Record<string, string> = {
     'Too many AI design requests (max 30 per hour). Please try again later.',
   '站点 AI 通道暂不可用（{reason}），可稍后重试或切换「自定义 API」':
     'The site AI channel is temporarily unavailable ({reason}). Try again later or switch to "Custom API".',
+  '请求超时': 'request timed out',
+  '网络错误': 'network error',
   '删除空桌后导出': 'Remove empty tables and export',
   '张贴版只排有宾客的桌，这些空桌不会出现在导出图中；需要保留空白桌请关闭「张贴版」。':
     'The poster layout only lays out tables with guests, so these empty tables will not appear in the export; turn off “Poster layout” to keep blank tables.',

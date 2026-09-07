@@ -47,6 +47,24 @@ describe('免费通道仅同源代理', () => {
     expect(url).toBe('/api/ai-design')
   })
 
+  it('代理 5xx 的失败原因只保留状态码，不透出上游服务商的原始响应体', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        '{"error":"AI 服务暂时不可用，请稍后再试（openai: HTTP 402 {\\"error\\":\\"Some Vendor legacy text API\\"}）"}',
+        { status: 502 },
+      ),
+    )
+    const err = await generateLabelDesign(loadAiConfig(), {
+      fields: [{ label: '姓名', samples: ['张伟'], isPhoto: false }],
+      requirements: '',
+      labelWidth: 60,
+      labelHeight: 32,
+    }).catch((e: unknown) => e as Error)
+    expect(err).toBeInstanceOf(Error)
+    expect((err as Error).message).toBe('站点 AI 通道暂不可用（HTTP 502），可稍后重试或切换「自定义 API」')
+    expect((err as Error).message).not.toMatch(/402|legacy|Vendor|error/)
+  })
+
   it('英文界面下失败提示为英文', async () => {
     await setLocale('en')
     fetchMock.mockResolvedValue(new Response('{"error":"upstream"}', { status: 502 }))
