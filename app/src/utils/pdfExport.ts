@@ -690,8 +690,71 @@ async function canvasToImageBytes(
 
 type Html2CanvasFn = (
   el: HTMLElement,
-  options: { scale: number; useCORS: boolean; backgroundColor: string; logging: boolean },
+  options: {
+    scale: number
+    useCORS: boolean
+    backgroundColor: string
+    logging: boolean
+    onclone?: (clonedDoc: Document, clonedEl: HTMLElement) => void
+  },
 ) => Promise<HTMLCanvasElement>
+
+/**
+ * 把宿主文档已生效的外链样式表规则（CSSOM）以 <style> 原位替换克隆文档中的同名 <link>。
+ * html2canvas 把页面克隆进自建 iframe 时会重新请求外链 CSS：部署切换后旧 chunk 404、CDN
+ * 缓存未命中或弱网超时都会让克隆页丢掉路由级样式（座位表退化为竖版纯文本堆叠）。
+ * 规则文本取自当前文档已解析的样式表，不依赖网络；跨域不可读的样式表保留原 <link>。
+ * 返回替换的样式表数。
+ */
+export function inlineLinkedStylesIntoClone(
+  clonedDoc: Document,
+  sourceDoc: Document = document,
+): number {
+  const clonedLinks = Array.from(
+    clonedDoc.querySelectorAll<HTMLLinkElement>('link[rel~="stylesheet"][href]'),
+  )
+  if (!clonedLinks.length) return 0
+  let replaced = 0
+  for (const sheet of Array.from(sourceDoc.styleSheets)) {
+    const owner = sheet.ownerNode
+    if (!(owner instanceof HTMLLinkElement)) continue
+    const href = owner.getAttribute('href')
+    if (!href) continue
+    let cssText: string
+    try {
+      cssText = Array.from(sheet.cssRules, (rule) => rule.cssText).join('\n')
+    } catch {
+      continue
+    }
+    const target = clonedLinks.find(
+      (link) => link.getAttribute('href') === href || link.href === owner.href,
+    )
+    if (!target) continue
+    const style = clonedDoc.createElement('style')
+    style.setAttribute('data-inlined-from', href)
+    style.textContent = cssText
+    target.replaceWith(style)
+    replaced++
+  }
+  return replaced
+}
+
+/**
+ * 克隆节点尺寸与宿主节点不一致（样式丢失退回默认纸张方向等）时，把宿主的实际像素尺寸
+ * 写为克隆节点的内联宽高，保证捕获面积与屏幕预览一致。返回是否做了修正。
+ */
+export function pinCloneSizeToSource(clonedEl: HTMLElement, sourceEl: HTMLElement): boolean {
+  const source = sourceEl.getBoundingClientRect()
+  if (!source.width || !source.height) return false
+  const clone = clonedEl.getBoundingClientRect()
+  if (Math.abs(clone.width - source.width) <= 1 && Math.abs(clone.height - source.height) <= 1) {
+    return false
+  }
+  clonedEl.style.boxSizing = 'border-box'
+  clonedEl.style.width = `${source.width}px`
+  clonedEl.style.height = `${source.height}px`
+  return true
+}
 
 export interface PageRendererOptions {
   pageCount: number
@@ -706,6 +769,11 @@ export interface PageRendererOptions {
    * 文字居中的模板（如电子座签）会把合法的右侧留白误判为截断。
    */
   skipTruncationCheck?: boolean
+  /**
+   * 附加的画布完整性校验（长宽比 / 整页内容分布等）：不通过时 throw，
+   * 与空白/截断判据同一重试→重建宿主→报错链路，绝不静默交付坏图
+   */
+  verifyCanvas?: (canvas: HTMLCanvasElement, el: HTMLElement) => void
 }
 
 /**
@@ -746,8 +814,13 @@ export function createPageRenderer(
           useCORS: true,
           backgroundColor: '#ffffff',
           logging: false,
+          onclone: (clonedDoc, clonedEl) => {
+            inlineLinkedStylesIntoClone(clonedDoc, el.ownerDocument)
+            pinCloneSizeToSource(clonedEl, el)
+          },
         })
         if (isCanvasBlank(canvas)) throw new Error('页面渲染为空白')
+        options.verifyCanvas?.(canvas, el)
         if (!options.skipTruncationCheck && isCanvasTruncated(canvas)) {
           // strict 渲染：出现截断形态即重渲（真截断重渲即恢复，合法稀疏页只多花一次重渲）
           if (mode === 'strict') throw new Error('页面疑似渲染不完整（右侧大片空白）')

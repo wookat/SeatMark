@@ -508,6 +508,8 @@ async function runPngExport() {
       rebuildHost: rebuildExportHost,
       pageWidth: SHEET_W,
       pageHeight: SHEET_H,
+      // 座位表整页满版（网格撑满宽度 + 底部页脚）：右侧/下部无墨迹即为丢样式的坏图
+      fullPageInk: true,
       fileName: seatingExportFileName(title.value, viewMode.value, {
         fallback: tr('教室座位表'),
         teacher: tr('教师视角'),
