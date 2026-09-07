@@ -752,6 +752,7 @@ export const en: Record<string, string> = {
   '忘记密码？': 'Forgot password?',
   '忽略问题，继续导出': 'Ignore and export anyway',
   '保留空桌，继续导出': 'Keep empty tables and export',
+  '跳过空桌，继续导出': 'Skip empty tables and export',
   '设计要求或字段示例过长（超过 32KB），请精简后重试':
     'Your design brief or field samples are too long (over 32KB). Please shorten them and try again.',
   'AI 设计请求过于频繁（每小时最多 30 次），请约 {n} 分钟后再试':
@@ -759,6 +760,8 @@ export const en: Record<string, string> = {
   'AI 设计请求过于频繁（每小时最多 30 次），请稍后再试':
     'Too many AI design requests (max 30 per hour). Please try again later.',
   '删除空桌后导出': 'Remove empty tables and export',
+  '张贴版只排有宾客的桌，这些空桌不会出现在导出图中；需要保留空白桌请关闭「张贴版」。':
+    'The poster layout only lays out tables with guests, so these empty tables will not appear in the export; turn off “Poster layout” to keep blank tables.',
   '继续导出时这些桌会以空白桌保留在座位图中；不需要请删除空桌或减少桌数。':
     'If you continue, these tables stay in the chart as blank tables; remove them or reduce the table count if they are not needed.',
   '请先粘贴宾客名单': 'Paste the guest list first',

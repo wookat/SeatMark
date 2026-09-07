@@ -1729,7 +1729,11 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             {{ tr('空桌') }} {{ issues.emptyTables.length }} {{ tr('桌') }}{{ tr('：') }}{{ listJoin(issues.emptyTables) }}
           </p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">
-            {{ tr('继续导出时这些桌会以空白桌保留在座位图中；不需要请删除空桌或减少桌数。') }}
+            {{
+              posterLayout
+                ? tr('张贴版只排有宾客的桌，这些空桌不会出现在导出图中；需要保留空白桌请关闭「张贴版」。')
+                : tr('继续导出时这些桌会以空白桌保留在座位图中；不需要请删除空桌或减少桌数。')
+            }}
           </p>
         </div>
         <div v-if="issues.overCapacity.length">
@@ -1766,7 +1770,13 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
           {{ tr('删除空桌后导出') }}
         </button>
         <button type="button" class="btn btn-primary btn-md" @click="confirmIssuesAndExport">
-          {{ onlyEmptyTableIssues ? tr('保留空桌，继续导出') : tr('忽略问题，继续导出') }}
+          {{
+            onlyEmptyTableIssues
+              ? posterLayout
+                ? tr('跳过空桌，继续导出')
+                : tr('保留空桌，继续导出')
+              : tr('忽略问题，继续导出')
+          }}
         </button>
       </template>
     </ModalDialog>
