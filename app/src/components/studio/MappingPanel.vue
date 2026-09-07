@@ -5,7 +5,7 @@ import CheckboxField from '@/components/ui/CheckboxField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { t, useI18n } from '@/i18n'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { isCompositeMapping, templateColumnsValid } from '@/utils/fieldTemplate'
+import { headerOptionLabel, isCompositeMapping, templateColumnsValid } from '@/utils/fieldTemplate'
 
 const workspace = useWorkspaceStore()
 const { locale } = useI18n()
@@ -27,9 +27,10 @@ const TONE_CLASSES: Record<string, string> = {
   warning: 'border-amber-200 bg-amber-50 text-amber-800',
 }
 
-const headerOptions = computed<SelectOption[]>(() =>
-  workspace.excel.headers.map((h) => ({ value: h, label: h })),
-)
+const headerOptions = computed<SelectOption[]>(() => {
+  const firstRow = workspace.excel.rows[0]
+  return workspace.excel.headers.map((h) => ({ value: h, label: headerOptionLabel(h, firstRow) }))
+})
 
 const mappingOptions = computed<SelectOption[]>(() => [
   { value: '', label: t('未映射') },

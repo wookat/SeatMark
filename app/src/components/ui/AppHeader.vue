@@ -244,22 +244,25 @@ const SECTIONS = computed(() => [
         >
           {{ t('定价') }}
         </RouterLink>
+        <!-- 工坊页内：CTA 变为当前页标识（非链接，aria-current=page），避免自链自己 -->
+        <span
+          v-if="routeName === 'studio'"
+          class="btn btn-sm btn-secondary pointer-events-none text-brand-600 max-sm:px-2"
+          aria-current="page"
+          data-testid="header-studio-current"
+        >
+          {{ locale === 'en' ? 'Studio' : t('标签工坊') }}
+        </span>
         <RouterLink
+          v-else
           :to="localePath('/studio')"
-          class="btn btn-sm max-sm:px-2"
-          :class="[
-            routeName === 'studio' ? 'btn-secondary text-brand-600' : 'btn-primary',
-            // 英文「In progress」状态标签在 <sm 放不下：它不是操作入口，移动端英文直接隐藏
-            { 'max-sm:hidden': routeName === 'studio' && locale === 'en' },
-          ]"
+          class="btn btn-sm btn-primary max-sm:px-2"
         >
           <template v-if="locale === 'en'">
             <span class="sm:hidden">Start</span>
-            <span class="hidden sm:inline">{{
-              routeName === 'studio' ? t('正在制作中') : t('开始制作')
-            }}</span>
+            <span class="hidden sm:inline">{{ t('开始制作') }}</span>
           </template>
-          <template v-else>{{ routeName === 'studio' ? t('正在制作中') : t('开始制作') }}</template>
+          <template v-else>{{ t('开始制作') }}</template>
         </RouterLink>
 
         <RouterLink

@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 
 import { useIsPhone } from '@/composables/useMediaQuery'
 import { usePaperFitMismatch } from '@/composables/usePaperFitMismatch'
+import { useStickyActions } from '@/composables/useStickyActions'
 import { t, useI18n } from '@/i18n'
 
 import TemplateDesigner from '@/components/designer/TemplateDesigner.vue'
@@ -31,6 +32,7 @@ import { decodeSharedTemplate, extractSharePayload } from '@/utils/share'
 const { locale } = useI18n()
 const route = useRoute()
 const workspace = useWorkspaceStore()
+useStickyActions()
 const library = useTemplateLibrary()
 const toast = useToastStore()
 

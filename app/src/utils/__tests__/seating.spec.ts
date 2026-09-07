@@ -8,6 +8,7 @@ import {
   parseSeatingRoster,
   parseSeatingRosterDetailed,
   seatingExportFileName,
+  seatingRosterTextFromTable,
   shuffleEntries,
 } from '../seating'
 
@@ -188,6 +189,81 @@ describe('parseSeatingRosterDetailed（Excel 多列粘贴）', () => {
     expect(b.columnMode).toBe(false)
     expect(b.entries).toEqual([{ name: '张伟' }, { name: '王芳' }, { name: '李娜' }])
     expect(parseSeatingRoster('张伟 男\n王芳 女')).toEqual(a.entries)
+  })
+})
+
+describe('第 348 轮：seatingRosterTextFromTable（Excel 文件 → 名单文本 → 座位名单）', () => {
+  it('有表头（姓名/性别/学号）：表头保留，解析后取姓名与性别列、忽略学号列', () => {
+    const headers = ['学号', '姓名', '性别']
+    const rows = [
+      { 学号: '2024001', 姓名: '张三', 性别: '男' },
+      { 学号: '2024002', 姓名: '李四', 性别: '女' },
+      { 学号: '', 姓名: '', 性别: '' },
+      { 学号: '2024003', 姓名: '王五', 性别: '男' },
+    ]
+    const text = seatingRosterTextFromTable(headers, rows)
+    expect(text.split('\n')).toEqual([
+      '学号\t姓名\t性别',
+      '2024001\t张三\t男',
+      '2024002\t李四\t女',
+      '2024003\t王五\t男',
+    ])
+    const parsed = parseSeatingRosterDetailed(text)
+    expect(parsed.columnMode).toBe(true)
+    expect(parsed.headerSkipped).toEqual(['学号', '姓名', '性别'])
+    expect(parsed.ignoredColumns).toEqual(['学号'])
+    expect(parsed.genderColumn).toBe(true)
+    expect(parsed.entries).toEqual([
+      { name: '张三', gender: '男' },
+      { name: '李四', gender: '女' },
+      { name: '王五', gender: '男' },
+    ])
+  })
+
+  it('无表头（parseExcelFile 把首行数据当表头）：首行不丢，全部映射为学生', () => {
+    const headers = ['张三', '男']
+    const rows = [
+      { 张三: '李四', 男: '女' },
+      { 张三: '王五', 男: '男' },
+    ]
+    const text = seatingRosterTextFromTable(headers, rows)
+    expect(text).toBe('张三\t男\n李四\t女\n王五\t男')
+    const parsed = parseSeatingRosterDetailed(text)
+    expect(parsed.headerSkipped).toEqual([])
+    expect(parsed.entries).toEqual([
+      { name: '张三', gender: '男' },
+      { name: '李四', gender: '女' },
+      { name: '王五', gender: '男' },
+    ])
+  })
+
+  it('单列无表头：首行姓名不丢，逐行一人', () => {
+    const text = seatingRosterTextFromTable(['张三'], [{ 张三: '李四' }, { 张三: '王五' }])
+    expect(parseSeatingRosterDetailed(text).entries.map((e) => e.name)).toEqual(['张三', '李四', '王五'])
+  })
+
+  it('自动列名「列N」的表头行整行省略；追加到已有内容时真表头不再输出', () => {
+    expect(seatingRosterTextFromTable(['列1', '列2'], [{ 列1: '张三', 列2: '男' }])).toBe('张三\t男')
+    expect(
+      seatingRosterTextFromTable(['姓名', '性别'], [{ 姓名: '张三', 性别: '男' }], false),
+    ).toBe('张三\t男')
+    // 首行实为数据时，includeHeader=false 也不能丢人
+    expect(seatingRosterTextFromTable(['张三', '男'], [{ 张三: '李四', 男: '女' }], false)).toBe(
+      '张三\t男\n李四\t女',
+    )
+  })
+
+  it('30 行带表头的工作表映射为 30 位学生', () => {
+    const headers = ['序号', '姓名', '班级']
+    const rows = Array.from({ length: 30 }, (_, i) => ({
+      序号: String(i + 1),
+      姓名: `学生${i + 1}`,
+      班级: '高三（2）班',
+    }))
+    const parsed = parseSeatingRosterDetailed(seatingRosterTextFromTable(headers, rows))
+    expect(parsed.entries).toHaveLength(30)
+    expect(parsed.entries[0]!.name).toBe('学生1')
+    expect(parsed.entries[29]!.name).toBe('学生30')
   })
 })
 

@@ -5,7 +5,7 @@ import { TEMPLATE_COUNT } from '@/data/templateMeta'
 
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import { currentLocale, localePath, t } from '@/i18n'
-import { PRICING_FAQS } from '@/data/seo'
+import { PRICING_FAQS, faqMentionsSignupGift } from '@/data/seo'
 import { useAuthStore } from '@/stores/auth'
 import { QUOTA_ANON_DAILY, QUOTA_USER_DAILY } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
@@ -218,6 +218,13 @@ async function submitReserve() {
             {{ feature }}
           </li>
         </ul>
+        <p
+          v-if="plan.cta === 'pro-trial' && auth.serviceUnavailable"
+          class="mt-3 text-xs leading-5 text-slate-500"
+          data-testid="pricing-maintenance-hint"
+        >
+          {{ t('账号服务维护中，恢复后可领取') }}
+        </p>
 
         <RouterLink
           v-if="plan.cta === 'signup'"
@@ -268,6 +275,13 @@ async function submitReserve() {
         >
           <h3 class="text-sm font-bold text-slate-900">{{ t(faq.q) }}</h3>
           <p class="mt-2 text-sm leading-6 text-slate-600">{{ t(faq.a) }}</p>
+          <p
+            v-if="auth.serviceUnavailable && faqMentionsSignupGift(faq.a)"
+            class="mt-1.5 text-xs leading-5 text-slate-500"
+            data-testid="pricing-maintenance-hint"
+          >
+            {{ t('账号服务维护中，恢复后可领取') }}
+          </p>
         </div>
       </div>
     </section>

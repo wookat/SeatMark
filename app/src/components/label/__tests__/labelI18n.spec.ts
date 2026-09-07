@@ -20,20 +20,23 @@ afterEach(async () => {
 })
 
 describe('label components / en locale', () => {
-  it('LabelCard 未映射字段在 en 下渲染 Unmapped，zh 下保持中文', async () => {
+  it('LabelCard 未映射字段在 en 下渲染 (empty)，zh 下渲染「（空）」，不再拼字段名与「未映射」', async () => {
     const props = {
       template: standard,
       texts: { seatNo: '1', name: 'n', room: '', examId: 'e' },
       unmappedFields: new Set(['room']),
     }
     const zh = mount(LabelCard, { props })
-    expect(zh.text()).toContain('未映射')
-    expect(zh.text()).not.toContain('Unmapped')
+    expect(zh.get('.label-field__unmapped').text()).toBe('（空）')
+    expect(zh.text()).not.toContain('未映射')
+    expect(zh.text()).not.toContain('考场')
+    expect(zh.text()).not.toContain('(empty)')
 
     await setLocale('en')
     const en = mount(LabelCard, { props })
-    expect(en.text()).toContain('Unmapped')
+    expect(en.get('.label-field__unmapped').text()).toBe('(empty)')
     expect(en.text()).not.toContain('未映射')
+    expect(en.text()).not.toContain('（空）')
   })
 
   it('LabelSheet 单张覆写徽标在 en 下渲染 Edited', async () => {

@@ -79,7 +79,7 @@ function tryDemo() {
     data-testid="first-visit-guide"
   >
     <div class="flex items-start justify-between gap-2">
-      <p class="text-sm font-bold text-slate-900">{{ t('导入名单、选模板、核对预览、导出打印，4 步') }}</p>
+      <p class="text-sm font-bold text-slate-900">{{ t('选模板、导入名单、核对预览、导出打印，4 步') }}</p>
       <button
         type="button"
         class="cursor-pointer rounded p-1 text-slate-600 transition-colors hover:bg-white hover:text-slate-600"

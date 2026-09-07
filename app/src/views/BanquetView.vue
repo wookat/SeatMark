@@ -9,6 +9,8 @@ import ModalDialog from '@/components/ui/ModalDialog.vue'
 import NumberField from '@/components/ui/NumberField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
+import { GUEST_FILE_ACCEPT, useGuestFileImport } from '@/composables/useGuestFileImport'
+import { useStickyActions } from '@/composables/useStickyActions'
 import { demoPersonNames } from '@/data/demoDatasets'
 import { currentLocale, localePath, t as tr } from '@/i18n'
 import { useQuotaStore } from '@/stores/quota'
@@ -47,6 +49,7 @@ import {
   type MarkerKind,
   type VenuePresetId,
 } from '@/utils/banquet'
+import { POSTER_GAP_MM, computePosterLayout } from '@/utils/banquetExportLayout'
 import { uid } from '@/utils/id'
 import { fitScale, MM_TO_PX } from '@/utils/layout'
 import { listJoin } from '@/utils/listJoin'
@@ -56,6 +59,7 @@ import { printAndWaitUntilDone } from '@/utils/printing'
 import { defaultPdfFileName, exportPagedPdf } from '@/utils/pdfExport'
 
 const toast = useToastStore()
+useStickyActions()
 const quota = useQuotaStore()
 
 // ---------- 状态（持久化到 localStorage，口径同 SeatingView） ----------
@@ -70,6 +74,7 @@ interface BanquetPersistedState {
   paper: 'a4' | 'a3'
   orientation: 'landscape' | 'portrait'
   exportColors: boolean
+  posterLayout?: boolean
 }
 
 function loadPersistedState(): BanquetPersistedState | null {
@@ -96,9 +101,11 @@ const paper = ref<'a4' | 'a3'>(persisted?.paper ?? 'a4')
 const orientation = ref<'landscape' | 'portrait'>(persisted?.orientation ?? 'landscape')
 /** 导出是否带分组颜色：默认不带（成品贴给宾客看） */
 const exportColors = ref(persisted?.exportColors ?? false)
+/** 张贴版（远距可读）：导出时把非空桌重排为网格铺满页面、姓名字号自适应；关闭则按屏幕场地图原样输出（紧凑版） */
+const posterLayout = ref(persisted?.posterLayout ?? true)
 
 watch(
-  [title, pasteText, guests, groups, tables, markers, paper, orientation, exportColors],
+  [title, pasteText, guests, groups, tables, markers, paper, orientation, exportColors, posterLayout],
   () => {
     try {
       const state: BanquetPersistedState = {
@@ -111,6 +118,7 @@ watch(
         paper: paper.value,
         orientation: orientation.value,
         exportColors: exportColors.value,
+        posterLayout: posterLayout.value,
       }
       localStorage.setItem(BANQUET_STATE_KEY, JSON.stringify(state))
     } catch {
@@ -122,7 +130,6 @@ watch(
 
 // ---------- 第 1 步：宾客名单 ----------
 
-const txtInput = ref<HTMLInputElement | null>(null)
 const pasteInput = ref<HTMLTextAreaElement | null>(null)
 
 function focusPasteInput() {
@@ -193,32 +200,19 @@ function importPasted() {
   if (applyParsedGuests(parseBanquetGuests(pasteText.value))) pasteText.value = ''
 }
 
-/** .xlsx/.xls：懒加载 Excel 解析，取「姓名」与「分组」列（无表头则取前两列） */
-async function importSpreadsheet(file: File) {
-  const { parseExcelFile } = await import('@/utils/excel')
-  const { headers, rows } = await parseExcelFile(file)
-  applyParsedGuests(parseBanquetGuestsFromTable(headers, rows))
-}
-
-async function onTxtChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  input.value = ''
-  if (!file) return
-  if (/\.xlsx?$/i.test(file.name)) {
-    try {
-      await importSpreadsheet(file)
-    } catch (err) {
-      toast.danger(tr('Excel 导入失败'), tr(err instanceof Error ? err.message : String(err)))
-    }
-    return
-  }
-  const bytes = new Uint8Array(await file.arrayBuffer())
-  const { decodeCsvText } = await import('@/utils/excel')
-  const text = decodeCsvText(bytes)
-  pasteText.value = pasteText.value.trim() ? `${pasteText.value}\n${text}` : text
-  toast.info(tr('文件已读取到输入框'), tr('确认内容后点「添加到名单」'))
-}
+/** TXT/CSV/Excel 名单文件入口：Excel 取「姓名」与「分组」列（无表头则取前两列），文本追加到粘贴框 */
+const guestFile = useGuestFileImport({
+  onTable: (headers, rows) => {
+    applyParsedGuests(parseBanquetGuestsFromTable(headers, rows))
+  },
+  onText: (text) => {
+    pasteText.value = pasteText.value.trim() ? `${pasteText.value}\n${text}` : text
+    toast.info(tr('文件已读取到输入框'), tr('确认内容后点「添加到名单」'))
+  },
+  onError: (message) => {
+    toast.danger(tr('Excel 导入失败'), tr(message))
+  },
+})
 
 function addGuestRow() {
   guests.value = [...guests.value, { id: uid('gst'), name: '', groupId: null }]
@@ -814,6 +808,39 @@ const exportScale = computed(() => {
   return Math.min(availW / VENUE_WIDTH, availH / VENUE_HEIGHT)
 })
 
+/** 张贴版参与布局的桌：保持桌序（1 桌、2 桌…），空桌不参与 */
+const posterTables = computed(() => tables.value.filter((t) => tableGuests(t).length > 0))
+
+/** 分组图例占用的高度（mm），仅在带颜色导出且有分组时扣除 */
+const POSTER_LEGEND_H = 8
+const posterLayoutMetrics = computed(() => {
+  const list = posterTables.value
+  const maxGuests = list.reduce((m, t) => Math.max(m, tableGuests(t).length), 0)
+  const maxNameChars = list.reduce(
+    (m, t) => tableGuests(t).reduce((mm, g) => Math.max(mm, Array.from(g.name.trim()).length), m),
+    0,
+  )
+  const legendH = exportColors.value && groups.value.length ? POSTER_LEGEND_H : 0
+  return computePosterLayout({
+    tableCount: list.length,
+    maxGuests,
+    maxNameChars: Math.min(Math.max(maxNameChars, 2), 6),
+    safeWidth: pageSize.value.width - PAGE_MARGIN * 2,
+    safeHeight: pageSize.value.height - PAGE_MARGIN * 2 - PAGE_TITLE_H - legendH,
+  })
+})
+
+const posterGridStyle = computed(() => {
+  const m = posterLayoutMetrics.value
+  return {
+    gridTemplateColumns: `repeat(${Math.max(1, m.columns)}, ${m.blockWidth}mm)`,
+    gridAutoRows: `${m.blockHeight}mm`,
+    gap: `${POSTER_GAP_MM}mm`,
+    '--poster-name-font': `${m.nameFontMm}mm`,
+    '--poster-table-font': `${m.tableNameFontMm}mm`,
+  }
+})
+
 const issues = ref<BanquetIssues | null>(null)
 const issuesOpen = ref(false)
 const exportChoiceOpen = ref(false)
@@ -1062,16 +1089,16 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             <button type="button" class="btn btn-primary btn-sm" @click="importPasted">
               {{ tr('添加到名单（自动去重）') }}
             </button>
-            <button type="button" class="btn btn-secondary btn-sm" @click="txtInput?.click()">
+            <button type="button" class="btn btn-secondary btn-sm" @click="guestFile.open">
               {{ tr('上传 TXT / CSV / Excel 名单') }}
             </button>
             <input
-              ref="txtInput"
+              :ref="guestFile.fileInput"
               type="file"
-              accept=".txt,.csv,.xlsx,.xls,text/plain,text/csv"
+              :accept="GUEST_FILE_ACCEPT"
               class="hidden"
               :aria-label="tr('上传 TXT / CSV / Excel 名单文件')"
-              @change="onTxtChange"
+              @change="guestFile.onFileChange"
             />
           </div>
 
@@ -1295,6 +1322,15 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             <div class="col-span-2">
               <CheckboxField v-model="exportColors" class="text-xs font-semibold text-slate-600">
                 {{ tr('导出带分组颜色（默认不带，适合张贴给宾客看）') }}
+              </CheckboxField>
+            </div>
+            <div class="col-span-2">
+              <CheckboxField
+                v-model="posterLayout"
+                class="text-xs font-semibold text-slate-600"
+                data-testid="poster-layout-toggle"
+              >
+                {{ tr('张贴版（远距可读）：桌块铺满页面、姓名放大；关闭则按场地图原样输出') }}
               </CheckboxField>
             </div>
           </div>
@@ -1839,9 +1875,41 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         >
           <h2 class="banquet-sheet-title">{{ title || tr('宴会座位表') }}</h2>
           <div class="banquet-sheet-body">
-            <!-- 外层盒取缩放后的实际尺寸，flex 居中才不会按未缩放的布局盒溢出页面；
+            <!-- 张贴版：非空桌按网格铺满安全区，姓名字号随桌块自适应（与屏幕场地图无关） -->
+            <div
+              v-if="posterLayout && posterTables.length"
+              data-export-ink
+              data-testid="poster-grid"
+              class="banquet-poster"
+              :style="posterGridStyle"
+            >
+              <div
+                v-for="t in posterTables"
+                :key="t.id"
+                class="banquet-poster-table"
+                :class="{ 'banquet-poster-table--round': t.shape === 'round' }"
+              >
+                <span class="banquet-poster-table-name">{{ t.name }}</span>
+                <span class="banquet-poster-guests">
+                  <span
+                    v-for="g in tableGuests(t)"
+                    :key="g.id"
+                    class="banquet-poster-guest"
+                    :style="
+                      guestColor(g, exportColors)
+                        ? { borderColor: guestColor(g, exportColors)!, color: guestColor(g, exportColors)! }
+                        : undefined
+                    "
+                  >
+                    {{ g.name }}
+                  </span>
+                </span>
+              </div>
+            </div>
+            <!-- 紧凑版：外层盒取缩放后的实际尺寸，flex 居中才不会按未缩放的布局盒溢出页面；
                  data-export-ink 声明场地图横贯页面，右侧纯白即判渲染不完整 -->
             <div
+              v-else
               data-export-ink
               :style="{
                 width: `${VENUE_WIDTH * exportScale}mm`,
@@ -2113,6 +2181,66 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
   cursor: grab;
   touch-action: none;
   user-select: none;
+}
+
+/* 张贴版导出网格：尺寸与字号由 banquetExportLayout 计算后经内联样式/CSS 变量注入 */
+.banquet-poster {
+  display: grid;
+  justify-content: center;
+  align-content: start;
+}
+
+.banquet-poster-table {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  border: 0.6mm solid #64748b;
+  border-radius: 3mm;
+  background: #ffffff;
+  padding: 3mm;
+  overflow: hidden;
+}
+
+.banquet-poster-table--round {
+  border-radius: 6mm;
+}
+
+.banquet-poster-table-name {
+  font-size: var(--poster-table-font, 6mm);
+  line-height: 1.3;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: calc(var(--poster-name-font, 5mm) * 0.4);
+}
+
+.banquet-poster-guests {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: flex-start;
+  gap: 1.2mm;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.banquet-poster-guest {
+  display: inline-block;
+  box-sizing: border-box;
+  border: 0.4mm solid #cbd5e1;
+  border-radius: 1.5mm;
+  padding: 0 1.2mm;
+  font-size: var(--poster-name-font, 5mm);
+  line-height: 1.55;
+  font-weight: 600;
+  color: #334155;
+  background: #ffffff;
+  white-space: nowrap;
 }
 
 /* 导出页 */

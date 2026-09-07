@@ -9,6 +9,8 @@ import ModalDialog from '@/components/ui/ModalDialog.vue'
 import NumberField from '@/components/ui/NumberField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
+import { GUEST_FILE_ACCEPT, useGuestFileImport } from '@/composables/useGuestFileImport'
+import { useStickyActions } from '@/composables/useStickyActions'
 import { demoPersonNames } from '@/data/demoDatasets'
 import { currentLocale, localePath, t as tr } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
@@ -26,6 +28,7 @@ import {
   parseSeatingRosterDetailed,
   SEATING_HANDOFF_KEY,
   seatingExportFileName,
+  seatingRosterTextFromTable,
   shuffleEntries,
   type Seat,
   type SeatingEntry,
@@ -36,6 +39,7 @@ import {
 
 const router = useRouter()
 const toast = useToastStore()
+useStickyActions()
 const quota = useQuotaStore()
 
 // ---------- 输入（持久化到本地，避免跨页返回丢失排座成果） ----------
@@ -104,6 +108,38 @@ function focusNamesInput() {
   if (!el) return
   el.scrollIntoView({ behavior: 'smooth', block: 'center' })
   el.focus()
+}
+
+/** 名单文件上传（TXT/CSV/Excel）：全部浏览器本地解析后追加到名单文本框，由现有解析器取姓名/性别列 */
+function appendRosterText(text: string, fileName: string) {
+  const chunk = text.trim()
+  if (!chunk) {
+    toast.warning(tr('文件内容为空'), fileName)
+    return
+  }
+  const before = filledCount.value
+  namesText.value = namesText.value.trim() ? `${namesText.value.trimEnd()}\n${chunk}` : chunk
+  const added = filledCount.value - before
+  toast.success(
+    `${tr('已读取')} ${added} ${tr('名学生')}`,
+    tr('名单已追加到输入框，请核对后继续排座'),
+  )
+}
+
+let pendingRosterFileName = ''
+const rosterFile = useGuestFileImport({
+  onTable: (headers, rows) =>
+    appendRosterText(
+      seatingRosterTextFromTable(headers, rows, !namesText.value.trim()),
+      pendingRosterFileName,
+    ),
+  onText: (text) => appendRosterText(text, pendingRosterFileName),
+  onError: (message) => toast.danger(tr('名单文件读取失败'), tr(message)),
+})
+
+function onRosterFileChange(event: Event) {
+  pendingRosterFileName = (event.target as HTMLInputElement).files?.[0]?.name ?? ''
+  return rosterFile.onFileChange(event)
 }
 
 /** 手工排座结果（随机 / 拖拽后生效）；名单文本变化时失效还原 */
@@ -600,9 +636,28 @@ function toDeskLabels() {
         <section ref="rosterSection" class="panel-card scroll-mt-4 outline-none">
           <div class="panel-head">
             <h2 class="section-title"><span class="step-chip">2</span>{{ tr('学生名单') }}</h2>
-            <button type="button" class="btn btn-ghost btn-sm" @click="loadDemoNames">
-              {{ tr('用演示名单') }}
-            </button>
+            <div class="flex flex-wrap items-center justify-end gap-1">
+              <button
+                type="button"
+                class="btn btn-secondary btn-sm"
+                data-testid="seating-upload-roster"
+                @click="rosterFile.open"
+              >
+                {{ tr('上传名单文件') }}
+              </button>
+              <input
+                :ref="rosterFile.fileInput"
+                type="file"
+                :accept="GUEST_FILE_ACCEPT"
+                class="hidden"
+                data-testid="seating-roster-file"
+                :aria-label="tr('上传 TXT / CSV / Excel 名单文件')"
+                @change="onRosterFileChange"
+              />
+              <button type="button" class="btn btn-ghost btn-sm" @click="loadDemoNames">
+                {{ tr('用演示名单') }}
+              </button>
+            </div>
           </div>
           <textarea
             ref="namesInput"
@@ -821,7 +876,7 @@ function toDeskLabels() {
                           'seating-row-handle--active': selectedRow === r,
                           'seating-seat--drop-target': dragging && dropRowTarget === r,
                         }"
-                        :title="`${tr('第')} ${r + 1} ${tr('排：')}${tr('点击或拖拽与另一排交换')}`"
+                        :title="tr('第 {n} 排：点击或拖拽与另一排交换').replace('{n}', String(r + 1))"
                         :data-row-index="r"
                         @click="onRowHandleClick(r)"
                         @pointerdown="onRowPointerDown(r, $event)"
