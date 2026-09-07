@@ -37,12 +37,13 @@ const TONE_PATH: Record<ToastType, string> = {
        · 带 .has-sticky-actions 的页面（工坊 / 排座 / 宴会）：sm–lg 仍走右下车道避开导出按钮，≥lg 改走右上，
          且 top 落在工坊预览工具栏下方：calc(var(--studio-toolbar-bottom) + 0.5rem)，变量由 PreviewArea 按工具栏实际高度写入，
          排座 / 宴会页无该变量时回退 4.5rem + 0.5rem = top-20，与非工坊页面一致；
-       · 弹窗打开期间（html.has-modal，ModalDialog 维护）窄屏改落顶部 top-16，不压弹窗底部的选项卡 / 操作按钮；≥sm 不变。 -->
+       · 弹窗打开期间（html.has-modal，ModalDialog 维护）窄屏改落顶部 top-16 并正向堆叠，不压弹窗底部的选项卡 / 操作按钮；≥sm 不变。
+         选择器写作 html.has-modal，特异性高于同为两级 class 的 .has-sticky-actions / .has-next-step-bar 车道，确保 bottom-auto 生效。 -->
   <div
     role="status"
     aria-live="polite"
     :aria-label="t('操作提示')"
-    class="no-print pointer-events-none fixed right-3 bottom-20 z-[70] flex w-[calc(100vw-1.5rem)] max-w-80 flex-col-reverse gap-2 sm:top-20 sm:right-4 sm:bottom-auto sm:flex-col [.has-next-step-bar_&]:bottom-[calc(8rem_+_env(safe-area-inset-bottom,0px))] [.has-sticky-actions_&]:bottom-[calc(8rem_+_env(safe-area-inset-bottom,0px))] [.has-sticky-actions_&]:sm:top-auto [.has-sticky-actions_&]:sm:flex-col-reverse [.has-sticky-actions_&]:lg:top-[calc(var(--studio-toolbar-bottom,4.5rem)_+_0.5rem)] [.has-sticky-actions_&]:lg:bottom-auto [.has-sticky-actions_&]:lg:flex-col [.has-modal_&]:max-sm:top-16 [.has-modal_&]:max-sm:bottom-auto"
+    class="no-print pointer-events-none fixed right-3 bottom-20 z-[70] flex w-[calc(100vw-1.5rem)] max-w-80 flex-col-reverse gap-2 sm:top-20 sm:right-4 sm:bottom-auto sm:flex-col [.has-next-step-bar_&]:bottom-[calc(8rem_+_env(safe-area-inset-bottom,0px))] [.has-sticky-actions_&]:bottom-[calc(8rem_+_env(safe-area-inset-bottom,0px))] [.has-sticky-actions_&]:sm:top-auto [.has-sticky-actions_&]:sm:flex-col-reverse [.has-sticky-actions_&]:lg:top-[calc(var(--studio-toolbar-bottom,4.5rem)_+_0.5rem)] [.has-sticky-actions_&]:lg:bottom-auto [.has-sticky-actions_&]:lg:flex-col [html.has-modal_&]:max-sm:top-16 [html.has-modal_&]:max-sm:bottom-auto [html.has-modal_&]:max-sm:flex-col"
     data-testid="toast-host"
   >
     <TransitionGroup

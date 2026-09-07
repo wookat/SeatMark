@@ -5,6 +5,11 @@ description: How to end-to-end test SeatMark in production (www.seatmark.cn) via
 
 # Testing SeatMark online (www.seatmark.cn)
 
+## Responsive overlay measurement
+- Measure the visible toast child (`[data-testid=toast-host] > div`) as well as its host. A host with both computed `top` and `bottom` can stretch across the viewport while `flex-col-reverse` leaves the toast at the bottom; `top:64px` alone does not prove the toast moved. Check rectangle intersection and `elementFromPoint` on the target action without clicking export rows.
+- For floating-feedback collision tests, scroll the underlying action into the bubble's vertical band, not merely to the document bottom. Test actual overlap at that scroll position; smaller bubble dimensions alone do not establish clearance.
+- Guide articles have their own `<header>` in addition to the application header. Use `get_by_role('banner')` or the first header rather than a strict unqualified `locator('header')`.
+
 ## Anonymous responsive testing and cleanup
 - Connect to the visible Chrome CDP endpoint (probe the available port rather than assuming 9222), bypass service workers, and record the loaded entry bundle on each route. Python CDP automation requires `python -m pip install playwright`; attaching to an existing Chrome needs no browser download.
 - On mobile `/seating`, selecting the first seat can insert a hint and move the canvas. Re-read the second seat's bounding box after selection before dispatching real touch events; compare rendered names before/after rather than treating selection highlighting as a swap.

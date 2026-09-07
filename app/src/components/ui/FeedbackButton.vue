@@ -44,8 +44,35 @@ function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape' && open.value) close()
 }
 
-onMounted(() => window.addEventListener('keydown', onKeydown))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+/** 回到页面顶部的判定阈值（px）：低于此值恢复显示气泡 */
+const TOP_RESTORE_PX = 80
+/** 滚动方向判定的最小位移（px），过滤惯性抖动 */
+const SCROLL_DELTA_PX = 2
+
+/**
+ * 窄屏让位：向下滚动（阅读 / 填表）时收起气泡，不常驻压住右对齐的行内按钮；
+ * 回到页顶或用户向上滚动时恢复。仅 <sm 生效（class 用 max-sm: 前缀），桌面常驻。
+ */
+const collapsed = ref(false)
+let lastScrollY = 0
+
+function onScroll() {
+  const y = window.scrollY
+  if (y < TOP_RESTORE_PX) collapsed.value = false
+  else if (y > lastScrollY + SCROLL_DELTA_PX) collapsed.value = true
+  else if (y < lastScrollY - SCROLL_DELTA_PX) collapsed.value = false
+  lastScrollY = y
+}
+
+onMounted(() => {
+  lastScrollY = window.scrollY
+  window.addEventListener('keydown', onKeydown)
+  window.addEventListener('scroll', onScroll, { passive: true })
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('scroll', onScroll)
+})
 
 async function submit() {
   if (!content.value.trim()) {
@@ -84,6 +111,8 @@ async function submit() {
   <!-- 浮动按钮 -->
   <button
     class="no-print fixed right-5 bottom-5 z-50 flex size-12 items-center justify-center rounded-full bg-brand-600 text-white transition-all hover:bg-brand-700 max-sm:right-3 max-sm:size-10 [.has-next-step-bar_&]:bottom-[4.25rem] [.has-sticky-actions_&]:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]"
+    :class="collapsed && 'max-sm:pointer-events-none max-sm:translate-y-2 max-sm:opacity-0'"
+    :data-collapsed="collapsed ? 'true' : 'false'"
     :aria-label="t('反馈')"
     @click="open = true"
   >

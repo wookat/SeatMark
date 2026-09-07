@@ -108,3 +108,65 @@ describe('第 341 轮：FeedbackButton 英文化（mock fetch，不发请求）'
     expect(useToastStore().toasts[0]!.title).toBe('请填写反馈内容')
   })
 })
+
+describe('第 353 轮：窄屏向下滚动收起反馈气泡（不常驻压住右对齐行内按钮）', () => {
+  function scrollTo(y: number) {
+    Object.defineProperty(window, 'scrollY', { value: y, configurable: true, writable: true })
+    window.dispatchEvent(new Event('scroll'))
+  }
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true, writable: true })
+  })
+
+  it('初始常驻；向下滚动后 data-collapsed=true 且带 max-sm:opacity-0 / pointer-events-none；停住不自动恢复', async () => {
+    const w = mountFeedback()
+    const btn = w.get('button[aria-label="反馈"]')
+    expect(btn.attributes('data-collapsed')).toBe('false')
+    expect(btn.classes()).not.toContain('max-sm:opacity-0')
+
+    scrollTo(300)
+    await w.vm.$nextTick()
+    expect(btn.attributes('data-collapsed')).toBe('true')
+    expect(btn.classes()).toContain('max-sm:opacity-0')
+    expect(btn.classes()).toContain('max-sm:pointer-events-none')
+
+    scrollTo(301)
+    await w.vm.$nextTick()
+    expect(btn.attributes('data-collapsed')).toBe('true')
+    w.unmount()
+  })
+
+  it('向上滚动即恢复；回到页顶 scrollY<80 也恢复', async () => {
+    const w = mountFeedback()
+    const btn = w.get('button[aria-label="反馈"]')
+    scrollTo(600)
+    await w.vm.$nextTick()
+    expect(btn.attributes('data-collapsed')).toBe('true')
+
+    scrollTo(560)
+    await w.vm.$nextTick()
+    expect(btn.attributes('data-collapsed')).toBe('false')
+
+    scrollTo(900)
+    await w.vm.$nextTick()
+    expect(btn.attributes('data-collapsed')).toBe('true')
+    scrollTo(40)
+    await w.vm.$nextTick()
+    expect(btn.attributes('data-collapsed')).toBe('false')
+    w.unmount()
+  })
+
+  it('收起只作用于窄屏：桌面尺寸 class 保持 size-12，隐藏 class 全部带 max-sm: 前缀', async () => {
+    const w = mountFeedback()
+    scrollTo(500)
+    await w.vm.$nextTick()
+    const btn = w.get('button[aria-label="反馈"]')
+    expect(btn.classes()).toContain('size-12')
+    const hiding = btn.classes().filter((c) => /opacity-0|pointer-events-none|translate-y/.test(c))
+    expect(hiding.length).toBeGreaterThan(0)
+    expect(hiding.every((c) => c.startsWith('max-sm:'))).toBe(true)
+    w.unmount()
+  })
+})

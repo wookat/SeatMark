@@ -43,12 +43,14 @@ describe('ToastHost 与底部操作条安全区', () => {
     wrapper.unmount()
   })
 
-  it('第 353 轮：弹窗打开期间（html.has-modal）窄屏改落顶部：带 [.has-modal_&]:max-sm:top-16 / bottom-auto，≥sm 定位 class 不变', () => {
+  it('第 353 轮：弹窗打开期间（html.has-modal）窄屏改落顶部：选择器写 html.has-modal（特异性压过 .has-sticky-actions 车道）且正向堆叠，≥sm 定位 class 不变', () => {
     setActivePinia(createPinia())
     const wrapper = mount(ToastHost)
     const host = wrapper.get('[role="status"]')
-    expect(host.classes()).toContain('[.has-modal_&]:max-sm:top-16')
-    expect(host.classes()).toContain('[.has-modal_&]:max-sm:bottom-auto')
+    expect(host.classes()).toContain('[html.has-modal_&]:max-sm:top-16')
+    expect(host.classes()).toContain('[html.has-modal_&]:max-sm:bottom-auto')
+    expect(host.classes()).toContain('[html.has-modal_&]:max-sm:flex-col')
+    expect(host.classes().some((c) => c.startsWith('[.has-modal_&]'))).toBe(false)
     expect(host.classes()).toContain('sm:top-20')
     expect(host.classes()).toContain('sm:bottom-auto')
     wrapper.unmount()
