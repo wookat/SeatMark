@@ -5,7 +5,8 @@
  * 请求体：{ type: 'bug'|'suggestion'|'other', content: string, contact?: string }
  *
  * 环境变量（EdgeOne Pages 控制台配置）：
- * - FEEDBACK_WEBHOOK  可选，飞书/钉钉/企业微信机器人 webhook URL
+ * - FEEDBACK_WEBHOOK  可选，飞书/钉钉/企业微信机器人 webhook URL（按域名选消息结构：
+ *   qyapi.weixin.qq.com / oapi.dingtalk.com → { msgtype, text.content }；其余按飞书 { msg_type, content.text }）
  *   仅从环境变量读取，代码中不允许出现任何 webhook key 字面量；
  *   未配置时跳过推送（console.warn），反馈仍正常存档并返回成功
  *
@@ -19,14 +20,13 @@ import { getStorage } from './_storage.js'
 import { withSecurityHeaders } from './_security.js'
 import { randomToken36 } from './_random.js'
 import { json, clientIp, sha256Hex } from './_http.js'
+import { SEATMARK_REV } from './_rev.js'
 
 const FEEDBACK_IP_DAILY_LIMIT = 10
 /** 日限计数键按日期分桶，48h 后自动清除（Blob/内存由 _storage.js 包装值实现） */
 const DAILY_KEY_TTL_SECONDS = 48 * 3600
 /** 页面路径存档与 webhook 推送共用的截断上限 */
 const PAGE_MAX_CHARS = 200
-/** 部署观测标记，与 [[default]].js 的 X-SeatMark-Rev 同步递增 */
-const SEATMARK_REV = 'r350'
 export const FEEDBACK_MAX_BODY_BYTES = 32 * 1024
 
 const encoder = new TextEncoder()
@@ -121,7 +121,8 @@ async function handleRequest(context) {
     ].filter(Boolean).join('\n')
 
     const isWeCom = webhook.includes('qyapi.weixin.qq.com')
-    const body = isWeCom
+    const isDingTalk = webhook.includes('oapi.dingtalk.com')
+    const body = isWeCom || isDingTalk
       ? { msgtype: 'text', text: { content: text } }
       : { msg_type: 'text', content: { text } }
 

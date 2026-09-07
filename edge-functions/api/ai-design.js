@@ -28,6 +28,7 @@
 import { withSecurityHeaders } from './_security.js'
 import { getStorage } from './_storage.js'
 import { json, clientIp, sha256Hex } from './_http.js'
+import { SEATMARK_REV, REV_HEADER_NAME } from './_rev.js'
 
 export const AI_MAX_BODY_BYTES = 32 * 1024
 export const AI_RATE_LIMIT = 30
@@ -127,7 +128,9 @@ async function sendAlert(env, level, detail) {
 }
 
 export async function onRequest(context) {
-  return withSecurityHeaders(await handleRequest(context))
+  const res = await handleRequest(context)
+  res.headers.set(REV_HEADER_NAME, SEATMARK_REV)
+  return withSecurityHeaders(res)
 }
 
 async function handleRequest(context) {

@@ -9,18 +9,18 @@ import { STICKY_ACTIONS_CLASS, useStickyActions } from '@/composables/useStickyA
 import { useToastStore } from '@/stores/toast'
 
 describe('ToastHost 与底部操作条安全区', () => {
-  it('容器带 has-next-step-bar / has-sticky-actions 让位 class：默认 bottom-20，操作条可见时上移到反馈按钮顶部之上', () => {
+  it('容器带 has-next-step-bar / has-sticky-actions 让位 class：默认 bottom-20，操作条可见时上移到反馈按钮顶部之上并叠加底部安全区', () => {
     setActivePinia(createPinia())
     const wrapper = mount(ToastHost)
     const host = wrapper.get('[role="status"]')
     expect(host.classes()).toContain('bottom-20')
-    expect(host.classes()).toContain('[.has-next-step-bar_&]:bottom-[8rem]')
-    expect(host.classes()).toContain('[.has-sticky-actions_&]:bottom-[8rem]')
+    expect(host.classes()).toContain('[.has-next-step-bar_&]:bottom-[calc(8rem_+_env(safe-area-inset-bottom,0px))]')
+    expect(host.classes()).toContain('[.has-sticky-actions_&]:bottom-[calc(8rem_+_env(safe-area-inset-bottom,0px))]')
     expect(host.classes()).toContain('max-w-80')
     wrapper.unmount()
   })
 
-  it('≥sm 定位到右上（top-20 right-4），带吸底按钮栏的页面仍走右下车道', () => {
+  it('≥sm 定位到右上（top-20 right-4），带吸底按钮栏的页面 sm–lg 走右下车道、≥lg 回到右上', () => {
     setActivePinia(createPinia())
     const wrapper = mount(ToastHost)
     const host = wrapper.get('[role="status"]')
@@ -28,6 +28,9 @@ describe('ToastHost 与底部操作条安全区', () => {
     expect(host.classes()).toContain('sm:right-4')
     expect(host.classes()).toContain('sm:bottom-auto')
     expect(host.classes()).toContain('[.has-sticky-actions_&]:sm:top-auto')
+    expect(host.classes()).toContain('[.has-sticky-actions_&]:lg:top-20')
+    expect(host.classes()).toContain('[.has-sticky-actions_&]:lg:bottom-auto')
+    expect(host.classes()).toContain('[.has-sticky-actions_&]:lg:flex-col')
     wrapper.unmount()
   })
 

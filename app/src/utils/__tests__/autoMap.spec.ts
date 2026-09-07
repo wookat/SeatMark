@@ -21,6 +21,12 @@ describe('autoMapFields', () => {
     })
   })
 
+  it('座位表带入表头（含 考场 列）：标准考场版 name/seatNo/room 三项命中，examId 未映射', () => {
+    const mapping = autoMapFields(standardFields, ['姓名', '座位号', '排', '列', '班级', '考场'])
+    expect(mapping).toEqual({ seatNo: '座位号', name: '姓名', room: '考场' })
+    expect(mapping.examId).toBeUndefined()
+  })
+
   it('英文与同义词表头也能识别', () => {
     const mapping = autoMapFields(standardFields, ['Name', 'Room', 'ExamId', 'Seat'])
     expect(mapping.name).toBe('Name')

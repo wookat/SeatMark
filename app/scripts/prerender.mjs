@@ -15,6 +15,8 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { resolveLastmod } from './sitemapLastmod.mjs'
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const distDir = join(root, 'dist')
 
@@ -27,6 +29,8 @@ const {
   SITE_ORIGIN,
   guides,
   templateDetails,
+  vsPages,
+  topicPages,
   defaultTemplates,
   QUOTA_ANON_DAILY,
   QUOTA_USER_DAILY,
@@ -153,6 +157,7 @@ for (const path of [...paths, ...shellPaths]) {
 
 // ---------- sitemap.xml（与预渲染路径同源；noindex 页不进） ----------
 const today = new Date().toISOString().slice(0, 10)
+const lastmodSources = { guides, templateDetails, vsPages, topicPages, today }
 const priorities = (p) => (p === '/' ? '1.0' : p === '/studio' ? '0.9' : p.split('/').length > 2 ? '0.7' : '0.8')
 const sitemapEntries = (
   await Promise.all(paths.map(async (p) => ({ p, seo: await resolveSeo(p) })))
@@ -169,7 +174,7 @@ ${sitemapEntries
       .join('')
     return `  <url>
     <loc>${SITE_ORIGIN}${p === '/' ? '/' : p}</loc>
-    <lastmod>${today}</lastmod>
+    <lastmod>${resolveLastmod(p, lastmodSources)}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>${priorities(p)}</priority>${alternates}
   </url>`
@@ -178,7 +183,8 @@ ${sitemapEntries
 </urlset>
 `
 writeFileSync(join(distDir, 'sitemap.xml'), sitemap)
-console.log(`sitemap.xml generated with ${sitemapEntries.length} urls`)
+const distinctLastmod = new Set(sitemapEntries.map(({ p }) => resolveLastmod(p, lastmodSources)))
+console.log(`sitemap.xml generated with ${sitemapEntries.length} urls (${distinctLastmod.size} distinct lastmod dates)`)
 
 // ---------- llms.txt / llms-full.txt（与教程、模板数据同源，构建期自动同步新页面） ----------
 const templateItems = templateDetails

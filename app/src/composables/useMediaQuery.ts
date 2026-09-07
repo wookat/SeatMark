@@ -10,16 +10,22 @@ export function useMediaQuery(query: string) {
   }
 
   onMounted(() => {
+    if (typeof window.matchMedia !== 'function') return
     mql = window.matchMedia(query)
     matches.value = mql.matches
-    mql.addEventListener('change', update)
+    mql.addEventListener?.('change', update)
   })
 
   onBeforeUnmount(() => {
-    mql?.removeEventListener('change', update)
+    mql?.removeEventListener?.('change', update)
   })
 
   return matches
+}
+
+/** 是否为窄屏手机（< 640px，对应 Tailwind sm 断点）：筛选栏等收成单行 */
+export function useIsNarrow() {
+  return useMediaQuery('(max-width: 639px)')
 }
 
 /** 是否为移动端（< 1024px，对应 Tailwind lg 断点） */

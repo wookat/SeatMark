@@ -578,6 +578,8 @@ function toDeskLabels() {
       排: String(s.row),
       列: String(s.col),
       班级: title.value,
+      // 标准考场版等考务模板的「考场」字段以此命中，自动映射不再只对上 2/4
+      考场: title.value,
     })),
   }
   try {
