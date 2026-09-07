@@ -1549,3 +1549,215 @@ describe("第 346 轮：/api/admin/overview 计数读取受控并发（mapConcur
     expect(data.storage).toBe("blob");
   });
 });
+
+describe("第 350 轮：captcha 消费标记同步写（关闭 150ms 双用窗口）", () => {
+  const PASSWORD = "sync-mark-secret-9";
+
+  it("waitUntil 环境下同一 captcha 连续两次提交：不等后台写链，第二次立即 400「验证码已使用」", async () => {
+    await call("POST", "https://www.seatmark.cn/api/auth/register", {
+      body: { email: "sync-cap@example.com", password: PASSWORD },
+    });
+    const cap = await solvedCaptcha();
+    const pending: Promise<unknown>[] = [];
+    const context = {
+      env: withTestEnv({}),
+      waitUntil(p: Promise<unknown>) {
+        pending.push(p);
+      },
+    };
+    const mk = () =>
+      new Request("https://www.seatmark.cn/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "sync-cap@example.com", password: PASSWORD, ...cap }),
+      });
+    const first: Response = await onRequest({ ...context, request: mk() });
+    expect(first.status).toBe(200);
+    // 不 await pending：后台写链尚未启动（150ms 延迟）时立即复用令牌
+    const second: Response = await onRequest({ ...context, request: mk() });
+    expect(second.status).toBe(400);
+    expect(((await second.json()) as { error: string }).error).toContain("验证码已使用");
+    await Promise.all(pending);
+  });
+
+  it("同一 captcha 两次并发提交（Promise.all）恰有一次 200、一次 400", async () => {
+    await call("POST", "https://www.seatmark.cn/api/auth/register", {
+      body: { email: "race-cap@example.com", password: PASSWORD },
+    });
+    const cap = await solvedCaptcha();
+    const mk = () =>
+      new Request("https://www.seatmark.cn/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "race-cap@example.com", password: PASSWORD, ...cap }),
+      });
+    const [a, b]: Response[] = await Promise.all([
+      onRequest({ request: mk(), env: withTestEnv({}) }),
+      onRequest({ request: mk(), env: withTestEnv({}) }),
+    ]);
+    const statuses = [a.status, b.status].sort();
+    expect(statuses).toEqual([200, 400]);
+  });
+
+  it("注册路径：同一 captcha 并发两次注册恰有一次成功，另一次为 400 验证码已使用", async () => {
+    const cap = await solvedCaptcha();
+    const mk = () =>
+      new Request("https://www.seatmark.cn/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "race-reg@example.com", password: PASSWORD, ...cap }),
+      });
+    const [a, b]: Response[] = await Promise.all([
+      onRequest({ request: mk(), env: withTestEnv({}) }),
+      onRequest({ request: mk(), env: withTestEnv({}) }),
+    ]);
+    const statuses = [a.status, b.status].sort();
+    expect(statuses).toEqual([200, 400]);
+    const rejected = a.status === 400 ? a : b;
+    expect(((await rejected.json()) as { captcha?: boolean }).captcha).toBe(true);
+  });
+
+  it("captcha:used 标记带 expirationTtl（≤30min）且在响应返回前已落库", async () => {
+    const store = new Map<string, string>();
+    const puts: { key: string; ttl?: number }[] = [];
+    const env = {
+      seatmark_kv: {
+        async get(k: string) {
+          return store.get(k) ?? null;
+        },
+        async put(k: string, v: string, opts?: { expirationTtl?: number }) {
+          puts.push({ key: k, ttl: opts?.expirationTtl });
+          store.set(k, v);
+        },
+        async delete(k: string) {
+          store.delete(k);
+        },
+      },
+    } as unknown as Env;
+    const pending: Promise<unknown>[] = [];
+    const cap = await solvedCaptcha(env);
+    const response: Response = await onRequest({
+      request: new Request("https://www.seatmark.cn/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "ttl-cap@example.com", password: PASSWORD, ...cap }),
+      }),
+      env: withTestEnv(env),
+      waitUntil(p: Promise<unknown>) {
+        pending.push(p);
+      },
+    });
+    expect(response.status).toBe(200);
+    // 后台写链未执行时标记已在库中
+    const used = puts.find((p) => p.key.startsWith("captcha:used:"));
+    expect(used).toBeDefined();
+    expect(used!.ttl).toBeGreaterThan(0);
+    expect(used!.ttl!).toBeLessThanOrEqual(30 * 60);
+    await Promise.all(pending);
+    // 日限键（注册 IP 日限）也带 ≤48h TTL
+    const reg = puts.find((p) => p.key.startsWith("rl:reg:"));
+    expect(reg).toBeDefined();
+    expect(reg!.ttl).toBeGreaterThan(0);
+    expect(reg!.ttl!).toBeLessThanOrEqual(48 * 3600);
+  });
+});
+
+describe("第 350 轮：admin users/codes 逐键读取改受控并发，结果顺序与串行一致", () => {
+  async function adminCookie(env: Env, adminEmail: string) {
+    const { data: codeData } = await call("POST", "http://localhost:5173/api/auth/code", {
+      body: { email: adminEmail },
+      env,
+    });
+    const { response: verifyRes } = await call("POST", "http://localhost:5173/api/auth/verify", {
+      body: { email: adminEmail, code: codeData.devCode },
+      env,
+    });
+    return (verifyRes.headers.get("Set-Cookie") || "").split(";")[0];
+  }
+
+  it("/api/admin/users：30 个用户按 list 键序返回，与串行 kv.get 顺序一致，读取并发峰值 ≤ 8", async () => {
+    const blob = createMockBlobStore();
+    const now = new Date().toISOString();
+    const emails: string[] = [];
+    for (let i = 0; i < 30; i++) {
+      const email = `list${String(i).padStart(2, "0")}@example.com`;
+      emails.push(email);
+      blob.data.set(`user:${email}`, JSON.stringify({ email, createdAt: now, loginCount: i }));
+    }
+    const adminEmail = "zz-admin@example.com";
+    const env: Env = { AUTH_SECRET: "test-secret", ADMIN_EMAILS: adminEmail, seatmark_blob: blob };
+    const cookie = await adminCookie(env, adminEmail);
+
+    // 串行期望：按 list 排序逐个 get
+    const listed = await blob.list({ prefix: "user:", limit: 50 });
+    const serial: string[] = [];
+    for (const b of listed.blobs) {
+      const raw = await blob.get(b.key);
+      if (raw) serial.push((JSON.parse(raw) as { email: string }).email);
+    }
+
+    let inflight = 0;
+    let peak = 0;
+    const rawGet = blob.get.bind(blob);
+    blob.get = async (key, options) => {
+      const counted = key.startsWith("user:");
+      if (counted) {
+        inflight += 1;
+        peak = Math.max(peak, inflight);
+      }
+      // 反序延迟：越靠前的键越慢，串行/并发若混序会在此暴露
+      await new Promise((r) => setTimeout(r, counted && key < "user:list15" ? 3 : 1));
+      try {
+        return await rawGet(key, options);
+      } finally {
+        if (counted) inflight -= 1;
+      }
+    };
+
+    const { response, data } = await call("GET", "https://www.seatmark.cn/api/admin/users", {
+      env,
+      cookie,
+    });
+    expect(response.status).toBe(200);
+    const users = data.users as { email: string; loginCount?: number }[];
+    expect(users.map((u) => u.email)).toEqual(serial);
+    expect(users.length).toBe(31); // 30 个样本 + 管理员本人
+    expect(peak).toBeGreaterThan(1);
+    expect(peak).toBeLessThanOrEqual(8);
+    for (const u of users) {
+      expect(u).not.toHaveProperty("passwordHash");
+    }
+  });
+
+  it("/api/admin/codes GET：批次核销计数与串行一致（20 码批次，其中 7 个已兑换）", async () => {
+    const blob = createMockBlobStore();
+    const adminEmail = "codes-admin@example.com";
+    const env: Env = { AUTH_SECRET: "test-secret", ADMIN_EMAILS: adminEmail, seatmark_blob: blob };
+    const cookie = await adminCookie(env, adminEmail);
+    const { response: gen, data: genData } = await call(
+      "POST",
+      "https://www.seatmark.cn/api/admin/codes",
+      { env, cookie, body: { days: 30, count: 20, note: "并发核销" } },
+    );
+    expect(gen.status).toBe(200);
+    const batchKey = [...blob.data.keys()].find((k) => k.startsWith("redeembatch:"))!;
+    const batch = JSON.parse(blob.data.get(batchKey)!) as { hashes: string[] };
+    // 直接把前 7 个哈希键标记为已兑换
+    for (const h of batch.hashes.slice(0, 7)) {
+      const key = `redeem:${h}`;
+      const rec = JSON.parse(blob.data.get(key)!) as Record<string, unknown>;
+      blob.data.set(key, JSON.stringify({ ...rec, usedBy: "someone@example.com" }));
+    }
+    const { response, data } = await call("GET", "https://www.seatmark.cn/api/admin/codes", {
+      env,
+      cookie,
+    });
+    expect(response.status).toBe(200);
+    const batches = data.batches as { count: number; used: number; masked: string[] }[];
+    expect(batches).toHaveLength(1);
+    expect(batches[0].count).toBe(20);
+    expect(batches[0].used).toBe(7);
+    expect(batches[0].masked).toHaveLength(20);
+    expect((genData.codes as string[]).length).toBe(20);
+  });
+});

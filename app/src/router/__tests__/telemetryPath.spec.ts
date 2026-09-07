@@ -13,6 +13,11 @@ describe('telemetryPath', () => {
     expect(telemetryPath('/templates?q=%E5%A9%9A%E7%A4%BC')).toBe('/templates')
   })
 
+  it('剥离 name 参数（姓名属用户输入）', () => {
+    expect(telemetryPath('/seating?name=张三')).toBe('/seating')
+    expect(telemetryPath('/seating?mode=exam&name=张三&q=x')).toBe('/seating?mode=exam')
+  })
+
   it('保留其他参数', () => {
     expect(telemetryPath('/templates?cat=exam&q=考场&sub=room')).toBe(
       '/templates?cat=exam&sub=room',

@@ -1,12 +1,21 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+import EnIndexShell, { type EnIndexFeatured } from '@/components/ui/EnIndexShell.vue'
 import ZhOnlyNotice from '@/components/ui/ZhOnlyNotice.vue'
 import { LABEL_PAPER_SHEET, labelPapers } from '@/data/labelPapers'
 import { useI18n } from '@/i18n'
 import { labelPaperGeometry } from '@/utils/labelPaper'
 
-const { t, localePath } = useI18n()
+const { t, locale, localePath } = useI18n()
+
+/** /en 下列表区的英文替代块：主题说明 + 精选入口（英文标题，指向中文纸型页） */
+const EN_INTRO = `A library of ${labelPapers.length} pre-cut A4 self-adhesive label sheets sold by Chinese stationery shops — 2×4, 3×7, 3×10, rounded-corner die-cuts and more. Pick a sheet in the Studio and the rows, columns, margins and gaps lock in automatically so the print lines up without manual tuning. Sheet details are in Chinese for now.`
+const EN_FEATURED: EnIndexFeatured[] = [
+  { title: 'A4 2-up (1 × 2, 210 × 148.5 mm)', to: '/papers/a4-2up' },
+  { title: 'A4 8-up rounded corners (99.1 × 67.7 mm)', to: '/papers/a4-8up-round' },
+  { title: 'A4 21-up (3 × 7, 70 × 42.4 mm)', to: '/papers/a4-21up' },
+]
 
 const activeCorner = ref<'全部' | '直角' | '圆角'>('全部')
 
@@ -47,7 +56,9 @@ function cells(spec: (typeof labelPapers)[number]) {
       <ZhOnlyNotice />
     </div>
 
-    <div class="mt-8 flex flex-wrap items-center justify-center gap-2">
+    <EnIndexShell v-if="locale === 'en'" :intro="EN_INTRO" :featured="EN_FEATURED" />
+
+    <div v-if="locale !== 'en'" class="mt-8 flex flex-wrap items-center justify-center gap-2">
       <span class="shrink-0 text-xs font-bold text-slate-600">{{ t('切角') }}</span>
       <button
         v-for="c in ['全部', '直角', '圆角'] as const"
@@ -65,7 +76,7 @@ function cells(spec: (typeof labelPapers)[number]) {
       </button>
     </div>
 
-    <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div v-if="locale !== 'en'" class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       <RouterLink
         v-for="p in filtered"
         :key="p.slug"

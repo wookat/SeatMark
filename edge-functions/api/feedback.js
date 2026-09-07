@@ -21,8 +21,12 @@ import { randomToken36 } from './_random.js'
 import { json, clientIp, sha256Hex } from './_http.js'
 
 const FEEDBACK_IP_DAILY_LIMIT = 10
+/** 日限计数键按日期分桶，48h 后自动清除（Blob/内存由 _storage.js 包装值实现） */
+const DAILY_KEY_TTL_SECONDS = 48 * 3600
+/** 页面路径存档与 webhook 推送共用的截断上限 */
+const PAGE_MAX_CHARS = 200
 /** 部署观测标记，与 [[default]].js 的 X-SeatMark-Rev 同步递增 */
-const SEATMARK_REV = 'r349'
+const SEATMARK_REV = 'r350'
 export const FEEDBACK_MAX_BODY_BYTES = 32 * 1024
 
 const encoder = new TextEncoder()
@@ -67,6 +71,7 @@ async function handleRequest(context) {
   if (!validTypes.includes(type)) return json({ error: '反馈类型无效' }, 400, revHeader)
   if (!content || content.length > 2000) return json({ error: '请填写反馈内容（不超过 2000 字）' }, 400, revHeader)
   if (contact.length > 200) return json({ error: '联系方式过长' }, 400, revHeader)
+  const page = typeof payload.page === 'string' ? payload.page.slice(0, PAGE_MAX_CHARS) : ''
 
   const { kv, storage } = await getStorage(env)
   revHeader = { ...revHeader, 'X-SeatMark-Storage': storage }
@@ -80,7 +85,7 @@ async function handleRequest(context) {
     if (count >= FEEDBACK_IP_DAILY_LIMIT) {
       return json({ error: '今日反馈次数已达上限，请明天再试' }, 429, revHeader)
     }
-    await kv.put(rlKey, String(count + 1))
+    await kv.put(rlKey, String(count + 1), { expirationTtl: DAILY_KEY_TTL_SECONDS })
   } catch {
     // 限频失败不阻塞提交
   }
@@ -94,7 +99,7 @@ async function handleRequest(context) {
         type,
         content,
         contact,
-        page: typeof payload.page === 'string' ? payload.page.slice(0, 200) : '',
+        page,
         createdAt: new Date().toISOString(),
       }),
     )
@@ -112,7 +117,7 @@ async function handleRequest(context) {
       `内容：${content}`,
       contact ? `联系方式：${contact}` : '',
       `时间：${new Date().toISOString()}`,
-      `页面：${payload.page || ''}`,
+      `页面：${page}`,
     ].filter(Boolean).join('\n')
 
     const isWeCom = webhook.includes('qyapi.weixin.qq.com')

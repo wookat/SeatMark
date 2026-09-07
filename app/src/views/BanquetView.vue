@@ -1431,7 +1431,11 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
       </aside>
 
       <!-- 画布 -->
-      <div class="min-w-0">
+      <!-- ≥lg 画布列随左列滚动吸顶：顶栏 3.5rem + 1rem 间距；max-h 再扣除吸底下一步栏 3rem + 1rem 间距 -->
+      <div
+        class="min-w-0 lg:sticky lg:top-[4.5rem] lg:max-h-[calc(100vh-8.5rem)] lg:self-start lg:overflow-auto"
+        data-testid="banquet-canvas-column"
+      >
         <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
           <div class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-bold">
             <button
@@ -1461,7 +1465,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             <button
               type="button"
               class="rounded px-0.5 transition-colors"
-              :class="summary.emptyTables ? 'font-bold text-amber-600 hover:bg-amber-50' : 'cursor-default'"
+              :class="summary.emptyTables ? 'font-bold text-amber-700 hover:bg-amber-50' : 'cursor-default'"
               :disabled="!summary.emptyTables"
               :title="summary.emptyTables ? tr('点击高亮空桌') : undefined"
               @click="focusEmptyTables"
@@ -1482,7 +1486,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             <button
               v-if="summary.splitGroups"
               type="button"
-              class="rounded px-0.5 font-bold text-amber-600 transition-colors hover:bg-amber-50"
+              class="rounded px-0.5 font-bold text-amber-700 transition-colors hover:bg-amber-50"
               data-testid="split-groups-toggle"
               :aria-expanded="splitDetailsOpen"
               aria-controls="banquet-split-details"
@@ -1497,7 +1501,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             <button
               type="button"
               class="rounded px-0.5 transition-colors"
-              :class="summary.unassigned ? 'font-bold text-amber-600 hover:bg-amber-50' : 'cursor-default'"
+              :class="summary.unassigned ? 'font-bold text-amber-700 hover:bg-amber-50' : 'cursor-default'"
               :disabled="!summary.unassigned"
               :title="summary.unassigned ? tr('点击查看未安排宾客') : undefined"
               @click="focusUnassignedPool"
@@ -1568,7 +1572,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             {{ tr('空桌可删除，也可保留备用（临时加人时直接落座）') }}
           </span>
         </div>
-        <div class="mb-1 flex items-center justify-between gap-2 text-[11px] leading-5 text-slate-400 md:hidden">
+        <div class="mb-1 flex items-center justify-between gap-2 text-[11px] leading-5 text-slate-600 md:hidden">
           <p>{{ fitToWidth ? tr('已缩放至屏幕宽度，放大后可左右滑动查看细节') : `← ${tr('画布超宽时可左右滑动查看')} →` }}</p>
           <button
             type="button"
@@ -1766,13 +1770,13 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
     <ModalDialog :open="issuesOpen" :title="tr('导出前检查发现问题')" size="md" @close="issuesOpen = false">
       <div v-if="issues" class="flex flex-col gap-3 text-sm text-slate-700">
         <div v-if="issues.unassigned.length">
-          <p class="font-bold text-amber-600">
+          <p class="font-bold text-amber-700">
             {{ tr('未安排的宾客') }}{{ tr('（') }}{{ issues.unassigned.length }}{{ tr('）') }}
           </p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">{{ listJoin(issues.unassigned) }}</p>
         </div>
         <div v-if="issues.emptyTables.length">
-          <p class="font-bold text-amber-600">
+          <p class="font-bold text-amber-700">
             {{ tr('空桌') }} {{ issues.emptyTables.length }} {{ tr('桌') }}{{ tr('：') }}{{ listJoin(issues.emptyTables) }}
           </p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">
@@ -1796,7 +1800,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
           </p>
         </div>
         <div v-if="issues.duplicateNames.length">
-          <p class="font-bold text-amber-600">
+          <p class="font-bold text-amber-700">
             {{ tr('同名宾客') }}{{ tr('（') }}{{ issues.duplicateNames.length }}{{ tr('）') }}
           </p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">
@@ -2235,7 +2239,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
 .banquet-table-count {
   font-size: 2.4mm;
   line-height: 1.2;
-  color: #94a3b8;
+  color: #475569;
   font-weight: 600;
 }
 

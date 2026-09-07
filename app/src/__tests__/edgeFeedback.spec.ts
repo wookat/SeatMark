@@ -138,3 +138,48 @@ describe('feedback.js 存储与 webhook', () => {
     expect(keys.join('\n')).not.toContain('203.0.113.9')
   })
 })
+
+describe('第 350 轮：webhook 文本页面字段与存档同规格截断', () => {
+  it('传 5000 字符 page：webhook body 中「页面：」字段 ≤200 字符，存档 page 同为 200', async () => {
+    const bodies: string[] = []
+    globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+      bodies.push(String(init?.body ?? ''))
+      return new Response('{}', { status: 200 })
+    }) as typeof fetch
+    const store = new Map<string, string>()
+    const env: Env = {
+      FEEDBACK_WEBHOOK: 'https://open.feishu.cn/open-apis/bot/v2/hook/test',
+      seatmark_kv: {
+        async get(k: string) {
+          return store.get(k) ?? null
+        },
+        async put(k: string, v: string) {
+          store.set(k, v)
+        },
+        async delete(k: string) {
+          store.delete(k)
+        },
+      },
+    }
+    const longPage = '/studio?' + 'q'.repeat(4992)
+    expect(longPage.length).toBe(5000)
+    const { response, data } = await send(
+      post(JSON.stringify({ type: 'bug', content: 'hello', page: longPage })),
+      env,
+    )
+    expect(response.status).toBe(200)
+    expect(data.ok).toBe(true)
+    expect(bodies).toHaveLength(1)
+    const webhook = JSON.parse(bodies[0]!) as { content: { text: string } }
+    const pageLine = webhook.content.text.split('\n').find((l) => l.startsWith('页面：'))!
+    expect(pageLine).toBeDefined()
+    const pageField = pageLine.slice('页面：'.length)
+    expect(pageField.length).toBe(200)
+    expect(pageField).toBe(longPage.slice(0, 200))
+    const fbKey = [...store.keys()].find((k) => k.startsWith('fb:'))!
+    const archived = JSON.parse(store.get(fbKey)!) as { page: string }
+    expect(archived.page.length).toBe(200)
+    // 日限键带 TTL：走 kv.put 第三参数（自定义 KV 忽略即可，此处只验不抛错）
+    expect([...store.keys()].some((k) => k.startsWith('rl:fb:'))).toBe(true)
+  })
+})

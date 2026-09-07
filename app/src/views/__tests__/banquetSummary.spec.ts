@@ -375,3 +375,26 @@ describe('第 347 轮：拆分/空桌收尾动作', () => {
     w2.unmount()
   })
 })
+
+describe('第 350 轮：桌面端画布列吸顶', () => {
+  it('右列容器仅在 lg 断点 sticky（top 4.5rem、self-start、max-h + overflow-auto），无断点的 sticky 类不出现', async () => {
+    seedState()
+    const wrapper = await mountView()
+    const col = wrapper.find('[data-testid="banquet-canvas-column"]')
+    expect(col.exists()).toBe(true)
+    const classes = col.classes()
+    expect(classes).toEqual(
+      expect.arrayContaining([
+        'lg:sticky',
+        'lg:top-[4.5rem]',
+        'lg:self-start',
+        'lg:max-h-[calc(100vh-8.5rem)]',
+        'lg:overflow-auto',
+      ]),
+    )
+    expect(classes.filter((c) => /^(sticky|fixed|md:sticky|sm:sticky)$/.test(c))).toEqual([])
+    // 画布容器仍在右列内，MobilePreviewJump / 缩放按钮引用不受影响
+    expect(col.find('[data-testid="canvas-fit-toggle"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+})

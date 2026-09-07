@@ -98,6 +98,16 @@ const TEMPLATES_MAX_BYTES = 512 * 1024
 const BODY_MAX_BYTES = 64 * 1024
 const SHARE_TPL_IP_DAILY_LIMIT = 60
 const RESERVE_IP_DAILY_LIMIT = 5
+/**
+ * 限频 / 一次性键的过期时长（秒）：日限计数键按日期分桶，跨日即废，48h 后自动清除；
+ * 邮件验证码 / 重置码 15 分钟，密码连续失败计数 ≥ 窗口期（读取端仍以记录内的时间戳为准）。
+ * Blob / 内存后端由 _storage.js 包装值实现，KV 绑定直接透传 expirationTtl。
+ */
+const DAILY_KEY_TTL_SECONDS = 48 * 3600
+const CODE_KEY_TTL_SECONDS = 15 * 60
+const PWFAIL_KEY_TTL_SECONDS = 30 * 60
+const dailyTtl = { expirationTtl: DAILY_KEY_TTL_SECONDS }
+const codeTtl = { expirationTtl: CODE_KEY_TTL_SECONDS }
 
 /** readBody 预检超限：由 onRequest 统一转为 413，避免每个路由自行判断 */
 class BodyTooLargeError extends Error {
@@ -346,8 +356,8 @@ async function checkCodeRateLimit(kv, { ip, email, recordKey }) {
     limited: null,
     commit: async () => {
       await Promise.all([
-        kv.put(ipKey, String(ipCount + 1)),
-        kv.put(emailKey, String(emailCount + 1)),
+        kv.put(ipKey, String(ipCount + 1), dailyTtl),
+        kv.put(emailKey, String(emailCount + 1), dailyTtl),
       ])
     },
   }
@@ -680,10 +690,20 @@ function captchaSvg(code) {
 /**
  * 验证表单验证码：令牌为服务端签名 JWT，5 分钟内有效。
  * 令牌无状态，以 token 摘要为 key 在 KV 标记已消费（TTL 与令牌一致），同一令牌不能重复提交。
- * 本函数只校验（读 usedKey），标记已用由调用方在主逻辑完成后通过 deferWrite + markCaptchaUsed 写入，
- * 让 Blob 写抖动不再拖垃登录/注册响应。
+ * 本函数只校验（读 usedKey），标记已用由调用方在校验通过后、返回响应前同步 `await markCaptchaUsed`：
+ * 标记同步写，关闭后台写链 150ms 延起带来的同一令牌双用窗口（其余非安全写入仍走 deferWrite）。
+ * 同一 isolate 内的并发重复提交由 pendingCaptchaUsed（usedKey → 令牌过期毫秒）在读 usedKey 与写入之间占位拦截，
+ * 调用方在校验后、标记前提前返回（如 429）的占位随令牌过期一起清理。
  * 返回 { result: 'ok' | 'invalid' | 'used', usedKey, exp }。
  */
+const pendingCaptchaUsed = new Map()
+
+function prunePendingCaptcha(now) {
+  for (const [key, expMs] of pendingCaptchaUsed) {
+    if (expMs <= now) pendingCaptchaUsed.delete(key)
+  }
+}
+
 async function verifyCaptcha(env, kv, token, answer) {
   if (typeof token !== 'string' || answer === undefined || answer === null) {
     return { result: 'invalid', usedKey: null, exp: 0 }
@@ -697,14 +717,27 @@ async function verifyCaptcha(env, kv, token, answer) {
   }
   const usedKey = `captcha:used:${(await sha256Hex(token)).slice(0, 32)}`
   if (await kv.get(usedKey)) return { result: 'used', usedKey, exp: payload.exp }
+  // 读到未用→占位之间无 await：同 isolate 并发的第二个请求在此被拦下
+  prunePendingCaptcha(Date.now())
+  if (pendingCaptchaUsed.has(usedKey)) return { result: 'used', usedKey, exp: payload.exp }
+  pendingCaptchaUsed.set(usedKey, Number(payload.exp) * 1000 || Date.now() + CAPTCHA_TTL_SECONDS * 1000)
   return { result: 'ok', usedKey, exp: payload.exp }
 }
 
-/** 标记验证码已消费；第三参数供支持 TTL 的 KV 使用，Blob/内存实现忽略，值内 exp 供人工排查 */
-function markCaptchaUsed(kv, captcha) {
-  return kv.put(captcha.usedKey, JSON.stringify({ exp: captcha.exp }), {
-    expirationTtl: CAPTCHA_TTL_SECONDS,
-  })
+/**
+ * 标记验证码已消费（同步写，调用方 await）。写失败只记日志不阻断登录/注册：
+ * 令牌本身 5 分钟内失效，验证码只是防机器人门槛而非凭据。值内 exp 供人工排查。
+ */
+async function markCaptchaUsed(kv, captcha) {
+  try {
+    await kv.put(captcha.usedKey, JSON.stringify({ exp: captcha.exp }), {
+      expirationTtl: CAPTCHA_TTL_SECONDS,
+    })
+  } catch (err) {
+    console.error('[seatmark-api] captcha 消费标记写入失败:', err)
+  } finally {
+    pendingCaptchaUsed.delete(captcha.usedKey)
+  }
 }
 
 function captchaErrorResponse(result, extraHeaders) {
@@ -769,7 +802,7 @@ async function handleRequest(context) {
 
   const { kv, storage, blobStore } = await getStorage(env)
   // Rev 标记仅用于部署观测：探针可确认线上边缘函数版本，改动本文件时递增
-  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r349' }
+  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r350' }
 
   // 开发默认密钥公开可见：生产缺失 AUTH_SECRET 时会话/验证码/重置码 JWT 可被任意伪造，
   // 必须 fail closed；仅显式放行的本地 dev / 测试允许回退默认值
@@ -922,6 +955,7 @@ async function handleRequest(context) {
     await kv.put(
       codeKey,
       JSON.stringify({ code, sentAt: Date.now(), exp: Date.now() + CODE_TTL_MS, attempts: 0 }),
+      codeTtl,
     )
     await limit.commit()
 
@@ -968,7 +1002,7 @@ async function handleRequest(context) {
     }
     if (record.code !== code) {
       record.attempts += 1
-      await kv.put(codeKey, JSON.stringify(record))
+      await kv.put(codeKey, JSON.stringify(record), codeTtl)
       return json({ error: '验证码不正确' }, 400, storageHeader)
     }
 
@@ -1014,9 +1048,9 @@ async function handleRequest(context) {
     if (regCount >= REGISTER_IP_DAILY_LIMIT) {
       return json({ error: '请求过于频繁，请明天再试' }, 429, storageHeader)
     }
-    await deferWrite(() => kv.put(regKey, String(regCount + 1)))
-    // 验证码已校验通过：后续无论注册成否都算消费，标记走后台写不影响响应
-    await deferWrite(() => markCaptchaUsed(kv, captcha))
+    await deferWrite(() => kv.put(regKey, String(regCount + 1), dailyTtl))
+    // 验证码已校验通过：后续无论注册成否都算消费；标记同步写，关闭 150ms 双用窗口
+    await markCaptchaUsed(kv, captcha)
 
     let user = await getUser(kv, email)
     if (user && user.passwordHash) {
@@ -1092,8 +1126,8 @@ async function handleRequest(context) {
     if (fails.count >= LOGIN_FAIL_LIMIT) {
       return json({ error: '失败次数过多，请 15 分钟后再试' }, 429, storageHeader)
     }
-    // 验证码已校验通过：凭据对错都算消费（防一题多猜），标记走后台写不影响响应
-    await deferWrite(() => markCaptchaUsed(kv, captcha))
+    // 验证码已校验通过：凭据对错都算消费（防一题多猜）；标记同步写，关闭 150ms 双用窗口
+    await markCaptchaUsed(kv, captcha)
 
     const user = await getUser(kv, email)
     if (!user || !user.passwordHash) {
@@ -1106,7 +1140,9 @@ async function handleRequest(context) {
     const ok = await verifyPassword(password, user.passwordHash)
     if (!ok) {
       fails.count += 1
-      await deferWrite(() => kv.put(failKey, JSON.stringify(fails)))
+      await deferWrite(() =>
+        kv.put(failKey, JSON.stringify(fails), { expirationTtl: PWFAIL_KEY_TTL_SECONDS }),
+      )
       return json({ error: '邮箱或密码不正确' }, 401, storageHeader)
     }
     const now = new Date().toISOString()
@@ -1136,7 +1172,8 @@ async function handleRequest(context) {
     const resetKey = `reset:${email}`
     const limit = await checkCodeRateLimit(kv, { ip: clientIp(request), email, recordKey: resetKey })
     if (limit.limited) return codeRateLimitResponse(limit.limited, storageHeader)
-    await deferWrite(() => markCaptchaUsed(kv, captcha))
+    // 标记同步写，关闭 150ms 双用窗口
+    await markCaptchaUsed(kv, captcha)
 
     await limit.commit()
 
@@ -1150,6 +1187,7 @@ async function handleRequest(context) {
     await kv.put(
       resetKey,
       JSON.stringify({ code, sentAt: Date.now(), exp: Date.now() + CODE_TTL_MS, attempts: 0 }),
+      codeTtl,
     )
 
     const { configured, delivered, errorCode } = await sendCodeMail(env, email, code, 'reset')
@@ -1202,7 +1240,7 @@ async function handleRequest(context) {
     }
     if (record.code !== code) {
       record.attempts += 1
-      await kv.put(resetKey, JSON.stringify(record))
+      await kv.put(resetKey, JSON.stringify(record), codeTtl)
       return json({ error: '验证码不正确' }, 400, storageHeader)
     }
 
@@ -1328,7 +1366,7 @@ async function handleRequest(context) {
       return json({ error: '今日无水印导出次数已用完', ...status }, 429, storageHeader)
     }
     const used = status.used + 1
-    await kv.put(`usage:${email}:${status.date}`, String(used))
+    await kv.put(`usage:${email}:${status.date}`, String(used), dailyTtl)
     return json(
       { ok: true, ...status, used, remaining: status.limit - used },
       200,
@@ -1352,13 +1390,13 @@ async function handleRequest(context) {
     const body = await readBody()
     const code = normalizeRedeemCode(body?.code)
     if (!code) {
-      await deferWrite(() => kv.put(rlKey, String(attempts + 1)))
+      await deferWrite(() => kv.put(rlKey, String(attempts + 1), dailyTtl))
       return json({ error: '兑换码格式不正确' }, 400, storageHeader)
     }
 
     const { key: recordKey, record } = await getRedeemRecord(kv, code)
     if (!record) {
-      await deferWrite(() => kv.put(rlKey, String(attempts + 1)))
+      await deferWrite(() => kv.put(rlKey, String(attempts + 1), dailyTtl))
       return json({ error: '兑换码无效' }, 400, storageHeader)
     }
     const user = await getUser(kv, email)
@@ -1414,7 +1452,7 @@ async function handleRequest(context) {
     const ipHash = await sha256Hex(clientIp(request))
     const dedupeKey = `sharevisit:${code}:${ipHash}:${today()}`
     if (await kv.get(dedupeKey)) return json({ ok: true, counted: false }, 200, storageHeader)
-    await kv.put(dedupeKey, '1')
+    await kv.put(dedupeKey, '1', dailyTtl)
 
     await kv.put(
       `sharestat:visits:${code}`,
@@ -1426,7 +1464,7 @@ async function handleRequest(context) {
     const bonusToday = await getCounter(kv, bonusKey)
     if (bonusToday < SHARE_BONUS_DAILY_CAP) {
       const granted = Math.min(SHARE_BONUS_PER_VISIT, SHARE_BONUS_DAILY_CAP - bonusToday)
-      await kv.put(bonusKey, String(bonusToday + granted))
+      await kv.put(bonusKey, String(bonusToday + granted), dailyTtl)
       await kv.put(
         `sharestat:bonus:${code}`,
         String((await getCounter(kv, `sharestat:bonus:${code}`)) + granted),
@@ -1454,7 +1492,7 @@ async function handleRequest(context) {
     if (shareCount >= SHARE_TPL_IP_DAILY_LIMIT) {
       return json({ error: '请求过于频繁，请明天再试' }, 429, storageHeader)
     }
-    await deferWrite(() => kv.put(shareRlKey, String(shareCount + 1)))
+    await deferWrite(() => kv.put(shareRlKey, String(shareCount + 1), dailyTtl))
     // 内容寻址短码：同一模板重复分享得到同一短码，天然去重
     const code = (await sha256Hex(payload)).slice(0, 10)
     try {
@@ -1495,7 +1533,7 @@ async function handleRequest(context) {
     if (reserveCount >= RESERVE_IP_DAILY_LIMIT) {
       return json({ error: '请求过于频繁，请明天再试' }, 429, storageHeader)
     }
-    await deferWrite(() => kv.put(reserveRlKey, String(reserveCount + 1)))
+    await deferWrite(() => kv.put(reserveRlKey, String(reserveCount + 1), dailyTtl))
     const id = `${Date.now()}-${randomToken36(6)}`
     await kv.put(
       `reserve:${id}`,
@@ -1543,8 +1581,8 @@ async function handleRequest(context) {
       let cursor = ''
       for (let i = 0; i < 20; i++) {
         const page = await kv.list({ prefix: 'user:', limit: 256, cursor })
-        for (const k of page.keys) {
-          const raw = await kv.get(k.name)
+        const raws = await mapConcurrent(page.keys, 8, (k) => kv.get(k.name))
+        for (const raw of raws) {
           if (raw) {
             try {
               users.push(JSON.parse(raw))
@@ -1608,8 +1646,8 @@ async function handleRequest(context) {
       const cursor = url.searchParams.get('cursor') || ''
       const page = await kv.list({ prefix: 'user:', limit: 50, cursor })
       const users = []
-      for (const k of page.keys) {
-        const raw = await kv.get(k.name)
+      const raws = await mapConcurrent(page.keys, 8, (k) => kv.get(k.name))
+      for (const raw of raws) {
         if (raw) {
           try {
             const u = JSON.parse(raw)
@@ -1719,10 +1757,13 @@ async function handleRequest(context) {
           const keys = Array.isArray(b.hashes)
             ? b.hashes.map((h) => `redeem:${h}`)
             : await Promise.all((b.codes || []).map((code) => redeemKey(code)))
+          const records = await mapConcurrent(keys, 8, async (key, i) => {
+            const rec = await kv.get(key)
+            if (!rec && Array.isArray(b.codes)) return kv.get(`redeem:${b.codes[i]}`)
+            return rec
+          })
           let used = 0
-          for (let i = 0; i < keys.length; i++) {
-            let rec = await kv.get(keys[i])
-            if (!rec && Array.isArray(b.codes)) rec = await kv.get(`redeem:${b.codes[i]}`)
+          for (const rec of records) {
             if (rec) {
               try {
                 if (JSON.parse(rec).usedBy) used += 1

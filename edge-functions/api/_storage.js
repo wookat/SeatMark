@@ -15,14 +15,57 @@ const memoryStore = new Map()
 
 const BLOB_STORE_NAME = 'seatmark-kv'
 
+/**
+ * Blob / 内存后端没有原生 TTL：put 带 expirationTtl 时把值包成 `{"v":string,"exp":ms}` 存储，
+ * get 时过期即视为不存在并异步删除；无 TTL 仍存裸字符串以兼容存量数据。
+ */
+function ttlSeconds(options) {
+  const ttl = options && Number(options.expirationTtl)
+  return Number.isFinite(ttl) && ttl > 0 ? ttl : 0
+}
+
+function wrapWithTtl(value, options) {
+  const ttl = ttlSeconds(options)
+  const raw = String(value)
+  if (!ttl) return raw
+  return JSON.stringify({ v: raw, exp: Date.now() + ttl * 1000 })
+}
+
+/**
+ * 解包 TTL 包装值：返回 { value, expired }。
+ * 只有形如 `{"v":"…","exp":n}`（且仅这两个键）的字符串才当作包装值，其余原样返回。
+ */
+export function unwrapTtl(raw) {
+  if (typeof raw !== 'string' || !raw.startsWith('{"v":')) return { value: raw, expired: false }
+  let parsed
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return { value: raw, expired: false }
+  }
+  if (
+    !parsed ||
+    typeof parsed !== 'object' ||
+    typeof parsed.v !== 'string' ||
+    typeof parsed.exp !== 'number' ||
+    Object.keys(parsed).length !== 2
+  ) {
+    return { value: raw, expired: false }
+  }
+  return parsed.exp <= Date.now() ? { value: null, expired: true } : { value: parsed.v, expired: false }
+}
+
 /** 与 KV 接口对齐的内存实现 */
 function memoryKv(store = memoryStore) {
   return {
     async get(key) {
-      return store.has(key) ? store.get(key) : null
+      if (!store.has(key)) return null
+      const { value, expired } = unwrapTtl(store.get(key))
+      if (expired) store.delete(key)
+      return value
     },
-    async put(key, value) {
-      store.set(key, String(value))
+    async put(key, value, options) {
+      store.set(key, wrapWithTtl(value, options))
     },
     async delete(key) {
       store.delete(key)
@@ -44,10 +87,19 @@ function memoryKv(store = memoryStore) {
 function blobKv(store) {
   return {
     async get(key) {
-      return store.get(key, { consistency: 'strong' })
+      const raw = await store.get(key, { consistency: 'strong' })
+      if (raw === null || raw === undefined) return null
+      const { value, expired } = unwrapTtl(raw)
+      if (expired) {
+        // 过期键顺手清理，不阻塞读路径
+        Promise.resolve()
+          .then(() => store.delete(key))
+          .catch(() => {})
+      }
+      return value
     },
-    async put(key, value) {
-      await store.set(key, String(value))
+    async put(key, value, options) {
+      await store.set(key, wrapWithTtl(value, options))
     },
     async delete(key) {
       await store.delete(key)

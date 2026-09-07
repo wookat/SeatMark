@@ -64,7 +64,8 @@ async function checkRateLimit(kv, ip, now) {
     return { limited: true, retryAfterSeconds: Math.max(1, Math.ceil((oldest + AI_RATE_WINDOW_MS - now) / 1000)) }
   }
   stamps.push(now)
-  await kv.put(key, JSON.stringify(stamps))
+  // 窗口外的时间戳读取时已被过滤，键本身随窗口过期自动清除
+  await kv.put(key, JSON.stringify(stamps), { expirationTtl: Math.ceil(AI_RATE_WINDOW_MS / 1000) })
   return { limited: false, retryAfterSeconds: 0 }
 }
 

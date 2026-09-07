@@ -1,58 +1,17 @@
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
-import * as Sentry from '@sentry/vue'
 
 import App from '@/App.vue'
-import { router, telemetryPath } from '@/router'
+import { router } from '@/router'
+import { createPreInitErrorQueue, installSentry, SENTRY_DSN } from '@/utils/sentry'
 
 import '@/assets/main.css'
 import '@/assets/fonts-plangothic.css'
 
-const SENTRY_DSN = 'https://e07e934a609b9b8aab670cf18d669e42@o4511621503451136.ingest.us.sentry.io/4511621514592256'
-
-if (SENTRY_DSN) {
-  Sentry.init({
-    app: createApp(App),
-    dsn: SENTRY_DSN,
-    integrations: [
-      Sentry.browserTracingIntegration({ router }),
-    ],
-    tracesSampleRate: 0.2,
-    // 性能事务的浏览器指标 span 取自 PerformanceNavigationTiming（初始文档 URL），
-    // history.replaceState 改写不了它——上报前统一剥离搜索词等用户输入参数
-    beforeSendTransaction(event) {
-      if (event.request?.url) {
-        event.request.url = telemetryPath(event.request.url)
-      }
-      if (event.transaction) {
-        event.transaction = telemetryPath(event.transaction)
-      }
-      for (const span of event.spans ?? []) {
-        if (span.description) {
-          span.description = telemetryPath(span.description)
-        }
-      }
-      return event
-    },
-    beforeBreadcrumb(breadcrumb) {
-      const data = breadcrumb.data
-      if (data) {
-        for (const key of ['from', 'to', 'url'] as const) {
-          if (typeof data[key] === 'string') {
-            data[key] = telemetryPath(data[key])
-          }
-        }
-      }
-      return breadcrumb
-    },
-  })
-}
+// Sentry 初始化前（含挂载过程）的错误先入队，init 后回放
+const preInitErrors = SENTRY_DSN ? createPreInitErrorQueue(window) : undefined
 
 const app = createApp(App)
-
-if (SENTRY_DSN) {
-  Sentry.attachErrorHandler(app)
-}
 
 app.use(createPinia()).use(router)
 
@@ -60,6 +19,10 @@ app.use(createPinia()).use(router)
 // 不会出现「挂载清空 DOM → 路由 chunk 到达前正文空白」的窗口
 router.isReady().then(() => {
   app.mount('#app')
+  // @sentry/vue 在挂载后才动态加载，首屏主包不再携带 SDK；传入的正是上面已挂载的同一 app
+  if (preInitErrors) {
+    void installSentry(app, router, { queue: preInitErrors })
+  }
 })
 
 if ('serviceWorker' in navigator) {

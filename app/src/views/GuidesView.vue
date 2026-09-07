@@ -2,13 +2,23 @@
 import { computed, ref } from 'vue'
 
 import { useBatchedList } from '@/composables/useBatchedList'
+import EnIndexShell, { type EnIndexFeatured } from '@/components/ui/EnIndexShell.vue'
 import ZhOnlyNotice from '@/components/ui/ZhOnlyNotice.vue'
 import { guides, sceneForGuideCategory } from '@/data/guides'
 import { t as tr } from '@/i18n'
 import { useI18n } from '@/i18n'
 import { matchesChineseQuery } from '@/utils/pinyin'
 
-const { t, localePath } = useI18n()
+const { t, locale, localePath } = useI18n()
+
+/** /en 下列表区的英文替代块：主题说明 + 精选入口（英文标题，指向中文教程） */
+const EN_INTRO =
+  'Our guides cover the full workflow of making and printing place cards, desk cards, seat labels and ID badges — cleaning up an Excel roster, choosing a template, calibrating your printer and cutting the sheets. They are written in Chinese for now; browse the Chinese index or start with one of the featured guides below.'
+const EN_FEATURED: EnIndexFeatured[] = [
+  { title: 'Batch-print exam seat labels from a class roster', to: '/guides/exam-seat-label-batch-print' },
+  { title: 'Generate desk cards from an Excel list', to: '/guides/excel-generate-desk-cards' },
+  { title: 'Label printing troubleshooting: offsets, cut lines and margins', to: '/guides/label-print-troubleshooting' },
+]
 
 const activeCategory = ref('全部')
 const activeAudience = ref('全部')
@@ -100,8 +110,11 @@ const recommendedGuides = computed(() => {
       <ZhOnlyNotice />
     </div>
 
+    <EnIndexShell v-if="locale === 'en'" :intro="EN_INTRO" :featured="EN_FEATURED" />
+
     <!-- 筛选器：移动端默认折叠为一行 sticky，展开时不再 sticky；桌面端始终展开且 static -->
     <div
+      v-if="locale !== 'en'"
       class="-mx-4 mt-8 border-b border-slate-200 bg-white px-4 min-[769px]:static min-[769px]:mx-0 min-[769px]:border-0 min-[769px]:bg-transparent min-[769px]:p-0"
       :class="filtersOpen ? 'static' : 'sticky top-14 z-20'"
       data-testid="guides-filter-bar"
@@ -221,7 +234,7 @@ const recommendedGuides = computed(() => {
     </div>
 
     <div
-      v-if="filteredGuides.length === 0"
+      v-if="locale !== 'en' && filteredGuides.length === 0"
       class="mt-10 rounded-lg border border-slate-200 bg-slate-50 p-8 text-center"
     >
       <p class="text-sm text-slate-600">{{ t('该条件下暂无教程，换个关键词或筛选条件试试。') }}</p>
@@ -250,7 +263,7 @@ const recommendedGuides = computed(() => {
       </div>
     </div>
 
-    <div v-else class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div v-else-if="locale !== 'en'" class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       <RouterLink
         v-for="guide in visibleGuides"
         :key="guide.slug"
@@ -288,7 +301,7 @@ const recommendedGuides = computed(() => {
       </RouterLink>
     </div>
 
-    <div v-if="hasMore" class="mt-8 flex flex-col items-center gap-2">
+    <div v-if="locale !== 'en' && hasMore" class="mt-8 flex flex-col items-center gap-2">
       <button type="button" class="btn btn-secondary btn-md" data-testid="load-more" @click="showMore">
         {{ tr('加载更多') }}
       </button>
