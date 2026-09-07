@@ -3,7 +3,7 @@
  * 直接调用 onRequest（内存 KV 降级），覆盖本轮新增的
  * devCode 环境限制与 /api/admin/health 健康检查。
  */
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore JS 模块无类型声明
@@ -103,7 +103,13 @@ async function call(
     body,
     env = {},
     cookie,
-  }: { body?: unknown; env?: Env; cookie?: string } = {},
+    headers: extraHeaders,
+  }: {
+    body?: unknown;
+    env?: Env;
+    cookie?: string;
+    headers?: Record<string, string>;
+  } = {},
 ) {
   // 需携带验证码的认证路径：未显式传入时自动解答并注入（各用例聚焦自身断言）
   if (
@@ -117,7 +123,7 @@ async function call(
       ...(await solvedCaptcha(env)),
     };
   }
-  const headers = new Headers();
+  const headers = new Headers(extraHeaders);
   if (body !== undefined) headers.set("Content-Type", "application/json");
   if (cookie) headers.set("Cookie", cookie);
   const request = new Request(url, {
@@ -1158,6 +1164,141 @@ describe("IP 日限频（share/tpl 60 次、team/reserve 5 次）", () => {
       { body: { payload: "v0.p61" }, env },
     );
     expect(response.status).toBe(429);
+  });
+});
+
+describe("第 349 轮：发验证码每邮箱每日上限（rl:code:<sha256(email)>:<day>）", () => {
+  function isolatedEnv() {
+    const kv = new Map<string, string>();
+    const env = {
+      seatmark_kv: {
+        async get(k: string) {
+          return kv.get(k) ?? null;
+        },
+        async put(k: string, v: string) {
+          kv.set(k, v);
+        },
+        async delete(k: string) {
+          kv.delete(k);
+        },
+      },
+    } as unknown as Env;
+    return { kv, env };
+  }
+
+  /** 每次请求换一个出口 IP，并把时钟推进 61s 越过 60s 重发间隔，只留下邮箱日限一道闸 */
+  async function sendCode(
+    path: string,
+    email: string,
+    ipIndex: number,
+    env: Env,
+  ) {
+    vi.setSystemTime(Date.now() + 61_000);
+    return call("POST", `http://localhost:5173${path}`, {
+      body: { email },
+      env,
+      headers: { "EO-Connecting-IP": `203.0.113.${ipIndex}` },
+    });
+  }
+
+  beforeEach(() => {
+    // 固定在 UTC 正午：用例内推进的十几分钟不会跨天，“次日重置”由用例自己推到次日
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-07T12:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("/api/auth/code 同一邮箱换 IP 连发：前 10 次 200，第 11 次 429 且错误码与 IP 超限一致", async () => {
+    const { kv, env } = isolatedEnv();
+    const email = "one-inbox@example.com";
+    for (let i = 1; i <= 10; i++) {
+      const { response } = await sendCode("/api/auth/code", email, i, env);
+      expect(response.status).toBe(200);
+    }
+    const { response, data } = await sendCode("/api/auth/code", email, 11, env);
+    expect(response.status).toBe(429);
+    expect(data.code).toBe("code_daily_limit");
+    expect(String(data.error)).toContain("请求过于频繁");
+    // 邮箱计数键不含明文邮箱，且仅有当日一个
+    const emailKeys = [...kv.keys()].filter((k) => k.startsWith("rl:code:"));
+    expect(emailKeys).toHaveLength(1);
+    expect(emailKeys[0]).toMatch(/^rl:code:[0-9a-f]{64}:2026-09-07$/);
+    expect(emailKeys[0]).not.toContain("one-inbox");
+    expect(kv.get(emailKeys[0]!)).toBe("10");
+    // 换 IP 后每个 IP 只计 1 次，IP 日限仍未触发
+    const ipKeys = [...kv.keys()].filter((k) => k.startsWith("rl:ip:"));
+    expect(ipKeys).toHaveLength(10);
+    for (const k of ipKeys) expect(kv.get(k)).toBe("1");
+  });
+
+  it("次日邮箱计数键重置，可继续发码", async () => {
+    const { kv, env } = isolatedEnv();
+    const email = "tomorrow@example.com";
+    for (let i = 1; i <= 10; i++) {
+      await sendCode("/api/auth/code", email, i, env);
+    }
+    expect((await sendCode("/api/auth/code", email, 11, env)).response.status).toBe(429);
+
+    vi.setSystemTime(new Date("2026-09-08T12:00:00Z"));
+    const { response } = await sendCode("/api/auth/code", email, 12, env);
+    expect(response.status).toBe(200);
+    const emailKeys = [...kv.keys()].filter((k) => k.startsWith("rl:code:"));
+    expect(emailKeys.some((k) => k.endsWith(":2026-09-08"))).toBe(true);
+    expect(kv.get(emailKeys.find((k) => k.endsWith(":2026-09-08"))!)).toBe("1");
+  });
+
+  it("/api/auth/reset-code 同受每邮箱日限，且与登录码共用同一计数（不泄露邮箱是否存在）", async () => {
+    const { env } = isolatedEnv();
+    // 未注册邮箱：防枚举路径同样计数，超限后与已注册邮箱返回相同 429
+    const email = "ghost-reset@example.com";
+    for (let i = 1; i <= 6; i++) {
+      const { response } = await sendCode("/api/auth/reset-code", email, i, env);
+      expect(response.status).toBe(200);
+    }
+    for (let i = 7; i <= 10; i++) {
+      const { response } = await sendCode("/api/auth/code", email, i, env);
+      expect(response.status).toBe(200);
+    }
+    const { response, data } = await sendCode("/api/auth/reset-code", email, 11, env);
+    expect(response.status).toBe(429);
+    expect(data.code).toBe("code_daily_limit");
+  });
+
+  it("IP 日限 20 次不回归：同 IP 换邮箱第 21 次 429，错误码与邮箱超限一致", async () => {
+    const { env } = isolatedEnv();
+    for (let i = 1; i <= 20; i++) {
+      const { response } = await call("POST", "http://localhost:5173/api/auth/code", {
+        body: { email: `ip-${i}@example.com` },
+        env,
+        headers: { "EO-Connecting-IP": "198.51.100.42" },
+      });
+      expect(response.status).toBe(200);
+    }
+    const { response, data } = await call("POST", "http://localhost:5173/api/auth/code", {
+      body: { email: "ip-21@example.com" },
+      env,
+      headers: { "EO-Connecting-IP": "198.51.100.42" },
+    });
+    expect(response.status).toBe(429);
+    expect(data.code).toBe("code_daily_limit");
+  });
+
+  it("60s 内同邮箱重发仍返回 429（间隔限频不回归）且不计入日限", async () => {
+    const { kv, env } = isolatedEnv();
+    const email = "resend@example.com";
+    expect((await sendCode("/api/auth/code", email, 1, env)).response.status).toBe(200);
+    const { response, data } = await call("POST", "http://localhost:5173/api/auth/code", {
+      body: { email },
+      env,
+      headers: { "EO-Connecting-IP": "203.0.113.2" },
+    });
+    expect(response.status).toBe(429);
+    expect(data.code).toBe("code_resend_too_soon");
+    const emailKey = [...kv.keys()].find((k) => k.startsWith("rl:code:"))!;
+    expect(kv.get(emailKey)).toBe("1");
   });
 });
 
