@@ -146,6 +146,34 @@ export function parseSeatingRosterDetailed(text: string): ParsedSeatingRoster {
 }
 
 /**
+ * 把 Excel 表格（parseExcelFile 的 headers/rows）转成名单框可解析的制表符文本：
+ * 表头行保留（parseExcelFile 总把首行当表头；若首行其实是数据，表头关键词不命中，
+ * parseSeatingRosterDetailed 会按无表头列模式把它当成一行数据），自动列名「列N」的表头整行省略；
+ * 全空行跳过。结果可直接追加到名单文本框，再由 parseSeatingRosterDetailed 取姓名/性别列。
+ * 追加到已有内容后面时传 includeHeader=false，避免表头行落在名单中间被当成一位学生。
+ */
+export function seatingRosterTextFromTable(
+  headers: string[],
+  rows: readonly DataRow[],
+  includeHeader = true,
+): string {
+  if (!headers.length) return ''
+  const lines: string[] = []
+  const cell = (v: string) => v.replace(/[\t\r\n]+/g, ' ').trim()
+  const autoOnly = headers.every((h) => /^列\d+$/.test(h))
+  const realHeader = headers.some((h) => ROSTER_HEADER.test(h))
+  if (!autoOnly && (includeHeader || !realHeader)) {
+    lines.push(headers.map((h) => (/^列\d+$/.test(h) ? '' : cell(h))).join('\t'))
+  }
+  for (const row of rows) {
+    const cells = headers.map((h) => cell(String(row[h] ?? '')))
+    if (cells.every((c) => c === '')) continue
+    lines.push(cells.join('\t'))
+  }
+  return lines.join('\n')
+}
+
+/**
  * 解析名单文本：每行一人，行内可用空格/逗号/制表符附带性别列（如「张伟 男」）；
  * Excel 多列粘贴（含表头/学号/班级）按列模式取姓名与性别，见 parseSeatingRosterDetailed。
  */

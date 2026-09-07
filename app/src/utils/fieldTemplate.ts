@@ -3,6 +3,17 @@ import type { DataRow } from '@/types/template'
 /** 组合字段模板串中的占位符：{Excel 列名}，如「第{考场}考场-{座位号}号」 */
 const PLACEHOLDER_RE = /\{([^{}]+)\}/g
 
+/** 映射下拉项文案：表头后追加首行示例值（截断 8 字），如「列2 · 张三」；无数据或该列首行为空时只显示表头 */
+export function headerOptionLabel(header: string, firstRow: DataRow | undefined): string {
+  const sample = String(firstRow?.[header] ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!sample) return header
+  const chars = Array.from(sample)
+  const shown = chars.length > 8 ? `${chars.slice(0, 8).join('')}…` : sample
+  return `${header} · ${shown}`
+}
+
 /**
  * 映射值是否为「组合字段」模板串：包含 {列名} 占位符且本身不是一个真实表头
  * （表头恰好带花括号时按普通列处理，避免误判）。

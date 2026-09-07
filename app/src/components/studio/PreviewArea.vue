@@ -177,6 +177,19 @@ function goToMapping(target?: 'missing') {
   emit('focusMapping', target)
 }
 
+/** 预览区顶部的未匹配字段提示条：可关闭，重新导入名单后重新出现 */
+const unmappedBannerDismissed = ref(false)
+watch(
+  () => workspace.excel.headers,
+  () => {
+    unmappedBannerDismissed.value = false
+  },
+)
+const unmappedBannerVisible = computed(
+  () =>
+    !!unmappedNotice.value && workspace.excel.rows.length > 0 && !unmappedBannerDismissed.value,
+)
+
 /** 已映射字段为空的行数（成品中留空，不自动补全） */
 const missingRowsCount = computed(() => workspace.dataQuality.missingRows)
 
@@ -1036,7 +1049,8 @@ const hintKey = ref<HintKey | null>(null)
         </button>
         <button
           type="button"
-          class="btn btn-secondary btn-sm relative max-sm:min-h-9"
+          class="btn btn-secondary btn-sm relative whitespace-nowrap max-sm:min-h-9"
+          data-testid="export-pdf-button"
           :title="t('发给别人打印的 PDF（保留排版，文件较大）：逐页渲染为高清图片后合成，任何设备打开都一致；文字不可选中，如需矢量文字请用「打印 / 矢量 PDF」')"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="openExportChoice('pdf')"
@@ -1052,7 +1066,7 @@ const hintKey = ref<HintKey | null>(null)
           >
             <path d="M12 4v12m0 0 5-5m-5 5-5-5M4 20h16" />
           </svg>
-          {{ t('图片版 PDF') }}<span class="hidden sm:inline">{{ t('（推荐）') }}</span>
+          {{ t('图片版 PDF') }}<span class="hidden md:inline">{{ t('（推荐）') }}</span>
           <span
             v-if="!sharePromptVisible"
             class="absolute -top-2.5 -right-2 rounded-full px-1.5 py-px text-[9px] font-bold ring-1 ring-white"
@@ -1081,6 +1095,39 @@ const hintKey = ref<HintKey | null>(null)
             <path d="m21 15-5-5L5 21" />
           </svg>
           {{ t('图片 PNG') }}
+        </button>
+      </div>
+    </div>
+
+    <div
+      v-if="unmappedBannerVisible"
+      data-testid="unmapped-preview-banner"
+      role="status"
+      class="no-print mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"
+    >
+      <p class="min-w-0 flex-1">
+        {{ t('有 {n} 个字段未匹配到名单列，导出时会留空').replace('{n}', String(unmappedNotice!.count)) }}
+        <span class="text-amber-700">{{ t('（') }}{{ unmappedNotice!.examples }}{{ t('）') }}</span>
+      </p>
+      <div class="flex shrink-0 items-center gap-1.5">
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm"
+          data-testid="unmapped-banner-go-mapping"
+          @click="goToMapping('missing')"
+        >
+          {{ t('去设置映射') }} →
+        </button>
+        <button
+          type="button"
+          class="grid size-6 place-items-center rounded text-amber-800 hover:text-amber-950"
+          data-testid="unmapped-banner-dismiss"
+          :aria-label="t('关闭未匹配字段提示')"
+          @click="unmappedBannerDismissed = true"
+        >
+          <svg class="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="m4 4 8 8m0-8-8 8" />
+          </svg>
         </button>
       </div>
     </div>

@@ -206,6 +206,57 @@ describe('第 347 轮：AppHeader <sm 汉堡抽屉导航', () => {
   })
 })
 
+describe('第 348 轮：AppHeader /studio 路由 CTA 当前态', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  afterEach(async () => {
+    await setLocale('zh')
+  })
+
+  async function mountAt(path: string) {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', name: 'home', component: { template: '<div />' } },
+        { path: '/studio', name: 'studio', component: { template: '<div />' } },
+        { path: '/en/studio', name: 'en-studio', component: { template: '<div />' } },
+        { path: '/:rest(.*)*', name: 'any', component: { template: '<div />' } },
+      ],
+    })
+    await router.push(path)
+    await router.isReady()
+    return mount(AppHeader, { global: { plugins: [router] } })
+  }
+
+  it('工坊页：头部显示「标签工坊」非链接当前态（aria-current=page），不再有指向 /studio 的自链', async () => {
+    const wrapper = await mountAt('/studio')
+    const current = wrapper.get('[data-testid="header-studio-current"]')
+    expect(current.element.tagName).toBe('SPAN')
+    expect(current.attributes('aria-current')).toBe('page')
+    expect(current.text()).toBe('标签工坊')
+    expect(wrapper.text()).not.toContain('正在制作中')
+    expect(wrapper.find('header a[href="/studio"]').exists()).toBe(false)
+  })
+
+  it('英文工坊页：当前态文案为 Studio', async () => {
+    await setLocale('en')
+    const wrapper = await mountAt('/en/studio')
+    expect(wrapper.get('[data-testid="header-studio-current"]').text()).toBe('Studio')
+    expect(wrapper.text()).not.toContain('In progress')
+    expect(wrapper.find('header a[href="/en/studio"]').exists()).toBe(false)
+  })
+
+  it('其他路由：保持「开始制作」链接', async () => {
+    const wrapper = await mountAt('/')
+    expect(wrapper.find('[data-testid="header-studio-current"]').exists()).toBe(false)
+    const cta = wrapper.find('a[href="/studio"]')
+    expect(cta.exists()).toBe(true)
+    expect(cta.text()).toBe('开始制作')
+  })
+})
+
 describe('AnnouncementBar 关闭按钮热区', () => {
   it('关闭按钮 ≥44px（min-h-11/min-w-11），视觉图标容器保持 20px', async () => {
     vi.stubGlobal(

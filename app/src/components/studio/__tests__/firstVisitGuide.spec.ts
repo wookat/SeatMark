@@ -22,9 +22,9 @@ describe('FirstVisitGuide 四步引导', () => {
     await setLocale('zh')
   })
 
-  it('zh：标题「导入名单、选模板、核对预览、导出打印，4 步」，四步与左侧 1-4 编号一一对应', () => {
+  it('zh：标题「选模板、导入名单、核对预览、导出打印，4 步」，四步与左侧 1-4 编号一一对应', () => {
     const wrapper = mount(FirstVisitGuide)
-    expect(wrapper.text()).toContain('导入名单、选模板、核对预览、导出打印，4 步')
+    expect(wrapper.text()).toContain('选模板、导入名单、核对预览、导出打印，4 步')
     const steps = wrapper.findAll('li')
     expect(steps).toHaveLength(4)
     expect(steps.map((li) => li.find('p').text())).toEqual([
@@ -53,7 +53,7 @@ describe('FirstVisitGuide 四步引导', () => {
   it('en：四步文案全部英文，无中英混排', async () => {
     await setLocale('en')
     const wrapper = mount(FirstVisitGuide)
-    expect(wrapper.text()).toContain('Import the list, pick a template, check the preview, export — 4 steps')
+    expect(wrapper.text()).toContain('Pick a template, import the list, check the preview, export — 4 steps')
     const steps = wrapper.findAll('li')
     expect(steps).toHaveLength(4)
     for (const li of steps) expect(li.text(), li.text()).not.toMatch(CJK)
@@ -74,7 +74,7 @@ describe('第 346 轮：FirstVisitGuide compact 折叠态', () => {
     expect(wrapper.find('[data-testid="first-visit-guide-compact"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="first-visit-guide"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('新手四步引导')
-    expect(wrapper.text()).not.toContain('导入名单、选模板、核对预览、导出打印，4 步')
+    expect(wrapper.text()).not.toContain('选模板、导入名单、核对预览、导出打印，4 步')
     expect(wrapper.findAll('li')).toHaveLength(0)
 
     await wrapper.find('[data-testid="first-visit-guide-compact"] button').trigger('click')

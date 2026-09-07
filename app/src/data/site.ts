@@ -1,14 +1,14 @@
 /**
  * 站点运营与备案信息（集中维护，改这里全站生效）。
  *
- * - OPERATOR_NAME：运营主体名称（个体工商户 / 公司注册名），营业执照办理后替换占位符；
+ * - OPERATOR_NAME：运营主体名称（个体工商户 / 公司注册名），营业执照办理后替换为注册名；
  * - ICP_BEIAN：工信部 ICP 备案号（https://beian.miit.gov.cn 查询）；
  * - POLICE_BEIAN：公安联网备案号（如「湘公网安备 43010202000000号」），办理后填写即自动展示；
  * - POLICE_BEIAN_CODE：公安备案号中的纯数字编码，用于生成备案查询链接。
  */
 
-/** 运营主体名称（法务文书落款用）。TODO(老板)：注册完成后替换为营业执照名称 */
-export const OPERATOR_NAME = '【运营主体名称】'
+/** 运营主体名称（法务文书落款用）。TODO(老板)：营业执照下来后替换为注册名 */
+export const OPERATOR_NAME = 'SeatMark 座签运营团队'
 
 /** 工信部 ICP 备案号 */
 export const ICP_BEIAN = '湘ICP备2026009844号'

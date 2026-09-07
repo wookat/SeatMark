@@ -355,9 +355,7 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
           <span v-if="field.caption" class="label-field__caption">{{ tr(field.caption) }}</span>
           <span class="label-field__content">{{ textOf(field) }}</span>
         </span>
-        <span v-if="isUnmapped(field)" class="label-field__unmapped" aria-hidden="true">
-          {{ field.label || field.id }} {{ t('未映射') }}
-        </span>
+        <span v-if="isUnmapped(field)" class="label-field__unmapped" aria-hidden="true">{{ t('（空）') }}</span>
       </div>
       <div
         v-else

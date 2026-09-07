@@ -72,6 +72,10 @@ describe('第 345 轮：账号服务不可用降级文案', () => {
       expect(wrapper.text()).toContain(NEUTRAL)
       expect(wrapper.find('[data-testid="pricing-pro-cta"]').exists()).toBe(false)
       expect(wrapper.find('[data-testid="pricing-pro-cta-degraded"]').exists()).toBe(true)
+      // 第 348 轮：权益卡与含「注册送 7 天」承诺的 FAQ 旁出现弱提示
+      const hints = wrapper.findAll('[data-testid="pricing-maintenance-hint"]')
+      expect(hints.length).toBeGreaterThanOrEqual(2)
+      for (const h of hints) expect(h.text()).toBe('账号服务维护中，恢复后可领取')
       // 定价不变：专业版原价 ¥19、团队版 ¥49
       expect(wrapper.text()).toContain('¥19')
       expect(wrapper.text()).toContain('¥49')
@@ -98,6 +102,7 @@ describe('第 345 轮：账号服务不可用降级文案', () => {
       expect(wrapper.text()).toContain('注册领 7 天试用')
       expect(wrapper.text()).not.toContain(NEUTRAL)
       expect(wrapper.find('[data-testid="pricing-pro-cta"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="pricing-maintenance-hint"]').exists()).toBe(false)
     })
 
     it('ready 为 false 时挂载不探测（由 App bootstrap 负责首次登录态）', async () => {

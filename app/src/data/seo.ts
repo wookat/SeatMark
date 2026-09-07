@@ -177,6 +177,11 @@ export const PRICING_FAQS = [
   },
 ]
 
+/** FAQ 答案是否含「注册（即）送 N 天」类账号赠送承诺（账号服务维护期间需追加弱提示） */
+export function faqMentionsSignupGift(answer: string): boolean {
+  return /注册(即)?送/.test(answer)
+}
+
 const guideListDescription =
   '考场座位标签怎么批量打印？Excel 怎么生成桌牌？SeatMark 教程中心提供座签、桌牌、席位卡、证卡制作与打印的完整中文教程，问答式讲解，免费实用。'
 
