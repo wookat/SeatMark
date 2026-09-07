@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
+import type { QuotaBadge } from '@/composables/useQuotaBadge'
 import { t as tr } from '@/i18n'
 
 export type NextStep = 'import' | 'arrange' | 'export'
@@ -15,9 +16,14 @@ const props = withDefaults(
     progress?: string
     /** 目标区块：不在视口内时显示操作条，点击后滚动并聚焦到它 */
     target: HTMLElement | null
+    /** 「export」步骤时在主按钮上展示的无水印额度角标 */
+    quotaBadge?: QuotaBadge | null
+    quotaBadgeTitle?: string
   }>(),
-  { progress: '' },
+  { progress: '', quotaBadge: null, quotaBadgeTitle: '' },
 )
+
+const showQuotaBadge = computed(() => props.step === 'export' && !!props.quotaBadge)
 
 const label = computed(() => {
   switch (props.step) {
@@ -96,8 +102,20 @@ function go() {
   >
     <div class="mx-auto flex h-12 w-full max-w-[1480px] items-center justify-between gap-3 px-4">
       <p class="min-w-0 truncate text-xs text-slate-500" data-testid="next-step-progress">{{ progress }}</p>
-      <button type="button" class="btn btn-primary btn-sm shrink-0" data-testid="next-step-action" @click="go">
+      <button
+        type="button"
+        class="btn btn-primary btn-sm relative shrink-0"
+        :title="showQuotaBadge ? quotaBadgeTitle : undefined"
+        data-testid="next-step-action"
+        @click="go"
+      >
         {{ label }}
+        <span
+          v-if="showQuotaBadge && quotaBadge"
+          class="absolute -top-2.5 right-0 rounded-full px-1.5 py-px text-[9px] font-bold ring-1 ring-white"
+          :class="quotaBadge.cls"
+          data-testid="next-step-quota-badge"
+        >{{ quotaBadge.text }}</span>
       </button>
     </div>
   </div>

@@ -146,7 +146,7 @@ export const en: Record<string, string> = {
   '先用演示数据体验': 'Try with demo data',
   '先用演示数据看看效果': 'Preview with demo data',
   '免费': 'Free',
-  '免费 · 无需注册 · 数据不出浏览器': 'Free · No sign-up · Data never leaves your browser',
+  '免费 · 不用注册 · 名单只在你的浏览器里解析': 'Free · No sign-up · Rosters are parsed only in your browser',
   '免费版': 'Free plan',
   '免费登录': 'Sign in free',
   '免费登录去水印': 'Sign in free to remove watermark',
@@ -156,7 +156,7 @@ export const en: Record<string, string> = {
   '全部模板': 'All templates',
   '共': 'Total',
   '关闭': 'Close',
-  '名单只暂存在本标签页，关闭即清除；座位表草稿留在本机浏览器，可在隐私页一键清除':
+  '名单只暂存在本标签页，关闭即清除；座位表草稿留在本机浏览器，可在隐私页随时清除':
     'Rosters live only in this tab and are cleared when you close it; seating drafts stay in this browser and can be wiped from the privacy page',
   '内置模板': 'Built-in templates',
   '内置思源黑体、霞鹜文楷、Inter 等中英文开源字体，选中即加载，可免费商用。':
@@ -394,8 +394,8 @@ export const en: Record<string, string> = {
   '选择导出方式': 'Choose an export method',
   '选择标签类型': 'Choose a label type',
   '选择模板': 'Choose a template',
-  '选择模板、上传 Excel 名单，直接导出一批座签、门贴或证卡。无需注册，数据不出浏览器。':
-    'Pick a template, upload your spreadsheet roster, and export a batch of seating labels, door signs or badges. No sign-up; data never leaves your browser.',
+  '选择模板、上传 Excel 名单，导出一批座签、门贴或证卡。不用注册，名单只在本机浏览器解析。':
+    'Pick a template, upload your spreadsheet roster, and export a batch of seating labels, door signs or badges. No sign-up; the roster is parsed only in your browser.',
   '选择适合你的模板': 'Pick the right template',
   '重新上传': 'Re-upload',
   '阵列居中（自动均分边距）': 'Center grid (auto-balance margins)',

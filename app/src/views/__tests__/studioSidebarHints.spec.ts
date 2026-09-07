@@ -113,3 +113,35 @@ describe('第 346 轮：Studio 侧栏提示层收敛（FirstVisitGuide × FitSug
     wrapper.unmount()
   })
 })
+
+describe('第 352 轮：Studio 手机端首屏引导默认折叠', () => {
+  beforeEach(async () => {
+    vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: query === '(max-width: 767px)',
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      })),
+    )
+    localStorage.clear()
+    setActivePinia(createPinia())
+    studioGuideDismissed.value = false
+    await setLocale('zh')
+  })
+
+  it('<md 且无错配：引导为单行折叠态并带演示数据按钮；点击演示按钮后导入数据、按钮消失、仍保持折叠', async () => {
+    const wrapper = await mountStudio()
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="first-visit-guide-compact"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="first-visit-guide"]').exists()).toBe(false)
+    const demo = wrapper.get('[data-testid="first-visit-guide-demo"]')
+    await demo.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(useWorkspaceStore().excel.rows.length).toBeGreaterThan(0)
+    expect(wrapper.find('[data-testid="first-visit-guide-demo"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="first-visit-guide-compact"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+})

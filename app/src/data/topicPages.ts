@@ -1,6 +1,6 @@
 /**
  * 长尾词专题落地页内容库（竞品第三轮 G1 获客动作）。
- * 每页承接一个高意图搜索词面：首屏直达生成器 CTA + 三步用法 + FAQ + 相关模板/教程内链。
+ * 每页承接一个高意图搜索词面：首屏直达生成器 CTA + 分步用法 + FAQ + 相关模板/教程内链。
  */
 
 import { TEMPLATE_COUNT } from './templateMeta'
@@ -31,9 +31,11 @@ export interface TopicPage {
   cta: { label: string; to: string }
   /** 首屏次 CTA（演示数据直达） */
   secondaryCta: { label: string; to: string }
-  /** 三步用法（同时输出 HowTo JSON-LD） */
+  /** 分步用法（同时输出 HowTo JSON-LD） */
   howToName: string
   steps: TopicStep[]
+  /** 分步用法区块标题；缺省按 steps.length 生成「N 步完成」 */
+  stepsHeading?: string
   /** 能力要点（首屏下方九宫格/列表） */
   features: { title: string; text: string }[]
   faqs: TopicFaq[]
@@ -46,13 +48,13 @@ export const topicPages: TopicPage[] = [
     shortName: '桌牌在线生成',
     heading: '桌牌在线生成：上传名单，批量出会议桌牌打印页',
     subheading:
-      '免费在线生成会议桌牌、台签、席卡：选模板、上传 Excel 名单即生成 A4 对折桌牌打印页，裁切线、对折线齐备。免登录，名单不出浏览器。',
+      '免费在线生成会议桌牌、台签、席卡：选模板、上传 Excel 名单，每行出一张 A4 对折桌牌，打印页自带裁切线与对折线。不用注册，名单只在本机浏览器里解析。',
     seoTitle: '桌牌在线生成：免费批量制作会议桌牌台签 | Excel 导入生成',
     seoDescription:
-      '桌牌在线生成工具：上传 Excel 名单批量生成会议桌牌、台签、席卡打印页，A4 对折双面镜像、裁切线、毫米级排版与打印校准。免费免登录，名单全程在浏览器本地处理。',
+      '桌牌在线生成工具：上传 Excel 名单，按行生成会议桌牌、台签、席卡打印页，A4 对折双面镜像、裁切线、毫米级排版与打印校准。免费、不用注册，名单全程在浏览器本地处理。',
     cta: { label: '立即在线生成桌牌', to: '/studio' },
     secondaryCta: { label: '先看演示效果', to: '/studio?demo=1' },
-    howToName: '在线批量生成会议桌牌',
+    howToName: '上传 Excel 名单，在线生成会议桌牌打印页',
     steps: [
       {
         name: '选桌牌模板',
@@ -72,8 +74,8 @@ export const topicPages: TopicPage[] = [
       { title: '毫米级排版', text: 'A4/A5/A3 按毫米精确拼版，打印校准向导实测偏差 ≤0.35mm。' },
       { title: '批量不限量', text: '名单有多少行就输出多少张桌牌，页数自动计算；改名单后重新上传即重新渲染。' },
       { title: '生僻字不缺字', text: '内置生僻字检测与扩展字库，冷僻姓名照常显示打印。' },
-      { title: '免登录免费', text: '带水印导出与打印不限次数，无需注册安装。' },
-      { title: '名单不上传', text: 'Excel 与照片全程在浏览器本地处理，数据不出浏览器。' },
+      { title: '不用注册，免费用', text: '打开网页就能用，带水印导出与打印不限次数，不装软件。' },
+      { title: '名单不上传', text: 'Excel 与照片只在本机浏览器里解析排版，不发送到任何服务器。' },
     ],
     faqs: [
       {
@@ -82,7 +84,7 @@ export const topicPages: TopicPage[] = [
       },
       {
         q: '没有 Excel 名单能用吗？',
-        a: '可以。直接把姓名粘贴进名单框，一行一人即可批量生成；有职务、单位等多字段信息时用 Excel 导入会自动匹配表头。',
+        a: '可以。直接把姓名粘贴进名单框，一行一人，每行出一张桌牌；有职务、单位等多字段信息时用 Excel 导入会自动匹配表头。',
       },
       {
         q: '生成的桌牌是什么尺寸？',
@@ -103,15 +105,15 @@ export const topicPages: TopicPage[] = [
   {
     path: '/name-card-batch',
     shortName: '姓名卡片批量生成',
-    heading: '姓名卡片批量生成器：名单一键出可打印的姓名卡',
+    heading: '姓名卡片批量生成器：粘贴名单，出一页多枚的可打印姓名卡',
     subheading:
-      '粘贴名单或上传 Excel，批量生成姓名卡片、席卡、姓名贴：A4 一页多枚自动拼版、毫米级物理尺寸、裁切线齐备，打印裁开即用。免费免登录。',
+      '粘贴名单或上传 Excel，每行一张姓名卡片、席卡或姓名贴：A4 一页多枚自动拼版、毫米级物理尺寸、裁切线齐备，打印裁开即用。免费，不用注册。',
     seoTitle: '姓名卡片批量生成器：免费在线制作打印姓名卡席卡',
     seoDescription:
-      '姓名卡片批量生成器：粘贴名单或上传 Excel 批量生成姓名卡、席卡、姓名贴打印页。A4 自动拼版、毫米尺寸、裁切线、照片匹配与打印校准，免费免登录，名单不出浏览器。',
-    cta: { label: '立即批量生成姓名卡片', to: '/studio' },
+      '姓名卡片批量生成器：粘贴名单或上传 Excel，按行生成姓名卡、席卡、姓名贴打印页。A4 自动拼版、毫米尺寸、裁切线、照片匹配与打印校准，免费、不用注册，名单只在浏览器本地解析。',
+    cta: { label: '上传名单生成姓名卡片', to: '/studio' },
     secondaryCta: { label: '先看演示效果', to: '/studio?demo=1' },
-    howToName: '批量生成可打印的姓名卡片',
+    howToName: '用名单生成可打印的姓名卡片',
     steps: [
       {
         name: '粘贴或导入名单',
@@ -131,12 +133,12 @@ export const topicPages: TopicPage[] = [
       { title: '毫米物理尺寸', text: '卡片宽高按毫米设置，配合 17 款不干胶纸型自动对版，打印不跑偏。' },
       { title: '多字段支持', text: '姓名之外还能放职务、单位、桌号、考场座位号，Excel 表头自动匹配。' },
       { title: '照片匹配', text: '照片按「文件名 = 某列值」逐行对应到名单，未匹配的行照片位留空，面板显示匹配行数与覆盖率。' },
-      { title: '免费免登录', text: '带水印导出与打印不限次数，无需注册即可使用全部功能。' },
+      { title: '免费，不用注册', text: '打开网页就能用全部功能，带水印导出与打印不限次数。' },
       { title: '名单不上传', text: '名单与照片全程在浏览器本地处理，关闭页面即清空。' },
     ],
     faqs: [
       {
-        q: '姓名卡片批量生成后是图片还是打印页？',
+        q: '生成的姓名卡片是图片还是打印页？',
         a: '默认生成带裁切线的 A4 打印页（可导出 PDF），按线裁开即用；需要逐张图片时也支持按标签逐张导出 PNG 并打包 ZIP，文件名可按名单字段命名。',
       },
       {
@@ -163,4 +165,14 @@ export const topicPages: TopicPage[] = [
 
 export function findTopicPage(path: string): TopicPage | undefined {
   return topicPages.find((p) => p.path === path)
+}
+
+const CN_NUMERALS = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
+
+/** 分步用法区块标题：显式 stepsHeading 优先，否则按步数生成「N 步完成」（1–10 用汉字数字） */
+export function topicStepsHeading(page: Pick<TopicPage, 'steps' | 'stepsHeading'>): string {
+  if (page.stepsHeading) return page.stepsHeading
+  const n = page.steps.length
+  const cn = CN_NUMERALS[n]
+  return cn ? `${cn}步完成` : `${n} 步完成`
 }

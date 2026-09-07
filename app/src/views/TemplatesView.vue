@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
@@ -195,6 +195,22 @@ const extraFilterCount = computed(
   () => (searchActive.value ? 1 : 0) + (activeSubcategory.value !== 'all' ? 1 : 0),
 )
 
+/**
+ * chips 横滑可发现性：右侧白色渐隐遮罩，提示右边还有分类；滚到末尾（或内容未溢出）时隐藏，滚回时恢复。
+ * 尚未完成布局（scrollWidth = 0）时保持当前状态，默认可见。
+ */
+const chipsEl = ref<HTMLElement | null>(null)
+const chipsFadeVisible = ref(true)
+function updateChipsFade() {
+  const el = chipsEl.value
+  if (!el || !el.scrollWidth) return
+  const overflow = el.scrollWidth - el.clientWidth
+  chipsFadeVisible.value = overflow > 1 && el.scrollLeft < overflow - 1
+}
+watch(chipsEl, updateChipsFade, { flush: 'post' })
+onMounted(() => window.addEventListener('resize', updateChipsFade))
+onBeforeUnmount(() => window.removeEventListener('resize', updateChipsFade))
+
 /** 搜索无结果时的推荐：当前分类下的模板优先，否则用常用模板兜底 */
 const recommendedItems = computed(() => {
   const inCategory =
@@ -224,27 +240,37 @@ const recommendedItems = computed(() => {
       data-testid="templates-filter-bar"
     >
       <div v-if="isNarrow" class="flex w-full items-center gap-2">
-        <div
-          class="scrollbar-none flex min-w-0 flex-1 snap-x snap-mandatory gap-1.5 overflow-x-auto"
-          data-testid="templates-category-chips"
-        >
-          <button
-            v-for="opt in categoryOptions"
-            :key="opt.id"
-            type="button"
-            class="shrink-0 cursor-pointer snap-start rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap transition-colors duration-150"
-            :class="
-              activeCategory === opt.id
-                ? 'border-brand-500 bg-brand-600 text-white shadow-sm'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600'
-            "
-            @click="selectCategory(opt.id)"
+        <div class="relative min-w-0 flex-1">
+          <div
+            ref="chipsEl"
+            class="scrollbar-none flex snap-x snap-mandatory gap-1.5 overflow-x-auto"
+            data-testid="templates-category-chips"
+            @scroll.passive="updateChipsFade"
           >
-            {{ opt.name }}
-            <span :class="activeCategory === opt.id ? 'text-brand-100' : 'text-slate-600'">
-              {{ opt.count }}
-            </span>
-          </button>
+            <button
+              v-for="opt in categoryOptions"
+              :key="opt.id"
+              type="button"
+              class="shrink-0 cursor-pointer snap-start rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap transition-colors duration-150"
+              :class="
+                activeCategory === opt.id
+                  ? 'border-brand-500 bg-brand-600 text-white shadow-sm'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600'
+              "
+              @click="selectCategory(opt.id)"
+            >
+              {{ opt.name }}
+              <span :class="activeCategory === opt.id ? 'text-brand-100' : 'text-slate-600'">
+                {{ opt.count }}
+              </span>
+            </button>
+          </div>
+          <div
+            v-show="chipsFadeVisible"
+            class="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent"
+            aria-hidden="true"
+            data-testid="templates-chips-fade"
+          ></div>
         </div>
         <button
           type="button"

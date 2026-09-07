@@ -10,9 +10,11 @@ import NumberField from '@/components/ui/NumberField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
 import { GUEST_FILE_ACCEPT, useGuestFileImport } from '@/composables/useGuestFileImport'
+import { useQuotaBadge } from '@/composables/useQuotaBadge'
 import { useStickyActions } from '@/composables/useStickyActions'
 import { demoPersonNames } from '@/data/demoDatasets'
 import { currentLocale, localePath, t as tr } from '@/i18n'
+import { useAuthStore } from '@/stores/auth'
 import { useQuotaStore } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
 import {
@@ -63,6 +65,8 @@ import { defaultPdfFileName, exportPagedPdf } from '@/utils/pdfExport'
 const toast = useToastStore()
 useStickyActions()
 const quota = useQuotaStore()
+const auth = useAuthStore()
+const { badge: exportBadge, title: exportBadgeTitle } = useQuotaBadge(quota, auth, tr)
 
 // ---------- 状态（持久化到 localStorage，口径同 SeatingView） ----------
 
@@ -1382,14 +1386,24 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             </div>
           </div>
           <div class="mt-3 flex flex-col gap-2">
-            <button
-              type="button"
-              class="btn btn-primary btn-md"
-              :disabled="exporting"
-              @click="startExport('png')"
-            >
-              {{ exporting ? tr('导出中…') : tr('导出高清 PNG') }}
-            </button>
+            <div class="relative flex">
+              <button
+                type="button"
+                class="btn btn-primary btn-md flex-1"
+                :disabled="exporting"
+                :title="exportBadgeTitle"
+                data-testid="banquet-export-png"
+                @click="startExport('png')"
+              >
+                {{ exporting ? tr('导出中…') : tr('导出高清 PNG') }}
+              </button>
+              <span
+                class="pointer-events-none absolute -top-2.5 right-0 rounded-full px-1.5 py-px text-[9px] font-bold ring-1 ring-white"
+                :class="exportBadge.cls"
+                :title="exportBadgeTitle"
+                data-testid="export-quota-badge"
+              >{{ exportBadge.text }}</span>
+            </div>
             <button
               type="button"
               class="btn btn-secondary btn-md"
@@ -2149,6 +2163,8 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
       :arrange-label="tr('自动分配')"
       :progress="nextStepProgress"
       :target="nextStepTarget"
+      :quota-badge="exportBadge"
+      :quota-badge-title="exportBadgeTitle"
     />
     <MobilePreviewJump :preview="canvasContainer" :settings="rosterSection" />
   </div>

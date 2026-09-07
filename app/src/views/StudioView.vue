@@ -39,9 +39,12 @@ const toast = useToastStore()
 
 const isMobile = useIsPhone()
 
-/** 侧栏顶部同屏只保留一条完整提示：纸型错配条展示时，新手引导折叠为单行 */
+/**
+ * 侧栏顶部同屏只保留一条完整提示：纸型错配条展示时新手引导折叠为单行；
+ * 手机（<md）首屏也默认折叠，把模板选择与「导入名单」面板顶到一屏内。
+ */
 const { mismatch: paperMismatch } = usePaperFitMismatch()
-const guideCompact = computed(() => paperMismatch.value !== null)
+const guideCompact = computed(() => paperMismatch.value !== null || isMobile.value)
 
 type MobileTab = 'settings' | 'preview'
 const mobileTab = ref<MobileTab>('settings')
