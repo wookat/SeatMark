@@ -159,8 +159,8 @@ export const en: Record<string, string> = {
   '名单只暂存在本标签页，关闭即清除；座位表草稿留在本机浏览器，可在隐私页一键清除':
     'Rosters live only in this tab and are cleared when you close it; seating drafts stay in this browser and can be wiped from the privacy page',
   '内置模板': 'Built-in templates',
-  '内置思源黑体、霞鹜文楷、Inter 等中英文开源字体，一键加载即用，可免费商用。':
-    'Bundled open-source Chinese and Latin fonts (Source Han Sans, LXGW WenKai, Inter and more) load with one click and are free for commercial use.',
+  '内置思源黑体、霞鹜文楷、Inter 等中英文开源字体，选中即加载，可免费商用。':
+    'Bundled open-source Chinese and Latin fonts (Source Han Sans, LXGW WenKai, Inter and more) load when selected and are free for commercial use.',
   '分辨率预设（电子墨水屏）': 'Resolution preset (e-ink displays)',
   '列数': 'Columns',
   '删除': 'Delete',
@@ -243,8 +243,8 @@ export const en: Record<string, string> = {
   '打开可视化设计器': 'Open visual designer',
   '打开浏览器开发者工具（F12 → Network）就能自己验证：在 SeatMark 上传 Excel、生成、导出全程，没有任何一个携带名单数据的网络请求':
     'Verify it yourself with browser dev tools (F12 → Network): throughout uploading, generating and exporting in SeatMark, not a single network request carries your list data',
-  '拖拽调整字段位置与大小，毫米级精度控制，自定义模板可保存复用。':
-    'Drag to position and resize fields with millimetre precision; custom templates can be saved and reused.',
+  '拖拽调整字段位置与大小，按毫米设置尺寸，自定义模板可保存复用。':
+    'Drag to position and resize fields with sizes set in millimetres; custom templates can be saved and reused.',
   '按不干胶纸型选择': 'Choose by label paper',
   '按名单字段命名（如 张三-第1考场.png）': 'Name by list fields (e.g. Jane-Room1.png)',
   '按整页导出（每页纸张一张 PNG）': 'Per page (one PNG per sheet of paper)',
@@ -383,8 +383,8 @@ export const en: Record<string, string> = {
   '选择导出方式': 'Choose an export method',
   '选择标签类型': 'Choose a label type',
   '选择模板': 'Choose a template',
-  '选择模板、上传 Excel，几分钟完成一批座签、门贴或证卡。无需注册，数据不出浏览器。':
-    'Pick a template, upload a spreadsheet, and finish a batch of seating labels, door signs or badges in minutes. No sign-up; data never leaves your browser.',
+  '选择模板、上传 Excel 名单，直接导出一批座签、门贴或证卡。无需注册，数据不出浏览器。':
+    'Pick a template, upload your spreadsheet roster, and export a batch of seating labels, door signs or badges. No sign-up; data never leaves your browser.',
   '选择适合你的模板': 'Pick the right template',
   '重新上传': 'Re-upload',
   '阵列居中（自动均分边距）': 'Center grid (auto-balance margins)',
@@ -402,6 +402,8 @@ export const en: Record<string, string> = {
   '（点击即开始导出，可随时取消，取消不扣次数）':
     ' (starts immediately on click; cancel anytime — cancelled runs are not counted)',
   '/月': '/mo',
+  '原价': 'Original price',
+  '限时 0 折': 'Limited-time free',
   'Excel 名单批量导入、A4 / A5 / A3 排版': 'Excel roster batch import, A4 / A5 / A3 layouts',
   'PDF 已导出': 'PDF exported',
   'PNG 已导出': 'PNG exported',
@@ -433,6 +435,16 @@ export const en: Record<string, string> = {
   '一键复制推荐文案（含链接）': 'Copy referral message (with link)',
   '一键生成对应桌贴': 'Generate matching desk labels',
   '一键自动分配（同组同桌）': 'Auto-assign (same group, same table)',
+  '一键自动分配（优先坐满）': 'Auto-assign (fill tables first)',
+  '分配策略': 'Assignment strategy',
+  '尽量不拆组（默认）': 'Keep groups together (default)',
+  '同组尽量同桌，可能留空位': 'Same group at the same table where possible; may leave empty seats',
+  '优先坐满': 'Fill tables first',
+  '按桌顺序依次坐满，空桌最少': 'Fill tables in order; fewest empty tables',
+  '{group} {n} 人 > 任一桌最大 {seats} 座': '{group}: {n} guests > largest table ({seats} seats)',
+  '{group} {n} 人：轮到时没有一桌剩余座位够整组坐下':
+    '{group}: {n} guests — no table had enough free seats for the whole group',
+  '拆到': 'split across',
   '上传 TXT 名单': 'Upload TXT list',
   '上传 TXT 名单文件': 'Upload TXT roster file',
   '上传 TXT / CSV / Excel 名单': 'Upload TXT / CSV / Excel list',
@@ -916,6 +928,13 @@ export const en: Record<string, string> = {
   '电子座签 800×480': 'E-ink desk card 800×480',
   '考试': 'Exams',
   '教学': 'Teaching',
+  '考场': 'Exam room',
+  '幼儿园': 'Kindergarten',
+  '活动会议': 'Events & meetings',
+  '婚宴': 'Wedding',
+  '生活': 'Life',
+  '按场景': 'By scene',
+  '按场景找模板': 'Find templates by scene',
   '幼儿教育': 'Early childhood',
   '会议活动': 'Events & meetings',
   '婚庆喜宴': 'Weddings & banquets',
@@ -1099,6 +1118,7 @@ export const en: Record<string, string> = {
 
   // ---------- Studio 首次使用引导 ----------
   '四步拿到成品': 'Four steps to a finished print',
+  '新手四步引导': 'Getting-started guide (4 steps)',
   '选模板': 'Pick a template',
   '核对字段映射与版式': 'Check field mapping & layout',
   '导入后自动匹配，一般无需改动': 'Matched automatically after import — usually no changes needed',
@@ -1114,9 +1134,6 @@ export const en: Record<string, string> = {
   '桌牌上半区 180° 镜像重复下半区内容，沿中线对折后两面都能正读。关闭后只印单面内容。': 'The top half repeats the bottom half rotated 180°, so the tent card reads correctly on both sides after folding. Turn off to print one side only.',
   '打印校准已生效：导出与打印自动应用偏移/缩放补偿': 'Print calibration active: offset/scale compensation is applied to exports and prints automatically',
   '打印跑偏、尺寸不准？打印一页标尺校准页，量两下即可全局补偿': 'Prints misaligned or off-size? Print one ruler calibration page, take two measurements, and compensate globally',
-  '经浏览器打印对话框输出：选「另存为 PDF」可得到矢量 PDF；直接打印请用对应纸张、无边距、缩放 100%': 'Outputs via the browser print dialog: choose "Save as PDF" for a vector PDF; for direct printing use the matching paper, no margins, 100% scale',
-  '逐页渲染为高清图片后合成 PDF，所见即所得、任何设备打开都一致（推荐）；文字不可选中，如需矢量文字请用「打印 / 矢量 PDF」': 'Renders each page as a high-resolution image and combines them into a PDF — true WYSIWYG on any device (recommended); text is not selectable, use "Print / vector PDF" if you need vector text',
-  '按标签逐张导出 PNG 图片：每一张标签单独成图，单张直接下载，多张自动打包 zip；电子座签模板支持精确 800×480 像素输出': 'Export PNG images label by label: each label becomes its own image, single images download directly and multiple are zipped; e-ink templates support exact 800×480 px output',
   '带水印导出永远免费、不限次数；无水印今日剩余': 'Watermarked export is always free and unlimited; watermark-free left today:',
   '，免费登录后每天': '. Sign in free for', // + n 次/day
 
@@ -1139,9 +1156,17 @@ export const en: Record<string, string> = {
   '、': ', ',
   '去映射': 'Fix mapping',
   '仍然导出': 'Export anyway',
-  '打印 / 矢量 PDF：文字可选中，走系统打印': 'Print / vector PDF: selectable text, via the system print dialog',
-  '图片版 PDF：每页高清栅格，体积较大': 'Image PDF: each page as a high-res raster, larger file',
-  'PNG：逐张成图，多张自动 ZIP': 'PNG: one image per label, auto-zipped when multiple',
+  '打印 / 矢量 PDF：直接打印或交印刷厂（文字可选中、最清晰）': 'Print / vector PDF: print directly or hand to a print shop (selectable text, sharpest)',
+  '图片版 PDF：发给别人打印的 PDF（保留排版，文件较大）': 'Image PDF: a PDF to send to others for printing (layout preserved, larger file)',
+  'PNG：发群/发朋友圈的图片（每张一图，多张打包 zip）': 'PNG: images for group chats / social posts (one per label, zipped when multiple)',
+  '直接打印或交印刷厂（文字可选中、最清晰）：经浏览器打印对话框输出，选「另存为 PDF」即得矢量 PDF；直接打印请用对应纸张、无边距、缩放 100%':
+    'Print directly or hand to a print shop (selectable text, sharpest): output via the browser print dialog; choose "Save as PDF" for a vector PDF, or print directly with matching paper, no margins, 100% scale',
+  '发给别人打印的 PDF（保留排版，文件较大）：逐页渲染为高清图片后合成，任何设备打开都一致；文字不可选中，如需矢量文字请用「打印 / 矢量 PDF」':
+    'A PDF to send to others for printing (layout preserved, larger file): each page rendered as a high-res image, identical on any device; text is not selectable — use "Print / vector PDF" for vector text',
+  '发群/发朋友圈的图片（每张一图，多张打包 zip）：每一张标签单独成图；电子座签模板支持精确 800×480 像素输出':
+    'Images for group chats / social posts (one per label, zipped when multiple): every label becomes its own image; the e-ink template supports exact 800×480 px output',
+  '高级选项': 'Advanced options',
+  '（输出尺寸 / 电子墨水屏预设 / 纯黑白 / zip 内命名）': '(output size / e-ink presets / pure B&W / zip file naming)',
   '按标签逐张导出：共': 'Export label by label:',
   '张标签，每一张单独生成一张 PNG（尺寸=标签实际尺寸），支持按每张标签对应的名单行命名': 'labels in total, each generated as its own PNG (size = actual label size), with per-label naming from its list row',
   '按整页导出：每页纸张（含多枚标签）合成一张 PNG': 'Export by page: each sheet (with multiple labels) becomes one PNG',

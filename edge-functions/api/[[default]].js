@@ -58,6 +58,20 @@ import { withSecurityHeaders } from './_security.js'
 import { json, clientIp, clientIpSource, sha256Hex } from './_http.js'
 import { randomInt, randomDigits, randomToken, randomToken36 } from './_random.js'
 
+/**
+ * 受控并发 map：每批最多 limit 个元素 Promise.all，批与批之间串行；结果顺序与 items 一致。
+ * 用于 KV 逐键读取类聚合，避免全量并发打爆存储也避免逐个 await 的线性耗时。
+ */
+export async function mapConcurrent(items, limit, fn) {
+  const size = Math.max(1, Math.floor(limit) || 1)
+  const out = []
+  for (let i = 0; i < items.length; i += size) {
+    const batch = items.slice(i, i + size)
+    out.push(...(await Promise.all(batch.map((item, j) => fn(item, i + j)))))
+  }
+  return out
+}
+
 // ---------- 配额与裂变参数（前端 quota.ts 与此保持一致；计数对象为无水印导出，带水印不限次） ----------
 const QUOTA_ANON_DAILY = 1
 const QUOTA_USER_DAILY = 3
@@ -710,7 +724,7 @@ async function handleRequest(context) {
 
   const { kv, storage, blobStore } = await getStorage(env)
   // Rev 标记仅用于部署观测：探针可确认线上边缘函数版本，改动本文件时递增
-  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r345' }
+  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r346' }
 
   // 开发默认密钥公开可见：生产缺失 AUTH_SECRET 时会话/验证码/重置码 JWT 可被任意伪造，
   // 必须 fail closed；仅显式放行的本地 dev / 测试允许回退默认值
@@ -1546,11 +1560,15 @@ async function handleRequest(context) {
       let usageToday = 0
       let bonusToday = 0
       let activeTrialToday = 0
-      for (const u of users) {
+      const counters = await mapConcurrent(users, 8, async (u) => {
         const used = await getCounter(kv, `usage:${u.email}:${date}`)
+        const bonus = await getCounter(kv, `bonus:${u.email}:${date}`)
+        return { used, bonus }
+      })
+      for (const { used, bonus } of counters) {
         usageToday += used
         if (used > 0) activeTrialToday += 1
-        bonusToday += await getCounter(kv, `bonus:${u.email}:${date}`)
+        bonusToday += bonus
       }
 
       const reservations = await kv.list({ prefix: 'reserve:', limit: 256 })

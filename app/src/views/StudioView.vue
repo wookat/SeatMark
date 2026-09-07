@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { useIsPhone } from '@/composables/useMediaQuery'
+import { usePaperFitMismatch } from '@/composables/usePaperFitMismatch'
 import { t, useI18n } from '@/i18n'
 
 import TemplateDesigner from '@/components/designer/TemplateDesigner.vue'
@@ -14,12 +15,12 @@ import MappingPanel from '@/components/studio/MappingPanel.vue'
 import PreviewArea from '@/components/studio/PreviewArea.vue'
 import TemplatePickerPanel from '@/components/studio/TemplatePickerPanel.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
-import { createBlankTemplate, defaultTemplates } from '@/data/defaultTemplates'
+import { createBlankTemplate, defaultTemplates, TEMPLATE_CATEGORIES } from '@/data/defaultTemplates'
 import { findLabelPaper } from '@/data/labelPapers'
 import { useTemplateLibrary } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
-import type { LabelTemplate } from '@/types/template'
+import type { LabelTemplate, TemplateCategory } from '@/types/template'
 import { uid } from '@/utils/id'
 import { cloneTemplate } from '@/utils/layout'
 import { applyLabelPaper } from '@/utils/labelPaper'
@@ -34,6 +35,11 @@ const library = useTemplateLibrary()
 const toast = useToastStore()
 
 const isMobile = useIsPhone()
+
+/** 侧栏顶部同屏只保留一条完整提示：纸型错配条展示时，新手引导折叠为单行 */
+const { mismatch: paperMismatch } = usePaperFitMismatch()
+const guideCompact = computed(() => paperMismatch.value !== null)
+
 type MobileTab = 'settings' | 'preview'
 const mobileTab = ref<MobileTab>('settings')
 
@@ -128,6 +134,13 @@ function saveShared() {
   sharedTemplate.value = null
   if (library.lastPersistOk) toastTemplateSaved(saved.name)
 }
+
+// ?scene=<TemplateCategory>：合法值打开模板弹窗并预选分类，非法值忽略
+const initialScene = computed<TemplateCategory | null>(() => {
+  const scene = route.query.scene
+  if (typeof scene !== 'string') return null
+  return TEMPLATE_CATEGORIES.some((c) => c.id === scene) ? (scene as TemplateCategory) : null
+})
 
 onMounted(() => {
   const templateId = route.query.template
@@ -259,9 +272,9 @@ onMounted(() => {
         class="no-print flex min-w-0 flex-col gap-4"
         :class="isMobile && mobileTab !== 'settings' ? 'hidden' : ''"
       >
-        <FirstVisitGuide />
+        <FirstVisitGuide :compact="guideCompact" />
         <FitSuggestionBanner />
-        <TemplatePickerPanel @open-designer="openDesigner" />
+        <TemplatePickerPanel :scene="initialScene" @open-designer="openDesigner" />
         <DataImportPanel />
         <MappingPanel v-if="workspace.excel.rows.length" />
         <LayoutPanel @open-designer="openDesigner" />

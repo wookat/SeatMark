@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import { usePaperFitMismatch } from '@/composables/usePaperFitMismatch'
 import { t } from '@/i18n'
-import { useTemplateLibrary } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { applyLabelPaper, matchLabelPaper } from '@/utils/labelPaper'
-import { bestPaperForTemplate, evaluatePaperFit, FIT_LEVEL_LABELS } from '@/utils/paperFit'
+import { applyLabelPaper } from '@/utils/labelPaper'
+import { FIT_LEVEL_LABELS } from '@/utils/paperFit'
 import { tFitReason } from '@/utils/paperFitI18n'
 
 /**
@@ -16,30 +16,9 @@ import { tFitReason } from '@/utils/paperFitI18n'
  */
 
 const workspace = useWorkspaceStore()
-const library = useTemplateLibrary()
 const toast = useToastStore()
 
-/** 评分基于模板设计尺寸（库中原始模板），而非已被纸型缩放后的工作区副本 */
-const designTemplate = computed(
-  () => library.findById(workspace.selectedTemplateId) ?? workspace.template,
-)
-
-const currentPaper = computed(() =>
-  matchLabelPaper(workspace.template.page, workspace.template.label),
-)
-
-const currentFit = computed(() =>
-  currentPaper.value ? evaluatePaperFit(designTemplate.value, currentPaper.value) : null,
-)
-
-const recommended = computed(() => bestPaperForTemplate(designTemplate.value))
-
-const mismatch = computed(() => {
-  const fit = currentFit.value
-  if (!fit) return null
-  if (fit.level !== 'marginal' && fit.level !== 'incompatible') return null
-  return fit
-})
+const { currentPaper, recommended, mismatch } = usePaperFitMismatch()
 
 const showSwitch = computed(
   () => recommended.value && recommended.value.spec.slug !== currentPaper.value?.slug,

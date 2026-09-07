@@ -193,7 +193,7 @@ const FEATURES = computed(() => [
   },
   {
     title: t('可视化模板设计器'),
-    desc: t('拖拽调整字段位置与大小，毫米级精度控制，自定义模板可保存复用。'),
+    desc: t('拖拽调整字段位置与大小，按毫米设置尺寸，自定义模板可保存复用。'),
     icon: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z',
   },
   {
@@ -203,7 +203,7 @@ const FEATURES = computed(() => [
   },
   {
     title: t('开源字体在线选'),
-    desc: t('内置思源黑体、霞鹜文楷、Inter 等中英文开源字体，一键加载即用，可免费商用。'),
+    desc: t('内置思源黑体、霞鹜文楷、Inter 等中英文开源字体，选中即加载，可免费商用。'),
     icon: 'M5 20h14M7 16 12 4l5 12M8.8 12h6.4',
   },
 ])
@@ -580,8 +580,8 @@ const FAQS = computed(() => [
               {{ t('从空白新建模板') }}
             </h3>
             <p class="mt-1 text-xs leading-5 text-slate-600">
-              <template v-if="locale === 'en'">Open the visual designer and lay out fields freely<br />with millimetre precision</template>
-              <template v-else>打开可视化设计器，拖拽字段自由排版，<br />毫米级精度完全自定义</template>
+              <template v-if="locale === 'en'">Open the visual designer and lay out fields freely<br />with sizes and margins set in millimetres</template>
+              <template v-else>打开可视化设计器，拖拽字段自由排版，<br />尺寸与边距按毫米自定义</template>
             </p>
           </div>
         </RouterLink>
@@ -812,7 +812,7 @@ const FAQS = computed(() => [
         <div class="relative">
           <h2 class="text-xl font-bold text-white sm:text-2xl">{{ t('开始生成你的标签') }}</h2>
           <p class="mt-1.5 text-sm text-brand-100">
-            {{ t('选择模板、上传 Excel，几分钟完成一批座签、门贴或证卡。无需注册，数据不出浏览器。') }}
+            {{ t('选择模板、上传 Excel 名单，直接导出一批座签、门贴或证卡。无需注册，数据不出浏览器。') }}
           </p>
         </div>
         <RouterLink

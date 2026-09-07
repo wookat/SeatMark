@@ -60,3 +60,49 @@ describe('FirstVisitGuide 四步引导', () => {
     expect(steps[2]!.text()).toContain('Check field mapping & layout')
   })
 })
+
+describe('第 346 轮：FirstVisitGuide compact 折叠态', () => {
+  beforeEach(async () => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    studioGuideDismissed.value = false
+    await setLocale('zh')
+  })
+
+  it('compact=true 时只渲染单行「新手四步引导 ▸」，点击展开后恢复完整四步；compact 回 false 自动恢复完整态', async () => {
+    const wrapper = mount(FirstVisitGuide, { props: { compact: true } })
+    expect(wrapper.find('[data-testid="first-visit-guide-compact"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="first-visit-guide"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('新手四步引导')
+    expect(wrapper.text()).not.toContain('四步拿到成品')
+    expect(wrapper.findAll('li')).toHaveLength(0)
+
+    await wrapper.find('[data-testid="first-visit-guide-compact"] button').trigger('click')
+    expect(wrapper.find('[data-testid="first-visit-guide"]').exists()).toBe(true)
+    expect(wrapper.findAll('li')).toHaveLength(4)
+
+    // 错配消失 → 完整态；再次错配 → 重新折叠
+    await wrapper.setProps({ compact: false })
+    expect(wrapper.find('[data-testid="first-visit-guide"]').exists()).toBe(true)
+    await wrapper.setProps({ compact: true })
+    expect(wrapper.find('[data-testid="first-visit-guide-compact"]').exists()).toBe(true)
+    expect(wrapper.findAll('li')).toHaveLength(0)
+  })
+
+  it('compact 默认 false：完整态与既有渲染一致；已关闭引导时 compact 也不渲染', async () => {
+    const full = mount(FirstVisitGuide)
+    expect(full.find('[data-testid="first-visit-guide"]').exists()).toBe(true)
+    expect(full.find('[data-testid="first-visit-guide-compact"]').exists()).toBe(false)
+
+    studioGuideDismissed.value = true
+    const dismissed = mount(FirstVisitGuide, { props: { compact: true } })
+    expect(dismissed.find('section').exists()).toBe(false)
+  })
+
+  it('en：折叠态文案为英文', async () => {
+    await setLocale('en')
+    const wrapper = mount(FirstVisitGuide, { props: { compact: true } })
+    expect(wrapper.text()).toContain('Getting-started guide (4 steps)')
+    expect(wrapper.text()).not.toMatch(CJK)
+  })
+})

@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore JS 模块无类型声明
-import { onRequest } from "../../../edge-functions/api/[[default]].js";
+import { mapConcurrent, onRequest } from "../../../edge-functions/api/[[default]].js";
 
 interface Env {
   AUTH_SECRET?: string;
@@ -1304,5 +1304,107 @@ describe("feedback.js 观测头 X-SeatMark-Rev", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("X-SeatMark-Rev")).toMatch(/^r\d+$/);
     expect(response.headers.get("X-SeatMark-Storage")).toBe("memory");
+  });
+});
+
+describe("第 346 轮：/api/admin/overview 计数读取受控并发（mapConcurrent）", () => {
+  it("mapConcurrent：结果顺序与输入一致，同时在飞数量不超过 limit", async () => {
+    let inflight = 0;
+    let peak = 0;
+    const items = Array.from({ length: 20 }, (_, i) => i);
+    const out = await mapConcurrent(items, 8, async (n: number) => {
+      inflight += 1;
+      peak = Math.max(peak, inflight);
+      await new Promise((r) => setTimeout(r, 1));
+      inflight -= 1;
+      return n * 2;
+    });
+    expect(out).toEqual(items.map((n) => n * 2));
+    expect(peak).toBe(8);
+  });
+
+  it("20 个用户样本：汇总数与串行累加一致，KV 计数读取并发峰值 ≤ 8，返回 200 且字段齐全", async () => {
+    const blob = createMockBlobStore();
+    const date = new Date().toISOString().slice(0, 10);
+    const now = new Date().toISOString();
+    // 预置 20 个用户与今日 usage/bonus 计数；usage 为 0 的用户不计入 activeTrialToday
+    let expectUsage = 0;
+    let expectBonus = 0;
+    let expectActive = 0;
+    for (let i = 0; i < 20; i++) {
+      const email = `u${String(i).padStart(2, "0")}@example.com`;
+      blob.data.set(
+        `user:${email}`,
+        JSON.stringify({ email, createdAt: now, templateCount: i % 3 }),
+      );
+      const used = i % 4; // 0,1,2,3 循环 → 5 个用户为 0
+      const bonus = i % 5;
+      if (used > 0) blob.data.set(`usage:${email}:${date}`, String(used));
+      if (bonus > 0) blob.data.set(`bonus:${email}:${date}`, String(bonus));
+      expectUsage += used;
+      expectBonus += bonus;
+      if (used > 0) expectActive += 1;
+    }
+    const adminEmail = "ov-admin@example.com";
+    const env: Env = {
+      AUTH_SECRET: "test-secret",
+      ADMIN_EMAILS: adminEmail,
+      seatmark_blob: blob,
+    };
+    const { data: codeData } = await call("POST", "http://localhost:5173/api/auth/code", {
+      body: { email: adminEmail },
+      env,
+    });
+    const { response: verifyRes } = await call("POST", "http://localhost:5173/api/auth/verify", {
+      body: { email: adminEmail, code: codeData.devCode },
+      env,
+    });
+    const cookie = (verifyRes.headers.get("Set-Cookie") || "").split(";")[0];
+
+    // 登录后才开始统计计数键读取的并发峰值
+    let inflight = 0;
+    let peak = 0;
+    const rawGet = blob.get.bind(blob);
+    blob.get = async (key, options) => {
+      const counted = key.startsWith("usage:") || key.startsWith("bonus:");
+      if (counted) {
+        inflight += 1;
+        peak = Math.max(peak, inflight);
+      }
+      await new Promise((r) => setTimeout(r, 1));
+      try {
+        return await rawGet(key, options);
+      } finally {
+        if (counted) inflight -= 1;
+      }
+    };
+
+    const { response, data } = await call("GET", "https://www.seatmark.cn/api/admin/overview", {
+      env,
+      cookie,
+    });
+    expect(response.status).toBe(200);
+    expect(data.totalUsers).toBe(21); // 20 个样本 + 管理员本人
+    expect(data.usageToday).toBe(expectUsage);
+    expect(data.shareBonusToday).toBe(expectBonus);
+    expect(data.activeTrialToday).toBe(expectActive);
+    expect(peak).toBeGreaterThan(1);
+    expect(peak).toBeLessThanOrEqual(8);
+    for (const field of [
+      "totalUsers",
+      "growth",
+      "templateSyncUsers",
+      "templateTotal",
+      "usageToday",
+      "trialUsers",
+      "activeTrialToday",
+      "shareBonusToday",
+      "reservationCount",
+      "feedbackCount",
+      "storage",
+    ]) {
+      expect(data).toHaveProperty(field);
+    }
+    expect(data.storage).toBe("blob");
   });
 });

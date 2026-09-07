@@ -7,6 +7,7 @@ import {
   buildGuestQuickReference,
   buildVenuePreset,
   countAssignedGuests,
+  explainSplit,
   findDuplicateGuestNames,
   findOverlaps,
   parseBanquetGuests,
@@ -245,6 +246,92 @@ describe('autoAssignGuests', () => {
     const guests = ['g1', 'g2', 'g3'].map((id) => guest(id))
     const out = autoAssignGuests(guests, tables)
     expect(out.get('A')).toEqual(['g1', 'g2'])
+  })
+})
+
+describe('第 346 轮：autoAssignGuests fill-tables 策略 + explainSplit', () => {
+  it('fill-tables：48 人 / 5 桌 × 10 座 → 前 4 桌满、第 5 桌 8 人，组内成员连续', () => {
+    const tables = ['T1', 'T2', 'T3', 'T4', 'T5'].map((id) => table(id, 10))
+    const guests: BanquetGuest[] = []
+    // 3 组：groom 20 / bride 16 / friends 12
+    for (let i = 0; i < 20; i++) guests.push(guest(`g${i}`, 'groom'))
+    for (let i = 0; i < 16; i++) guests.push(guest(`b${i}`, 'bride'))
+    for (let i = 0; i < 12; i++) guests.push(guest(`f${i}`, 'friends'))
+    const out = autoAssignGuests(guests, tables, 'fill-tables')
+    expect(['T1', 'T2', 'T3', 'T4'].map((id) => out.get(id)!.length)).toEqual([10, 10, 10, 10])
+    expect(out.get('T5')!.length).toBe(8)
+    // 大组优先 + 组内连续：groom 20 人占满 T1、T2；bride 16 人 T3 满 + T4 前 6；friends T4 后 4 + T5 前 8
+    expect(out.get('T1')).toEqual(guests.slice(0, 10).map((g) => g.id))
+    expect(out.get('T2')).toEqual(guests.slice(10, 20).map((g) => g.id))
+    expect(out.get('T3')).toEqual(guests.slice(20, 30).map((g) => g.id))
+    expect(out.get('T4')).toEqual(guests.slice(30, 40).map((g) => g.id))
+    expect(out.get('T5')).toEqual(guests.slice(40, 48).map((g) => g.id))
+  })
+
+  it('fill-tables：所有桌满后剩余宾客保持未安排', () => {
+    const tables = [table('A', 2), table('B', 2)]
+    const guests = ['g1', 'g2', 'g3', 'g4', 'g5'].map((id) => guest(id, 'x'))
+    const out = autoAssignGuests(guests, tables, 'fill-tables')
+    expect(out.get('A')).toEqual(['g1', 'g2'])
+    expect(out.get('B')).toEqual(['g3', 'g4'])
+  })
+
+  it('keep-groups（默认）结果与不传 strategy 完全一致', () => {
+    const tables = [table('A', 10), table('B', 4), table('C', 6)]
+    const guests = [
+      ...['x1', 'x2', 'x3'].map((id) => guest(id, 'x')),
+      ...['y1', 'y2', 'y3', 'y4', 'y5'].map((id) => guest(id, 'y')),
+      guest('solo'),
+    ]
+    const legacy = autoAssignGuests(guests, tables)
+    const explicit = autoAssignGuests(guests, tables, 'keep-groups')
+    expect([...explicit]).toEqual([...legacy])
+    expect(legacy.get('C')).toEqual(['y1', 'y2', 'y3', 'y4', 'y5'])
+    expect(legacy.get('B')).toEqual(['x1', 'x2', 'x3', 'solo'])
+    expect(legacy.get('A')).toEqual([])
+    // 与 fill-tables 结果不同（策略确实生效）
+    const filled = autoAssignGuests(guests, tables, 'fill-tables')
+    expect([...filled]).not.toEqual([...legacy])
+  })
+
+  it('explainSplit：组人数 > 任一桌最大座位 → group-larger-than-any-table，并列出所在桌', () => {
+    const tables = [table('T1', 10), table('T2', 10)]
+    const guests = Array.from({ length: 12 }, (_, i) => guest(`c${i}`, 'classmates'))
+    const groups: BanquetGroup[] = [{ id: 'classmates', name: '同学', color: '#000' }]
+    const result = autoAssignGuests(guests, tables)
+    const assigned = tables.map((t) => ({ ...t, guestIds: result.get(t.id)! }))
+    const out = explainSplit(guests, assigned, groups)
+    expect(out).toHaveLength(1)
+    expect(out[0]!.reason).toBe('group-larger-than-any-table')
+    expect(out[0]!.groupSize).toBe(12)
+    expect(out[0]!.maxTableSeats).toBe(10)
+    expect(out[0]!.tableNames.sort()).toEqual(['T1', 'T2'])
+  })
+
+  it('explainSplit：有桌容得下整组但轮到时剩余不够 → no-table-had-enough-free-seats', () => {
+    // fill-tables：a 组 6 人先占 T1 前 6 座，b 组 6 人只能 T1 剩 4 + T2 2
+    const tables = [table('T1', 10), table('T2', 10)]
+    const guests = [
+      ...Array.from({ length: 6 }, (_, i) => guest(`a${i}`, 'a')),
+      ...Array.from({ length: 6 }, (_, i) => guest(`b${i}`, 'b')),
+    ]
+    const groups: BanquetGroup[] = [
+      { id: 'a', name: '亲友', color: '#000' },
+      { id: 'b', name: '同事', color: '#111' },
+    ]
+    const result = autoAssignGuests(guests, tables, 'fill-tables')
+    const assigned = tables.map((t) => ({ ...t, guestIds: result.get(t.id)! }))
+    const out = explainSplit(guests, assigned, groups)
+    expect(out).toHaveLength(1)
+    expect(out[0]!.groupName).toBe('同事')
+    expect(out[0]!.reason).toBe('no-table-had-enough-free-seats')
+    expect(out[0]!.tableNames).toEqual(['T1', 'T2'])
+    expect(out[0]!.tables).toEqual([
+      { name: 'T1', count: 4 },
+      { name: 'T2', count: 2 },
+    ])
+    // 未拆分时为空
+    expect(explainSplit(guests, tables.map((t) => ({ ...t, guestIds: [] })), groups)).toEqual([])
   })
 })
 

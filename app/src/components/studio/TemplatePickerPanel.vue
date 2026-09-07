@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
@@ -25,6 +25,7 @@ import {
   SHARE_SHORT_PARAM,
 } from '@/utils/share'
 
+const props = withDefaults(defineProps<{ scene?: TemplateCategory | null }>(), { scene: null })
 const emit = defineEmits<{ openDesigner: [template: LabelTemplate | null] }>()
 
 const workspace = useWorkspaceStore()
@@ -73,11 +74,36 @@ const pickerOpen = ref(false)
 type CategoryFilter = TemplateCategory | 'all' | 'custom'
 const activeCategory = ref<CategoryFilter>('all')
 const activeSubcategory = ref<string>('all')
+const searchQuery = ref('')
 
 function selectCategory(id: CategoryFilter) {
   activeCategory.value = id
   activeSubcategory.value = 'all'
 }
+
+// ---------- 场景快速入口：弹窗外常驻 chips，点击即打开全部模板并预选分类 ----------
+const SCENE_CHIPS: { id: TemplateCategory; name: () => string }[] = [
+  { id: 'exam', name: () => tr('考场') },
+  { id: 'teaching', name: () => tr('教学') },
+  { id: 'kids', name: () => tr('幼儿园') },
+  { id: 'event', name: () => tr('活动会议') },
+  { id: 'wedding', name: () => tr('婚宴') },
+  { id: 'life', name: () => tr('生活') },
+]
+
+function openScene(id: TemplateCategory) {
+  selectCategory(id)
+  searchQuery.value = ''
+  pickerOpen.value = true
+}
+
+watch(
+  () => props.scene,
+  (scene) => {
+    if (scene) openScene(scene)
+  },
+  { immediate: true },
+)
 
 const subcategoryOptions = computed<{ id: string; name: string; count: number }[]>(() => {
   const cat = activeCategory.value
@@ -108,8 +134,6 @@ const categoryOptions = computed<{ id: CategoryFilter; name: string; count: numb
   if (customCount > 0) options.push({ id: 'custom', name: tr('自定义'), count: customCount })
   return options.filter((o) => o.count > 0)
 })
-
-const searchQuery = ref('')
 
 function matchesQuery(t: LabelTemplate, query: string): boolean {
   const haystack = `${t.name} ${t.scenario ?? ''} ${t.description}`
@@ -310,6 +334,25 @@ function confirmDelete() {
       class="hidden"
       @change="onImportFile"
     />
+
+    <div
+      class="mb-3 flex flex-wrap items-center gap-1.5"
+      role="group"
+      :aria-label="tr('按场景找模板')"
+      data-testid="scene-chips"
+    >
+      <span class="text-[11px] font-semibold text-slate-600">{{ tr('按场景') }}</span>
+      <button
+        v-for="chip in SCENE_CHIPS"
+        :key="chip.id"
+        type="button"
+        class="cursor-pointer rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 transition-colors duration-150 hover:border-brand-300 hover:text-brand-600"
+        :data-scene="chip.id"
+        @click="openScene(chip.id)"
+      >
+        {{ chip.name() }}
+      </button>
+    </div>
 
     <div class="grid gap-3">
       <article
