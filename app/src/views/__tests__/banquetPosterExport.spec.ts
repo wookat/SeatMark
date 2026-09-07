@@ -45,8 +45,14 @@ async function mountBanquet() {
   return wrapper
 }
 
-/** 载入 48 人演示名单并一键分配，然后走「导出 PNG → 保留空桌 → 带水印导出」，返回导出宿主页面元素 */
-async function exportAndCapturePage(wrapper: Awaited<ReturnType<typeof mountBanquet>>) {
+/**
+ * 载入 48 人演示名单并一键分配，然后走「导出 PNG → 空桌确认 → 带水印导出」，返回导出宿主页面元素。
+ * 空桌确认按钮文案随张贴版开关变化：张贴版「跳过空桌」（空桌不参与布局），紧凑版「保留空桌」。
+ */
+async function exportAndCapturePage(
+  wrapper: Awaited<ReturnType<typeof mountBanquet>>,
+  emptyTableAction: string,
+) {
   const demoBtn = wrapper.findAll('button').find((b) => b.text().includes('用演示名单'))
   expect(demoBtn).toBeTruthy()
   await demoBtn!.trigger('click')
@@ -61,8 +67,8 @@ async function exportAndCapturePage(wrapper: Awaited<ReturnType<typeof mountBanq
   expect(pngBtn).toBeTruthy()
   await pngBtn!.trigger('click')
   await wrapper.vm.$nextTick()
-  // 圆桌预设 8 桌，48 人坐满 6 桌后剩 2 空桌：导出前检查提示空桌，选「保留空桌，继续导出」
-  const keepEmpty = wrapper.findAll('button').find((b) => b.text().includes('保留空桌，继续导出'))
+  // 圆桌预设 8 桌，48 人坐满 6 桌后剩 2 空桌：导出前检查提示空桌
+  const keepEmpty = wrapper.findAll('button').find((b) => b.text().includes(emptyTableAction))
   expect(keepEmpty).toBeTruthy()
   await keepEmpty!.trigger('click')
   await wrapper.vm.$nextTick()
@@ -105,7 +111,7 @@ describe('BanquetView 张贴版导出开关', () => {
 
   it('张贴版：48 人坐满 6 桌（2 空桌不参与）→ 3 列网格、48 枚姓名、字号 ≥ 60px@300dpi、页面仍为 A4 横版', async () => {
     const wrapper = await mountBanquet()
-    const page = await exportAndCapturePage(wrapper)
+    const page = await exportAndCapturePage(wrapper, '跳过空桌，继续导出')
     expect(page.style.width).toBe('297mm')
     expect(page.style.height).toBe('210mm')
     const grid = page.querySelector<HTMLElement>('[data-testid="poster-grid"]')
@@ -126,7 +132,7 @@ describe('BanquetView 张贴版导出开关', () => {
     await wrapper
       .find<HTMLInputElement>('[data-testid="poster-layout-toggle"] input[type="checkbox"]')
       .setValue(false)
-    const page = await exportAndCapturePage(wrapper)
+    const page = await exportAndCapturePage(wrapper, '保留空桌，继续导出')
     expect(page.querySelector('[data-testid="poster-grid"]')).toBeNull()
     expect(page.querySelector('.banquet-venue--export')).not.toBeNull()
     expect(page.querySelectorAll('.banquet-venue--export .banquet-table')).toHaveLength(8)
