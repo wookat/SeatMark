@@ -34,6 +34,26 @@ const SEATING_LINKS = computed(() => [
   { to: '/banquet', name: 'banquet', label: t('宴会排桌') },
 ])
 const seatingActive = computed(() => SEATING_LINKS.value.some((l) => l.name === routeName.value))
+/** 悬停展开后的首次点击视为“钉住”而非关闭，避免鼠标用户点击即消失 */
+const seatingByHover = ref(false)
+
+function onSeatingEnter() {
+  if (!seatingOpen.value) seatingByHover.value = true
+  seatingOpen.value = true
+}
+
+function onSeatingLeave() {
+  seatingOpen.value = false
+  seatingByHover.value = false
+}
+
+function onSeatingClick() {
+  if (seatingOpen.value && seatingByHover.value) {
+    seatingByHover.value = false
+    return
+  }
+  seatingOpen.value = !seatingOpen.value
+}
 
 const avatarLetter = computed(() => (auth.user ? auth.user.email[0]!.toUpperCase() : ''))
 
@@ -84,7 +104,7 @@ const SECTIONS = computed(() => [
       </RouterLink>
 
       <nav
-        v-if="routeName === 'home'"
+        v-if="routeName === 'home' && locale !== 'en'"
         class="ml-4 hidden items-center gap-1 lg:flex"
         :aria-label="t('页面导航')"
       >
@@ -92,7 +112,7 @@ const SECTIONS = computed(() => [
           v-for="section in SECTIONS"
           :key="section.href"
           :href="section.href"
-          class="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+          class="rounded-lg px-2.5 py-1.5 text-sm font-semibold whitespace-nowrap text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
         >
           {{ section.label }}
         </a>
@@ -100,8 +120,9 @@ const SECTIONS = computed(() => [
 
       <nav class="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
         <span
+          v-if="routeName !== 'home'"
           class="hidden items-center gap-1 rounded bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200"
-          :class="locale === 'en' ? 'lg:inline-flex' : 'md:inline-flex'"
+          :class="locale === 'en' ? 'xl:inline-flex' : 'lg:inline-flex'"
         >
           <svg
             class="size-3.5"
@@ -137,16 +158,16 @@ const SECTIONS = computed(() => [
           ref="seatingRef"
           class="relative hidden sm:block"
           data-testid="nav-seating"
-          @mouseenter="seatingOpen = true"
-          @mouseleave="seatingOpen = false"
+          @mouseenter="onSeatingEnter"
+          @mouseleave="onSeatingLeave"
         >
           <button
             type="button"
-            class="btn btn-ghost btn-sm"
+            class="btn btn-ghost btn-sm whitespace-nowrap"
             :class="{ 'bg-slate-100 text-brand-600': seatingActive || seatingOpen }"
             :aria-expanded="seatingOpen"
             aria-haspopup="true"
-            @click.stop="seatingOpen = !seatingOpen"
+            @click.stop="onSeatingClick"
           >
             {{ t('排座') }}
             <svg class="size-3 transition-transform" :class="{ 'rotate-180': seatingOpen }" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
