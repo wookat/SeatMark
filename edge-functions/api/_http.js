@@ -26,12 +26,12 @@ export function clientIpSource(request) {
   return 'none'
 }
 
+/**
+ * 限频用客户端 IP：只信任 EdgeOne 注入的 EO-Connecting-IP。X-Forwarded-For 可由调用方伪造，
+ * 不再回退；无 EO 头时统一返回 'none'，使所有 rl:* 共用同一保守桶而非被无限绕过。
+ */
 export function clientIp(request) {
-  return (
-    request.headers.get('EO-Connecting-IP') ||
-    request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ||
-    'unknown'
-  )
+  return request.headers.get('EO-Connecting-IP') || 'none'
 }
 
 export async function sha256Hex(text) {

@@ -126,6 +126,9 @@ examRows.push(
   },
 )
 
+/** 考场演示数据实际行数（24 行常规 + 2 行空字段样例）：教程文案插值用，避免写死数字与工坊不一致 */
+export const EXAM_DEMO_ROW_COUNT = examRows.length
+
 const examDataset: DemoDataset = {
   id: 'exam',
   name: '考场座位',

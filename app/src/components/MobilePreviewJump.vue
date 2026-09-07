@@ -10,8 +10,10 @@ const props = defineProps<{
   settings: HTMLElement | null
 }>()
 
-/** 停止滚动多久后重新显示胶囊 */
-const SCROLL_IDLE_MS = 300
+/** 回到页面顶部的判定阈值（px）：低于此值恢复显示胶囊 */
+const TOP_RESTORE_PX = 80
+/** 滚动方向判定的最小位移（px），过滤惯性抖动 */
+const SCROLL_DELTA_PX = 2
 /** visualViewport 比窗口矮超过该比例视为软键盘弹出 */
 const KEYBOARD_RATIO = 0.75
 
@@ -37,13 +39,13 @@ watch(() => props.preview, observe, { immediate: true })
 
 /**
  * 窄屏让位逻辑：输入框聚焦 / 软键盘弹出时隐藏（避免压住输入区）；
- * 向下滚动时收起，停止滚动 SCROLL_IDLE_MS 后恢复。
+ * 向下滚动时收起且不自动恢复（不常驻遮挡表单控件），仅在回到页顶、
+ * 或预览区已离开视口且用户向上滚动时恢复显示。
  */
 const inputFocused = ref(false)
 const keyboardOpen = ref(false)
-const scrolling = ref(false)
+const collapsed = ref(false)
 let lastScrollY = 0
-let idleTimer: ReturnType<typeof setTimeout> | null = null
 
 function isTextInput(el: Element | null): boolean {
   if (!el) return false
@@ -62,13 +64,10 @@ function syncKeyboard() {
 
 function onScroll() {
   const y = window.scrollY
-  if (y > lastScrollY + 2) scrolling.value = true
+  if (y < TOP_RESTORE_PX) collapsed.value = false
+  else if (y > lastScrollY + SCROLL_DELTA_PX) collapsed.value = true
+  else if (y < lastScrollY - SCROLL_DELTA_PX && !previewVisible.value) collapsed.value = false
   lastScrollY = y
-  if (idleTimer) clearTimeout(idleTimer)
-  idleTimer = setTimeout(() => {
-    scrolling.value = false
-    idleTimer = null
-  }, SCROLL_IDLE_MS)
 }
 
 onMounted(() => {
@@ -87,10 +86,9 @@ onBeforeUnmount(() => {
   document.removeEventListener('focusout', syncFocus)
   window.removeEventListener('scroll', onScroll)
   window.visualViewport?.removeEventListener('resize', syncKeyboard)
-  if (idleTimer) clearTimeout(idleTimer)
 })
 
-const hidden = computed(() => inputFocused.value || keyboardOpen.value || scrolling.value)
+const hidden = computed(() => inputFocused.value || keyboardOpen.value || collapsed.value)
 
 const label = computed(() => (previewVisible.value ? tr('回到设置 ↑') : tr('查看座位预览 ↓')))
 
@@ -109,7 +107,7 @@ function go() {
   <button
     v-if="preview"
     type="button"
-    class="no-print fixed bottom-4 left-4 z-30 inline-flex min-h-11 items-center gap-1 rounded-full border border-slate-200 bg-white/95 px-4 text-xs font-semibold text-slate-700 shadow-pop backdrop-blur transition-[opacity,transform,color,border-color] duration-200 hover:border-brand-400 hover:text-brand-600 md:hidden [.has-next-step-bar_&]:bottom-[4.25rem]"
+    class="no-print fixed bottom-4 left-4 z-30 inline-flex min-h-11 items-center gap-1 rounded-full border border-slate-200 bg-white/95 px-4 text-xs font-semibold text-slate-700 shadow-pop backdrop-blur transition-[opacity,transform,color,border-color] duration-200 hover:border-brand-400 hover:text-brand-600 md:hidden [.has-next-step-bar_&]:bottom-[4.25rem] [.has-sticky-actions_&]:bottom-[4.25rem]"
     :class="hidden ? 'pointer-events-none translate-y-2 opacity-0' : 'translate-y-0 opacity-100'"
     :aria-hidden="hidden ? 'true' : undefined"
     :tabindex="hidden ? -1 : undefined"

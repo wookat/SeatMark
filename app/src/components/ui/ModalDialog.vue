@@ -9,8 +9,16 @@ const sentinelIds = new Map<symbol, number>()
 const sentinelHrefs = new Map<number, string>()
 
 const SENTINEL_KEY = 'seatmarkModalSentinel'
+/** 任意弹窗打开期间标记在 <html> 上的 class：ToastHost 据此在窄屏把 toast 落到顶部，不压弹窗底部选项 */
+export const MODAL_OPEN_CLASS = 'has-modal'
 let popListenerInstalled = false
 let sentinelSerial = 0
+
+/** 按打开栈长度同步 html.has-modal：多弹窗叠加时仅在最后一个关闭后移除 */
+function syncModalClass() {
+  if (typeof document === 'undefined') return
+  document.documentElement.classList.toggle(MODAL_OPEN_CLASS, openStack.length > 0)
+}
 
 function stateSentinelId(state: unknown): number | null {
   const value = (state as Record<string, unknown> | null)?.[SENTINEL_KEY]
@@ -146,6 +154,7 @@ watch(
   async (open) => {
     if (open) {
       openStack.push(instanceId)
+      syncModalClass()
       closeHandlers.set(instanceId, () => emit('close'))
       pushSentinel(instanceId)
       previouslyFocused = document.activeElement as HTMLElement | null
@@ -154,6 +163,7 @@ watch(
     } else {
       const idx = openStack.indexOf(instanceId)
       if (idx >= 0) openStack.splice(idx, 1)
+      syncModalClass()
       closeHandlers.delete(instanceId)
       consumeSentinel(instanceId)
       previouslyFocused?.focus?.()
@@ -168,6 +178,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
   const idx = openStack.indexOf(instanceId)
   if (idx >= 0) openStack.splice(idx, 1)
+  syncModalClass()
   closeHandlers.delete(instanceId)
   sentinelIds.delete(instanceId)
 })

@@ -437,6 +437,8 @@ export const en: Record<string, string> = {
   '点选宾客后在底部操作条批量归组': 'Tick guests, then assign a group from the bottom bar',
   'Excel 导入失败': 'Excel import failed',
   'Excel 至少需要包含表头行和一行数据': 'The spreadsheet needs a header row and at least one data row',
+  '文件超过 20MB，请精简内容或拆分后再导入': 'The file exceeds 20MB. Trim or split it before importing',
+  '名单超过 10000 行，请拆分后再导入': 'The list has more than 10,000 rows. Split it before importing',
   '新建': 'Created',
   '个分组': 'groups',
   '跳过表头 1 行': 'skipped 1 header row',

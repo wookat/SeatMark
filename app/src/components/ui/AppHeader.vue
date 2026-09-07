@@ -122,7 +122,7 @@ const SECTIONS = computed(() => [
 
 <template>
   <header
-    class="no-print sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur-md"
+    class="no-print sticky top-0 z-40 border-b border-slate-200/70 bg-white/95 backdrop-blur-md"
   >
     <div class="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 sm:gap-3">
       <RouterLink
@@ -256,7 +256,7 @@ const SECTIONS = computed(() => [
         <RouterLink
           v-else
           :to="localePath('/studio')"
-          class="btn btn-sm btn-primary max-sm:px-2"
+          class="btn btn-sm btn-primary max-md:min-h-11 max-sm:px-2"
         >
           <template v-if="locale === 'en'">
             <span class="sm:hidden">Start</span>

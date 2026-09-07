@@ -1504,15 +1504,15 @@ describe("feedback.js 观测头 X-SeatMark-Rev", () => {
   });
 });
 
-describe("第 351 轮：三条边缘函数统一 X-SeatMark-Rev = r352 与公告短缓存", () => {
-  it("_rev.js 导出 r352", () => {
-    expect(SEATMARK_REV).toBe("r352");
+describe("第 353 轮：三条边缘函数统一 X-SeatMark-Rev = r353 与公告短缓存", () => {
+  it("_rev.js 导出 r353", () => {
+    expect(SEATMARK_REV).toBe("r353");
   });
 
-  it("/api/announcement GET 带 r352 与 Cache-Control 短缓存", async () => {
+  it("/api/announcement GET 带 r353 与 Cache-Control 短缓存", async () => {
     const { response } = await call("GET", "https://www.seatmark.cn/api/announcement");
     expect(response.status).toBe(200);
-    expect(response.headers.get("X-SeatMark-Rev")).toBe("r352");
+    expect(response.headers.get("X-SeatMark-Rev")).toBe("r353");
     expect(ANNOUNCEMENT_CACHE_CONTROL).toBe(
       "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
     );
@@ -1522,10 +1522,10 @@ describe("第 351 轮：三条边缘函数统一 X-SeatMark-Rev = r352 与公告
   it("其余 JSON 响应保持 no-store（不受公告缓存影响）", async () => {
     const { response } = await call("GET", "https://www.seatmark.cn/api/auth/me");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
-    expect(response.headers.get("X-SeatMark-Rev")).toBe("r352");
+    expect(response.headers.get("X-SeatMark-Rev")).toBe("r353");
   });
 
-  it("/api/feedback 405 / 200 响应均带 r352", async () => {
+  it("/api/feedback 405 / 200 响应均带 r353", async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore JS 模块无类型声明
     const { onRequest: onFeedback } = await import("../../../edge-functions/api/feedback.js");
@@ -1534,7 +1534,7 @@ describe("第 351 轮：三条边缘函数统一 X-SeatMark-Rev = r352 与公告
       env: withTestEnv({}),
     });
     expect(get.status).toBe(405);
-    expect(get.headers.get("X-SeatMark-Rev")).toBe("r352");
+    expect(get.headers.get("X-SeatMark-Rev")).toBe("r353");
     const ok: Response = await onFeedback({
       request: new Request("http://localhost:5173/api/feedback", {
         method: "POST",
@@ -1544,10 +1544,10 @@ describe("第 351 轮：三条边缘函数统一 X-SeatMark-Rev = r352 与公告
       env: withTestEnv({}),
     });
     expect(ok.status).toBe(200);
-    expect(ok.headers.get("X-SeatMark-Rev")).toBe("r352");
+    expect(ok.headers.get("X-SeatMark-Rev")).toBe("r353");
   });
 
-  it("/api/ai-design 405 / 413 / 200 响应均带 r352", async () => {
+  it("/api/ai-design 405 / 413 / 200 响应均带 r353", async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore JS 模块无类型声明
     const { onRequest: onAi, AI_MAX_BODY_BYTES } = await import("../../../edge-functions/api/ai-design.js");
@@ -1576,19 +1576,19 @@ describe("第 351 轮：三条边缘函数统一 X-SeatMark-Rev = r352 与公告
         env,
       });
       expect(notAllowed.status).toBe(405);
-      expect(notAllowed.headers.get("X-SeatMark-Rev")).toBe("r352");
+      expect(notAllowed.headers.get("X-SeatMark-Rev")).toBe("r353");
       const tooLarge: Response = await onAi({
         request: post("{}", { "Content-Length": String(AI_MAX_BODY_BYTES + 1) }),
         env,
       });
       expect(tooLarge.status).toBe(413);
-      expect(tooLarge.headers.get("X-SeatMark-Rev")).toBe("r352");
+      expect(tooLarge.headers.get("X-SeatMark-Rev")).toBe("r353");
       const ok: Response = await onAi({
         request: post(JSON.stringify({ messages: [{ role: "user", content: "hi" }] })),
         env,
       });
       expect(ok.status).toBe(200);
-      expect(ok.headers.get("X-SeatMark-Rev")).toBe("r352");
+      expect(ok.headers.get("X-SeatMark-Rev")).toBe("r353");
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -1906,5 +1906,112 @@ describe("第 350 轮：admin users/codes 逐键读取改受控并发，结果�
     expect(batches[0].used).toBe(7);
     expect(batches[0].masked).toHaveLength(20);
     expect((genData.codes as string[]).length).toBe(20);
+  });
+});
+
+describe("第 353 轮：验证码答案哈希移出 JWT，改存 KV captcha:ans:<cid>", () => {
+  const PASSWORD = "test-password-353";
+
+  function decodeJwtPayload(token: string): Record<string, unknown> {
+    const part = token.split(".")[1]!;
+    const b64 = part.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(Buffer.from(b64, "base64").toString("utf-8")) as Record<string, unknown>;
+  }
+
+  function trackedKv() {
+    const store = new Map<string, string>();
+    const puts: { key: string; value: string; ttl?: number }[] = [];
+    const deletes: string[] = [];
+    const kv = {
+      async get(k: string) {
+        return store.get(k) ?? null;
+      },
+      async put(k: string, v: string, opts?: { expirationTtl?: number }) {
+        puts.push({ key: k, value: v, ttl: opts?.expirationTtl });
+        store.set(k, v);
+      },
+      async delete(k: string) {
+        deletes.push(k);
+        store.delete(k);
+      },
+    };
+    return { store, puts, deletes, env: { seatmark_kv: kv } as unknown as Env };
+  }
+
+  it("GET /api/auth/captcha：token 载荷仅 {typ,cid,exp}、无 cap；答案哈希写入 KV captcha:ans:<cid>，TTL 300s", async () => {
+    const { puts, env } = trackedKv();
+    const response: Response = await onRequest({
+      request: new Request("https://www.seatmark.cn/api/auth/captcha"),
+      env: withTestEnv(env),
+    });
+    expect(response.status).toBe(200);
+    const data = (await response.json()) as { token: string };
+    const payload = decodeJwtPayload(data.token);
+    expect(payload.typ).toBe("captcha");
+    expect(typeof payload.cid).toBe("string");
+    expect(payload.cid as string).toMatch(/^\d+-[0-9a-z]{6}$/);
+    expect(payload).not.toHaveProperty("cap");
+    expect(Object.keys(payload).sort()).toEqual(["cid", "exp", "typ"]);
+    // 整个 token 文本里也不出现任何 64 位 sha256 十六进制串
+    expect(JSON.stringify(payload)).not.toMatch(/[0-9a-f]{64}/);
+
+    const ans = puts.find((p) => p.key === `captcha:ans:${payload.cid as string}`);
+    expect(ans).toBeDefined();
+    expect(ans!.ttl).toBe(300);
+    expect(ans!.value).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("注册成功后 captcha:ans:<cid> 被 kv.delete，且写入 captcha:used 标记；同一 token 再提交为 400「验证码已使用」", async () => {
+    const { store, deletes, env } = trackedKv();
+    const cap = await solvedCaptcha(env);
+    const cid = decodeJwtPayload(cap.captchaToken).cid as string;
+    expect(store.has(`captcha:ans:${cid}`)).toBe(true);
+
+    const first: Response = await onRequest({
+      request: new Request("https://www.seatmark.cn/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "cap-kv@example.com", password: PASSWORD, ...cap }),
+      }),
+      env: withTestEnv(env),
+    });
+    expect(first.status).toBe(200);
+    expect(deletes).toContain(`captcha:ans:${cid}`);
+    expect(store.has(`captcha:ans:${cid}`)).toBe(false);
+    expect([...store.keys()].some((k) => k.startsWith("captcha:used:"))).toBe(true);
+
+    const second: Response = await onRequest({
+      request: new Request("https://www.seatmark.cn/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "cap-kv@example.com", password: PASSWORD, ...cap }),
+      }),
+      env: withTestEnv(env),
+    });
+    expect(second.status).toBe(400);
+    const data = (await second.json()) as { error: string; captcha?: boolean };
+    expect(data.captcha).toBe(true);
+    expect(data.error).toContain("已使用");
+  });
+
+  it("KV 中答案键缺失（过期/被清）而无已用标记 → 400「不正确或已过期」；伪造 cid 亦被拒", async () => {
+    const { store, env } = trackedKv();
+    const cap = await solvedCaptcha(env);
+    const cid = decodeJwtPayload(cap.captchaToken).cid as string;
+    store.delete(`captcha:ans:${cid}`);
+
+    const response: Response = await onRequest({
+      request: new Request("https://www.seatmark.cn/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "cap-gone@example.com", password: PASSWORD, ...cap }),
+      }),
+      env: withTestEnv(env),
+    });
+    expect(response.status).toBe(400);
+    const data = (await response.json()) as { error: string; captcha?: boolean };
+    expect(data.captcha).toBe(true);
+    expect(data.error).toContain("不正确或已过期");
+    expect([...store.keys()].some((k) => k.startsWith("user:"))).toBe(false);
   });
 });
