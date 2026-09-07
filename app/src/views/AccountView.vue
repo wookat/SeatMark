@@ -340,7 +340,10 @@ function formatDate(iso: string | null | undefined): string {
             {{ mode === 'register' ? t('注册 SeatMark') : mode === 'reset' ? t('找回密码') : t('登录 SeatMark') }}
           </h1>
           <p class="mt-2 text-sm leading-6 text-slate-600">
-            <template v-if="mode === 'reset'">
+            <template v-if="serviceUnavailable">
+              {{ t('账号服务维护中，带水印导出不限次') }}{{ t('。') }}
+            </template>
+            <template v-else-if="mode === 'reset'">
               {{ t('输入注册邮箱获取重置验证码，验证后设置新密码即可重新登录。') }}
             </template>
             <template v-else>

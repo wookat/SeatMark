@@ -14,7 +14,7 @@ const model = defineModel<boolean>({ default: false })
 
 <template>
   <!-- 原生 input 仅保留给键盘 / 读屏（sr-only），视觉用自绘方块 -->
-  <label class="group flex cursor-pointer items-center gap-1.5 select-none">
+  <label class="group flex cursor-pointer items-center gap-1.5 select-none max-sm:min-h-9">
     <input v-model="model" type="checkbox" class="peer sr-only" />
     <span
       aria-hidden="true"

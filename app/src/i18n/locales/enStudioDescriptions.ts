@@ -310,20 +310,20 @@ export const enTemplateDescriptions: Record<string, string> = {
     '180×90 mm tent with fading low-saturation triangle patterns on both sides and generous whitespace for tech forums.',
   '180×90 mm 桌牌，内外双线鎏金边框 + 菱形角饰，庄重典雅，政企年度会议与颁奖典礼皆宜。':
     '180×90 mm tent with a double gold frame and diamond corners. Formal and elegant for annual meetings and awards.',
-  '100×65 mm 席卡 A4 一页 8 枚，底部三层青色波纹渐变叠浪，清爽学术气质，论坛研讨会席位标识。':
-    '100×65 mm place card, 8 per A4, with three layered teal waves along the bottom. Fresh academic feel for forums.',
-  '100×65 mm 贵宾席卡，浅灰云石脉络纹理铺底 + 炭金双线框，低调高级，酒会晚宴贵宾席位。':
-    '100×65 mm VIP card on a light grey marble texture with a charcoal-gold double frame. Understated luxury for galas.',
+  '96×62 mm 席卡 A4 一页 8 枚，底部三层青色波纹渐变叠浪，清爽学术气质，论坛研讨会席位标识。':
+    '96×62 mm place card, 8 per A4, with three layered teal waves along the bottom. Fresh academic feel for forums.',
+  '96×62 mm 贵宾席卡，浅灰云石脉络纹理铺底 + 炭金双线框，低调高级，酒会晚宴贵宾席位。':
+    '96×62 mm VIP card on a light grey marble texture with a charcoal-gold double frame. Understated luxury for galas.',
   '180×90 mm 年会桌牌，四角金色星芒放射线与散点星光，白底金饰黑白打印不发闷，年会颁奖两相宜。':
     '180×90 mm annual party tent with gold starbursts and scattered sparkle. White and gold that prints well in mono.',
-  '100×65 mm 年会席卡，左上角中国红绶带斜披 + 底部红金渐变线，喜庆而不俗，年会答谢宴通用。':
-    '100×65 mm annual party card with a red ribbon across the corner and a red-gold gradient line. Festive, not gaudy.',
+  '96×62 mm 年会席卡，左上角中国红绶带斜披 + 底部红金渐变线，喜庆而不俗，年会答谢宴通用。':
+    '96×62 mm annual party card with a red ribbon across the corner and a red-gold gradient line. Festive, not gaudy.',
   '90×55 mm 席位卡 A4 一页 10 枚，对角橄榄绿枝叶花边手绘质感，森系户外婚礼与草坪宴首选。':
     '90×55 mm place card, 10 per A4, with hand-drawn olive foliage on opposite corners. Ideal for forest and lawn weddings.',
   '90×55 mm 席位卡，杏金拱门线条 + 弦月弧与星点，极简法式浪漫，室内仪式感婚宴适用。':
     '90×55 mm place card with apricot-gold arch lines, a crescent and stars. Minimal French romance for indoor weddings.',
-  '100×100 mm 方形桌号牌 A4 一页 4 枚，金色交叠双环象征缔结，桌号特大字居中，摆台即有仪式感。':
-    '100×100 mm square table number, 4 per A4, with interlocking gold rings and a centred extra-large number.',
+  '96×96 mm 方形桌号牌 A4 一页 4 枚，金色交叠双环象征缔结，桌号特大字居中，摆台即有仪式感。':
+    '96×96 mm square table number, 4 per A4, with interlocking gold rings and a centred extra-large number.',
   '90×55 mm 席位卡，四角绯粉水彩晕染渐隐 + 细金内框，柔和甜美，酒店婚宴席位卡百搭款。':
     '90×55 mm place card with fading blush watercolour corners and a thin gold frame. A versatile hotel wedding card.',
   'A4 竖向整页迎宾牌，顶部蕾丝扇形花边 + 中央纹章框，新人姓名与婚期居中，摆放于迎宾区易拉架。':
@@ -332,8 +332,8 @@ export const enTemplateDescriptions: Record<string, string> = {
     '90×55 mm place card with gold droplets falling like fringe from the top. Simple and made for champagne palettes.',
   '180×90 mm 桌牌，Art Deco 扇形放射与阶梯角饰，摩登复古，金婚银婚纪念宴与主题派对出彩之选。':
     '180×90 mm tent with Art Deco fans and stepped corners. Modern vintage for anniversaries and theme parties.',
-  '100×65 mm 席卡，墨蓝色内框配兰草笔触角饰，端庄含蓄，中式喜宴与商务宴请均不违和。':
-    '100×65 mm card with an ink-blue frame and orchid brushstroke corners. Dignified for Chinese and business banquets.',
+  '96×62 mm 席卡，墨蓝色内框配兰草笔触角饰，端庄含蓄，中式喜宴与商务宴请均不违和。':
+    '96×62 mm card with an ink-blue frame and orchid brushstroke corners. Dignified for Chinese and business banquets.',
   '90×55 mm 席位卡 A4 一页 10 枚，腮红粉水彩晕染 + 鎏金细枝角饰，柔美高级的宴会厅婚礼质感。':
     '90×55 mm place card, 10 per A4, with blush watercolour and fine gold branch corners. Soft luxury for ballroom weddings.',
   '180×70 mm 宽幅窗口牌，藏蓝底金色扭索纹样条 + 衬线窗口号大字，庄重可信的政务服务窗口气质。':
