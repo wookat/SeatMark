@@ -97,6 +97,18 @@ describe('AppHeader 「排座」场景下拉', () => {
     await nav.trigger('mouseleave')
     expect(nav.find('[role="menu"]').exists()).toBe(false)
   })
+
+  it('悬停展开后首次点击触发按钮不关闭（钉住），再次点击才关闭', async () => {
+    const wrapper = await mountHeader()
+    const nav = wrapper.get('[data-testid="nav-seating"]')
+    const toggle = nav.get('button')
+    await nav.trigger('mouseenter')
+    expect(nav.find('[role="menu"]').exists()).toBe(true)
+    await toggle.trigger('click')
+    expect(nav.find('[role="menu"]').exists()).toBe(true)
+    await toggle.trigger('click')
+    expect(nav.find('[role="menu"]').exists()).toBe(false)
+  })
 })
 
 describe('AnnouncementBar 关闭按钮热区', () => {
