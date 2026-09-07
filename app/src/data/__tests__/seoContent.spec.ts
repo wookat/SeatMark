@@ -162,4 +162,22 @@ describe('模板详情与数据一致性', () => {
       expect(templateIds.has(d.slug), `模板详情 ${d.slug}`).toBe(true)
     }
   })
+
+  it('详情 intro/描述中写明的「宽×高 mm」与模板 label 实际尺寸（或整页等分裁切尺寸）一致', () => {
+    const byId = new Map(defaultTemplates.map((t) => [t.id, t]))
+    const sizeRe = /(\d+(?:\.\d+)?)\s*[×x]\s*(\d+(?:\.\d+)?)\s*mm/g
+    for (const d of templateDetails) {
+      const tpl = byId.get(d.slug)!
+      const { page } = tpl
+      const allowed = [
+        `${tpl.label.width}×${tpl.label.height}`,
+        `${Math.floor(page.paperWidth / page.cols)}×${Math.floor(page.paperHeight / page.rows)}`,
+      ]
+      for (const text of [d.intro, d.seoDescription, tpl.description ?? '']) {
+        for (const m of text.matchAll(sizeRe)) {
+          expect(allowed, `${d.slug} 文案尺寸 ${m[0]}`).toContain(`${Number(m[1])}×${Number(m[2])}`)
+        }
+      }
+    }
+  })
 })

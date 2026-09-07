@@ -106,6 +106,29 @@ describe('第 345 轮：账号服务不可用降级文案', () => {
       await flushPromises()
       expect(fetchMock.mock.calls.filter((c) => String(c[0]).endsWith('/api/auth/me'))).toHaveLength(0)
     })
+
+    it('直接落地 /pricing：挂载时 ready 为 false，App bootstrap 置 ready 后补探一次并切换降级文案', async () => {
+      const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+        if (String(input).endsWith('/api/auth/me')) {
+          return jsonResponse({ error: '账号服务未配置', code: 'auth_secret_missing' }, 503)
+        }
+        return jsonResponse({}, 404)
+      })
+      const auth = useAuthStore()
+      const wrapper = mount(PricingView, { global: { stubs } })
+      await flushPromises()
+      expect(fetchMock.mock.calls.filter((c) => String(c[0]).endsWith('/api/auth/me'))).toHaveLength(0)
+      expect(wrapper.text()).toContain('注册送 7 天')
+
+      // 匿名访客 bootstrap：不发请求，直接 ready
+      await auth.bootstrap()
+      await flushPromises()
+      expect(fetchMock.mock.calls.filter((c) => String(c[0]).endsWith('/api/auth/me'))).toHaveLength(1)
+      expect(auth.serviceUnavailable).toBe(true)
+      expect(wrapper.text()).not.toContain('注册送 7 天')
+      expect(wrapper.text()).toContain(NEUTRAL)
+      expect(wrapper.find('[data-testid="pricing-pro-cta-degraded"]').exists()).toBe(true)
+    })
   })
 
   describe('QuotaLimitDialog', () => {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { TEMPLATE_COUNT } from '@/data/templateMeta'
 
@@ -14,10 +14,15 @@ import { apiFetch, ApiError, isValidEmail } from '@/utils/api'
 const auth = useAuthStore()
 const toast = useToastStore()
 
-// 定价页展示「注册送 7 天」利益点前，探测一次账号服务是否可用（生产 AUTH_SECRET 缺失期间为 503）
-onMounted(() => {
-  void auth.probeServiceOnce()
-})
+// 定价页展示「注册送 7 天」利益点前，探测一次账号服务是否可用（生产 AUTH_SECRET 缺失期间为 503）。
+// 直接落地 /pricing 时本组件的 mounted 先于 App 的 bootstrap，ready 尚为 false，需等 ready 后再探
+watch(
+  () => auth.ready,
+  (ready) => {
+    if (ready) void auth.probeServiceOnce()
+  },
+  { immediate: true },
+)
 
 interface Plan {
   name: string
