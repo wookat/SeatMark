@@ -17,12 +17,15 @@ import { enTemplateDescriptions } from '@/i18n/locales/enStudioDescriptions'
  * 禁词（营销化 / 不可验证的夸张表述）：
  *   guides 既有 7 词：一键生成、完整流程、一次讲清、全攻略、一站式、看完即可上手、不出错、保姆级
  *   本轮新增 2 词：拉满、效率翻倍
+ *   第 354 轮新增：抓手、链路（内部黑话，用户文案 0 容忍）；仪式感（泛用套话，全部数据文件合计 ≤ 3，仅保留典礼/全真模拟语境）
  *
  * 例外：功能按钮名「一键生成对应桌贴」是 /seating 页真实按钮文案，教程正文/FAQ 引用该按钮名属功能说明，
  *       不在 SEO 标题 / 模板文案范围内单独禁止。
  */
-const BANNED = ['一键生成', '完整流程', '一次讲清', '全攻略', '一站式', '看完即可上手', '不出错', '保姆级', '拉满', '效率翻倍']
-const NEW_THIS_ROUND = ['拉满', '效率翻倍']
+const BANNED = ['一键生成', '完整流程', '一次讲清', '全攻略', '一站式', '看完即可上手', '不出错', '保姆级', '拉满', '效率翻倍', '抓手', '链路']
+const NEW_THIS_ROUND = ['拉满', '效率翻倍', '抓手', '链路']
+/** 限额词：全部数据文件（含教程正文）合计上限 */
+const BUDGETED: Record<string, number> = { 仪式感: 3 }
 /** 允许原样出现的功能名（按钮文案） */
 const FUNCTIONAL_LABELS = ['一键生成对应桌贴']
 
@@ -77,8 +80,19 @@ describe('第 349 轮：禁词护栏（SEO / 专题 / 对比 / 模板 / 模板�
     expect(hits(collect())).toEqual([])
   })
 
-  it('教程正文（含 FAQ/howTo）不含本轮新增禁词「拉满」「效率翻倍」', () => {
+  it('教程正文（含 FAQ/howTo）不含新增禁词「拉满」「效率翻倍」「抓手」「链路」', () => {
     expect(hits(collectStrings(guides), NEW_THIS_ROUND)).toEqual([])
+  })
+
+  it.each(Object.entries(BUDGETED))('限额词「%s」全部用户文案合计不超 %d 处', (word, budget) => {
+    const all = [...Object.values(SCOPES).flatMap((collect) => collect()), ...collectStrings(guides)]
+    const found = all.filter((s) => s.includes(word)).map((s) => s.slice(0, 60))
+    expect(found.length, found.join('\n')).toBeLessThanOrEqual(budget)
+  })
+
+  it('FeedbackButton 文案用「你」不用「您」（含 en.ts 中文键）', () => {
+    expect(readSrc('components/ui/FeedbackButton.vue')).not.toContain('您')
+    expect(readSrc('i18n/locales/en.ts')).not.toContain('您')
   })
 
   it('SEO 标题里的「一键生成」已改为「生成」/具体动作；/seating 真实按钮名保留', () => {

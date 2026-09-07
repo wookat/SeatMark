@@ -369,6 +369,8 @@ export const SEATING_HANDOFF_KEY = 'seatmark.seating-handoff.v1'
 
 export interface SeatingHandoff {
   title: string
+  /** 可选考场号：非空时每行带「考场」列（= 考场号）；为空则不带该列 */
+  roomNo?: string
   rows: DataRow[]
 }
 

@@ -21,6 +21,8 @@ import {
   assignGroupToGuests,
   autoAssignGuests,
   type AssignStrategy,
+  searchGuests,
+  type GuestSearchHit,
   BANQUET_STATE_KEY,
   explainSplit,
   type SplitExplanation,
@@ -530,12 +532,15 @@ function autoAssign() {
     toast.warning(tr('还没有餐桌'), tr('请先在第 2 步选择场地预设或添加餐桌'))
     return
   }
-  const result = autoAssignGuests(guests.value, tables.value, assignStrategy.value)
+  const result = autoAssignGuests(guests.value, tables.value, assignStrategy.value, { respectLocked: true })
   for (const t of tables.value) {
     t.guestIds = result.get(t.id) ?? []
   }
   const s = summary.value
-  const detail = `${tr('已安排')} ${s.assigned}/${s.total} · ${tr('空桌')} ${s.emptyTables} · ${tr('拆分分组')} ${s.splitGroups} · ${tr('未安排')} ${s.unassigned}`
+  const lockedNote = lockedTableCount.value
+    ? ` · ${tr('锁定桌')} ${lockedTableCount.value}${tr('（未动）')}`
+    : ''
+  const detail = `${tr('已安排')} ${s.assigned}/${s.total} · ${tr('空桌')} ${s.emptyTables} · ${tr('拆分分组')} ${s.splitGroups} · ${tr('未安排')} ${s.unassigned}${lockedNote}`
   if (s.splitGroups) splitDetailsOpen.value = true
   if (s.unassigned) {
     toast.warning(
@@ -687,6 +692,59 @@ const seatedIds = computed(() => {
   return set
 })
 const unassignedGuests = computed(() => guests.value.filter((g) => !seatedIds.value.has(g.id)))
+
+// ---------- 宾客搜索定位（姓名 / 拼音首字母） ----------
+const guestQuery = ref('')
+const searchHits = computed(() => searchGuests(guests.value, tables.value, guestQuery.value))
+const hitGuestIds = computed(() => new Set(searchHits.value.map((h) => h.guest.id)))
+/** 名单区按搜索词过滤；未搜索时显示全部 */
+const rosterGuests = computed(() =>
+  guestQuery.value.trim() ? guests.value.filter((g) => hitGuestIds.value.has(g.id)) : guests.value,
+)
+const flashTableId = ref<string | null>(null)
+let flashTimer: ReturnType<typeof setTimeout> | null = null
+
+/** 滚到命中宾客所在桌并闪烁；未安排的滚到宾客池 */
+function focusSearchHit(hit: GuestSearchHit) {
+  if (!hit.tableId) {
+    focusUnassignedPool()
+    return
+  }
+  flashTableId.value = hit.tableId
+  if (flashTimer) clearTimeout(flashTimer)
+  flashTimer = setTimeout(() => {
+    flashTableId.value = null
+  }, 1800)
+  canvasContainer.value
+    ?.querySelector(`[data-table-id="${hit.tableId}"]`)
+    ?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+}
+
+watch(searchHits, (hits) => {
+  const first = hits[0]
+  if (first && first.tableId) focusSearchHit(first)
+})
+
+function clearGuestQuery() {
+  guestQuery.value = ''
+}
+
+function tableNameById(id: string): string {
+  return tables.value.find((t) => t.id === id)?.name ?? ''
+}
+
+// ---------- 锁定桌：自动分配不改动 ----------
+const lockedTableCount = computed(() => tables.value.filter((t) => t.locked).length)
+
+function toggleTableLock(id: string) {
+  const t = tables.value.find((x) => x.id === id)
+  if (!t) return
+  t.locked = !t.locked
+  toast.info(
+    t.locked ? `${t.name}${tr('：')}${tr('已锁定')}` : `${t.name}${tr('：')}${tr('已解锁')}`,
+    t.locked ? tr('重新自动分配时这桌及桌上宾客保持不变') : tr('重新自动分配时这桌会参与重排'),
+  )
+}
 
 // ---------- 未安排池多选 + 批量归组（不碰画布交互、不改逐人下拉） ----------
 const multiSelect = ref(false)
@@ -1184,11 +1242,20 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
           </div>
 
           <div class="mt-3">
-            <div class="flex items-center justify-between">
+            <!-- <sm：按钮通栏左对齐并在行右侧留出 pr-14 保留区，避开 fixed right-3 的反馈气泡（size-10） -->
+            <div
+              class="flex items-center justify-between max-sm:flex-wrap max-sm:pr-14"
+              data-testid="banquet-roster-actions"
+            >
               <label class="field-label !mb-0">
                 {{ tr('名单') }}{{ tr('（') }}{{ guestCount }} {{ tr('人') }} / {{ seatCount }} {{ tr('座') }}{{ tr('）') }}
               </label>
-              <button type="button" class="btn btn-ghost btn-sm" @click="addGuestRow">
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm max-sm:mt-1 max-sm:w-full max-sm:justify-start"
+                data-testid="banquet-add-guest-row"
+                @click="addGuestRow"
+              >
                 + {{ tr('加一行') }}
               </button>
             </div>
@@ -1200,11 +1267,51 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             >
               {{ tr('已合并') }} {{ mergedDuplicates.length }} {{ tr('个重复姓名') }}{{ tr('：') }}{{ mergedDuplicatesText }}
             </p>
+            <div v-if="guests.length" class="mt-1.5 flex min-w-0 items-center gap-1.5">
+              <input
+                v-model="guestQuery"
+                type="search"
+                class="input-field min-w-0 flex-1"
+                data-testid="banquet-guest-search"
+                :aria-label="tr('搜索宾客')"
+                :placeholder="tr('搜索宾客：姓名或拼音首字母，如 zw')"
+              />
+              <button
+                v-if="guestQuery"
+                type="button"
+                class="btn btn-ghost btn-sm shrink-0"
+                @click="clearGuestQuery"
+              >
+                {{ tr('清除') }}
+              </button>
+            </div>
+            <p
+              v-if="guestQuery.trim()"
+              class="mt-1 text-xs text-slate-500"
+              data-testid="banquet-guest-search-result"
+              role="status"
+              aria-live="polite"
+            >
+              <template v-if="searchHits.length">
+                {{ tr('命中') }} {{ searchHits.length }} {{ tr('人') }}{{ tr('：') }}
+                <button
+                  v-for="h in searchHits.slice(0, 6)"
+                  :key="h.guest.id"
+                  type="button"
+                  class="mr-1 rounded border border-brand-200 bg-brand-50 px-1.5 py-0.5 text-brand-700 hover:bg-brand-100"
+                  @click="focusSearchHit(h)"
+                >
+                  {{ h.guest.name }} · {{ h.tableId ? tableNameById(h.tableId) : tr('未安排') }}
+                </button>
+                <span v-if="searchHits.length > 6">…</span>
+              </template>
+              <template v-else>{{ tr('没有匹配的宾客') }}</template>
+            </p>
             <div
-              v-if="guests.length"
+              v-if="rosterGuests.length"
               class="mt-1.5 flex max-h-64 flex-col gap-1.5 overflow-y-auto pr-1"
             >
-              <div v-for="g in guests" :key="g.id" class="flex items-center gap-1.5">
+              <div v-for="g in rosterGuests" :key="g.id" class="flex items-center gap-1.5">
                 <input
                   v-model="g.name"
                   type="text"
@@ -1229,7 +1336,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
                 </button>
               </div>
             </div>
-            <p v-else class="mt-1 text-xs text-slate-500">
+            <p v-else-if="!guests.length" class="mt-1 text-xs text-slate-500">
               {{ tr('还没有宾客：粘贴名单、上传 TXT，或点「加一行」直接在线输入（无需 Excel）。') }}
             </p>
           </div>
@@ -1306,6 +1413,16 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
                   {{ tr('删除这张桌') }}
                 </button>
               </div>
+              <label class="col-span-2 flex cursor-pointer items-center gap-2 text-xs text-slate-700">
+                <input
+                  type="checkbox"
+                  class="size-3.5 accent-brand-600"
+                  :checked="!!selectedTable.locked"
+                  data-testid="banquet-table-lock"
+                  @change="toggleTableLock(selectedTable.id)"
+                />
+                {{ tr('锁定这张桌：重新自动分配时桌上宾客保持不变') }}
+              </label>
             </div>
           </div>
           <div
@@ -1640,6 +1757,8 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
                       'banquet-table--drop': guestDragging && dropTableId === t.id,
                       'banquet-table--over': t.guestIds.length > t.seats,
                       'banquet-table--empty-hint': highlightEmptyTables && !t.guestIds.length,
+                      'banquet-table--locked': t.locked,
+                      'banquet-table--flash': flashTableId === t.id,
                     }"
                     :style="{
                       left: `${t.x}mm`,
@@ -1648,8 +1767,26 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
                       height: `${t.height}mm`,
                     }"
                     :data-table-id="t.id"
+                    :data-locked="t.locked ? 'true' : undefined"
                     @pointerdown="onElementPointerDown('table', t.id, $event)"
                   >
+                    <button
+                      type="button"
+                      class="banquet-table-lock"
+                      :class="{ 'banquet-table-lock--on': t.locked }"
+                      :aria-pressed="!!t.locked"
+                      :aria-label="`${t.locked ? tr('解锁') : tr('锁定')} ${t.name}`"
+                      :title="t.locked ? tr('已锁定：自动分配不改动这桌') : tr('锁定这桌：自动分配不改动')"
+                      data-testid="banquet-table-lock-toggle"
+                      @pointerdown.stop
+                      @click.stop="toggleTableLock(t.id)"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                        <rect x="5" y="11" width="14" height="10" rx="2" />
+                        <path v-if="t.locked" d="M8 11V7a4 4 0 0 1 8 0v4" />
+                        <path v-else d="M8 11V7a4 4 0 0 1 7.5-1.9" />
+                      </svg>
+                    </button>
                     <span class="banquet-table-name">{{ t.name }}</span>
                     <span class="banquet-table-count">{{ t.guestIds.length }}/{{ t.seats }}</span>
                     <span class="banquet-table-guests">
@@ -1657,7 +1794,10 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
                         v-for="g in tableGuests(t)"
                         :key="g.id"
                         class="banquet-guest"
-                        :class="{ 'banquet-guest--dragging': guestDragging && guestDragId === g.id }"
+                        :class="{
+                          'banquet-guest--dragging': guestDragging && guestDragId === g.id,
+                          'banquet-guest--hit': hitGuestIds.has(g.id),
+                        }"
                         :style="
                           guestColor(g, true)
                             ? { borderColor: guestColor(g, true)!, color: guestColor(g, true)! }
@@ -2307,6 +2447,61 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
 
 .banquet-table--over {
   border-color: #dc2626;
+}
+
+.banquet-table--locked {
+  border-style: dashed;
+  background: #f8fafc;
+}
+
+.banquet-table-lock {
+  position: absolute;
+  top: 0.8mm;
+  right: 0.8mm;
+  display: inline-flex;
+  width: 4.2mm;
+  height: 4.2mm;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1mm;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.banquet-table-lock svg {
+  width: 3mm;
+  height: 3mm;
+}
+
+.banquet-table-lock:hover {
+  color: #475569;
+}
+
+.banquet-table-lock--on {
+  color: #4f46e5;
+}
+
+.banquet-table--flash {
+  animation: banquet-flash 0.6s ease-in-out 3;
+}
+
+@keyframes banquet-flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 1.4mm rgba(79, 70, 229, 0.45);
+    border-color: #4f46e5;
+  }
+}
+
+.banquet-guest--hit {
+  background: #fef3c7;
+  border-color: #d97706 !important;
+  color: #92400e !important;
 }
 
 /* 屏幕上的未安排宾客池小胶囊 */

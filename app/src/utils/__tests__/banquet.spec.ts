@@ -17,6 +17,7 @@ import {
   snapshotTables,
   summarizeAssignments,
   removeEmptyTables,
+  searchGuests,
   splitGroups,
   summarizeBanquet,
   validateBanquet,
@@ -319,6 +320,75 @@ describe('autoAssignGuests', () => {
     const guests = ['g1', 'g2', 'g3'].map((id) => guest(id))
     const out = autoAssignGuests(guests, tables)
     expect(out.get('A')).toEqual(['g1', 'g2'])
+  })
+})
+
+describe('第 354 轮：autoAssignGuests respectLocked 锁定桌', () => {
+  it('锁定桌及其宾客重排后保持不变，其余宾客只进未锁桌', () => {
+    const locked = table('L', 4, { locked: true, guestIds: ['v1', 'v2'] })
+    const tables = [locked, table('A', 4), table('B', 4)]
+    const guests = [
+      guest('v1', 'x'),
+      guest('v2', 'y'),
+      guest('x1', 'x'),
+      guest('x2', 'x'),
+      guest('y1', 'y'),
+      guest('s', null),
+    ]
+    const out = autoAssignGuests(guests, tables)
+    expect(out.get('L')).toEqual(['v1', 'v2'])
+    const rest = [...out.get('A')!, ...out.get('B')!]
+    expect(rest).not.toContain('v1')
+    expect(rest).not.toContain('v2')
+    expect(rest.sort()).toEqual(['s', 'x1', 'x2', 'y1'])
+  })
+
+  it('fill-tables 策略同样跳过锁定桌', () => {
+    const tables = [table('L', 4, { locked: true, guestIds: ['v1'] }), table('A', 4)]
+    const guests = [guest('v1'), guest('g1'), guest('g2')]
+    const out = autoAssignGuests(guests, tables, 'fill-tables')
+    expect(out.get('L')).toEqual(['v1'])
+    expect(out.get('A')).toEqual(['g1', 'g2'])
+  })
+
+  it('未锁桌（含此前已就座宾客）照常参与重排', () => {
+    const tables = [table('A', 4, { guestIds: ['g2'] }), table('B', 4)]
+    const guests = [guest('g1', 'x'), guest('g2', 'x'), guest('g3', 'x')]
+    const out = autoAssignGuests(guests, tables)
+    expect(out.get('A')).toEqual(['g1', 'g2', 'g3'])
+    expect(out.get('B')).toEqual([])
+  })
+
+  it('respectLocked=false 时锁定桌视同普通桌', () => {
+    const tables = [table('L', 4, { locked: true, guestIds: ['v1'] }), table('A', 4)]
+    const guests = [guest('g1', 'x'), guest('g2', 'x'), guest('g3', 'x'), guest('v1', 'x')]
+    const out = autoAssignGuests(guests, tables, 'keep-groups', { respectLocked: false })
+    expect(out.get('L')).toEqual(['g1', 'g2', 'g3', 'v1'])
+    expect(out.get('A')).toEqual([])
+  })
+})
+
+describe('第 354 轮：searchGuests 姓名 / 拼音首字母', () => {
+  const guests: BanquetGuest[] = [
+    { id: 'a', name: '张伟', groupId: null },
+    { id: 'b', name: '李娜', groupId: null },
+    { id: 'c', name: '王芳', groupId: null },
+  ]
+  const tables = [table('T1', 4, { guestIds: ['a'] }), table('T2', 4, { guestIds: ['c'] })]
+
+  it('按姓名子串命中并带回所在桌', () => {
+    expect(searchGuests(guests, tables, '张')).toEqual([{ guest: guests[0], tableId: 'T1' }])
+  })
+
+  it('按拼音首字母命中，未安排的宾客 tableId 为 null', () => {
+    const hits = searchGuests(guests, tables, 'ln')
+    expect(hits).toEqual([{ guest: guests[1], tableId: null }])
+    expect(searchGuests(guests, tables, 'WF')[0]?.tableId).toBe('T2')
+  })
+
+  it('未命中返回空数组；空查询不视为全部命中', () => {
+    expect(searchGuests(guests, tables, '赵')).toEqual([])
+    expect(searchGuests(guests, tables, '   ')).toEqual([])
   })
 })
 

@@ -102,7 +102,7 @@ describe('第 341 轮：FeedbackButton 英文化（mock fetch，不发请求）'
     expect(w.text()).toContain('反馈类型')
     expect(w.text()).toContain('反馈内容')
     expect(w.text()).toContain('提交反馈')
-    expect(w.find('textarea').attributes('placeholder')).toBe('请描述您遇到的问题或建议...')
+    expect(w.find('textarea').attributes('placeholder')).toBe('请描述你遇到的问题或建议...')
 
     await (w.vm as unknown as { submit: () => Promise<void> }).submit()
     expect(useToastStore().toasts[0]!.title).toBe('请填写反馈内容')

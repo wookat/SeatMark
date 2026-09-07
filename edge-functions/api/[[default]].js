@@ -23,7 +23,7 @@
  *   POST /api/admin/codes        批量生成兑换码（管理员，供卡网售卖）
  *   GET  /api/admin/codes        兑换码批次列表与核销进度
  *   POST /api/team/reserve       团队版预订登记
- *   GET  /api/announcement       公告（公开）
+ *   GET  /api/announcement       公告（公开；附 authService: ok | auth_secret_missing）
  *   GET  /api/admin/health       环境健康检查（KV/邮件/AUTH_SECRET 配置状态）
  *   GET  /api/admin/overview     管理端总览（用户数/增长/模板同步/配额/裂变/预订）
  *   GET  /api/admin/users        用户列表
@@ -1576,14 +1576,16 @@ async function handleRequest(context) {
   // ----- 公告（公开读取；极少变化，允许边缘/浏览器短缓存，管理端 PUT 后最多 5 分钟内对访客生效） -----
   if (path === '/api/announcement' && (method === 'GET' || method === 'HEAD')) {
     const cacheHeader = { ...storageHeader, 'Cache-Control': ANNOUNCEMENT_CACHE_CONTROL }
+    // 账号服务可用性随公告一并下发：首页等匿名页面不额外探测 /api/auth/me 也能收起「注册送 7 天」利益点
+    const authService = hasAuthSecret(env) || isDevAllowed(env) ? 'ok' : 'auth_secret_missing'
     const raw = await kv.get('announcement')
     let res
-    if (!raw) res = json({ announcement: null }, 200, cacheHeader)
+    if (!raw) res = json({ announcement: null, authService }, 200, cacheHeader)
     else {
       try {
-        res = json({ announcement: JSON.parse(raw) }, 200, cacheHeader)
+        res = json({ announcement: JSON.parse(raw), authService }, 200, cacheHeader)
       } catch {
-        res = json({ announcement: null }, 200, cacheHeader)
+        res = json({ announcement: null, authService }, 200, cacheHeader)
       }
     }
     return method === 'HEAD' ? headOf(res) : res

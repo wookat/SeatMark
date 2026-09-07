@@ -2,31 +2,50 @@
 import { onMounted, ref } from 'vue'
 
 import { t } from '@/i18n'
+import { useAuthStore } from '@/stores/auth'
 import {
+  type AnnouncementCacheEntry,
   type AnnouncementPayload as Announcement,
+  type AnnouncementResponse,
   readAnnouncementCache,
   writeAnnouncementCache,
 } from '@/utils/announcementCache'
 import { apiFetch } from '@/utils/api'
 
+const auth = useAuthStore()
 const announcement = ref<Announcement | null>(null)
 const dismissed = ref(false)
 
 const DISMISS_KEY = 'seatmark.announcement-dismissed.v1'
 
-async function loadAnnouncement(): Promise<Announcement | null> {
+async function loadAnnouncement(): Promise<AnnouncementCacheEntry> {
   const now = Date.now()
   const cached = readAnnouncementCache(now)
-  if (cached) return cached.announcement
-  const data = await apiFetch<{ announcement: Announcement | null }>('/api/announcement')
-  const value = data.announcement ?? null
-  writeAnnouncementCache({ announcement: value, fetchedAt: now })
-  return value
+  if (cached) return cached
+  const data = await apiFetch<AnnouncementResponse>('/api/announcement')
+  const entry: AnnouncementCacheEntry = {
+    announcement: data.announcement ?? null,
+    fetchedAt: now,
+    ...(data.authService ? { authService: data.authService } : {}),
+  }
+  writeAnnouncementCache(entry)
+  return entry
+}
+
+/**
+ * 复用公告请求随附的账号服务状态：缺失 AUTH_SECRET 时站内「注册送 7 天」利益点统一换成维护文案，
+ * 不额外探测 /api/auth/me。只置不可用，恢复由真实账号请求成功（auth.refresh）或公告缓存过期后的 ok 回应清除。
+ */
+function applyAuthService(state: AnnouncementCacheEntry['authService']): void {
+  if (state === 'auth_secret_missing') auth.serviceUnavailable = true
+  else if (state === 'ok' && !auth.probed) auth.serviceUnavailable = false
 }
 
 onMounted(async () => {
   try {
-    const current = await loadAnnouncement()
+    const entry = await loadAnnouncement()
+    applyAuthService(entry.authService)
+    const current = entry.announcement
     if (current?.enabled && current.text) {
       announcement.value = current
       try {
