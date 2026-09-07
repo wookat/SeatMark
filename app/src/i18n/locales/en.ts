@@ -1935,4 +1935,18 @@ export const en: Record<string, string> = {
   '请至少添加一个文本或照片字段': 'Add at least one text or photo field',
   'AI 设计已生成': 'AI design generated',
   '已按新版式重排页面，可继续拖拽微调': 'The page has been re-laid out. You can keep fine-tuning by dragging',
+  // ---- 第 358 轮 P2-1：宴会钉住宾客 ----
+  '钉住': 'Pinned',
+  '是': 'Yes',
+  '（保持原桌）': ' (kept at their table)',
+  '点桌上姓名旁的图钉可钉住宾客：重新自动分配或整组移桌时保持原桌并计入容量。':
+    'Click the pin next to a name on a table to pin that guest: they stay at that table (and count toward its seats) when you re-run auto-assign or move a whole group.',
+  '已钉住 {n} 人': '{n} pinned',
+  '取消钉住 {name}': 'Unpin {name}',
+  '钉住 {name} 到本桌': 'Pin {name} to this table',
+  '取消钉住': 'Unpin',
+  '钉住到本桌': 'Pin to this table',
+  '座位号: 12\n姓名: 张三\n考场: 第1考场\n准考证号: 2026061001':
+    'Seat no.: 12\nName: Zhang San\nRoom: Room 1\nAdmission no.: 2026061001',
+  '考场号': 'Room no.',
 }

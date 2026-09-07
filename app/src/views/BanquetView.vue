@@ -546,7 +546,10 @@ function autoAssign() {
   const lockedNote = lockedTableCount.value
     ? ` · ${tr('锁定桌')} ${lockedTableCount.value}${tr('（未动）')}`
     : ''
-  const detail = `${tr('已安排')} ${s.assigned}/${s.total} · ${tr('空桌')} ${s.emptyTables} · ${tr('拆分分组')} ${s.splitGroups} · ${tr('未安排')} ${s.unassigned}${lockedNote}`
+  const pinnedNote = pinnedGuests.value.length
+    ? ` · ${tr('钉住')} ${pinnedGuests.value.length}${tr('（保持原桌）')}`
+    : ''
+  const detail = `${tr('已安排')} ${s.assigned}/${s.total} · ${tr('空桌')} ${s.emptyTables} · ${tr('拆分分组')} ${s.splitGroups} · ${tr('未安排')} ${s.unassigned}${lockedNote}${pinnedNote}`
   if (s.splitGroups) splitDetailsOpen.value = true
   if (s.unassigned) {
     toast.warning(
@@ -573,10 +576,34 @@ function reassignWith(strategy: AssignStrategy) {
   autoAssign()
 }
 
-/** 可容纳整组的桌：除去该组已在此桌的成员后，剩余座位 ≥ 组人数 */
+/** 钉住的宾客（所钉桌仍存在） */
+const pinnedGuests = computed(() => {
+  const tableIds = new Set(tables.value.map((t) => t.id))
+  return guests.value.filter((g) => !!g.pinnedTableId && tableIds.has(g.pinnedTableId))
+})
+
+function isPinnedTo(guest: BanquetGuest, tableId: string): boolean {
+  return guest.pinnedTableId === tableId
+}
+
+/** 钉住 / 取消钉住：钉住的宾客在自动分配、重新分配、整组移桌时保持原桌（仅浏览器本地状态） */
+function togglePin(guestId: string, tableId: string) {
+  const guest = guests.value.find((g) => g.id === guestId)
+  if (!guest) return
+  guest.pinnedTableId = guest.pinnedTableId === tableId ? null : tableId
+}
+
+/** 整组移桌时可移动的成员：钉住在其他桌的成员保持原桌不动 */
+function movableGroupMembers(groupId: string, tableId: string): string[] {
+  return guests.value
+    .filter((g) => g.groupId === groupId && (!g.pinnedTableId || g.pinnedTableId === tableId))
+    .map((g) => g.id)
+}
+
+/** 可容纳整组的桌：除去该组已在此桌的成员后，剩余座位 ≥ 可移动的组人数 */
 function tablesFittingGroup(groupId: string): BanquetTable[] {
-  const members = new Set(guests.value.filter((g) => g.groupId === groupId).map((g) => g.id))
   return tables.value.filter((t) => {
+    const members = new Set(movableGroupMembers(groupId, t.id))
     const others = t.guestIds.filter((id) => !members.has(id)).length
     return t.seats - others >= members.size
   })
@@ -603,7 +630,7 @@ function moveGroupToTable(groupId: string, tableId: string) {
     toast.warning(tr('该桌剩余座位不够'), tr('请选择剩余座位 ≥ 组人数的桌'))
     return
   }
-  const members = guests.value.filter((g) => g.groupId === groupId).map((g) => g.id)
+  const members = movableGroupMembers(groupId, tableId)
   const memberSet = new Set(members)
   for (const t of tables.value) {
     if (t.id !== tableId) t.guestIds = t.guestIds.filter((id) => !memberSet.has(id))
@@ -888,6 +915,9 @@ function moveGuestToTable(guestId: string, tableId: string) {
     t.guestIds = t.guestIds.filter((id) => id !== guestId)
   }
   target.guestIds = [...target.guestIds, guestId]
+  // 手动拖到另一桌：钉住跟随新桌（用户直接操作即新的约束）
+  const guest = guests.value.find((g) => g.id === guestId)
+  if (guest?.pinnedTableId) guest.pinnedTableId = tableId
   if (target.guestIds.length > target.seats) {
     toast.warning(`「${target.name}」${tr('已超员')}`, `${target.guestIds.length} / ${target.seats}`)
   }
@@ -897,6 +927,8 @@ function moveGuestToPool(guestId: string) {
   for (const t of tables.value) {
     t.guestIds = t.guestIds.filter((id) => id !== guestId)
   }
+  const guest = guests.value.find((g) => g.id === guestId)
+  if (guest?.pinnedTableId) guest.pinnedTableId = null
 }
 
 // ---------- 第 4 步：检查与导出 ----------
@@ -1505,6 +1537,12 @@ function toPlaceCards() {
           <p class="mt-2 text-xs leading-5 text-slate-600">
             {{ tr('分配后可直接拖拽宾客姓名在桌之间移动微调；拖到画布下方「未安排」区可撤下宾客。') }}
           </p>
+          <p class="mt-1 text-xs leading-5 text-slate-600" data-testid="pin-hint">
+            {{ tr('点桌上姓名旁的图钉可钉住宾客：重新自动分配或整组移桌时保持原桌并计入容量。') }}
+            <span v-if="pinnedGuests.length" class="font-semibold" data-testid="pin-count">{{
+              tr('已钉住 {n} 人').replace('{n}', String(pinnedGuests.length))
+            }}</span>
+          </p>
         </section>
 
         <!-- 第 4 步：检查与导出 -->
@@ -1847,15 +1885,34 @@ function toPlaceCards() {
                         :class="{
                           'banquet-guest--dragging': guestDragging && guestDragId === g.id,
                           'banquet-guest--hit': hitGuestIds.has(g.id),
+                          'banquet-guest--pinned': isPinnedTo(g, t.id),
                         }"
                         :style="
                           guestColor(g, true)
                             ? { borderColor: guestColor(g, true)!, color: guestColor(g, true)! }
                             : undefined
                         "
+                        :data-pinned="isPinnedTo(g, t.id) ? 'true' : undefined"
                         @pointerdown="onGuestPointerDown(g.id, $event)"
                       >
                         {{ g.name }}
+                        <button
+                          type="button"
+                          class="banquet-guest-pin"
+                          :class="{ 'banquet-guest-pin--on': isPinnedTo(g, t.id) }"
+                          :aria-pressed="isPinnedTo(g, t.id)"
+                          :aria-label="
+                            (isPinnedTo(g, t.id) ? tr('取消钉住 {name}') : tr('钉住 {name} 到本桌')).replace('{name}', g.name)
+                          "
+                          :title="isPinnedTo(g, t.id) ? tr('取消钉住') : tr('钉住到本桌')"
+                          data-testid="guest-pin-toggle"
+                          @pointerdown.stop
+                          @click.stop="togglePin(g.id, t.id)"
+                        >
+                          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M9.5 2.5l4 4-2.5.5-2.5 2.5.5 3-2-2-4 4 4-4-2-2 3 .5L10 6z" :fill="isPinnedTo(g, t.id) ? 'currentColor' : 'none'" />
+                          </svg>
+                        </button>
                       </span>
                     </span>
                   </div>
@@ -2484,6 +2541,41 @@ function toPlaceCards() {
 
 .banquet-guest--dragging {
   opacity: 0.4;
+}
+
+.banquet-guest-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.2mm;
+  height: 3.2mm;
+  margin-left: 0.4mm;
+  vertical-align: -0.5mm;
+  border-radius: 0.6mm;
+  color: #94a3b8;
+  opacity: 0.55;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.banquet-guest-pin svg {
+  width: 2.6mm;
+  height: 2.6mm;
+}
+
+.banquet-guest:hover .banquet-guest-pin,
+.banquet-guest-pin:focus-visible,
+.banquet-guest-pin--on {
+  opacity: 1;
+}
+
+.banquet-guest-pin--on {
+  color: #4f46e5;
+}
+
+.banquet-guest--pinned {
+  border-style: solid;
+  box-shadow: 0 0 0 0.3mm rgba(79, 70, 229, 0.25);
 }
 
 .banquet-selected {
