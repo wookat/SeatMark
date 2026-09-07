@@ -10,6 +10,8 @@ import { mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
 import { en } from '@/i18n/locales/en'
+import { enDemoValues, enFieldLabels, enPaperNames, enSubcategories, enTemplateNames, enTemplateScenarios } from '@/i18n/locales/enStudio'
+import { enTemplateDescriptions } from '@/i18n/locales/enStudioDescriptions'
 import { setLocale } from '@/i18n'
 import GuidesView from '@/views/GuidesView.vue'
 import HomeView from '@/views/HomeView.vue'
@@ -86,6 +88,62 @@ describe('第 348 轮：en.ts 译文病句护栏', () => {
     // 以「：」结尾且译文为 ': ' 的碎片词条只剩通用的「：」本身
     const fragments = entries.filter(([k, v]) => k.endsWith('：') && k !== '：' && v === ': ')
     expect(fragments.map(([k]) => k)).toEqual([])
+  })
+})
+
+/**
+ * 第 358 轮：英文词典统一美式拼写（centred→centered、colour→color、labelled→labeled 等），
+ * 三份词典（en / enStudio / enStudioDescriptions）任一译文命中英式拼写即失败。
+ */
+const BRITISH_SPELLINGS = [
+  /\bcentred\b/i,
+  /\bcentre\b/i,
+  /\bcolours?\b/i,
+  /\bcolour(ed|ing|ful)\b/i,
+  /\blabelled\b/i,
+  /\blabelling\b/i,
+  /\borganis(e|ed|es|ing|ation|ations)\b/i,
+  /\brecognis(e|ed|es|ing)\b/i,
+  /\bcustomis(e|ed|es|ing|ation)\b/i,
+  /\boptimis(e|ed|es|ing|ation)\b/i,
+  /\bcancelled\b/i,
+  /\bcancelling\b/i,
+  /\bgrey(scale)?\b/i,
+  /\bfavourite\b/i,
+  /\bbehaviour\b/i,
+  /\bcatalogue\b/i,
+  /\btravelling\b/i,
+  /\banalyse\b/i,
+  /\blicence\b/i,
+  /\bprogramme\b/i,
+  /\bdefence\b/i,
+  /\bpractise\b/i,
+]
+
+describe('第 358 轮：英文词典禁用英式拼写', () => {
+  const DICTS: Array<[string, Record<string, string>]> = [
+    ['en.ts', en],
+    ['enStudio.ts', { ...enFieldLabels, ...enDemoValues, ...enPaperNames, ...enSubcategories, ...enTemplateNames, ...enTemplateScenarios }],
+    ['enStudioDescriptions.ts', enTemplateDescriptions],
+  ]
+  it.each(DICTS)('%s 译文无英式拼写', (_name, dict) => {
+    const bad: string[] = []
+    for (const [k, v] of Object.entries(dict)) {
+      for (const re of BRITISH_SPELLINGS) {
+        const m = v.match(re)
+        if (m) bad.push(`${m[0]} ← ${k.slice(0, 40)}`)
+      }
+    }
+    expect(bad).toEqual([])
+  })
+
+  it('禁词表本身能识别典型英式拼写', () => {
+    for (const word of ['centred', 'colour', 'labelled', 'organisation', 'recognised']) {
+      expect(BRITISH_SPELLINGS.some((re) => re.test(word)), word).toBe(true)
+    }
+    for (const word of ['centered', 'color', 'labeled', 'organization', 'recognized']) {
+      expect(BRITISH_SPELLINGS.some((re) => re.test(word)), word).toBe(false)
+    }
   })
 })
 

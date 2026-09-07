@@ -20,13 +20,15 @@ import { enTemplateDescriptions } from '@/i18n/locales/enStudioDescriptions'
  *   第 354 轮新增：抓手、链路（内部黑话，用户文案 0 容忍）；仪式感（泛用套话，全部数据文件合计 ≤ 3，仅保留典礼/全真模拟语境）
  *   第 355 轮新增：无缝衔接、绝配、质感翻倍、上一档、最会传播口碑、柔美高级、视觉语言（营销腔），
  *       扫描范围扩到 templateDetails*.ts 的 intro/useCases/tips 与 guides*.ts 全量正文
+ *   第 358 轮新增：利器、大幅提升（改为「工具」「更快」等白描）
  *
  * 例外：功能按钮名「一键生成对应桌贴」是 /seating 页真实按钮文案，教程正文/FAQ 引用该按钮名属功能说明，
  *       不在 SEO 标题 / 模板文案范围内单独禁止。
  */
 const MARKETING_R355 = ['无缝衔接', '绝配', '质感翻倍', '上一档', '最会传播口碑', '柔美高级', '视觉语言']
-const BANNED = ['一键生成', '完整流程', '一次讲清', '全攻略', '一站式', '看完即可上手', '不出错', '保姆级', '拉满', '效率翻倍', '抓手', '链路', ...MARKETING_R355]
-const NEW_THIS_ROUND = ['拉满', '效率翻倍', '抓手', '链路', ...MARKETING_R355]
+const MARKETING_R358 = ['利器', '大幅提升']
+const BANNED = ['一键生成', '完整流程', '一次讲清', '全攻略', '一站式', '看完即可上手', '不出错', '保姆级', '拉满', '效率翻倍', '抓手', '链路', ...MARKETING_R355, ...MARKETING_R358]
+const NEW_THIS_ROUND = ['拉满', '效率翻倍', '抓手', '链路', ...MARKETING_R355, ...MARKETING_R358]
 /** 限额词：全部数据文件（含教程正文）合计上限 */
 const BUDGETED: Record<string, number> = { 仪式感: 3 }
 /** 允许原样出现的功能名（按钮文案） */
@@ -87,10 +89,23 @@ describe('第 349 轮：禁词护栏（SEO / 专题 / 对比 / 模板 / 模板�
     expect(hits(collectStrings(guides), NEW_THIS_ROUND)).toEqual([])
   })
 
-  it('模板详情 intro/useCases/tips（含 Round2-4）不含第 355 轮营销腔词', () => {
+  it('模板详情 intro/useCases/tips（含 Round2-4）不含第 355 / 358 轮营销腔词', () => {
     const body = templateDetails.flatMap((d) => [d.intro, ...d.useCases, ...d.tips])
     expect(body.length).toBeGreaterThan(100)
-    expect(hits(body, MARKETING_R355)).toEqual([])
+    expect(hits(body, [...MARKETING_R355, ...MARKETING_R358])).toEqual([])
+  })
+
+  it('第 358 轮：「利器」「大幅提升」已改为白描，源文件内不再出现', () => {
+    for (const rel of [
+      'data/defaultTemplatesEvent.ts',
+      'data/templateDetailsRound2.ts',
+      'data/guidesRound2.ts',
+      'i18n/locales/enStudioDescriptions.ts',
+    ]) {
+      const src = readSrc(rel)
+      for (const w of MARKETING_R358) expect(src, `${rel} 含「${w}」`).not.toContain(w)
+    }
+    expect(readSrc('data/guidesRound2.ts')).toContain('验收更快')
   })
 
   it('/templates 空态引导文案为平实说法（TemplatesView.vue 与 en.ts 同步）', () => {

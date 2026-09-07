@@ -391,7 +391,7 @@ export const eventTemplates: LabelTemplate[] = [
     id: 'seminarSticker',
     name: '研讨会姓名胸贴',
     category: 'event',
-    description: '3 列 × 8 行圆角贴，「你好，我是」引导语 + 姓名大字与单位，撕下即贴衣襟，破冰社交利器。',
+    description: '3 列 × 8 行圆角贴，「你好，我是」引导语 + 姓名大字与单位，撕下即贴衣襟，方便破冰社交。',
     scenario: '沙龙 / 社交破冰',
     accent: '#2563eb',
     sampleData: { name: '林芳', unit: '得闲书店 · 主理人' },

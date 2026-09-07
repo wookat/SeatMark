@@ -13,12 +13,15 @@ const CJK = /[\u4e00-\u9fff]/
 
 const NOTICE_TEXT =
   'This section is currently available in Chinese only. The Studio, Seating Chart, Banquet planner and Pricing pages are fully in English.'
+/** 第 358 轮：/en/templates 卡片已英文化，黄条文案与页面内容一致，不再自相矛盾 */
+const TEMPLATES_NOTICE_TEXT =
+  'Template names, descriptions and the label maker are in English; tutorial articles are in Chinese only.'
 
 const VIEWS = [
-  { name: 'GuidesView', component: GuidesView, path: '/guides' },
-  { name: 'TemplatesView', component: TemplatesView, path: '/templates' },
-  { name: 'PapersView', component: PapersView, path: '/papers' },
-  { name: 'VsIndexView', component: VsIndexView, path: '/vs' },
+  { name: 'GuidesView', component: GuidesView, path: '/guides', notice: NOTICE_TEXT },
+  { name: 'TemplatesView', component: TemplatesView, path: '/templates', notice: TEMPLATES_NOTICE_TEXT },
+  { name: 'PapersView', component: PapersView, path: '/papers', notice: NOTICE_TEXT },
+  { name: 'VsIndexView', component: VsIndexView, path: '/vs', notice: NOTICE_TEXT },
 ] as const
 
 async function mountView(view: (typeof VIEWS)[number], locale: 'zh' | 'en') {
@@ -70,7 +73,12 @@ describe('/en 内容站索引页外壳', () => {
       const wrapper = await mountView(view, 'en')
       const notice = wrapper.find('[data-testid="zh-only-notice"]')
       expect(notice.exists()).toBe(true)
-      expect(normalizeSpace(notice.text())).toContain(NOTICE_TEXT)
+      expect(normalizeSpace(notice.text())).toContain(view.notice)
+      if (view.name === 'TemplatesView') {
+        expect(normalizeSpace(notice.text())).not.toContain('Chinese only. The Studio')
+      } else {
+        expect(normalizeSpace(notice.text())).not.toContain('label maker are in English')
+      }
       const links = notice.findAll('a').map((a) => a.attributes('href'))
       expect(links).toContain('/en/studio')
       expect(links).toContain('/en')
