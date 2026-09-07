@@ -1659,6 +1659,12 @@ export const en: Record<string, string> = {
   '座位安排状态': 'Seating status',
   '已合并': 'Merged',
   '个重复姓名': 'duplicate name(s)',
+  // 第 349 轮：教室座位表名单重名合并 / 保留同名开关
+  '已保留': 'Kept',
+  '个重复姓名并加序号区分': 'duplicate name(s), numbered to tell them apart',
+  '同名学生不会被排进两个座位；如确有同名同学，可勾选「保留同名」':
+    'A student with the same name will not take two seats; if they really are different students, tick "Keep same-name students".',
+  '保留同名（自动加 ①② 后缀区分）': 'Keep same-name students (auto-suffixed ①②)',
   '选预设或自建桌位；下一步一键自动分配，再拖拽微调。已有安排时切预设会先确认。': 'Pick a preset or add tables; next, auto-assign and fine-tune by dragging. Switching presets asks first when seats are already assigned.',
   '先一键自动分配，再拖拽微调，最后到第 4 步导出。': 'Auto-assign first, drag to fine-tune, then export in step 4.',
   '同名宾客': 'Guests with the same name',

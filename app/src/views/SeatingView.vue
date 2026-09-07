@@ -24,6 +24,7 @@ import {
   buildDisplayGrid,
   buildSeatGrid,
   buildSeats,
+  dedupeSeatingEntries,
   interleaveByGender,
   parseSeatingRosterDetailed,
   SEATING_HANDOFF_KEY,
@@ -31,6 +32,7 @@ import {
   seatingRosterTextFromTable,
   shuffleEntries,
   type Seat,
+  type SeatingDuplicatePolicy,
   type SeatingEntry,
   type SeatingFillOrder,
   type SeatingHandoff,
@@ -54,6 +56,7 @@ interface SeatingPersistedState {
   aisles: number[]
   namesText: string
   arranged: SeatingEntry[] | null
+  duplicatePolicy?: SeatingDuplicatePolicy
 }
 
 function loadPersistedState(): SeatingPersistedState | null {
@@ -85,7 +88,34 @@ const FILL_OPTIONS = computed<SelectOption[]>(() => [
 ])
 
 const parsedRoster = computed(() => parseSeatingRosterDetailed(namesText.value))
-const parsedEntries = computed<SeatingEntry[]>(() => parsedRoster.value.entries)
+/** 重名处理：默认合并（同名学生不占两座）；开关后保留并加 ①② 后缀 */
+const keepDuplicates = ref(persisted?.duplicatePolicy === 'suffix')
+const duplicatePolicy = computed<SeatingDuplicatePolicy>(() =>
+  keepDuplicates.value ? 'suffix' : 'merge',
+)
+const dedupedRoster = computed(() =>
+  dedupeSeatingEntries(parsedRoster.value.entries, duplicatePolicy.value),
+)
+const parsedEntries = computed<SeatingEntry[]>(() => dedupedRoster.value.entries)
+const duplicateNames = computed(() => dedupedRoster.value.duplicates)
+const duplicateHint = computed(() => {
+  const list = duplicateNames.value
+  if (!list.length) return ''
+  const sample = listJoin([...new Set(list)].slice(0, 5))
+  const names = new Set(list).size > 5 ? `${sample}…` : sample
+  return keepDuplicates.value
+    ? `${tr('已保留')} ${list.length} ${tr('个重复姓名并加序号区分')}${tr('：')}${names}`
+    : `${tr('已合并')} ${list.length} ${tr('个重复姓名')}${tr('：')}${names}`
+})
+// 粘贴/上传后新出现重名时提示一次（重名数减少或切换开关不重复提示）
+watch(
+  () => duplicateNames.value.length,
+  (count, prev) => {
+    if (count > (prev ?? 0) && !keepDuplicates.value) {
+      toast.info(`${tr('已合并')} ${count} ${tr('个重复姓名')}`, tr('同名学生不会被排进两个座位；如确有同名同学，可勾选「保留同名」'))
+    }
+  },
+)
 /** 列模式识别提示（表头已跳过 / 忽略列 / 性别列） */
 const rosterHints = computed(() => {
   const r = parsedRoster.value
@@ -144,12 +174,12 @@ function onRosterFileChange(event: Event) {
 
 /** 手工排座结果（随机 / 拖拽后生效）；名单文本变化时失效还原 */
 const arranged = ref<SeatingEntry[] | null>(persisted?.arranged ?? null)
-watch(namesText, () => {
+watch([namesText, keepDuplicates], () => {
   arranged.value = null
 })
 
 watch(
-  [title, rows, cols, podium, fillOrder, aisles, namesText, arranged],
+  [title, rows, cols, podium, fillOrder, aisles, namesText, arranged, keepDuplicates],
   () => {
     try {
       const state: SeatingPersistedState = {
@@ -161,6 +191,7 @@ watch(
         aisles: [...aisles.value],
         namesText: namesText.value,
         arranged: arranged.value,
+        duplicatePolicy: duplicatePolicy.value,
       }
       localStorage.setItem(SEATING_STATE_KEY, JSON.stringify(state))
     } catch {
@@ -678,6 +709,21 @@ function toDeskLabels() {
           <p v-if="rosterHints.length" class="mt-1 text-xs leading-5 text-slate-500" data-testid="roster-hints">
             <span v-for="hint in rosterHints" :key="hint" class="mr-2 inline-block">{{ hint }}</span>
           </p>
+          <div
+            v-if="duplicateHint"
+            class="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"
+            data-testid="roster-duplicates"
+          >
+            <span data-testid="roster-duplicates-text">{{ duplicateHint }}</span>
+            <CheckboxField
+              v-model="keepDuplicates"
+              tone="amber"
+              class="text-xs font-semibold"
+              data-testid="roster-keep-duplicates"
+            >
+              {{ tr('保留同名（自动加 ①② 后缀区分）') }}
+            </CheckboxField>
+          </div>
         </section>
 
         <section ref="arrangeSection" class="panel-card scroll-mt-4 outline-none">

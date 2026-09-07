@@ -181,6 +181,61 @@ export function parseSeatingRoster(text: string): SeatingEntry[] {
   return parseSeatingRosterDetailed(text).entries
 }
 
+export type SeatingDuplicatePolicy = 'merge' | 'suffix'
+
+export interface DedupedSeatingRoster {
+  entries: SeatingEntry[]
+  /** 被合并或加了后缀的重名（每个重复出现记一次，保留出现顺序） */
+  duplicates: string[]
+}
+
+const CIRCLED_DIGITS = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳'
+
+/** 同名第 n 位（n 从 1 起）的区分后缀：①②…⑳，超出用 (n) */
+export function duplicateSuffix(n: number): string {
+  return n >= 1 && n <= CIRCLED_DIGITS.length ? CIRCLED_DIGITS[n - 1]! : `(${n})`
+}
+
+/**
+ * 名单重名处理（与 /banquet、/studio 的去重口径对齐）：
+ * merge——完全重名只保留首次出现（首条缺性别时补用后续条目的性别），避免同名学生占两座；
+ * suffix——保留所有同名条目，按出现顺序加 ①②… 后缀区分（同名的每一位都带后缀）。
+ * 姓名为空的占位条目不参与去重。
+ */
+export function dedupeSeatingEntries(
+  entries: readonly SeatingEntry[],
+  policy: SeatingDuplicatePolicy = 'merge',
+): DedupedSeatingRoster {
+  const counts = new Map<string, number>()
+  for (const e of entries) if (e.name) counts.set(e.name, (counts.get(e.name) ?? 0) + 1)
+  const firstOf = new Map<string, SeatingEntry>()
+  const seq = new Map<string, number>()
+  const duplicates: string[] = []
+  const out: SeatingEntry[] = []
+  for (const e of entries) {
+    if (!e.name || (counts.get(e.name) ?? 0) < 2) {
+      out.push(e)
+      continue
+    }
+    const n = (seq.get(e.name) ?? 0) + 1
+    seq.set(e.name, n)
+    if (n > 1) duplicates.push(e.name)
+    if (policy === 'merge') {
+      const first = firstOf.get(e.name)
+      if (!first) {
+        const copy: SeatingEntry = { ...e }
+        firstOf.set(e.name, copy)
+        out.push(copy)
+      } else if (!first.gender && e.gender) {
+        first.gender = e.gender
+      }
+      continue
+    }
+    out.push({ ...e, name: `${e.name}${duplicateSuffix(n)}` })
+  }
+  return { entries: out, duplicates }
+}
+
 /** Fisher–Yates 洗牌（返回新数组，不改原数组） */
 export function shuffleEntries<T>(list: readonly T[], rand: () => number = Math.random): T[] {
   const out = [...list]

@@ -4,6 +4,8 @@ import {
   buildDisplayGrid,
   buildSeatGrid,
   buildSeats,
+  dedupeSeatingEntries,
+  duplicateSuffix,
   interleaveByGender,
   parseSeatingRoster,
   parseSeatingRosterDetailed,
@@ -293,5 +295,38 @@ describe('interleaveByGender', () => {
     expect(out[0]!.gender).toBe('女')
     expect(new Set(out.map((e) => e.name))).toEqual(new Set(['甲', '乙', '丙', '丁', '戊']))
     expect(out[out.length - 1]!.name).toBe('戊')
+  })
+})
+
+describe('第 349 轮：名单重名合并 / 保留后缀', () => {
+  const roster = '宇文成都 男\n张伟\n宇文成都 男\n李娜 女\n张伟 男'
+
+  it('默认合并完全重名：同名只占一座，性别由后续条目补齐，返回被合并的重名', () => {
+    const { entries, duplicates } = dedupeSeatingEntries(parseSeatingRoster(roster))
+    expect(entries.map((e) => e.name)).toEqual(['宇文成都', '张伟', '李娜'])
+    expect(entries[1]!.gender).toBe('男')
+    expect(duplicates).toEqual(['宇文成都', '张伟'])
+    // 排座后 38/39 不会出现同一人两座
+    const seats = buildSeats(entries, 2, 2, 'rows')
+    expect(seats.filter((s) => s.name === '宇文成都')).toHaveLength(1)
+  })
+
+  it('保留同名时按出现顺序加 ①② 后缀区分，不合并任何条目', () => {
+    const { entries, duplicates } = dedupeSeatingEntries(parseSeatingRoster(roster), 'suffix')
+    expect(entries.map((e) => e.name)).toEqual(['宇文成都①', '张伟①', '宇文成都②', '李娜', '张伟②'])
+    expect(entries[2]!.gender).toBe('男')
+    expect(duplicates).toEqual(['宇文成都', '张伟'])
+  })
+
+  it('无重名 / 空占位不受影响；后缀超过 ⑳ 回退 (n)', () => {
+    const plain = [{ name: '甲' }, { name: '' }, { name: '乙' }]
+    expect(dedupeSeatingEntries(plain)).toEqual({ entries: plain, duplicates: [] })
+    expect(dedupeSeatingEntries([{ name: '' }, { name: '' }], 'suffix').entries).toEqual([
+      { name: '' },
+      { name: '' },
+    ])
+    expect(duplicateSuffix(1)).toBe('①')
+    expect(duplicateSuffix(20)).toBe('⑳')
+    expect(duplicateSuffix(21)).toBe('(21)')
   })
 })
