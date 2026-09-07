@@ -1702,4 +1702,19 @@ export const en: Record<string, string> = {
   '识别到性别列，可用男女混排': 'Gender column detected — boy/girl alternating is available',
   '名学生': 'students',
   '）；': '); ',
+
+  // 第 349 轮：/banquet 粘贴解析预览确认
+  '确认名单解析方式': 'Confirm how to read this list',
+  '检测到每行': 'Each line has',
+  '列，但无法确定第二列是分组还是另一位宾客，请选择解析方式：':
+    'columns, but it is unclear whether the second column is a group or another guest. Choose how to read it:',
+  '解析方式': 'Parsing mode',
+  '按列分组': 'Group by column',
+  '第一列为姓名，第二列为分组/桌名': 'First column = name, second column = group / table',
+  '仅第一列为姓名': 'First column only',
+  '其余列忽略，不建分组': 'Ignore other columns; no groups created',
+  '全部按姓名拆分': 'Every cell is a name',
+  '每一格都是一位宾客': 'Each cell becomes one guest',
+  '将导入': 'Will import',
+  '确认导入': 'Import',
 }

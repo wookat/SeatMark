@@ -69,25 +69,90 @@ export interface ParsedBanquetGuests {
   headerSkipped: boolean
 }
 
-/** 宾客名单表头关键词（姓名/分组/桌/类别/关系） */
-const GUEST_HEADER = /姓名|名字|分组|桌|类别|关系|^name$|group|table|category/i
+/** 宾客名单表头单元格（整格匹配：姓名/分组/桌号/类别/关系…；「主桌」这类桌名不是表头） */
+const GUEST_HEADER =
+  /^(姓名|名字|宾客|分组|桌|桌号|桌名|桌次|类别|关系|name|guest|group|table|table\s*no\.?|category)$/i
 const GUEST_NAME_HEADER = /姓名|名字|^name$/i
 const GUEST_GROUP_HEADER = /分组|桌|类别|关系|group|table|category/i
 const GENDER_WORDS = new Set(['男', '女', 'm', 'f', 'male', 'female'])
+/** 第二列的桌名/组名特征：桌、组、席、家、方结尾，Table/Group 开头，T1 与纯数字 */
+const GROUP_WORD = /(桌|组|席|家|方)$|^(table|group)\b|^t\d+$|^\d+$/i
+/** “像人名”：2-4 个汉字（可带间隔点）或英文名 */
+const NAME_LIKE = /^[\u4e00-\u9fff·•]{2,4}$|^[A-Za-z][A-Za-z.'\-]*(\s[A-Za-z][A-Za-z.'\-]*){0,3}$/
 
 function cleanLine(line: string): string {
   return line.replace(/[\u200b\ufeff]/g, '').replace(/[\u00a0\u3000]/g, ' ')
 }
 
+function splitRow(line: string): string[] {
+  return line
+    .split(/[,，、;；\t]+/)
+    .map((c) => c.trim())
+    .filter(Boolean)
+}
+
+/** 粘贴文本的布局判定：列模式 / 逐 token 拆分 / 无信号但各行列数一致（需用户确认） */
+export interface BanquetPasteLayout {
+  mode: 'column' | 'tokens' | 'ambiguous'
+  /** 列模式的判定信号（调试/测试用） */
+  signals: Array<'header' | 'groupWord' | 'duplicateGroup' | 'twoColumnNames'>
+  /** ambiguous 时各行一致的列数 */
+  columnCount: number
+}
+
+/**
+ * 多信号判定两列「姓名，分组」模式：首行表头 / 第二列出现桌名词 / 第二列有重复值 /
+ * 所有行恰好两列且第一列像人名；第二列命中性别词时否决自动列模式。
+ * 完全无信号但各行列数一致（≥ 2 列、≥ 2 行）时不再静默拆 token，交由调用方弹解析预览确认。
+ */
+export function detectBanquetPasteLayout(text: string): BanquetPasteLayout {
+  const lines = text
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map(cleanLine)
+    .filter((l) => l.trim() !== '')
+  const table = lines.map(splitRow)
+  const firstRow = table[0] ?? []
+  const signals: BanquetPasteLayout['signals'] = []
+  if (firstRow.length >= 2 && firstRow.some((c) => GUEST_HEADER.test(c))) signals.push('header')
+  const multiRows = table.filter((r) => r.length >= 2)
+  if (multiRows.length >= 2) {
+    const second = multiRows.map((r) => r[1]!)
+    const genderish = second.some((v) => GENDER_WORDS.has(v.toLowerCase()))
+    if (!genderish) {
+      if (second.some((v) => GROUP_WORD.test(v))) signals.push('groupWord')
+      if (new Set(second).size < second.length) signals.push('duplicateGroup')
+      // 两列且第一列像人名、第二列不全像人名（第二列也全像人名时可能是「每行两位宾客」，交预览确认）
+      if (
+        multiRows.length === table.length &&
+        table.every((r) => r.length === 2) &&
+        table.every((r) => NAME_LIKE.test(r[0]!)) &&
+        !second.every((v) => NAME_LIKE.test(v))
+      ) {
+        signals.push('twoColumnNames')
+      }
+    }
+  }
+  if (signals.length) return { mode: 'column', signals, columnCount: firstRow.length }
+  const columnCount = firstRow.length
+  const consistent =
+    table.length >= 2 && columnCount >= 2 && table.every((r) => r.length === columnCount)
+  return { mode: consistent ? 'ambiguous' : 'tokens', signals, columnCount }
+}
+
+/** 解析方式：自动判定 / 按列分组 / 仅第一列为姓名（其余列忽略）/ 全部按姓名拆分 */
+export type BanquetParseMode = 'auto' | 'column' | 'nameOnly' | 'tokens'
+
 /**
  * 解析宾客名单文本（逐行粘贴或 TXT/CSV 内容）。
  * 单列旧格式：每行一位宾客；同一行内也允许用逗号/顿号/分号/制表符分隔多位；
  * 空格仅在不含拉丁字母的片段内视为分隔符，避免拆散 "Alice Wang" 这类西文姓名。
- * 两列「姓名，分组」模式：首行命中表头关键词，或 ≥ 2 行含两列且第二列去重值数 ≤ 行数/2
- * （分组名重复出现是分组列特征）且不命中性别词时，第二列视为分组，不再展开为宾客。
+ * 两列「姓名，分组」模式由 detectBanquetPasteLayout 多信号判定（表头 / 桌名词 / 第二列重复 /
+ * 两列且第一列像人名），第二列视为分组，不再展开为宾客；mode 可强制指定解析方式
+ * （解析预览确认后使用）。auto 下无信号（含 ambiguous）时回退拆 token。
  * 自动去除空白行、全角空格与重复姓名（保留首次出现顺序）。
  */
-export function parseBanquetGuests(text: string): ParsedBanquetGuests {
+export function parseBanquetGuests(text: string, mode: BanquetParseMode = 'auto'): ParsedBanquetGuests {
   const names: string[] = []
   const seen = new Set<string>()
   const duplicates: string[] = []
@@ -105,22 +170,13 @@ export function parseBanquetGuests(text: string): ParsedBanquetGuests {
     .split('\n')
     .map(cleanLine)
     .filter((l) => l.trim() !== '')
-  const table = lines.map((line) =>
-    line
-      .split(/[,，、;；\t]+/)
-      .map((c) => c.trim())
-      .filter(Boolean),
-  )
+  const table = lines.map(splitRow)
   const firstRow = table[0] ?? []
   const headerHit = firstRow.length >= 2 && firstRow.some((c) => GUEST_HEADER.test(c))
-  const multiRows = table.filter((r) => r.length >= 2)
-  let columnMode = headerHit
-  if (!columnMode && multiRows.length >= 2) {
-    const second = multiRows.map((r) => r[1]!)
-    const distinct = new Set(second).size
-    const genderish = second.some((v) => GENDER_WORDS.has(v.toLowerCase()))
-    columnMode = distinct <= multiRows.length / 2 && !genderish
-  }
+  const columnMode =
+    mode === 'column' ||
+    mode === 'nameOnly' ||
+    (mode === 'auto' && detectBanquetPasteLayout(text).mode === 'column')
 
   if (!columnMode) {
     for (const line of lines) {
@@ -147,11 +203,16 @@ export function parseBanquetGuests(text: string): ParsedBanquetGuests {
   for (const row of table.slice(headerHit ? 1 : 0)) {
     const name = row.length === 1 ? row[0]! : (row[nameIdx] ?? '')
     if (!name) continue
-    const group = row.length > 1 ? (row[groupIdx] ?? '') : ''
+    const group = row.length > 1 && mode !== 'nameOnly' ? (row[groupIdx] ?? '') : ''
     push(name)
     if (group && !(name in groups)) groups[name] = group
   }
-  return { names, duplicates, groups, headerSkipped: headerHit }
+  return {
+    names,
+    duplicates,
+    groups: mode === 'nameOnly' ? undefined : groups,
+    headerSkipped: headerHit,
+  }
 }
 
 /**

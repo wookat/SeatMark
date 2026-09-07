@@ -10,6 +10,7 @@ import {
   explainSplit,
   findDuplicateGuestNames,
   findOverlaps,
+  detectBanquetPasteLayout,
   parseBanquetGuests,
   parseBanquetGuestsFromTable,
   quickReferenceCsv,
@@ -137,6 +138,78 @@ describe('parseBanquetGuests', () => {
     const out = parseBanquetGuests('张伟,男\n李娜,女\n王芳,女\n赵强,男')
     expect(out.groups).toBeUndefined()
     expect(out.names).toContain('男')
+  })
+
+  describe('第 349 轮：两列粘贴多信号判定与解析预览模式', () => {
+    const FOUR_ROWS = '张三,主桌\n李四,主桌\n王五,亲友桌\n赵六,同事桌'
+
+    it('4 行 × 3 桌名（第二列去重 3 > 行数/2）：桌名词 + 重复值信号 → 4 位宾客 3 桌、无假宾客、无重名', () => {
+      expect(detectBanquetPasteLayout(FOUR_ROWS)).toMatchObject({
+        mode: 'column',
+        signals: expect.arrayContaining(['groupWord', 'duplicateGroup']),
+      })
+      const out = parseBanquetGuests(FOUR_ROWS)
+      expect(out.names).toEqual(['张三', '李四', '王五', '赵六'])
+      expect(out.duplicates).toEqual([])
+      expect(new Set(Object.values(out.groups ?? {}))).toEqual(new Set(['主桌', '亲友桌', '同事桌']))
+    })
+
+    it('桌名词单独成立：Table/Group/T1/纯数字/…席/…家/…方 均视为分组列（无重复也算）', () => {
+      for (const text of [
+        '张三,Table A\n李四,Table B\n王五,Table C',
+        '张三,Group 1\n李四,Group 2\n王五,Group 3',
+        '张三,T1\n李四,T2\n王五,T3',
+        '张三,1\n李四,2\n王五,3',
+        '张三,主席\n李四,贵宾席\n王五,新郎方',
+      ]) {
+        expect(detectBanquetPasteLayout(text).mode, text).toBe('column')
+        expect(parseBanquetGuests(text).names, text).toEqual(['张三', '李四', '王五'])
+      }
+    })
+
+    it('两列且第一列像人名、第二列不像人名（如带编号）→ 列模式', () => {
+      const text = '张三,主桌-1\n李四,亲友-2\n王五,同事-3'
+      expect(detectBanquetPasteLayout(text).signals).toContain('twoColumnNames')
+      expect(parseBanquetGuests(text).names).toEqual(['张三', '李四', '王五'])
+    })
+
+    it('完全无信号但各行列数一致（第二列也全像人名）→ ambiguous，auto 下仍按旧行为拆 token', () => {
+      const text = '张伟,李娜\n王芳,赵强\n钱进,孙丽'
+      expect(detectBanquetPasteLayout(text)).toEqual({ mode: 'ambiguous', signals: [], columnCount: 2 })
+      expect(parseBanquetGuests(text).names).toHaveLength(6)
+    })
+
+    it('性别词否决自动列模式 → ambiguous（交预览确认），指定 nameOnly 只取第一列且不产生分组', () => {
+      const text = '张伟,男\n李娜,女\n王芳,女\n赵强,男'
+      expect(detectBanquetPasteLayout(text).mode).toBe('ambiguous')
+      const out = parseBanquetGuests(text, 'nameOnly')
+      expect(out.names).toEqual(['张伟', '李娜', '王芳', '赵强'])
+      expect(out.groups).toBeUndefined()
+      expect(out.duplicates).toEqual([])
+    })
+
+    it('强制 column / tokens 模式覆盖自动判定', () => {
+      const text = '张伟,李娜\n王芳,赵强'
+      expect(parseBanquetGuests(text, 'column')).toMatchObject({
+        names: ['张伟', '王芳'],
+        groups: { 张伟: '李娜', 王芳: '赵强' },
+      })
+      expect(parseBanquetGuests(FOUR_ROWS, 'tokens').names).toEqual([
+        '张三',
+        '主桌',
+        '李四',
+        '王五',
+        '亲友桌',
+        '赵六',
+        '同事桌',
+      ])
+    })
+
+    it('单列 / 行列数不一致 / 单行多名 → tokens（不弹预览）', () => {
+      expect(detectBanquetPasteLayout('张伟\n李娜\n王芳').mode).toBe('tokens')
+      expect(detectBanquetPasteLayout('张伟,李娜\n王芳\n赵强,钱进,孙丽').mode).toBe('tokens')
+      expect(detectBanquetPasteLayout('张伟,李娜、王芳；赵强').mode).toBe('tokens')
+    })
   })
 })
 
