@@ -52,14 +52,27 @@ describe('第 346 轮：PricingView 原价独立一行', () => {
     expect(originalRows[0]!.classes()).toContain('min-h-4')
     expect(originalRows[1]!.text()).toContain('原价')
     expect(originalRows[1]!.text()).toContain('限时 0 折')
-    expect(originalRows[1]!.find('s').text()).toBe('¥19/月')
-    expect(originalRows[2]!.find('s').text()).toBe('¥49/月')
+    expect(originalRows[1]!.find('s').text()).toBe('¥19')
+    expect(originalRows[2]!.find('s').text()).toBe('¥49')
     expect(originalRows[1]!.attributes('aria-hidden')).toBeUndefined()
 
     // 原价行紧跟现价行之后，是独立兄弟元素而非同一行内
     for (let i = 0; i < 3; i++) {
       expect(priceRows[i]!.element.nextElementSibling).toBe(originalRows[i]!.element)
       expect(originalRows[i]!.element.contains(priceRows[i]!.element)).toBe(false)
+    }
+    wrapper.unmount()
+  })
+
+  it('三卡价格行对齐：卡片顶部内距不随徽标变化，标语在 md 起预留两行等高', () => {
+    const wrapper = mountPricing()
+    const priceRows = wrapper.findAll('[data-testid="plan-price"]')
+    expect(priceRows).toHaveLength(3)
+    for (const row of priceRows) {
+      const card = row.element.parentElement!
+      expect(card.className).toContain('pt-7')
+      const tagline = card.querySelector('h2 + p')!
+      expect(tagline.className).toContain('md:min-h-8')
     }
     wrapper.unmount()
   })
