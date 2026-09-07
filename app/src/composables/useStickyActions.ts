@@ -9,14 +9,29 @@ export const STICKY_ACTIONS_CLASS = 'has-sticky-actions'
  */
 export const STUDIO_TOOLBAR_BOTTOM_VAR = '--studio-toolbar-bottom'
 
-/** 在页面挂载期间标记 html.has-sticky-actions，卸载时移除 */
-export function useStickyActions(): void {
+/**
+ * 页面右下角有画布/座位图（排座、宴会）时在 <html> 打的标记：
+ * 反馈气泡据此在 ≥md 缩小并贴边，画布列外层同时预留右下空区，两者互不遮挡。
+ */
+export const CANVAS_SAFE_AREA_CLASS = 'has-canvas-safe-area'
+
+function useHtmlClass(className: string): void {
   onMounted(() => {
     if (typeof document === 'undefined') return
-    document.documentElement.classList.add(STICKY_ACTIONS_CLASS)
+    document.documentElement.classList.add(className)
   })
   onBeforeUnmount(() => {
     if (typeof document === 'undefined') return
-    document.documentElement.classList.remove(STICKY_ACTIONS_CLASS)
+    document.documentElement.classList.remove(className)
   })
+}
+
+/** 在页面挂载期间标记 html.has-sticky-actions，卸载时移除 */
+export function useStickyActions(): void {
+  useHtmlClass(STICKY_ACTIONS_CLASS)
+}
+
+/** 在页面挂载期间标记 html.has-canvas-safe-area，卸载时移除 */
+export function useCanvasSafeArea(): void {
+  useHtmlClass(CANVAS_SAFE_AREA_CLASS)
 }

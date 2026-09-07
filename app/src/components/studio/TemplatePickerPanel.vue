@@ -23,6 +23,7 @@ import {
   createVerifiedShortShareCode,
   encodeTemplateForShare,
   SHARE_HASH_PREFIX,
+  SHARE_SHORT_CODE_TTL_DAYS,
   SHARE_SHORT_PARAM,
 } from '@/utils/share'
 
@@ -405,13 +406,13 @@ function confirmDelete() {
               <span class="flex shrink-0 gap-1">
                 <span
                   v-if="fitOf(t)?.level === 'recommended'"
-                  class="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700"
+                  class="rounded bg-emerald-100 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700"
                 >
                   {{ tr('适配') }}
                 </span>
                 <span
                   v-if="!t.builtin"
-                  class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700"
+                  class="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-bold text-amber-700"
                 >
                   {{ tr('自定义') }}
                 </span>
@@ -540,6 +541,9 @@ function confirmDelete() {
               ? tr('二维码只包含一个短链接，模板设计经加密信道寄存，名单数据始终不离开浏览器。')
               : tr('模板数据全部编码在链接里，不经过任何服务器；长链接二维码密度较高，请近距离扫描。')
           }}
+          <span v-if="shareQrIsShort" data-testid="share-qr-ttl-hint">{{
+            tr('短链接 {n} 天内有效，过期后需重新生成。').replace('{n}', String(SHARE_SHORT_CODE_TTL_DAYS))
+          }}</span>
           {{ tr('微信内下载 PDF 受限，打印导出请点右上角菜单选「在浏览器打开」。') }}
         </p>
       </div>
@@ -657,13 +661,13 @@ function confirmDelete() {
             <span class="flex shrink-0 gap-1">
               <span
                 v-if="fitOf(t)?.level === 'recommended'"
-                class="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700"
+                class="rounded bg-emerald-100 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700"
               >
                 {{ tr('适配') }}
               </span>
               <span
                 v-if="!t.builtin"
-                class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700"
+                class="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-bold text-amber-700"
               >
                 {{ tr('自定义') }}
               </span>

@@ -92,7 +92,9 @@ describe('ai-design.js 告警 webhook 仅读 env.ALERT_WEBHOOK', () => {
     })
     expect(response.status).toBe(502)
     expect(calls.some((u) => u.includes('qyapi.weixin.qq.com'))).toBe(false)
-    expect(calls.every((u) => /deepseek|pollinations/.test(u))).toBe(true)
+    // 只允许打到 OpenAI 格式的模型上游（主模型 /chat/completions + 服务端无密钥兜底 /openai），不允许任何告警推送
+    expect(calls.length).toBeGreaterThan(0)
+    expect(calls.every((u) => /\/(chat\/completions|openai)$/.test(u))).toBe(true)
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('webhook not configured'))
   })
 

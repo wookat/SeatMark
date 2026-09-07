@@ -124,7 +124,7 @@ export const en: Record<string, string> = {
   '仅展示前 5 条': 'showing first 5 only',
   '仅本次使用': 'Use once',
   '今日 0 次': '0 left today',
-  '今日剩余': 'Left today:',
+  '今日剩余 {n} 次': '{n} left today',
   '今日已用完，分享链接每被点开 1 次即得 1 次，或明日 0 点恢复':
     'Used up today. Each click on your share link earns 1 more, or it resets at midnight.',
   '今日已用完，登录后每天 3 次，还可分享送次数':
@@ -513,7 +513,7 @@ export const en: Record<string, string> = {
   '分组图例：': 'Group legend:',
   '分配后可直接拖拽宾客姓名在桌之间移动微调；拖到画布下方「未安排」区可撤下宾客。': 'After assigning, drag guest names between tables to fine-tune; drag to the "Unassigned" area below the canvas to remove a guest.',
   '分配座位': 'Assign seats',
-  '列': 'cols',
+  '列': 'columns',
   '列数（左右）': 'Columns (left-right)',
   '列间': 'Between cols',
   '删除分组': 'Delete group',
@@ -763,6 +763,8 @@ export const en: Record<string, string> = {
     'Too many AI design requests (max 30 per hour). Please try again in about {n} minute(s).',
   'AI 设计请求过于频繁（每小时最多 30 次），请稍后再试':
     'Too many AI design requests (max 30 per hour). Please try again later.',
+  '站点 AI 通道暂不可用（{reason}），可稍后重试或切换「自定义 API」':
+    'The site AI channel is temporarily unavailable ({reason}). Try again later or switch to "Custom API".',
   '删除空桌后导出': 'Remove empty tables and export',
   '张贴版只排有宾客的桌，这些空桌不会出现在导出图中；需要保留空白桌请关闭「张贴版」。':
     'The poster layout only lays out tables with guests, so these empty tables will not appear in the export; turn off “Poster layout” to keep blank tables.',
@@ -855,7 +857,7 @@ export const en: Record<string, string> = {
   '次无水印导出（带水印不限次）': 'watermark-free exports (watermarked is unlimited)',
   '次无水印导出（服务端去重防刷，每日上限': 'watermark-free exports (server-side dedup, daily cap',
   '次无水印导出（未登录': 'watermark-free exports (signed out',
-  '次（免费登录即升为每日': '(free sign-in raises it to',
+  '次（免费登录即升为每日': '(signing up free raises it to',
   '次（登录后': '(after sign-in',
   '次）': 'per day)',
   '次）。': 'per day).',
@@ -1295,7 +1297,7 @@ export const en: Record<string, string> = {
   '三边长桌围合': 'Long tables on three sides',
   '教室课桌': 'Classroom desks',
   '4 排 × 4 列小桌，每桌 2 座': '4 × 4 grid of desks, 2 seats each',
-  '无水印导出（今日剩余 {n} 次）': 'Export without watermark (left today: {n})',
+  '无水印导出（今日剩余 {n} 次）': 'Export without watermark ({n} left today)',
   '：': ': ',
   '（': ' (',
   '）': ')',
@@ -1548,6 +1550,10 @@ export const en: Record<string, string> = {
   '纸型与当前模板适配度不足': 'Paper size does not fit the current template well',
   '「{paper}」与本模板适配度：{level}，已保持模板默认排版；可在「纸张排版」选择适配的纸型': '"{paper}" fit with this template: {level}. The template default layout was kept; pick a compatible paper size under "Paper & Layout".',
   '分享链接无效': 'Invalid share link',
+  '分享链接已过期或不存在': 'This share link has expired or does not exist',
+  '短链接仅 {n} 天内有效，请让对方重新生成；你仍可直接使用全部内置模板':
+    'Short links are valid for {n} days only. Ask the sender to generate it again; all built-in templates are still available.',
+  '短链接 {n} 天内有效，过期后需重新生成。': 'The short link stays valid for {n} days; generate a new one after it expires.',
   '链接可能不完整或已损坏，请让对方重新生成': 'The link may be incomplete or corrupted. Ask the sender to generate it again.',
   '已应用分享模板': 'Shared template applied',
   '仅本次使用，未保存到我的模板': 'For this session only; not saved to My Templates',
@@ -1652,7 +1658,9 @@ export const en: Record<string, string> = {
   // 内容站索引页外壳（教程 / 模板 / 纸型 / 对比；正文卡片保持中文）
   '座签、桌牌、席位卡、证卡的制作与打印实战教程：从 Excel 名单整理、模板选择到打印裁切，问答式讲解常见坑点。':
     'Hands-on guides for making and printing seating labels, table tents, place cards and ID cards: from tidying the spreadsheet and choosing a template to printing and trimming, in Q&A form.',
-  '搜索教程，支持拼音、首字母，如“打印”“dayin”“jkz”': 'Search guides (Chinese, pinyin or initials)',
+  '搜索教程，支持拼音、首字母，如“打印”“dayin”“jkz”': 'Search guides (pinyin OK)',
+  '搜索教程标题与内容，支持中文、拼音全拼与首字母，如“打印”“dayin”“jkz”':
+    'Search guide titles and content — Chinese, full pinyin or initials all work (e.g. "dayin", "jkz")',
   '主题': 'Topic',
   '群体': 'Audience',
   '共 {n} 篇教程': '{n} guides',
@@ -1669,7 +1677,9 @@ export const en: Record<string, string> = {
   '用演示数据试试': 'Try with demo data',
   '{n} 款免费内置模板覆盖考场座签、考号贴、课桌姓名贴、会议桌牌、出入证、学生证、工作证等场景，全部以毫米为单位精确排版，点击任意模板查看详情，或直接开始生成。':
     '{n} free built-in templates for exam seat labels, exam ID stickers, desk name tags, conference table tents, passes, student and staff IDs — all laid out to the millimetre. Click a template for details or start generating right away.',
-  '搜索模板 / 场景，支持拼音、首字母': 'Search templates / scenarios (Chinese, pinyin or initials)',
+  '搜索模板 / 场景，支持拼音、首字母': 'Search templates (pinyin OK)',
+  '搜索模板或场景名称，支持中文、拼音全拼与首字母':
+    'Search templates or scenarios by name — Chinese, full pinyin or initials all work',
   '「{cat}」分类下无匹配，已在全部分类中找到 {n} 款': 'No match in “{cat}” — found {n} across all categories',
   '在「{cat}」分类中找到 {n} 款': 'Found {n} in “{cat}”',
   '在全部分类中找到 {n} 款': 'Found {n} across all categories',

@@ -16,7 +16,12 @@ import { INVITE_REF_KEY, useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { apiFetch } from '@/utils/api'
 import { clearLandingQuery } from '@/utils/landing'
-import { fetchSharedPayload, SHARE_HASH_PREFIX, SHARE_SHORT_PARAM } from '@/utils/share'
+import {
+  fetchSharedPayloadDetailed,
+  SHARE_HASH_PREFIX,
+  SHARE_SHORT_CODE_TTL_DAYS,
+  SHARE_SHORT_PARAM,
+} from '@/utils/share'
 
 const auth = useAuthStore()
 const toast = useToastStore()
@@ -57,9 +62,17 @@ onMounted(() => {
   }
 
   if (short) {
-    void fetchSharedPayload(short).then((payload) => {
-      if (payload) {
-        void router.replace({ path: '/studio', hash: `${SHARE_HASH_PREFIX}${payload}` })
+    void fetchSharedPayloadDetailed(short).then((result) => {
+      if (result.payload) {
+        void router.replace({ path: '/studio', hash: `${SHARE_HASH_PREFIX}${result.payload}` })
+      } else if (result.reason === 'not_found' || result.reason === 'invalid') {
+        toast.warning(
+          t('分享链接已过期或不存在'),
+          t('短链接仅 {n} 天内有效，请让对方重新生成；你仍可直接使用全部内置模板').replace(
+            '{n}',
+            String(SHARE_SHORT_CODE_TTL_DAYS),
+          ),
+        )
       } else {
         toast.warning(
           t('分享模板暂时无法打开'),

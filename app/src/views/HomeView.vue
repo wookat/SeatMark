@@ -506,7 +506,7 @@ const FAQS = computed(() => [
               </div>
             </div>
             <span
-              class="absolute top-3 right-3 rounded bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-slate-200"
+              class="absolute top-3 right-3 rounded bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200"
             >
               {{ tpl.scenario ? t(tpl.scenario) : '' }}
             </span>
@@ -536,12 +536,12 @@ const FAQS = computed(() => [
             <p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">{{ t(tpl.description) }}</p>
             <div class="mt-auto flex flex-wrap gap-1.5 pt-3">
               <span
-                class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600"
+                class="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600"
               >
                 {{ tpl.label.width }} × {{ tpl.label.height }} mm
               </span>
               <span
-                class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600"
+                class="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600"
               >
                 {{ locale === 'en' ? `${tpl.page.cols * tpl.page.rows} / page` : `${tpl.page.cols * tpl.page.rows} 枚 / 页` }}
               </span>
@@ -792,7 +792,7 @@ const FAQS = computed(() => [
         >
           <h3 class="flex items-start gap-2 text-sm font-bold text-slate-900">
             <span
-              class="mt-px flex size-4.5 shrink-0 items-center justify-center rounded bg-brand-50 text-[10px] font-bold text-brand-600"
+              class="mt-px flex size-4.5 shrink-0 items-center justify-center rounded bg-brand-50 text-[11px] font-bold text-brand-600"
             >
               Q
             </span>

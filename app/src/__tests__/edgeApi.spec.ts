@@ -1509,16 +1509,16 @@ describe("feedback.js 观测头 X-SeatMark-Rev", () => {
   });
 });
 
-describe("第 354 轮（第 356 轮递增）：三条边缘函数统一 X-SeatMark-Rev = r356 与公告短缓存", () => {
-  it("_rev.js 导出 r356", () => {
-    expect(SEATMARK_REV).toBe("r356");
+describe("第 354 轮（第 357 轮递增）：三条边缘函数统一 X-SeatMark-Rev = r357 与公告短缓存", () => {
+  it("_rev.js 导出 r357", () => {
+    expect(SEATMARK_REV).toBe("r357");
   });
 
-  it("/api/announcement GET 带 r356 与 Cache-Control 短缓存", async () => {
+  it("/api/announcement GET 带 r357 与 Cache-Control 短缓存", async () => {
     const { response, data } = await call("GET", "https://www.seatmark.cn/api/announcement");
     expect(response.status).toBe(200);
     expect(data.authService).toBe("ok");
-    expect(response.headers.get("X-SeatMark-Rev")).toBe("r356");
+    expect(response.headers.get("X-SeatMark-Rev")).toBe("r357");
     expect(ANNOUNCEMENT_CACHE_CONTROL).toBe(
       "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
     );
@@ -1528,10 +1528,10 @@ describe("第 354 轮（第 356 轮递增）：三条边缘函数统一 X-SeatMa
   it("其余 JSON 响应保持 no-store（不受公告缓存影响）", async () => {
     const { response } = await call("GET", "https://www.seatmark.cn/api/auth/me");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
-    expect(response.headers.get("X-SeatMark-Rev")).toBe("r356");
+    expect(response.headers.get("X-SeatMark-Rev")).toBe("r357");
   });
 
-  it("/api/feedback 405 / 200 响应均带 r356", async () => {
+  it("/api/feedback 405 / 200 响应均带 r357", async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore JS 模块无类型声明
     const { onRequest: onFeedback } = await import("../../../edge-functions/api/feedback.js");
@@ -1540,7 +1540,7 @@ describe("第 354 轮（第 356 轮递增）：三条边缘函数统一 X-SeatMa
       env: withTestEnv({}),
     });
     expect(get.status).toBe(405);
-    expect(get.headers.get("X-SeatMark-Rev")).toBe("r356");
+    expect(get.headers.get("X-SeatMark-Rev")).toBe("r357");
     const ok: Response = await onFeedback({
       request: new Request("http://localhost:5173/api/feedback", {
         method: "POST",
@@ -1550,10 +1550,10 @@ describe("第 354 轮（第 356 轮递增）：三条边缘函数统一 X-SeatMa
       env: withTestEnv({}),
     });
     expect(ok.status).toBe(200);
-    expect(ok.headers.get("X-SeatMark-Rev")).toBe("r356");
+    expect(ok.headers.get("X-SeatMark-Rev")).toBe("r357");
   });
 
-  it("/api/ai-design 405 / 413 / 200 响应均带 r356", async () => {
+  it("/api/ai-design 405 / 413 / 200 响应均带 r357", async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore JS 模块无类型声明
     const { onRequest: onAi, AI_MAX_BODY_BYTES } = await import("../../../edge-functions/api/ai-design.js");
@@ -1582,19 +1582,19 @@ describe("第 354 轮（第 356 轮递增）：三条边缘函数统一 X-SeatMa
         env,
       });
       expect(notAllowed.status).toBe(405);
-      expect(notAllowed.headers.get("X-SeatMark-Rev")).toBe("r356");
+      expect(notAllowed.headers.get("X-SeatMark-Rev")).toBe("r357");
       const tooLarge: Response = await onAi({
         request: post("{}", { "Content-Length": String(AI_MAX_BODY_BYTES + 1) }),
         env,
       });
       expect(tooLarge.status).toBe(413);
-      expect(tooLarge.headers.get("X-SeatMark-Rev")).toBe("r356");
+      expect(tooLarge.headers.get("X-SeatMark-Rev")).toBe("r357");
       const ok: Response = await onAi({
         request: post(JSON.stringify({ messages: [{ role: "user", content: "hi" }] })),
         env,
       });
       expect(ok.status).toBe(200);
-      expect(ok.headers.get("X-SeatMark-Rev")).toBe("r356");
+      expect(ok.headers.get("X-SeatMark-Rev")).toBe("r357");
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -2160,5 +2160,67 @@ describe("第 356 轮：/api/quota/consume exportId 幂等键", () => {
       body: { exportId: "0f1e2d3c-4b5a-4697-8877-665544332211" },
     });
     expect(response.status).toBe(503);
+  });
+});
+
+describe("第 357 轮：/api/share/tpl 短码 30 天过期", () => {
+  const PAYLOAD = "v0.eyJhIjoxfQ";
+  const TTL_30D = 30 * 24 * 3600;
+
+  it("KV 写入携带 expirationTtl=30 天，响应回传 expiresInSeconds", async () => {
+    const puts: Array<{ key: string; options?: { expirationTtl?: number } }> = [];
+    const kv = {
+      async get() {
+        return null;
+      },
+      async put(key: string, _value: string, options?: { expirationTtl?: number }) {
+        puts.push({ key, options });
+      },
+      async delete() {},
+    };
+    const { response, data } = await call("POST", "http://localhost:5173/api/share/tpl", {
+      body: { payload: PAYLOAD },
+      env: { seatmark_kv: kv } as unknown as Env,
+    });
+    expect(response.status).toBe(200);
+    expect(data.expiresInSeconds).toBe(TTL_30D);
+    const tplPut = puts.find((p) => p.key === `tplshare:${data.code}`);
+    expect(tplPut).toBeDefined();
+    expect(tplPut!.options).toEqual({ expirationTtl: TTL_30D });
+  });
+
+  it("Blob 后端：写入为 {v,exp} 包装且 exp≈30 天后；过期后读取 404 带 code=tplshare_not_found", async () => {
+    const blob = createMockBlobStore();
+    const env: Env = { seatmark_blob: blob };
+    const before = Date.now();
+    const { response, data } = await call("POST", "http://localhost:5173/api/share/tpl", {
+      body: { payload: PAYLOAD },
+      env,
+    });
+    expect(response.status).toBe(200);
+    const raw = blob.data.get(`tplshare:${data.code}`);
+    expect(raw).toBeDefined();
+    const wrapped = JSON.parse(raw!) as { v: string; exp: number };
+    expect(wrapped.v).toBe(PAYLOAD);
+    expect(wrapped.exp).toBeGreaterThanOrEqual(before + TTL_30D * 1000 - 5_000);
+    expect(wrapped.exp).toBeLessThanOrEqual(Date.now() + TTL_30D * 1000 + 5_000);
+
+    // 未过期：正常读回
+    const fresh = await call("GET", `http://localhost:5173/api/share/tpl?code=${data.code}`, { env });
+    expect(fresh.response.status).toBe(200);
+    expect(fresh.data.payload).toBe(PAYLOAD);
+
+    // 把 exp 拨到过去：读取端视为不存在 → 404 + 明确语义
+    blob.data.set(`tplshare:${data.code}`, JSON.stringify({ v: PAYLOAD, exp: Date.now() - 1000 }));
+    const expired = await call("GET", `http://localhost:5173/api/share/tpl?code=${data.code}`, { env });
+    expect(expired.response.status).toBe(404);
+    expect(expired.data.code).toBe("tplshare_not_found");
+    expect(expired.data.error).toBe("分享链接已过期或不存在");
+  });
+
+  it("从未存在的短码同样 404 + tplshare_not_found", async () => {
+    const { response, data } = await call("GET", "http://localhost:5173/api/share/tpl?code=0123456789");
+    expect(response.status).toBe(404);
+    expect(data.code).toBe("tplshare_not_found");
   });
 });

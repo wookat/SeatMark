@@ -38,11 +38,14 @@ function parseRosterLine(line: string, out: SeatingEntry[]) {
   }
 }
 
-/** 列模式下识别姓名 / 性别列的表头关键词 */
-const NAME_HEADER = /姓名|名字|^name$|student/i
+/**
+ * 列模式下识别姓名 / 性别列的表头关键词。英文关键词整格锚定：
+ * 「Student1」「Gender1」这类单列序号名单不是表头，不能被跳过。
+ */
+const NAME_HEADER = /姓名|名字$|^(?:student[ _-]?)?name$|^students?$/i
 const GENDER_HEADER = /性别|^gender$|^sex$/i
 /** 首行命中这些关键词时视为表头（Excel 复制常见列名） */
-const ROSTER_HEADER = /姓名|名字|性别|学号|班级|座位|序号|^name$|gender|^no\.?$|^id$/i
+const ROSTER_HEADER = /姓名|名字|性别|学号|班级|座位|序号|^name$|^students?$|^gender$|^sex$|^no\.?$|^id$/i
 /** 无表头时，列内任一值带数字或班级词则视为学号/班级类附属列 */
 const ID_LIKE = /\d|班|级|组|年/
 

@@ -35,7 +35,10 @@ export function useQuotaBadge(
 ): QuotaBadgeResult {
   const badge = computed<QuotaBadge>(() =>
     quota.remaining > 0
-      ? { text: `${t('今日剩余')} ${quota.remaining} ${t('次')}`, cls: 'bg-emerald-100 text-emerald-700' }
+      ? {
+          text: t('今日剩余 {n} 次').replace('{n}', String(quota.remaining)),
+          cls: 'bg-emerald-100 text-emerald-700',
+        }
       : { text: t('带水印免费'), cls: 'bg-sky-100 text-sky-700' },
   )
   const title = computed(

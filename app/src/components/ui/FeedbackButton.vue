@@ -56,6 +56,19 @@ const SCROLL_DELTA_PX = 2
 const collapsed = ref(false)
 let lastScrollY = 0
 
+/** 窄屏文本输入中（textarea / 文本 input 聚焦）同样收起，不压住输入控件右下角 */
+const inputFocused = ref(false)
+
+function isTextInput(el: Element | null): boolean {
+  if (!el) return false
+  const tag = el.tagName
+  return tag === 'TEXTAREA' || tag === 'INPUT' || (el instanceof HTMLElement && el.isContentEditable)
+}
+
+function syncFocus() {
+  inputFocused.value = isTextInput(document.activeElement)
+}
+
 function onScroll() {
   const y = window.scrollY
   if (y < TOP_RESTORE_PX) collapsed.value = false
@@ -66,13 +79,20 @@ function onScroll() {
 
 onMounted(() => {
   lastScrollY = window.scrollY
+  syncFocus()
   window.addEventListener('keydown', onKeydown)
   window.addEventListener('scroll', onScroll, { passive: true })
+  document.addEventListener('focusin', syncFocus)
+  document.addEventListener('focusout', syncFocus)
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('scroll', onScroll)
+  document.removeEventListener('focusin', syncFocus)
+  document.removeEventListener('focusout', syncFocus)
 })
+
+const hiddenOnNarrow = computed(() => collapsed.value || (inputFocused.value && !open.value))
 
 async function submit() {
   if (!content.value.trim()) {
@@ -108,11 +128,12 @@ async function submit() {
 </script>
 
 <template>
-  <!-- 浮动按钮 -->
+  <!-- 浮动按钮：画布页（html.has-canvas-safe-area）在 ≥md 缩为 size-10 并贴边 right-3，配合预览列的 md:pr-16 md:pb-20 空区不压座位图 -->
   <button
-    class="no-print fixed right-5 bottom-5 z-50 flex size-12 items-center justify-center rounded-full bg-brand-600 text-white transition-all hover:bg-brand-700 max-sm:right-3 max-sm:size-10 [.has-next-step-bar_&]:bottom-[4.25rem] [.has-sticky-actions_&]:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]"
-    :class="collapsed && 'max-sm:pointer-events-none max-sm:translate-y-2 max-sm:opacity-0'"
-    :data-collapsed="collapsed ? 'true' : 'false'"
+    class="no-print fixed right-5 bottom-5 z-50 flex size-12 items-center justify-center rounded-full bg-brand-600 text-white transition-all hover:bg-brand-700 max-sm:right-3 max-sm:size-10 md:[.has-canvas-safe-area_&]:right-3 md:[.has-canvas-safe-area_&]:size-10 [.has-next-step-bar_&]:bottom-[4.25rem] [.has-sticky-actions_&]:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]"
+    :class="hiddenOnNarrow && 'max-sm:pointer-events-none max-sm:translate-y-2 max-sm:opacity-0'"
+    :data-collapsed="hiddenOnNarrow ? 'true' : 'false'"
+    :data-input-focused="inputFocused ? 'true' : 'false'"
     :aria-label="t('反馈')"
     @click="open = true"
   >

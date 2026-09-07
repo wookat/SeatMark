@@ -288,7 +288,7 @@ async function onDownloadSample() {
             <span class="truncate">{{ workspace.excel.fileName }}</span>
             <span
               v-if="workspace.isDemoData"
-              class="ml-1 shrink-0 rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-bold text-brand-700"
+              class="ml-1 shrink-0 rounded bg-brand-100 px-1.5 py-0.5 text-[11px] font-bold text-brand-700"
             >
               {{ t('演示数据') }}
             </span>
@@ -612,7 +612,7 @@ async function onDownloadSample() {
           <button type="button" class="btn btn-ghost btn-sm !px-1.5" @click="draftSelectAll(false)">
             {{ t('清空') }}
           </button>
-          <span class="ml-auto text-[10px] text-slate-600">
+          <span class="ml-auto text-[11px] text-slate-600">
             {{ t('已选') }} {{ filterDraft.size }}/{{ distinctValues.length }}
           </span>
         </div>
@@ -627,7 +627,7 @@ async function onDownloadSample() {
             <span class="min-w-0 flex-1 truncate" :class="{ 'text-slate-600 italic': !item.value }">
               {{ item.value || t('(空白)') }}
             </span>
-            <span class="shrink-0 text-[10px] text-slate-600">{{ item.count }}</span>
+            <span class="shrink-0 text-[11px] text-slate-600">{{ item.count }}</span>
           </CheckboxField>
           <p v-if="!shownValues.length" class="px-2 py-4 text-center text-xs text-slate-600">
             {{ t('没有匹配的取值') }}

@@ -11,7 +11,7 @@ import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
 import { GUEST_FILE_ACCEPT, useGuestFileImport } from '@/composables/useGuestFileImport'
 import { useQuotaBadge } from '@/composables/useQuotaBadge'
-import { useStickyActions } from '@/composables/useStickyActions'
+import { useCanvasSafeArea, useStickyActions } from '@/composables/useStickyActions'
 import { demoPersonNames } from '@/data/demoDatasets'
 import { currentLocale, localePath, t as tr } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
@@ -46,6 +46,7 @@ import { seatingCsvHasGender, seatingRosterCsv } from '@/utils/seatingCsv'
 const router = useRouter()
 const toast = useToastStore()
 useStickyActions()
+useCanvasSafeArea()
 const quota = useQuotaStore()
 const auth = useAuthStore()
 const { badge: exportBadge, title: exportBadgeTitle } = useQuotaBadge(quota, auth, tr)
@@ -454,6 +455,8 @@ const SHEET_W = 297
 const SHEET_H = 210
 const previewContainer = ref<HTMLElement | null>(null)
 const basicSection = ref<HTMLElement | null>(null)
+/** 过道「列间」按钮行：落到视口底部条带时让移动端预览胶囊让位 */
+const aisleRow = ref<HTMLElement | null>(null)
 const { width: containerWidth } = useElementSize(previewContainer)
 /** 「原尺寸」模式的缩放下限：座位点选目标不至于过小，超出部分靠容器横向滚动查看 */
 const MIN_SCALE = 0.45
@@ -735,7 +738,7 @@ function toDeskLabels() {
           </div>
           <div class="mt-3">
             <label class="field-label">{{ tr('过道位置（点击列间隙切换）') }}</label>
-            <div class="flex flex-wrap gap-1.5">
+            <div ref="aisleRow" class="flex flex-wrap gap-1.5" data-testid="aisle-row">
               <button
                 v-for="n in Math.max(cols - 1, 0)"
                 :key="n"
@@ -904,7 +907,7 @@ function toDeskLabels() {
               </svg>
               {{ exporting ? tr('导出中…') : tr('导出 PNG') }}
               <span
-                class="ml-1 rounded-full px-1.5 py-px text-[10px] font-semibold"
+                class="ml-1 rounded-full px-1.5 py-px text-[11px] font-semibold"
                 :class="exportBadge.cls"
                 data-testid="export-quota-badge"
               >{{ exportBadge.text }}</span>
@@ -950,8 +953,8 @@ function toDeskLabels() {
         </section>
       </aside>
 
-      <!-- 预览 -->
-      <div class="no-print min-w-0">
+      <!-- 预览：≥md 右下预留 ≈64×80px 空区给反馈气泡（html.has-canvas-safe-area 时气泡缩小贴边），不压座位图 -->
+      <div class="no-print min-w-0 md:pr-16 md:pb-20" data-testid="seating-preview-column">
         <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
           <div
             class="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-bold"
@@ -1176,7 +1179,12 @@ function toDeskLabels() {
       :quota-badge="exportBadge"
       :quota-badge-title="exportBadgeTitle"
     />
-    <MobilePreviewJump :preview="previewContainer" :settings="basicSection" :avoid="namesInput" />
+    <MobilePreviewJump
+      :preview="previewContainer"
+      :settings="basicSection"
+      :avoid="namesInput"
+      :avoid-near-bottom="aisleRow"
+    />
   </div>
 </template>
 

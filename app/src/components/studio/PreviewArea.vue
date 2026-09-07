@@ -1013,7 +1013,7 @@ const hintKey = ref<HintKey | null>(null)
         >
           {{ t('显示选项') }}<span
             v-if="displayOptionsActiveCount"
-            class="ml-0.5 rounded-full bg-brand-100 px-1.5 text-[10px] font-bold text-brand-700"
+            class="ml-0.5 rounded-full bg-brand-100 px-1.5 text-[11px] font-bold text-brand-700"
           >{{ displayOptionsActiveCount }}</span>
           <svg
             class="size-3 transition-transform"
@@ -1142,7 +1142,7 @@ const hintKey = ref<HintKey | null>(null)
           {{ t('图片版 PDF') }}<span class="hidden md:inline">{{ t('（推荐）') }}</span>
           <span
             v-if="!sharePromptVisible"
-            class="ml-1 rounded-full px-1.5 py-px text-[10px] font-semibold"
+            class="ml-1 rounded-full px-1.5 py-px text-[11px] font-semibold"
             :class="exportBadge.cls"
             :title="exportBadgeTitle"
             data-testid="export-quota-badge"

@@ -109,6 +109,9 @@ const CODE_KEY_TTL_SECONDS = 15 * 60
 const PWFAIL_KEY_TTL_SECONDS = 30 * 60
 const dailyTtl = { expirationTtl: DAILY_KEY_TTL_SECONDS }
 const codeTtl = { expirationTtl: CODE_KEY_TTL_SECONDS }
+/** 模板分享短码 30 天后自动清除，避免 KV 里无限堆积历史模板负载 */
+const TPLSHARE_TTL_SECONDS = 30 * 24 * 3600
+const tplshareTtl = { expirationTtl: TPLSHARE_TTL_SECONDS }
 
 /** readBody 预检超限：由 onRequest 统一转为 413，避免每个路由自行判断 */
 class BodyTooLargeError extends Error {
@@ -1542,12 +1545,12 @@ async function handleRequest(context) {
     // 内容寻址短码：同一模板重复分享得到同一短码，天然去重
     const code = (await sha256Hex(payload)).slice(0, 10)
     try {
-      await kvOpWithRetry('tplshare 写入', () => kv.put(`tplshare:${code}`, payload))
+      await kvOpWithRetry('tplshare 写入', () => kv.put(`tplshare:${code}`, payload, tplshareTtl))
     } catch (err) {
       console.error('[seatmark-api] tplshare 写入重试后仍失败:', err)
       return json({ error: '分享服务暂时不可用，请稍后重试' }, 503, storageHeader)
     }
-    return json({ ok: true, code }, 200, storageHeader)
+    return json({ ok: true, code, expiresInSeconds: TPLSHARE_TTL_SECONDS }, 200, storageHeader)
   }
 
   if (path === '/api/share/tpl' && method === 'GET') {
@@ -1560,7 +1563,9 @@ async function handleRequest(context) {
       console.error('[seatmark-api] tplshare 读取重试后仍失败:', err)
       return json({ error: '分享服务暂时不可用，请稍后重试' }, 503, storageHeader)
     }
-    if (!payload) return json({ error: '短码不存在或已过期' }, 404, storageHeader)
+    if (!payload) {
+      return json({ error: '分享链接已过期或不存在', code: 'tplshare_not_found' }, 404, storageHeader)
+    }
     return json({ ok: true, payload }, 200, storageHeader)
   }
 

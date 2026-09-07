@@ -70,7 +70,7 @@ describe('第 348 轮：en.ts 译文病句护栏', () => {
   })
 
   it('定价页与维护提示译文已修正', () => {
-    expect(en['次（免费登录即升为每日']).toBe('(free sign-in raises it to')
+    expect(en['次（免费登录即升为每日']).toBe('(signing up free raises it to')
     expect(en['恢复后可注册领取专业版试用。']).toMatch(/^once restored/)
     expect(en['账号服务维护中，恢复后可领取']).toBeTruthy()
   })
