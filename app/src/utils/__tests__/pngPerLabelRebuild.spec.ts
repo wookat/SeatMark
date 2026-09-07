@@ -13,11 +13,11 @@ vi.mock('html2canvas-pro', () => ({ default: html2canvasMock }))
 
 type InkedCanvas = HTMLCanvasElement & { __pageInk?: boolean; __labelInk?: boolean }
 
-/** 整页有墨迹但标签裁剪区空白的页面画布（渲染竞态的典型产物） */
+/** 整页有墨迹但标签裁剪区空白的页面画布（渲染竞态的典型产物）；尺寸与 A4 竖版 210×297 同比，避免触发长宽比完整性检测 */
 function pageCanvasWithBlankLabel(): HTMLCanvasElement {
   const c = document.createElement('canvas') as InkedCanvas
-  c.width = 200
-  c.height = 100
+  c.width = 210
+  c.height = 297
   c.__pageInk = true
   c.__labelInk = false
   return c
