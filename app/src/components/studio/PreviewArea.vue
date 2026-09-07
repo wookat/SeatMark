@@ -1069,7 +1069,7 @@ const hintKey = ref<HintKey | null>(null)
           {{ t('图片版 PDF') }}<span class="hidden md:inline">{{ t('（推荐）') }}</span>
           <span
             v-if="!sharePromptVisible"
-            class="absolute -top-2.5 -right-2 rounded-full px-1.5 py-px text-[9px] font-bold ring-1 ring-white"
+            class="absolute -top-2.5 right-0 rounded-full px-1.5 py-px text-[9px] font-bold ring-1 ring-white"
             :class="exportBadge.cls"
             :title="exportBadgeTitle"
           >{{ exportBadge.text }}</span>
