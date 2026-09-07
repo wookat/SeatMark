@@ -159,7 +159,7 @@ export const round4Templates: LabelTemplate[] = [
     id: 'petCageCard',
     name: '宠物寄养笼牌',
     category: 'life',
-    description: '2 列 × 4 行，宠物名大字 + 品种/主人电话/喂食要点三行信息，交接不出错。',
+    description: '2 列 × 4 行，宠物名大字 + 品种/主人电话/喂食要点三行信息，交接时逐项核对。',
     scenario: '宠物店 / 宠物医院寄养',
     accent: '#ea580c',
     sampleData: {
@@ -654,7 +654,7 @@ export const round4Templates: LabelTemplate[] = [
     id: 'esportsSeat',
     name: '电竞赛位牌',
     category: 'event',
-    description: 'A4 一页 3 枚横牌，选手 ID 大字 + 战队与位置，深色块碰撞排版电竞氛围拉满。',
+    description: 'A4 一页 3 枚横牌，选手 ID 大字 + 战队与位置，深色块碰撞排版，赛桌上远看即可辨认。',
     scenario: '电竞比赛 / 网吧赛事',
     accent: '#0f172a',
     sampleData: { playerId: 'FrostBlade', team: '夜枭电子竞技俱乐部', role: '打野位 · 3 号位' },

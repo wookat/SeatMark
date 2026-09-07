@@ -186,7 +186,7 @@ export const eventTemplates: LabelTemplate[] = [
     id: 'vipSeat',
     name: '贵宾席位卡',
     category: 'event',
-    description: '2 列 × 5 行，双细线描边的礼宾版式，姓名衬线大字 + 敬语题头与席位号，接待规格拉满。',
+    description: '2 列 × 5 行，双细线描边的礼宾版式，姓名衬线大字 + 敬语题头与席位号，适合贵宾接待。',
     scenario: '贵宾接待 / 礼仪席位',
     accent: '#7f1d1d',
     fontFamily: SERIF_ZH,

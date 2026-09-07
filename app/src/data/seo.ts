@@ -723,7 +723,7 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
 
   if (p === '/seating') {
     return {
-      title: '班级座位表在线制作打印，一键生成桌贴 - SeatMark 座签',
+      title: '班级座位表在线制作打印，同名单生成桌贴 - SeatMark 座签',
       description:
         '免费在线生成教室座位表：粘贴学生名单、设置排列与过道、标注讲台，生成 A4 教室平面座位表直接打印；还能一键把同一份名单带入标签工坊批量生成课桌桌贴。数据不出浏览器。',
       path: '/seating',
@@ -733,7 +733,7 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
           { name: '粘贴名单', text: '把学生姓名粘贴进名单框，每行一人，支持逗号、顿号分隔。' },
           { name: '设置教室布局', text: '设置排数与列数，点击列间隙添加过道，可标注讲台位置。' },
           { name: '预览并打印', text: '确认 A4 横向座位表效果后直接打印，或另存为 PDF。' },
-          { name: '一键生成桌贴', text: '同一份名单带入标签工坊，选模板即可批量生成课桌桌贴。' },
+          { name: '生成对应桌贴', text: '同一份名单带入标签工坊，选模板即可批量生成课桌桌贴。' },
         ]),
         breadcrumb([
           { name: '首页', path: '/' },

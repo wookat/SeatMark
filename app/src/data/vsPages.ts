@@ -70,7 +70,7 @@ export const vsPages: VsPage[] = [
       {
         dimension: 'Excel 名单批量生成',
         competitor: '无名单批量功能，一次编辑一张',
-        seatmark: 'Excel/CSV 多 sheet 导入、表头自动匹配，整份名单一键生成',
+        seatmark: 'Excel/CSV 多 sheet 导入、表头自动匹配，整份名单批量生成',
       },
       {
         dimension: '使用门槛',

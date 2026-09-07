@@ -606,7 +606,7 @@ export const lifeTemplates: LabelTemplate[] = [
     id: 'drinkCup',
     name: '饮品杯贴',
     category: 'life',
-    description: '5 列 × 10 行圆角小贴，品名加粗 + 甜度冰量与单号，奶茶咖啡出杯贴杯即核，高峰不出错。',
+    description: '5 列 × 10 行圆角小贴，品名加粗 + 甜度冰量与单号，奶茶咖啡出杯贴杯即核，高峰期按单号对杯。',
     scenario: '饮品出杯标注',
     accent: '#92400e',
     sampleData: { drink: '茉莉奶绿', spec: '三分糖 · 少冰', orderNo: '#A036' },
