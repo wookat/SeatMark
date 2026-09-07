@@ -180,12 +180,9 @@ async function submitReserve() {
         <h2 class="text-base font-bold text-slate-900">{{ plan.name }}</h2>
         <p class="mt-0.5 text-xs text-slate-600">{{ plan.tagline }}</p>
 
-        <div class="mt-4 flex items-end gap-2">
+        <div class="mt-4 flex items-end gap-2" data-testid="plan-price">
           <span class="text-4xl font-bold tracking-tight text-slate-900">{{ plan.price }}</span>
           <span class="pb-1 text-sm font-semibold text-slate-600">{{ plan.priceUnit }}</span>
-          <span v-if="plan.originalPrice" class="pb-1 text-sm text-slate-400 line-through">
-            {{ plan.originalPrice }}{{ plan.priceUnit }}
-          </span>
           <span
             v-if="plan.cta === 'pro-trial' && !auth.serviceUnavailable"
             class="mb-1 ml-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700"
@@ -193,6 +190,18 @@ async function submitReserve() {
             {{ t('注册送 7 天') }}
           </span>
         </div>
+        <!-- 原价独立一行；免费版无原价时保留同高占位，三卡价格区对齐 -->
+        <p
+          class="mt-1 min-h-4 text-xs leading-4 text-slate-400"
+          data-testid="plan-original-price"
+          :aria-hidden="plan.originalPrice ? undefined : 'true'"
+        >
+          <template v-if="plan.originalPrice">
+            {{ t('原价') }}
+            <s>{{ plan.originalPrice }}{{ plan.priceUnit }}</s>
+            · {{ t('限时 0 折') }}
+          </template>
+        </p>
 
         <ul class="mt-5 flex flex-1 flex-col gap-2.5 text-sm text-slate-600">
           <li v-for="feature in plan.features" :key="feature" class="flex items-start gap-2">

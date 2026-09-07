@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import ChineseOnlyNotice from '@/components/ChineseOnlyNotice.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
-import { findGuide, guides } from '@/data/guides'
+import { findGuide, guides, studioLinkForGuide } from '@/data/guides'
 
 const route = useRoute()
 const router = useRouter()
@@ -133,7 +133,7 @@ function onArticleClick(event: MouseEvent) {
         <p class="mt-1 text-sm text-brand-100">免费、无需注册，名单不出浏览器。</p>
       </div>
       <RouterLink
-        :to="guide.quickStart?.to ?? '/studio'"
+        :to="studioLinkForGuide(guide)"
         class="btn btn-md w-full shrink-0 bg-white text-brand-700 hover:bg-brand-50 sm:w-auto"
       >
         {{ guide.quickStart ? guide.quickStart.label : '进入标签工坊' }}

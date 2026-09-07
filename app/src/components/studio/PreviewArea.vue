@@ -181,9 +181,9 @@ function goToMapping() {
 
 /** 三种输出的一句话差异，弹窗内直接可见（不再只靠按钮 title） */
 const outputSubtitles = computed<Record<'print' | 'pdf' | 'png', string>>(() => ({
-  print: t('打印 / 矢量 PDF：文字可选中，走系统打印'),
-  pdf: t('图片版 PDF：每页高清栅格，体积较大'),
-  png: t('PNG：逐张成图，多张自动 ZIP'),
+  print: t('打印 / 矢量 PDF：直接打印或交印刷厂（文字可选中、最清晰）'),
+  pdf: t('图片版 PDF：发给别人打印的 PDF（保留排版，文件较大）'),
+  png: t('PNG：发群/发朋友圈的图片（每张一图，多张打包 zip）'),
 }))
 
 // ---------- PNG 导出参数 ----------
@@ -1014,7 +1014,7 @@ const hintKey = ref<HintKey | null>(null)
         <button
           type="button"
           class="btn btn-primary btn-sm relative max-sm:min-h-9"
-          :title="t('经浏览器打印对话框输出：选「另存为 PDF」可得到矢量 PDF；直接打印请用对应纸张、无边距、缩放 100%')"
+          :title="t('直接打印或交印刷厂（文字可选中、最清晰）：经浏览器打印对话框输出，选「另存为 PDF」即得矢量 PDF；直接打印请用对应纸张、无边距、缩放 100%')"
           :disabled="!workspace.excel.rows.length"
           @click="openExportChoice('print')"
         >
@@ -1034,7 +1034,7 @@ const hintKey = ref<HintKey | null>(null)
         <button
           type="button"
           class="btn btn-secondary btn-sm relative max-sm:min-h-9"
-          :title="t('逐页渲染为高清图片后合成 PDF，所见即所得、任何设备打开都一致（推荐）；文字不可选中，如需矢量文字请用「打印 / 矢量 PDF」')"
+          :title="t('发给别人打印的 PDF（保留排版，文件较大）：逐页渲染为高清图片后合成，任何设备打开都一致；文字不可选中，如需矢量文字请用「打印 / 矢量 PDF」')"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="openExportChoice('pdf')"
         >
@@ -1060,7 +1060,7 @@ const hintKey = ref<HintKey | null>(null)
         <button
           type="button"
           class="btn btn-secondary btn-sm max-sm:min-h-9"
-          :title="t('按标签逐张导出 PNG 图片：每一张标签单独成图，单张直接下载，多张自动打包 zip；电子座签模板支持精确 800×480 像素输出')"
+          :title="t('发群/发朋友圈的图片（每张一图，多张打包 zip）：每一张标签单独成图；电子座签模板支持精确 800×480 像素输出')"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="openExportChoice('png')"
         >
@@ -1258,77 +1258,86 @@ const hintKey = ref<HintKey | null>(null)
               : t('按整页导出：每页纸张（含多枚标签）合成一张 PNG')
           }}
         </p>
-        <label class="field-label mt-3">{{ t('输出尺寸') }}</label>
-        <SelectField v-model="pngSizeMode" size="sm" :options="PNG_SIZE_OPTIONS" />
-        <template v-if="pngSizeMode === 'exact'">
-          <label class="field-label mt-2" for="png-preset">{{ t('分辨率预设（电子墨水屏）') }}</label>
-          <SelectField id="png-preset" v-model="pngPresetId" size="sm" :options="PNG_PRESET_OPTIONS" />
-          <div
-            v-if="!pngPreset"
-            class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600"
-          >
-            <label class="font-semibold" for="png-exact-width">{{ t('宽度（px）') }}</label>
-            <input
-              id="png-exact-width"
-              v-model.number="pngExactWidth"
-              type="number"
-              :min="MIN_EXACT_PIXEL_WIDTH"
-              :max="MAX_EXACT_PIXEL_WIDTH"
-              class="input-field w-24 text-center"
-              :class="pngExactWidthValid ? '' : '!border-red-400'"
-            />
-            <span v-if="pngExactWidthValid" class="text-slate-600">
-              {{ t('输出') }} <strong class="text-slate-700">{{ pngExactWidth }}×{{ pngExactHeight }}</strong> {{ t('像素（高度按模板比例自动推导）') }}
-            </span>
-            <span v-else class="text-red-500">{{ t('请输入') }} {{ MIN_EXACT_PIXEL_WIDTH }}–{{ MAX_EXACT_PIXEL_WIDTH }} {{ t('之间的整数') }}</span>
-          </div>
-          <p v-else class="mt-2 text-xs text-slate-600">
-            {{ t('每页精确输出') }} <strong class="text-slate-700">{{ pngPreset.width }}×{{ pngPreset.height }}</strong> {{ t('像素') }}
-          </p>
-          <p v-if="pngPresetStretch" class="mt-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">
-            {{ t('该预设宽高比与当前模板不一致，画面会被拉伸；建议改用比例匹配的模板，或选「自定义宽度」按模板比例输出。') }}
-          </p>
-        </template>
-        <CheckboxField
-          v-model="pngMonochrome"
-          class="mt-2 text-xs font-semibold text-slate-600"
-          :label="t('纯黑白输出（电子墨水屏推荐）')"
-        />
-        <p class="mt-2 text-xs leading-5 text-slate-600">
-          {{ t('单张直接下载 PNG，多张自动打包为 zip；') }}{{ isEinkTemplate ? t('电子座签模板默认精确 800×480 像素 + 纯黑白，可直接导入电子桌牌系统。') : t('需要精确像素（如电子墨水屏）时选「精确像素」，可用分辨率预设或自定义宽度。') }}
-        </p>
-        <template v-if="pngExportUnit === 'label' ? pngTotalLabels > 1 : workspace.totalPages > 1">
-          <label class="field-label mt-3" for="png-name-mode">{{ t('zip 内文件命名') }}</label>
-          <SelectField id="png-name-mode" v-model="pngNameMode" size="sm" :options="PNG_NAME_OPTIONS" />
-          <div v-if="pngNameMode === 'field'" class="mt-2 text-xs text-slate-600">
-            <input
-              v-model="pngNameTemplate"
-              type="text"
-              class="input-field w-full"
-              :class="pngNameTemplateValid ? '' : '!border-amber-400'"
-              :placeholder="t('如 {姓名}-{考场}')"
-              :aria-label="t('文件命名模板')"
-            />
-            <div v-if="workspace.excel.headers.length" class="mt-1.5 flex flex-wrap items-center gap-1.5">
-              <span class="text-slate-600">{{ t('点击插入字段：') }}</span>
-              <button
-                v-for="header in workspace.excel.headers"
-                :key="header"
-                type="button"
-                class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700 max-sm:min-h-9 max-sm:px-3"
-                @click="appendNameField(header)"
-              >
-                {{ header }}
-              </button>
+        <details
+          :open="isEinkTemplate"
+          class="mt-3 rounded-lg border border-slate-200/80 bg-white px-3 py-2"
+          data-testid="png-advanced-options"
+        >
+          <summary class="cursor-pointer text-xs font-bold text-slate-700 select-none">
+            {{ t('高级选项') }}<span class="ml-1 font-normal text-slate-500">{{ t('（输出尺寸 / 电子墨水屏预设 / 纯黑白 / zip 内命名）') }}</span>
+          </summary>
+          <label class="field-label mt-2">{{ t('输出尺寸') }}</label>
+          <SelectField v-model="pngSizeMode" size="sm" :options="PNG_SIZE_OPTIONS" />
+          <template v-if="pngSizeMode === 'exact'">
+            <label class="field-label mt-2" for="png-preset">{{ t('分辨率预设（电子墨水屏）') }}</label>
+            <SelectField id="png-preset" v-model="pngPresetId" size="sm" :options="PNG_PRESET_OPTIONS" />
+            <div
+              v-if="!pngPreset"
+              class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600"
+            >
+              <label class="font-semibold" for="png-exact-width">{{ t('宽度（px）') }}</label>
+              <input
+                id="png-exact-width"
+                v-model.number="pngExactWidth"
+                type="number"
+                :min="MIN_EXACT_PIXEL_WIDTH"
+                :max="MAX_EXACT_PIXEL_WIDTH"
+                class="input-field w-24 text-center"
+                :class="pngExactWidthValid ? '' : '!border-red-400'"
+              />
+              <span v-if="pngExactWidthValid" class="text-slate-600">
+                {{ t('输出') }} <strong class="text-slate-700">{{ pngExactWidth }}×{{ pngExactHeight }}</strong> {{ t('像素（高度按模板比例自动推导）') }}
+              </span>
+              <span v-else class="text-red-500">{{ t('请输入') }} {{ MIN_EXACT_PIXEL_WIDTH }}–{{ MAX_EXACT_PIXEL_WIDTH }} {{ t('之间的整数') }}</span>
             </div>
-            <p v-if="!pngNameTemplateValid" class="mt-1.5 text-amber-600">
-              {{ t('模板中引用了名单里不存在的列，对应占位符会按空处理；字段为空的页面自动回退为序号命名。') }}
+            <p v-else class="mt-2 text-xs text-slate-600">
+              {{ t('每页精确输出') }} <strong class="text-slate-700">{{ pngPreset.width }}×{{ pngPreset.height }}</strong> {{ t('像素') }}
             </p>
-            <p v-else class="mt-1.5 text-slate-600">
-              {{ t('{列名} 会替换为') }}{{ pngExportUnit === 'label' ? t('每张标签对应名单行') : t('该页对应名单行（每页多枚时取该页第一条记录）') }}{{ t('的内容；非法字符自动过滤，重名自动追加 -2，空字段回退序号命名。') }}
+            <p v-if="pngPresetStretch" class="mt-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">
+              {{ t('该预设宽高比与当前模板不一致，画面会被拉伸；建议改用比例匹配的模板，或选「自定义宽度」按模板比例输出。') }}
             </p>
-          </div>
-        </template>
+          </template>
+          <CheckboxField
+            v-model="pngMonochrome"
+            class="mt-2 text-xs font-semibold text-slate-600"
+            :label="t('纯黑白输出（电子墨水屏推荐）')"
+          />
+          <p class="mt-2 text-xs leading-5 text-slate-600">
+            {{ t('单张直接下载 PNG，多张自动打包为 zip；') }}{{ isEinkTemplate ? t('电子座签模板默认精确 800×480 像素 + 纯黑白，可直接导入电子桌牌系统。') : t('需要精确像素（如电子墨水屏）时选「精确像素」，可用分辨率预设或自定义宽度。') }}
+          </p>
+          <template v-if="pngExportUnit === 'label' ? pngTotalLabels > 1 : workspace.totalPages > 1">
+            <label class="field-label mt-3" for="png-name-mode">{{ t('zip 内文件命名') }}</label>
+            <SelectField id="png-name-mode" v-model="pngNameMode" size="sm" :options="PNG_NAME_OPTIONS" />
+            <div v-if="pngNameMode === 'field'" class="mt-2 text-xs text-slate-600">
+              <input
+                v-model="pngNameTemplate"
+                type="text"
+                class="input-field w-full"
+                :class="pngNameTemplateValid ? '' : '!border-amber-400'"
+                :placeholder="t('如 {姓名}-{考场}')"
+                :aria-label="t('文件命名模板')"
+              />
+              <div v-if="workspace.excel.headers.length" class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span class="text-slate-600">{{ t('点击插入字段：') }}</span>
+                <button
+                  v-for="header in workspace.excel.headers"
+                  :key="header"
+                  type="button"
+                  class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700 max-sm:min-h-9 max-sm:px-3"
+                  @click="appendNameField(header)"
+                >
+                  {{ header }}
+                </button>
+              </div>
+              <p v-if="!pngNameTemplateValid" class="mt-1.5 text-amber-600">
+                {{ t('模板中引用了名单里不存在的列，对应占位符会按空处理；字段为空的页面自动回退为序号命名。') }}
+              </p>
+              <p v-else class="mt-1.5 text-slate-600">
+                {{ t('{列名} 会替换为') }}{{ pngExportUnit === 'label' ? t('每张标签对应名单行') : t('该页对应名单行（每页多枚时取该页第一条记录）') }}{{ t('的内容；非法字符自动过滤，重名自动追加 -2，空字段回退序号命名。') }}
+              </p>
+            </div>
+          </template>
+        </details>
       </div>
       <p
         v-if="pendingAction === 'pdf'"

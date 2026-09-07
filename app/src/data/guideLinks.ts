@@ -9,7 +9,7 @@ export const footerGuideLinks: { label: string; to: string }[] = [
     to: '/guides/exam-seat-label-batch-print',
   },
   {
-    label: 'Excel 名单批量生成桌牌：会议桌牌、姓名牌几分钟出打印页',
+    label: 'Excel 名单批量生成桌牌：会议桌牌、姓名牌导入即出打印页',
     to: '/guides/excel-generate-desk-cards',
   },
   {

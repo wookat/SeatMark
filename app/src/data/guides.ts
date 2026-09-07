@@ -4,6 +4,8 @@
  * 每篇均为问答/步骤式结构，标题命中真实搜索词，便于搜索引擎与 AI 引擎直接引用。
  */
 
+import type { TemplateCategory } from '@/types/template'
+
 import { guidesRound2 } from './guidesRound2'
 import { guidesRound3 } from './guidesRound3'
 import { guidesRound4 } from './guidesRound4'
@@ -150,9 +152,9 @@ export const guides: Guide[] = [
   },
   {
     slug: 'excel-generate-desk-cards',
-    title: 'Excel 名单批量生成桌牌：会议桌牌、姓名牌几分钟出打印页',
+    title: 'Excel 名单批量生成桌牌：会议桌牌、姓名牌导入即出打印页',
     description:
-      '不用一张张改 Word，把参会名单 Excel 上传到 SeatMark，几分钟批量生成会议桌牌、姓名牌、台签，支持 A4 半页大桌牌与整页名牌，免费在线使用。',
+      '不用一张张改 Word，把参会名单 Excel 上传到 SeatMark，按名单批量生成会议桌牌、姓名牌、台签，支持 A4 半页大桌牌与整页名牌，免费在线使用。',
     keywords: ['Excel 生成桌牌', '会议桌牌批量制作', '姓名牌批量打印', '台签制作', '桌牌在线生成'],
     category: '会议',
     audiences: ['行政/HR'],
@@ -2096,4 +2098,26 @@ export const guides: Guide[] = [
 
 export function findGuide(slug: string): Guide | undefined {
   return guides.find((g) => g.slug === slug)
+}
+
+const GUIDE_CATEGORY_SCENE: Record<string, TemplateCategory> = {
+  考务: 'exam',
+  校园: 'teaching',
+  教学: 'teaching',
+  会务: 'event',
+  会议: 'event',
+  婚庆: 'wedding',
+  证卡: 'life',
+}
+
+/** 教程分类对应的工坊模板场景；无对应场景（打印/数据/对比等）返回 null */
+export function sceneForGuideCategory(category: string): TemplateCategory | null {
+  return GUIDE_CATEGORY_SCENE[category] ?? null
+}
+
+/** 教程页「进入工坊」链接：未指定模板时带 ?scene= 预选该教程的场景分类 */
+export function studioLinkForGuide(guide: Guide): string {
+  if (guide.quickStart) return guide.quickStart.to
+  const scene = sceneForGuideCategory(guide.category)
+  return scene ? `/studio?scene=${scene}` : '/studio'
 }

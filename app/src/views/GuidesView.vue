@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 
 import { useBatchedList } from '@/composables/useBatchedList'
 import ZhOnlyNotice from '@/components/ui/ZhOnlyNotice.vue'
-import { guides } from '@/data/guides'
+import { guides, sceneForGuideCategory } from '@/data/guides'
 import { t as tr } from '@/i18n'
 import { useI18n } from '@/i18n'
 import { matchesChineseQuery } from '@/utils/pinyin'
@@ -62,6 +62,12 @@ const shownNote = computed(() =>
     .replace('{shown}', String(visibleGuides.value.length))
     .replace('{total}', String(filteredGuides.value.length)),
 )
+
+/** 底部 CTA：筛选了教程分类时带 ?scene= 预选对应模板场景 */
+const studioCtaPath = computed(() => {
+  const scene = sceneForGuideCategory(activeCategory.value)
+  return scene ? `/studio?demo=1&scene=${scene}` : '/studio?demo=1'
+})
 
 function resetFilters() {
   activeCategory.value = '全部'
@@ -300,7 +306,7 @@ const recommendedGuides = computed(() => {
         </p>
       </div>
       <RouterLink
-        :to="localePath('/studio?demo=1')"
+        :to="localePath(studioCtaPath)"
         class="btn btn-primary btn-md w-full shrink-0 sm:w-auto"
       >
         {{ t('用演示数据试试') }}

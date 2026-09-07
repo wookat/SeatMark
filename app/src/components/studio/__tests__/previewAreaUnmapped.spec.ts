@@ -4,6 +4,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
 import PreviewArea from '@/components/studio/PreviewArea.vue'
+import { defaultTemplates } from '@/data/defaultTemplates'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 class ResizeObserverStub {
@@ -38,6 +39,13 @@ async function openPdfExportDialog(wrapper: Awaited<ReturnType<typeof mountPrevi
   await wrapper.vm.$nextTick()
 }
 
+async function openPngExportDialog(wrapper: Awaited<ReturnType<typeof mountPreview>>) {
+  const exportBtn = wrapper.findAll('button').find((b) => b.text().includes('图片 PNG'))
+  expect(exportBtn).toBeTruthy()
+  await exportBtn!.trigger('click')
+  await wrapper.vm.$nextTick()
+}
+
 describe('PreviewArea 导出弹窗：未映射字段提示条', () => {
   beforeEach(() => {
     vi.stubGlobal('ResizeObserver', ResizeObserverStub)
@@ -67,9 +75,9 @@ describe('PreviewArea 导出弹窗：未映射字段提示条', () => {
 
     // 三种输出的一行副标题在弹窗内可见
     const subtitles = wrapper.find('[data-testid="output-subtitles"]')
-    expect(subtitles.text()).toContain('打印 / 矢量 PDF：文字可选中')
-    expect(subtitles.text()).toContain('图片版 PDF：每页高清栅格')
-    expect(subtitles.text()).toContain('PNG：逐张成图')
+    expect(subtitles.text()).toContain('打印 / 矢量 PDF：直接打印或交印刷厂（文字可选中、最清晰）')
+    expect(subtitles.text()).toContain('图片版 PDF：发给别人打印的 PDF（保留排版，文件较大）')
+    expect(subtitles.text()).toContain('PNG：发群/发朋友圈的图片（每张一图，多张打包 zip）')
 
     await wrapper.find('[data-testid="unmapped-go-mapping"]').trigger('click')
     await wrapper.vm.$nextTick()
@@ -117,6 +125,58 @@ describe('PreviewArea 导出弹窗：未映射字段提示条', () => {
 
     expect(wrapper.find('[data-testid="unmapped-export-notice"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="output-subtitles"]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+})
+
+describe('第 346 轮：PNG 导出弹窗高级选项默认折叠', () => {
+  beforeEach(() => {
+    vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+    localStorage.clear()
+    setActivePinia(createPinia())
+  })
+
+  it('普通模板：首屏只有成图单位 + 主按钮，输出尺寸/纯黑白/zip 命名收在默认折叠的「高级选项」里', async () => {
+    const workspace = useWorkspaceStore()
+    workspace.useDemoData()
+    expect(workspace.template.id).not.toBe('eink800')
+
+    const wrapper = await mountPreview()
+    await openPngExportDialog(wrapper)
+
+    const advanced = wrapper.find('[data-testid="png-advanced-options"]')
+    expect(advanced.exists()).toBe(true)
+    expect(advanced.element.hasAttribute('open')).toBe(false)
+    expect(advanced.find('summary').text()).toContain('高级选项')
+    expect(advanced.text()).toContain('输出尺寸')
+    expect(advanced.text()).toContain('纯黑白输出')
+    expect(advanced.text()).toContain('zip 内文件命名')
+
+    // 首屏：成图单位与主导出按钮在 details 之外
+    expect(wrapper.find('label[for="png-unit"]').text()).toContain('成图单位')
+    expect(advanced.find('label[for="png-unit"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="choose-clean"]').exists()).toBe(true)
+    expect(advanced.find('[data-testid="choose-clean"]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('电子座签模板（eink800）：高级选项默认展开', async () => {
+    const workspace = useWorkspaceStore()
+    workspace.useDemoData()
+    const eink = defaultTemplates.find((tpl) => tpl.id === 'eink800')
+    expect(eink).toBeTruthy()
+    workspace.selectTemplate(eink!)
+    expect(workspace.template.id).toBe('eink800')
+
+    const wrapper = await mountPreview()
+    await openPngExportDialog(wrapper)
+
+    const advanced = wrapper.find('[data-testid="png-advanced-options"]')
+    expect(advanced.exists()).toBe(true)
+    expect(advanced.element.hasAttribute('open')).toBe(true)
+    expect(advanced.text()).toContain('分辨率预设（电子墨水屏）')
 
     wrapper.unmount()
   })

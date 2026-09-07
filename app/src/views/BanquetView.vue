@@ -15,7 +15,10 @@ import { useToastStore } from '@/stores/toast'
 import {
   assignGroupToGuests,
   autoAssignGuests,
+  type AssignStrategy,
   BANQUET_STATE_KEY,
+  explainSplit,
+  type SplitExplanation,
   buildGuestQuickReference,
   buildVenuePreset,
   countAssignedGuests,
@@ -27,7 +30,6 @@ import {
   type ParsedBanquetGuests,
   quickReferenceCsv,
   snapshotTables,
-  splitGroups,
   summarizeAssignments,
   removeEmptyTables,
   summarizeBanquet,
@@ -466,6 +468,13 @@ function onElementPointerUp() {
 
 // ---------- 第 3 步：自动分配 + 宾客拖拽微调 ----------
 
+/** 分配策略：默认尽量不拆组；「优先坐满」按桌顺序依次坐满 */
+const assignStrategy = ref<AssignStrategy>('keep-groups')
+const STRATEGY_OPTIONS = computed<SelectOption[]>(() => [
+  { value: 'keep-groups', label: tr('尽量不拆组（默认）'), hint: tr('同组尽量同桌，可能留空位') },
+  { value: 'fill-tables', label: tr('优先坐满'), hint: tr('按桌顺序依次坐满，空桌最少') },
+])
+
 function autoAssign() {
   if (!guests.value.length) {
     toast.warning(tr('名单为空'), tr('请先在第 1 步添加宾客'))
@@ -475,7 +484,7 @@ function autoAssign() {
     toast.warning(tr('还没有餐桌'), tr('请先在第 2 步选择场地预设或添加餐桌'))
     return
   }
-  const result = autoAssignGuests(guests.value, tables.value)
+  const result = autoAssignGuests(guests.value, tables.value, assignStrategy.value)
   for (const t of tables.value) {
     t.guestIds = result.get(t.id) ?? []
   }
@@ -497,8 +506,21 @@ function autoAssign() {
 /** 画布上方的结果摘要（随安排实时变化，不仅限于自动排座后） */
 const summary = computed(() => summarizeBanquet(guests.value, tables.value, groups.value))
 
-/** 被拆到多桌的分组明细（摘要中「拆分分组」可展开查看） */
-const splitGroupDetails = computed(() => splitGroups(guests.value, tables.value, groups.value))
+/** 被拆到多桌的分组明细（摘要中「拆分分组」可展开查看）：含拆分原因与所在桌号 */
+const splitGroupDetails = computed(() => explainSplit(guests.value, tables.value, groups.value))
+
+/** 拆分原因文案：「同学 12 人 > 任一桌最大 10 座」/「同学 6 人：轮到时没有一桌剩余座位够整组坐下」 */
+function splitReasonText(g: SplitExplanation): string {
+  if (g.reason === 'group-larger-than-any-table') {
+    return tr('{group} {n} 人 > 任一桌最大 {seats} 座')
+      .replace('{group}', g.groupName)
+      .replace('{n}', String(g.groupSize))
+      .replace('{seats}', String(g.maxTableSeats))
+  }
+  return tr('{group} {n} 人：轮到时没有一桌剩余座位够整组坐下')
+    .replace('{group}', g.groupName)
+    .replace('{n}', String(g.groupSize))
+}
 const splitDetailsOpen = ref(false)
 watch(
   () => splitGroupDetails.value.length,
@@ -1179,9 +1201,17 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
           <p class="mt-1 text-xs leading-5 text-slate-500">
             {{ tr('先一键自动分配，再拖拽微调，最后到第 4 步导出。') }}
           </p>
+          <div class="mt-3">
+            <label class="field-label">{{ tr('分配策略') }}</label>
+            <SelectField
+              v-model="assignStrategy"
+              :options="STRATEGY_OPTIONS"
+              data-testid="assign-strategy"
+            />
+          </div>
           <div class="mt-3 flex flex-wrap gap-2">
-            <button type="button" class="btn btn-primary btn-sm" @click="autoAssign">
-              {{ tr('一键自动分配（同组同桌）') }}
+            <button type="button" class="btn btn-primary btn-sm" data-testid="auto-assign" @click="autoAssign">
+              {{ assignStrategy === 'fill-tables' ? tr('一键自动分配（优先坐满）') : tr('一键自动分配（同组同桌）') }}
             </button>
             <button type="button" class="btn btn-ghost btn-sm" @click="clearAssignments">
               {{ tr('清空安排') }}
@@ -1340,10 +1370,11 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
           class="mb-2 space-y-1 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs leading-5 text-slate-700"
           data-testid="split-groups-details"
         >
-          <li v-for="g in splitGroupDetails" :key="g.groupId" class="flex flex-wrap items-baseline gap-x-1.5">
-            <span class="font-semibold text-slate-800">{{ g.groupName }}</span>
+          <li v-for="g in splitGroupDetails" :key="g.groupId" class="flex flex-wrap items-baseline gap-x-1.5" :data-split-reason="g.reason">
+            <span class="font-semibold text-slate-800">{{ splitReasonText(g) }}</span>
             <span aria-hidden="true" class="text-slate-400">→</span>
             <span>
+              {{ tr('拆到') }}
               {{ listJoin(g.tables.map((x) => `${x.name}${tr('（')}${x.count} ${tr('人')}${tr('）')}`)) }}
             </span>
           </li>

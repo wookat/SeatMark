@@ -379,19 +379,17 @@ export function buildVenuePreset(preset: VenuePresetId): BanquetTable[] {
   return tables
 }
 
-// ---------- 自动分配（同组尽量同桌） ----------
+// ---------- 自动分配（同组尽量同桌 / 优先坐满） ----------
 
 /**
- * 一键自动分配：
- * 1. 按分组聚合宾客（未分组的排最后），组内保持名单顺序；
- * 2. 大组优先；每组先找「剩余座位刚好放得下整组」的最小桌（best-fit），
- *    放不下整组时按剩余座位从多到少拆分到多张桌；
- * 3. 返回每桌新的 guestIds（不修改入参）。
+ * 自动分配策略：
+ * - keep-groups（默认）：尽量不拆组，每组 best-fit 整组放桌，放不下时才拆；
+ * - fill-tables：按桌顺序依次坐满，组内成员连续排，空桌最少但可能更多组被拆。
  */
-export function autoAssignGuests(
-  guests: BanquetGuest[],
-  tables: BanquetTable[],
-): Map<string, string[]> {
+export type AssignStrategy = 'keep-groups' | 'fill-tables'
+
+/** 按分组聚合宾客：大组优先（稳定），未分组永远最后，组内保持名单顺序 */
+function groupGuestsForAssign(guests: BanquetGuest[]): Array<[string, BanquetGuest[]]> {
   const byGroup = new Map<string, BanquetGuest[]>()
   for (const g of guests) {
     const key = g.groupId ?? ''
@@ -399,13 +397,27 @@ export function autoAssignGuests(
     if (list) list.push(g)
     else byGroup.set(key, [g])
   }
-  const groupsSorted = [...byGroup.entries()].sort((a, b) => {
-    // 未分组永远最后；其余按人数从多到少，稳定
+  return [...byGroup.entries()].sort((a, b) => {
     if (a[0] === '') return 1
     if (b[0] === '') return -1
     return b[1].length - a[1].length
   })
+}
 
+/**
+ * 一键自动分配：
+ * 1. 按分组聚合宾客（未分组的排最后），组内保持名单顺序；
+ * 2. keep-groups：大组优先；每组先找「剩余座位刚好放得下整组」的最小桌（best-fit），
+ *    放不下整组时按剩余座位从多到少拆分到多张桌；
+ *    fill-tables：按桌顺序依次坐满，组内成员连续，一桌满了接下一桌；
+ * 3. 返回每桌新的 guestIds（不修改入参）。
+ */
+export function autoAssignGuests(
+  guests: BanquetGuest[],
+  tables: BanquetTable[],
+  strategy: AssignStrategy = 'keep-groups',
+): Map<string, string[]> {
+  const groupsSorted = groupGuestsForAssign(guests)
   const assigned = new Map<string, string[]>(tables.map((t) => [t.id, []]))
   const free = new Map<string, number>(tables.map((t) => [t.id, t.seats]))
   const order = tables.map((t) => t.id)
@@ -413,6 +425,26 @@ export function autoAssignGuests(
   const put = (tableId: string, members: BanquetGuest[]) => {
     assigned.get(tableId)!.push(...members.map((m) => m.id))
     free.set(tableId, free.get(tableId)! - members.length)
+  }
+
+  if (strategy === 'fill-tables') {
+    let cursor = 0
+    for (const [, members] of groupsSorted) {
+      let rest = [...members]
+      while (rest.length && cursor < order.length) {
+        const id = order[cursor]!
+        const f = free.get(id)!
+        if (f <= 0) {
+          cursor++
+          continue
+        }
+        const take = Math.min(f, rest.length)
+        put(id, rest.slice(0, take))
+        rest = rest.slice(take)
+      }
+      if (cursor >= order.length) break // 所有桌已满，剩余宾客保持未安排
+    }
+    return assigned
   }
 
   for (const [, members] of groupsSorted) {
@@ -598,6 +630,45 @@ export function splitGroups(
     })
   }
   return out
+}
+
+/** 分组被拆开的原因 */
+export type SplitReason = 'group-larger-than-any-table' | 'no-table-had-enough-free-seats'
+
+export interface SplitExplanation extends SplitGroup {
+  reason: SplitReason
+  /** 该分组人数 */
+  groupSize: number
+  /** 场地中最大一桌的座位数 */
+  maxTableSeats: number
+}
+
+/**
+ * 解释每个被拆分组的原因（纯函数，基于当前分配结果）：
+ * - 组人数 > 任一桌座位数 → 'group-larger-than-any-table'（无论怎么排都必拆）；
+ * - 否则 → 'no-table-had-enough-free-seats'（有桌容得下整组，但轮到它时没有一桌剩余座位够坐）。
+ */
+export function explainSplit(
+  guests: BanquetGuest[],
+  tables: BanquetTable[],
+  groups: BanquetGroup[],
+): SplitExplanation[] {
+  const maxTableSeats = tables.reduce((max, t) => Math.max(max, t.seats), 0)
+  const sizeByGroup = new Map<string, number>()
+  for (const g of guests) {
+    if (!g.groupId) continue
+    sizeByGroup.set(g.groupId, (sizeByGroup.get(g.groupId) ?? 0) + 1)
+  }
+  return splitGroups(guests, tables, groups).map((split) => {
+    const groupSize = sizeByGroup.get(split.groupId) ?? 0
+    return {
+      ...split,
+      groupSize,
+      maxTableSeats,
+      reason:
+        groupSize > maxTableSeats ? 'group-larger-than-any-table' : 'no-table-had-enough-free-seats',
+    }
+  })
 }
 
 /** 自动排座结果摘要：已安排/总数、空桌、拆分分组、未安排 */

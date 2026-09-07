@@ -1,16 +1,32 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { useI18n } from '@/i18n'
 
 import { useWorkspaceStore } from '@/stores/workspace'
 import { dismissStudioGuide, studioGuideDismissed } from '@/utils/firstVisit'
 
+/**
+ * compact：侧栏同屏已有另一条完整提示（如纸型错配条）时，引导折叠为单行可展开态；
+ * 内容不删不改，compact 恢复 false 后自动回到完整态。
+ */
+const props = withDefaults(defineProps<{ compact?: boolean }>(), { compact: false })
+
 const { t } = useI18n()
 const workspace = useWorkspaceStore()
 
 // 响应式联动：导出/打印成功后（dismissStudioGuide）引导卡片当场消失
 const visible = computed(() => !studioGuideDismissed.value)
+
+/** 紧凑态下用户手动展开；重新进入紧凑态时回到折叠 */
+const manuallyExpanded = ref(false)
+watch(
+  () => props.compact,
+  (compact) => {
+    if (compact) manuallyExpanded.value = false
+  },
+)
+const collapsed = computed(() => props.compact && !manuallyExpanded.value)
 
 const hasRows = computed(() => workspace.excel.rows.length > 0)
 
@@ -41,9 +57,26 @@ function tryDemo() {
 
 <template>
   <section
-    v-if="visible"
+    v-if="visible && collapsed"
+    class="rounded-lg border border-brand-200 bg-brand-50/60 px-4 py-2"
+    :aria-label="t('首次使用引导')"
+    data-testid="first-visit-guide-compact"
+  >
+    <button
+      type="button"
+      class="flex w-full cursor-pointer items-center justify-between gap-2 text-left text-xs font-bold text-slate-800 transition-colors hover:text-brand-700"
+      :aria-expanded="false"
+      @click="manuallyExpanded = true"
+    >
+      <span>{{ t('新手四步引导') }}</span>
+      <span class="text-slate-500" aria-hidden="true">▸</span>
+    </button>
+  </section>
+  <section
+    v-else-if="visible"
     class="rounded-lg border border-brand-200 bg-brand-50/60 p-4"
     :aria-label="t('首次使用引导')"
+    data-testid="first-visit-guide"
   >
     <div class="flex items-start justify-between gap-2">
       <p class="text-sm font-bold text-slate-900">{{ t('四步拿到成品') }}</p>
