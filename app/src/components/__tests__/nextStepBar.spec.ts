@@ -206,3 +206,94 @@ describe('第 355 轮：常驻底部操作条不遮页脚版权行 / 额度文�
     wrapper.unmount()
   })
 })
+
+describe('第 358 轮：操作条实际高度写入 --sm-nextstep-h', () => {
+  type ROCallback = (entries: Array<{ target: Element; borderBoxSize: Array<{ blockSize: number; inlineSize: number }> }>) => void
+  let roCallback: ROCallback | undefined
+  let observed: Element | null = null
+  let disconnected = 0
+  class ResizeObserverStub {
+    constructor(cb: ROCallback) {
+      roCallback = cb
+    }
+    observe(el: Element) {
+      observed = el
+    }
+    unobserve() {}
+    disconnect() {
+      disconnected += 1
+    }
+  }
+  const cssVar = () => document.documentElement.style.getPropertyValue('--sm-nextstep-h')
+
+  it('挂载后用 ResizeObserver 观察条本身，回调高度写入 <html> 的 --sm-nextstep-h；卸载时清零并断开观察', async () => {
+    roCallback = undefined
+    observed = null
+    disconnected = 0
+    vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+    const target = document.createElement('section')
+    const wrapper = mountBar({ step: 'import', arrangeLabel: '随机排座', target })
+    await wrapper.vm.$nextTick()
+    const bar = wrapper.find('[data-testid="next-step-bar"]')
+    expect(bar.exists()).toBe(true)
+    expect(observed).toBe(bar.element)
+    expect(roCallback).toBeTypeOf('function')
+
+    roCallback!([{ target: bar.element, borderBoxSize: [{ blockSize: 49, inlineSize: 390 }] }])
+    expect(cssVar()).toBe('49px')
+    // 文案折行等导致条变高时跟随更新
+    roCallback!([{ target: bar.element, borderBoxSize: [{ blockSize: 72, inlineSize: 390 }] }])
+    expect(cssVar()).toBe('72px')
+
+    wrapper.unmount()
+    expect(cssVar()).toBe('0px')
+    expect(disconnected).toBeGreaterThan(0)
+  })
+
+  it('目标进入视口条隐藏（v-if 卸载）时清零，重新出现后再次写入', async () => {
+    roCallback = undefined
+    let ioCallback: IntersectionObserverCallback | undefined
+    vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(cb: IntersectionObserverCallback) {
+          ioCallback = cb
+        }
+        observe() {}
+        disconnect() {}
+      },
+    )
+    const target = document.createElement('section')
+    const wrapper = mountBar({ step: 'import', arrangeLabel: '随机排座', target })
+    await wrapper.vm.$nextTick()
+    roCallback!([{ target: wrapper.find('[data-testid="next-step-bar"]').element, borderBoxSize: [{ blockSize: 48, inlineSize: 390 }] }])
+    expect(cssVar()).toBe('48px')
+
+    ioCallback!([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver)
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[data-testid="next-step-bar"]').exists()).toBe(false)
+    expect(cssVar()).toBe('0px')
+
+    ioCallback!([{ isIntersecting: false } as IntersectionObserverEntry], {} as IntersectionObserver)
+    await wrapper.vm.$nextTick()
+    roCallback!([{ target: wrapper.find('[data-testid="next-step-bar"]').element, borderBoxSize: [{ blockSize: 50, inlineSize: 390 }] }])
+    expect(cssVar()).toBe('50px')
+    wrapper.unmount()
+    expect(cssVar()).toBe('0px')
+  })
+
+  it('secondary 插槽渲染在主按钮左侧（同一右侧按钮组内）', () => {
+    const target = document.createElement('section')
+    const wrapper = mount(NextStepBar, {
+      props: { step: 'import', arrangeLabel: '随机排座', target },
+      slots: { secondary: '<button type="button" data-testid="secondary-slot">预览</button>' },
+    })
+    const secondary = wrapper.find('[data-testid="secondary-slot"]')
+    const primary = wrapper.find('[data-testid="next-step-action"]')
+    expect(secondary.exists()).toBe(true)
+    expect(secondary.element.parentElement).toBe(primary.element.parentElement)
+    expect(secondary.element.compareDocumentPosition(primary.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    wrapper.unmount()
+  })
+})

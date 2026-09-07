@@ -224,21 +224,21 @@ describe('第 349 轮：390 宽下浮动胶囊让位', () => {
     }
   })
 
-  it('底部操作条（h-12 = 3rem）可见时，胶囊与客服 FAB 都抬到 4.25rem：与操作条留 ≥ 8px 间距', async () => {
+  it('底部操作条可见时（第 358 轮）：悬浮胶囊隐藏（已并入条内），客服 FAB 按实际条高 --sm-nextstep-h + 12px 抬高', async () => {
     const wrapper = await mountView(SeatingView)
     const jump = wrapper.find('[data-testid="mobile-preview-jump"]')
-    expect(jump.classes()).toContain('[.has-next-step-bar_&]:bottom-[4.25rem]')
+    expect(jump.classes()).toContain('[.has-next-step-bar_&]:hidden')
     expect(jump.classes()).toContain('[.has-sticky-actions_&]:bottom-[4.25rem]')
     const { default: FeedbackButton } = await import('@/components/ui/FeedbackButton.vue')
     const fab = mount(FeedbackButton, { global: { stubs: { Teleport: true, Transition: true } } })
-    expect(fab.find('button').classes()).toContain('[.has-next-step-bar_&]:bottom-[4.25rem]')
+    expect(fab.find('button').classes()).toContain(
+      '[.has-next-step-bar_&]:bottom-[calc(var(--sm-nextstep-h,3rem)_+_0.75rem)]',
+    )
     expect(fab.find('button').classes()).toContain(
       '[.has-sticky-actions_&]:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]',
     )
     expect(fab.find('button').classes()).toContain('max-sm:size-10')
     expect(fab.find('button').classes()).toContain('max-sm:right-3')
-    // 4.25rem − 3rem（操作条高）= 1.25rem = 20px ≥ 8px
-    expect(4.25 * 16 - 3 * 16).toBeGreaterThanOrEqual(8)
     fab.unmount()
     wrapper.unmount()
   })
@@ -249,7 +249,7 @@ describe('第 355 轮：胶囊改右下角 + 名单输入区滚入视口时自�
     const wrapper = await mountView(SeatingView)
     const jump = wrapper.find('[data-testid="mobile-preview-jump"]')
     expect(jump.classes()).toContain('right-14')
-    expect(jump.classes()).toContain('bottom-4')
+    expect(jump.classes()).toContain('bottom-[calc(var(--sm-nextstep-h,0px)_+_1rem)]')
     expect(jump.classes()).not.toContain('left-4')
     // FAB max-sm: right-3(12px) + size-10(40px) = 52px < right-14(56px)，两者不重叠
     expect(14 * 4).toBeGreaterThan(3 * 4 + 10 * 4)
@@ -278,12 +278,12 @@ describe('第 355 轮：胶囊改右下角 + 名单输入区滚入视口时自�
     wrapper.unmount()
   })
 
-  it('/seating 与 /banquet 表单列底部留白：页面根容器 pb-20，底部常驻条不压最后一个控件', async () => {
+  it('/seating 与 /banquet 表单列底部留白：页面根容器 pb-fixed-layers（操作条实际高 + FAB + 安全区 + 16px），底部常驻条不压最后一个控件', async () => {
     for (const view of [SeatingView, BanquetView]) {
       const wrapper = await mountView(view)
       const root = wrapper.find('.mx-auto.w-full')
-      expect(root.classes()).toContain('pb-20')
-      expect(root.classes()).toContain('sm:pb-20')
+      expect(root.classes()).toContain('pb-fixed-layers')
+      expect(root.classes()).not.toContain('pb-20')
       wrapper.unmount()
     }
   })
@@ -294,7 +294,7 @@ describe('第 357 轮：反馈 FAB 与底部固定层对画布 / 过道按钮避
     ['SeatingView', SeatingView, 'seating-preview-column'],
     ['BanquetView', BanquetView, 'banquet-canvas-column'],
   ] as const)(
-    '%s：挂载时 <html> 加 has-canvas-safe-area，卸载时移除；画布列 md:pr-16 md:pb-20 预留右下空区',
+    '%s：挂载时 <html> 加 has-canvas-safe-area，卸载时移除；画布列 md:pr-16 md:pb-fixed-layers 预留右下空区',
     async (_name, view, columnTestId) => {
       expect(document.documentElement.classList.contains('has-canvas-safe-area')).toBe(false)
       const wrapper = await mountView(view)
@@ -302,7 +302,7 @@ describe('第 357 轮：反馈 FAB 与底部固定层对画布 / 过道按钮避
       const column = wrapper.find(`[data-testid="${columnTestId}"]`)
       expect(column.exists()).toBe(true)
       expect(column.classes()).toContain('md:pr-16')
-      expect(column.classes()).toContain('md:pb-20')
+      expect(column.classes()).toContain('md:pb-fixed-layers')
       wrapper.unmount()
       expect(document.documentElement.classList.contains('has-canvas-safe-area')).toBe(false)
     },
@@ -386,5 +386,77 @@ describe('第 357 轮：反馈 FAB 与底部固定层对画布 / 过道按钮避
     await wrapper.vm.$nextTick()
     expect(jump.attributes('data-hidden')).toBe('false')
     wrapper.unmount()
+  })
+})
+
+describe('第 358 轮：<md 预览按钮并入底部操作条 + 反馈 FAB 页脚淡出', () => {
+  it.each([
+    ['SeatingView', SeatingView, '查看座位预览 ↓'],
+    ['BanquetView', BanquetView, '查看座位预览 ↓'],
+  ] as const)('%s：操作条内渲染行内预览按钮（md:hidden、非 fixed），点击滚动到预览区；悬浮胶囊在 has-next-step-bar 下隐藏', async (_name, view, label) => {
+    const wrapper = await mountView(view)
+    const bar = wrapper.find('[data-testid="next-step-bar"]')
+    expect(bar.exists()).toBe(true)
+    const inline = bar.find('[data-testid="mobile-preview-jump-inline"]')
+    expect(inline.exists()).toBe(true)
+    expect(inline.classes()).toContain('md:hidden')
+    expect(inline.classes()).not.toContain('fixed')
+    expect(inline.text()).toBe(label)
+    const scroll = Element.prototype.scrollIntoView as ReturnType<typeof vi.fn>
+    scroll.mockClear()
+    await inline.trigger('click')
+    expect(scroll).toHaveBeenCalledTimes(1)
+    expect((scroll.mock.instances[0] as HTMLElement).className).toContain('overflow-auto')
+
+    const floating = wrapper.find('[data-testid="mobile-preview-jump"]')
+    expect(floating.classes()).toContain('fixed')
+    expect(floating.classes()).toContain('[.has-next-step-bar_&]:hidden')
+    wrapper.unmount()
+  })
+
+  it('FeedbackButton：页脚进入视口且页面可滚动时淡出（opacity-0 + aria-hidden），离开视口恢复', async () => {
+    const footer = document.createElement('footer')
+    document.body.appendChild(footer)
+    Object.defineProperty(document.documentElement, 'scrollHeight', { value: 3000, configurable: true })
+    Object.defineProperty(window, 'innerHeight', { value: 844, configurable: true, writable: true })
+    const { default: FeedbackButton } = await import('@/components/ui/FeedbackButton.vue')
+    const fab = mount(FeedbackButton, {
+      global: { stubs: { Teleport: true, Transition: true } },
+      attachTo: document.body,
+    })
+    const btn = fab.find('button')
+    expect(ioCallbacks.has(footer)).toBe(true)
+    expect(btn.attributes('data-footer-visible')).toBe('false')
+
+    intersect(footer, true)
+    await fab.vm.$nextTick()
+    expect(btn.attributes('data-footer-visible')).toBe('true')
+    expect(btn.classes()).toContain('opacity-0')
+    expect(btn.classes()).toContain('pointer-events-none')
+    expect(btn.attributes('aria-hidden')).toBe('true')
+
+    intersect(footer, false)
+    await fab.vm.$nextTick()
+    expect(btn.attributes('data-footer-visible')).toBe('false')
+    expect(btn.attributes('aria-hidden')).toBeUndefined()
+    fab.unmount()
+    footer.remove()
+  })
+
+  it('FeedbackButton：短页面（不可滚动）页脚常驻可见时不淡出，反馈入口保留', async () => {
+    const footer = document.createElement('footer')
+    document.body.appendChild(footer)
+    Object.defineProperty(document.documentElement, 'scrollHeight', { value: 600, configurable: true })
+    Object.defineProperty(window, 'innerHeight', { value: 844, configurable: true, writable: true })
+    const { default: FeedbackButton } = await import('@/components/ui/FeedbackButton.vue')
+    const fab = mount(FeedbackButton, {
+      global: { stubs: { Teleport: true, Transition: true } },
+      attachTo: document.body,
+    })
+    intersect(footer, true)
+    await fab.vm.$nextTick()
+    expect(fab.find('button').attributes('data-footer-visible')).toBe('false')
+    fab.unmount()
+    footer.remove()
   })
 })

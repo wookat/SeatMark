@@ -578,6 +578,11 @@ export const en: Record<string, string> = {
   '名单': 'Roster',
   '名单与照片数据从不上云。退出登录后本设备的模板与配额计数仍保留在浏览器本地。': 'Rosters and photos never leave your device. After signing out, local templates and quota counts stay in this browser.',
   '名单为空': 'Roster is empty',
+  '名单解析失败': 'Could not parse the roster',
+  '解析名单': 'Parse roster',
+  '文本较长，已暂停自动解析，点「解析名单」查看识别结果':
+    'Long text: automatic parsing is paused. Click “Parse roster” to see the result',
+  '未使用列：{columns}': 'Unused columns: {columns}',
   '名单需包含性别列（如：张伟 男）': 'Roster needs a gender column (e.g. "Alex M")',
   '含专业版全部功能': 'Everything in Pro',
   '含你的专属链接，直接粘贴到群聊或朋友圈即可': 'Includes your personal link — paste straight into a group chat or feed',

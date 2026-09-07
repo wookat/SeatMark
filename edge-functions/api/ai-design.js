@@ -279,10 +279,13 @@ async function proxyUpstreams({ env, messages, signal }) {
       })
       if (upstream.ok) return okResponse(await upstream.text())
       const errBody = await upstream.text().catch(() => '')
-      attempts.push(`${model}: HTTP ${upstream.status} ${errBody.slice(0, 120)}`)
+      // 上游诊断只进 Workers 日志，不回给客户端
+      console.warn(`[seatmark-ai-design] ${model}: HTTP ${upstream.status} ${errBody.slice(0, 300)}`)
+      attempts.push(`${model}: HTTP ${upstream.status}`)
     } catch (e) {
       if (isAbortError(e)) timedOut = true
-      attempts.push(`${model}: ${e instanceof Error ? e.message : String(e)}`)
+      console.warn(`[seatmark-ai-design] ${model}: ${e instanceof Error ? e.message : String(e)}`)
+      attempts.push(`${model}: 网络异常`)
     }
   }
 

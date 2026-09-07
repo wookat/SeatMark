@@ -9,6 +9,10 @@
  *   qyapi.weixin.qq.com / oapi.dingtalk.com → { msgtype, text.content }；其余按飞书 { msg_type, content.text }）
  *   仅从环境变量读取，代码中不允许出现任何 webhook key 字面量；
  *   未配置时跳过推送（console.warn），反馈仍正常存档并返回成功
+ * - ALERT_WEBHOOK     可选，存档失败时的告警 webhook；同样仅从环境变量读取
+ *
+ * 失败语义：存档失败 console.error + 告警；webhook 推送失败用 ctx.waitUntil 延迟 2s 重试一次；
+ * 存档与推送都失败时返回 503，不再假成功。
  *
  * 存储：与主 API 同源的三级后备（KV → Blob → 内存，见 _storage.js）。
  * 反馈存档到 fb: 前缀供管理端 /api/admin/feedback 查看；限频计数用 rl:fb: 前缀。
@@ -28,6 +32,8 @@ const DAILY_KEY_TTL_SECONDS = 48 * 3600
 /** 页面路径存档与 webhook 推送共用的截断上限 */
 const PAGE_MAX_CHARS = 200
 export const FEEDBACK_MAX_BODY_BYTES = 32 * 1024
+export const FEEDBACK_WEBHOOK_RETRY_DELAY_MS = 2000
+export const FEEDBACK_UNAVAILABLE_MESSAGE = '反馈服务暂时不可用，请稍后再试'
 
 const encoder = new TextEncoder()
 
@@ -37,6 +43,8 @@ export async function onRequest(context) {
 
 async function handleRequest(context) {
   const { request, env } = context
+  const waitUntil =
+    typeof context.waitUntil === 'function' ? (p) => context.waitUntil(p) : (p) => void p.catch(() => {})
 
   let revHeader = { 'X-SeatMark-Rev': SEATMARK_REV }
 
@@ -90,7 +98,8 @@ async function handleRequest(context) {
     // 限频失败不阻塞提交
   }
 
-  // 存档（供管理端查看），失败不阻塞
+  // 存档（供管理端查看）
+  let archived = true
   try {
     const id = `${Date.now()}-${randomToken36(6)}`
     await kv.put(
@@ -103,10 +112,13 @@ async function handleRequest(context) {
         createdAt: new Date().toISOString(),
       }),
     )
-  } catch {
-    // 存档失败静默忽略
+  } catch (e) {
+    archived = false
+    console.error('[seatmark-feedback] archive failed', e instanceof Error ? e.message : String(e))
+    waitUntil(sendArchiveAlert(env, storage, e))
   }
 
+  let delivered = false
   const webhook = (env && typeof env.FEEDBACK_WEBHOOK === 'string' && env.FEEDBACK_WEBHOOK.trim()) || ''
   if (!webhook) {
     console.warn('[seatmark-feedback] webhook not configured')
@@ -126,17 +138,53 @@ async function handleRequest(context) {
       ? { msgtype: 'text', text: { content: text } }
       : { msg_type: 'text', content: { text } }
 
-    try {
-      await fetch(webhook, {
+    const push = () =>
+      fetch(webhook, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(8000),
       })
-    } catch {
-      // 推送失败不阻塞用户，静默忽略
+    try {
+      await push()
+      delivered = true
+    } catch (e) {
+      console.warn('[seatmark-feedback] webhook push failed, retrying once', e instanceof Error ? e.message : String(e))
+      waitUntil(retryLater(push, FEEDBACK_WEBHOOK_RETRY_DELAY_MS))
     }
   }
 
+  if (!archived && !delivered) {
+    return json({ ok: false, error: FEEDBACK_UNAVAILABLE_MESSAGE }, 503, revHeader)
+  }
   return json({ ok: true }, 200, revHeader)
+}
+
+function retryLater(task, delayMs) {
+  return new Promise((resolve) => setTimeout(resolve, delayMs))
+    .then(() => task())
+    .catch((e) => {
+      console.error('[seatmark-feedback] webhook retry failed', e instanceof Error ? e.message : String(e))
+    })
+}
+
+async function sendArchiveAlert(env, storage, cause) {
+  const webhook = (env && typeof env.ALERT_WEBHOOK === 'string' && env.ALERT_WEBHOOK.trim()) || ''
+  if (!webhook) return
+  const text = [
+    '【反馈告警】存档失败',
+    `存储：${storage}`,
+    `原因：${cause instanceof Error ? cause.message : String(cause)}`,
+    `时间：${new Date().toISOString()}`,
+  ].join('\n')
+  try {
+    await fetch(webhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ msgtype: 'text', text: { content: text } }),
+      signal: AbortSignal.timeout(8000),
+    })
+  } catch (e) {
+    console.error('[seatmark-feedback] archive alert failed', e instanceof Error ? e.message : String(e))
+  }
 }

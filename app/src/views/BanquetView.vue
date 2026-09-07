@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 
 import MobilePreviewJump from '@/components/MobilePreviewJump.vue'
 import NextStepBar, { type NextStep } from '@/components/NextStepBar.vue'
+import { useNextStepBarHeight } from '@/composables/useNextStepBarHeight'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import ColorField from '@/components/ui/ColorField.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
@@ -820,6 +821,9 @@ watch(batchBarVisible, async (on) => {
   await nextTick()
   document.documentElement.classList.add('has-next-step-bar')
 })
+/** 批量操作条同样把实际高度写入 --sm-nextstep-h（与 NextStepBar 互斥渲染，共用同一变量） */
+const batchBarEl = ref<HTMLElement | null>(null)
+useNextStepBarHeight(batchBarEl)
 onBeforeUnmount(() => {
   if (batchBarVisible.value && typeof document !== 'undefined') {
     document.documentElement.classList.remove('has-next-step-bar')
@@ -1159,7 +1163,7 @@ function toPlaceCards() {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-[1480px] px-4 py-6 pb-20 sm:py-8 sm:pb-20">
+  <div class="mx-auto w-full max-w-[1480px] px-4 py-6 pb-fixed-layers sm:py-8">
     <div class="text-center">
       <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Banquet Seating</p>
       <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
@@ -1610,7 +1614,7 @@ function toPlaceCards() {
       <!-- ≥lg 画布列随左列滚动吸顶：顶栏 3.5rem + 1rem 间距；max-h 再扣除吸底下一步栏 3rem + 1rem 间距 -->
       <!-- ≥md 右下预留 ≈64×80px 空区给反馈气泡（html.has-canvas-safe-area 时气泡缩小贴边），不压座位图 -->
       <div
-        class="min-w-0 md:pr-16 md:pb-20 lg:sticky lg:top-[4.5rem] lg:max-h-[calc(100vh-8.5rem)] lg:self-start lg:overflow-auto"
+        class="min-w-0 md:pr-16 md:pb-fixed-layers lg:sticky lg:top-[4.5rem] lg:max-h-[calc(100vh-8.5rem)] lg:self-start lg:overflow-auto"
         data-testid="banquet-canvas-column"
       >
         <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -2311,6 +2315,7 @@ function toPlaceCards() {
     </Teleport>
     <div
       v-if="batchBarVisible"
+      ref="batchBarEl"
       class="no-print fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white shadow-[0_-1px_3px_rgba(15,23,42,0.05)]"
       data-testid="batch-group-bar"
       role="toolbar"
@@ -2353,7 +2358,11 @@ function toPlaceCards() {
       :target="nextStepTarget"
       :quota-badge="exportBadge"
       :quota-badge-title="exportBadgeTitle"
-    />
+    >
+      <template #secondary>
+        <MobilePreviewJump :preview="canvasContainer" :settings="rosterSection" inline />
+      </template>
+    </NextStepBar>
     <MobilePreviewJump :preview="canvasContainer" :settings="rosterSection" :avoid="pasteInput" />
   </div>
 </template>

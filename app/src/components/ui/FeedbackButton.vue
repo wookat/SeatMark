@@ -77,15 +77,41 @@ function onScroll() {
   lastScrollY = y
 }
 
+/**
+ * 页脚进入视口时淡出，不压住页脚链接/版权行；仅在页面可滚动（用户主动滚到底）时生效，
+ * 短页面页脚常驻可见时保留气泡，否则反馈入口会消失
+ */
+const footerVisible = ref(false)
+let footerObserver: IntersectionObserver | null = null
+
+function pageScrollable() {
+  return document.documentElement.scrollHeight > window.innerHeight + 8
+}
+
+function observeFooter() {
+  const footer = document.querySelector('footer')
+  if (!footer || typeof IntersectionObserver === 'undefined') return
+  footerObserver = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[entries.length - 1]
+      if (entry) footerVisible.value = entry.isIntersecting && pageScrollable()
+    },
+    { threshold: 0 },
+  )
+  footerObserver.observe(footer)
+}
+
 onMounted(() => {
   lastScrollY = window.scrollY
   syncFocus()
+  observeFooter()
   window.addEventListener('keydown', onKeydown)
   window.addEventListener('scroll', onScroll, { passive: true })
   document.addEventListener('focusin', syncFocus)
   document.addEventListener('focusout', syncFocus)
 })
 onBeforeUnmount(() => {
+  footerObserver?.disconnect()
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('scroll', onScroll)
   document.removeEventListener('focusin', syncFocus)
@@ -93,6 +119,7 @@ onBeforeUnmount(() => {
 })
 
 const hiddenOnNarrow = computed(() => collapsed.value || (inputFocused.value && !open.value))
+const hiddenForFooter = computed(() => footerVisible.value && !open.value)
 
 async function submit() {
   if (!content.value.trim()) {
@@ -128,12 +155,19 @@ async function submit() {
 </script>
 
 <template>
-  <!-- 浮动按钮：画布页（html.has-canvas-safe-area）在 ≥md 缩为 size-10 并贴边 right-3，配合预览列的 md:pr-16 md:pb-20 空区不压座位图 -->
+  <!-- 浮动按钮：画布页（html.has-canvas-safe-area）在 ≥md 缩为 size-10 并贴边 right-3，配合预览列的 md:pr-16 与底部固定层留白不压座位图；
+       底部操作条在场时按实际条高 --sm-nextstep-h + 12px 抬高 -->
   <button
-    class="no-print fixed right-5 bottom-5 z-50 flex size-12 items-center justify-center rounded-full bg-brand-600 text-white transition-all hover:bg-brand-700 max-sm:right-3 max-sm:size-10 md:[.has-canvas-safe-area_&]:right-3 md:[.has-canvas-safe-area_&]:size-10 [.has-next-step-bar_&]:bottom-[4.25rem] [.has-sticky-actions_&]:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]"
-    :class="hiddenOnNarrow && 'max-sm:pointer-events-none max-sm:translate-y-2 max-sm:opacity-0'"
+    class="no-print fixed right-5 bottom-5 z-50 flex size-12 items-center justify-center rounded-full bg-brand-600 text-white transition-all hover:bg-brand-700 max-sm:right-3 max-sm:size-10 md:[.has-canvas-safe-area_&]:right-3 md:[.has-canvas-safe-area_&]:size-10 [.has-next-step-bar_&]:bottom-[calc(var(--sm-nextstep-h,3rem)_+_0.75rem)] [.has-sticky-actions_&]:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]"
+    :class="[
+      hiddenOnNarrow && 'max-sm:pointer-events-none max-sm:translate-y-2 max-sm:opacity-0',
+      hiddenForFooter && 'pointer-events-none translate-y-2 opacity-0',
+    ]"
     :data-collapsed="hiddenOnNarrow ? 'true' : 'false'"
     :data-input-focused="inputFocused ? 'true' : 'false'"
+    :data-footer-visible="hiddenForFooter ? 'true' : 'false'"
+    :aria-hidden="hiddenForFooter ? 'true' : undefined"
+    :tabindex="hiddenForFooter ? -1 : undefined"
     :aria-label="t('反馈')"
     @click="open = true"
   >

@@ -666,7 +666,7 @@ function toDeskLabels() {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-[1480px] px-4 py-6 pb-20 sm:py-8 sm:pb-20">
+  <div class="mx-auto w-full max-w-[1480px] px-4 py-6 pb-fixed-layers sm:py-8">
     <div class="text-center">
       <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Seating Chart</p>
       <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
@@ -953,8 +953,8 @@ function toDeskLabels() {
         </section>
       </aside>
 
-      <!-- 预览：≥md 右下预留 ≈64×80px 空区给反馈气泡（html.has-canvas-safe-area 时气泡缩小贴边），不压座位图 -->
-      <div class="no-print min-w-0 md:pr-16 md:pb-20" data-testid="seating-preview-column">
+      <!-- 预览：≥md 右下预留空区给反馈气泡（html.has-canvas-safe-area 时气泡缩小贴边），底部留白跟随操作条实际高度，不压座位图 -->
+      <div class="no-print min-w-0 md:pr-16 md:pb-fixed-layers" data-testid="seating-preview-column">
         <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
           <div
             class="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-bold"
@@ -1178,7 +1178,11 @@ function toDeskLabels() {
       :target="nextStepTarget"
       :quota-badge="exportBadge"
       :quota-badge-title="exportBadgeTitle"
-    />
+    >
+      <template #secondary>
+        <MobilePreviewJump :preview="previewContainer" :settings="basicSection" inline />
+      </template>
+    </NextStepBar>
     <MobilePreviewJump
       :preview="previewContainer"
       :settings="basicSection"
