@@ -22,9 +22,9 @@ describe('FirstVisitGuide 四步引导', () => {
     await setLocale('zh')
   })
 
-  it('zh：标题「四步拿到成品」，四步与左侧 1-4 编号一一对应', () => {
+  it('zh：标题「导入名单、选模板、核对预览、导出打印，4 步」，四步与左侧 1-4 编号一一对应', () => {
     const wrapper = mount(FirstVisitGuide)
-    expect(wrapper.text()).toContain('四步拿到成品')
+    expect(wrapper.text()).toContain('导入名单、选模板、核对预览、导出打印，4 步')
     const steps = wrapper.findAll('li')
     expect(steps).toHaveLength(4)
     expect(steps.map((li) => li.find('p').text())).toEqual([
@@ -37,7 +37,7 @@ describe('FirstVisitGuide 四步引导', () => {
     expect(steps[1]!.text()).toContain('2')
     expect(steps[2]!.text()).toContain('3')
     expect(steps[3]!.text()).toContain('4')
-    expect(steps[2]!.text()).toContain('导入后自动匹配，一般无需改动')
+    expect(steps[2]!.text()).toContain('字段已按表头自动匹配，若表头不同请手动选择')
   })
 
   it('导入演示数据后第 2 步打勾并提示名单已就绪', async () => {
@@ -53,7 +53,7 @@ describe('FirstVisitGuide 四步引导', () => {
   it('en：四步文案全部英文，无中英混排', async () => {
     await setLocale('en')
     const wrapper = mount(FirstVisitGuide)
-    expect(wrapper.text()).toContain('Four steps to a finished print')
+    expect(wrapper.text()).toContain('Import the list, pick a template, check the preview, export — 4 steps')
     const steps = wrapper.findAll('li')
     expect(steps).toHaveLength(4)
     for (const li of steps) expect(li.text(), li.text()).not.toMatch(CJK)
@@ -74,7 +74,7 @@ describe('第 346 轮：FirstVisitGuide compact 折叠态', () => {
     expect(wrapper.find('[data-testid="first-visit-guide-compact"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="first-visit-guide"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('新手四步引导')
-    expect(wrapper.text()).not.toContain('四步拿到成品')
+    expect(wrapper.text()).not.toContain('导入名单、选模板、核对预览、导出打印，4 步')
     expect(wrapper.findAll('li')).toHaveLength(0)
 
     await wrapper.find('[data-testid="first-visit-guide-compact"] button').trigger('click')

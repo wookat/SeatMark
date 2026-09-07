@@ -65,7 +65,7 @@ const GROUPS = computed(() => [
             </span>
           </div>
           <p class="mt-3 max-w-xs text-xs leading-5 text-slate-600">
-            {{ t('考场座签、桌牌席卡、门贴证卡在线批量生成工具。上传 Excel 名单即可输出毫米级精确排版的打印页。') }}
+            {{ t('考场座签、桌牌席卡、门贴证卡在线批量生成工具。上传 Excel 名单，按 A4 纸型与标签实际尺寸排版，打印 100% 缩放不偏位。') }}
           </p>
           <p
             class="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200"

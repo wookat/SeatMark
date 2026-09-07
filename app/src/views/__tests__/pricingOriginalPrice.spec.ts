@@ -77,14 +77,31 @@ describe('第 346 轮：PricingView 原价独立一行', () => {
     wrapper.unmount()
   })
 
-  it('en：原价行为「Original price ¥19/mo · Limited-time free」，无 CJK', async () => {
+  it('en：原价行为「Original price CNY 19/mo · Limited-time free」，现价 CNY 0，无 CJK；中文仍为 ¥', async () => {
     await setLocale('en')
     const wrapper = mountPricing()
     const originalRows = wrapper.findAll('[data-testid="plan-original-price"]')
     const pro = originalRows[1]!.text().replace(/\s+/g, ' ')
-    expect(pro).toBe('Original price ¥19/mo · Limited-time free')
-    expect(originalRows[2]!.text().replace(/\s+/g, ' ')).toBe('Original price ¥49/mo · Limited-time free')
+    expect(pro).toBe('Original price CNY 19/mo · Limited-time free')
+    expect(originalRows[2]!.text().replace(/\s+/g, ' ')).toBe('Original price CNY 49/mo · Limited-time free')
     expect(pro).not.toMatch(CJK)
+    expect(pro).not.toContain('¥')
+    for (const row of wrapper.findAll('[data-testid="plan-price"]')) {
+      expect(row.text().replace(/\s+/g, ' ')).toContain('CNY 0/mo')
+    }
     wrapper.unmount()
+  })
+
+  it('第 347 轮：底部 CTA 英文行内链接前后有空格，中文无空格', async () => {
+    const zh = mountPricing()
+    const zhText = zh.findAll('p').map((p) => p.text()).find((s) => s.includes('还不确定'))
+    expect(zhText).toBe('还不确定？先看看教程中心或模板库')
+    zh.unmount()
+
+    await setLocale('en')
+    const en = mountPricing()
+    const enText = en.findAll('p').map((p) => p.text()).find((s) => s.includes('Not sure yet'))
+    expect(enText).toBe('Not sure yet? Take a look at the Guide center or Template library')
+    en.unmount()
   })
 })

@@ -375,16 +375,36 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   })
 
+  /** 空字段清单最多列出的行数；超出部分只汇报「另有 N 行」 */
+  const MISSING_DETAIL_LIMIT = 20
+
   const dataQuality = computed(() => {
-    const result = { missingRows: 0, duplicateExamIds: 0, duplicateSeatKeys: 0 }
+    const result: {
+      missingRows: number
+      /** 前 MISSING_DETAIL_LIMIT 条空字段明细；rowIndex 为名单表格 1 起的原始行号 */
+      missingDetails: Array<{ rowIndex: number; fields: string[] }>
+      /** 超出明细上限、未逐条列出的行数 */
+      missingMore: number
+      duplicateExamIds: number
+      duplicateSeatKeys: number
+    } = { missingRows: 0, missingDetails: [], missingMore: 0, duplicateExamIds: 0, duplicateSeatKeys: 0 }
     const rows = excel.rows
     if (!rows.length) return result
 
     const mappedTextFields = mappableFields.value.filter((f) => mapping[f.id])
     if (mappedTextFields.length) {
-      result.missingRows = rows.filter((row) =>
-        mappedTextFields.some((f) => !fieldText(row, f.id).trim()),
-      ).length
+      rows.forEach((row, index) => {
+        const fields = mappedTextFields
+          .filter((f) => !fieldText(row, f.id).trim())
+          .map((f) => f.label || f.id)
+        if (!fields.length) return
+        result.missingRows += 1
+        if (result.missingDetails.length < MISSING_DETAIL_LIMIT) {
+          result.missingDetails.push({ rowIndex: index + 1, fields })
+        } else {
+          result.missingMore += 1
+        }
+      })
     }
 
     const examIdColumn = columnOf('examId')

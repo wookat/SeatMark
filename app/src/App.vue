@@ -83,8 +83,8 @@ onMounted(() => {
     <AnnouncementBar />
     <AppHeader />
     <ShareWelcomeBanner :open="shareWelcomeOpen" @close="shareWelcomeOpen = false" />
-    <!-- min-h 让 footer 首帧位于视口之外，异步路由内容撑开时不产生可见位移（CLS） -->
-    <main id="main-content" tabindex="-1" class="min-h-svh flex-1 outline-none print:min-h-0">
+    <!-- min-h 让 footer 首帧远离顶部，异步路由内容撑开时减少可见位移（CLS）；不用整屏高，避免短页面 CTA 与页脚之间留白 -->
+    <main id="main-content" tabindex="-1" class="min-h-[60svh] flex-1 outline-none print:min-h-0">
       <RouterView />
     </main>
     <AppFooter />

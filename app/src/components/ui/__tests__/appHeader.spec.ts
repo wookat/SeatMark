@@ -1,10 +1,11 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
 import AnnouncementBar from '@/components/ui/AnnouncementBar.vue'
 import AppHeader from '@/components/ui/AppHeader.vue'
+import { setLocale } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
 
 const TAP = ['max-md:min-h-11', 'max-md:min-w-11']
@@ -108,6 +109,100 @@ describe('AppHeader 「排座」场景下拉', () => {
     expect(nav.find('[role="menu"]').exists()).toBe(true)
     await toggle.trigger('click')
     expect(nav.find('[role="menu"]').exists()).toBe(false)
+  })
+})
+
+describe('第 347 轮：AppHeader <sm 汉堡抽屉导航', () => {
+  const ZH_HREFS = ['/', '/templates', '/seating', '/banquet', '/guides', '/pricing', '/vs', '/papers', '/account', '/en']
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  afterEach(async () => {
+    await setLocale('zh')
+  })
+
+  it('汉堡按钮仅 <sm 渲染、带 44px 热区与 aria；点击展开含全部一级入口（zh）', async () => {
+    const wrapper = await mountHeader()
+    const drawer = wrapper.get('[data-testid="nav-drawer"]')
+    expect(drawer.classes()).toContain('sm:hidden')
+    const toggle = drawer.get('[data-testid="nav-drawer-toggle"]')
+    expect(toggle.classes()).toEqual(expect.arrayContaining(['min-h-11', 'min-w-11']))
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(toggle.attributes('aria-controls')).toBe('mobile-nav-drawer')
+    expect(toggle.attributes('aria-label')).toBe('打开菜单')
+    expect(wrapper.find('#mobile-nav-drawer').exists()).toBe(false)
+
+    await toggle.trigger('click')
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    expect(toggle.attributes('aria-label')).toBe('关闭菜单')
+    const nav = wrapper.get('#mobile-nav-drawer')
+    expect(nav.findAll('a').map((a) => a.attributes('href'))).toEqual(ZH_HREFS)
+    for (const label of ['首页', '模板', '教室座位表', '宴会排桌', '教程', '定价', '工具对比选型', '不干胶纸型库', '登录', 'English']) {
+      expect(nav.text()).toContain(label)
+    }
+    // 品牌不再 truncate：<sm 中文只显示「座签」
+    const brand = wrapper.get('[data-testid="brand-link"]')
+    expect(brand.classes()).not.toContain('min-w-0')
+    expect(brand.find('.truncate').exists()).toBe(false)
+    expect(brand.find('.whitespace-nowrap').exists()).toBe(true)
+    expect(brand.text()).toContain('座签')
+  })
+
+  it('英文站抽屉链接带 /en 前缀，语言切换指向中文路径', async () => {
+    await setLocale('en')
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', name: 'home', component: { template: '<div />' } },
+        { path: '/en', name: 'en-home', component: { template: '<div />' } },
+        { path: '/:rest(.*)*', name: 'any', component: { template: '<div />' } },
+      ],
+    })
+    await router.push('/en')
+    await router.isReady()
+    const wrapper = mount(AppHeader, { global: { plugins: [router] } })
+    await wrapper.get('[data-testid="nav-drawer-toggle"]').trigger('click')
+    const nav = wrapper.get('#mobile-nav-drawer')
+    expect(nav.findAll('a').map((a) => a.attributes('href'))).toEqual([
+      '/en',
+      '/en/templates',
+      '/en/seating',
+      '/en/banquet',
+      '/en/guides',
+      '/en/pricing',
+      '/en/vs',
+      '/en/papers',
+      '/en/account',
+      '/',
+    ])
+    expect(nav.get('[data-testid="nav-drawer-locale"]').text()).toContain('中文')
+    expect(nav.text()).toContain('Pricing')
+  })
+
+  it('点外部 / Esc / 路由切换 均关闭抽屉', async () => {
+    const wrapper = await mountHeader()
+    const toggle = wrapper.get('[data-testid="nav-drawer-toggle"]')
+
+    await toggle.trigger('click')
+    expect(wrapper.find('#mobile-nav-drawer').exists()).toBe(true)
+    document.body.click()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('#mobile-nav-drawer').exists()).toBe(false)
+
+    await toggle.trigger('click')
+    expect(wrapper.find('#mobile-nav-drawer').exists()).toBe(true)
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('#mobile-nav-drawer').exists()).toBe(false)
+
+    await toggle.trigger('click')
+    expect(wrapper.find('#mobile-nav-drawer').exists()).toBe(true)
+    await wrapper.vm.$router.push('/pricing')
+    await flushPromises()
+    expect(wrapper.find('#mobile-nav-drawer').exists()).toBe(false)
+    expect(toggle.attributes('aria-expanded')).toBe('false')
   })
 })
 

@@ -57,11 +57,15 @@ const MOBILE_TABS = computed<{ key: MobileTab; label: string; icon: string }[]>(
 ])
 
 /** 导出弹窗「去映射」：手机端先切回设置页，再滚动到字段映射面板并聚焦 */
-async function focusMappingPanel() {
+async function focusMappingPanel(target?: 'missing') {
   mobileTab.value = 'settings'
   await nextTick()
   const el = document.querySelector<HTMLElement>('[data-mapping-panel]')
   if (!el) return
+  if (target === 'missing') {
+    const details = el.querySelector<HTMLDetailsElement>('[data-testid="missing-details"]')
+    if (details) details.open = true
+  }
   el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   el.focus({ preventScroll: true })
 }

@@ -90,12 +90,10 @@ const ZOOM_OPTIONS = computed<SelectOption[]>(() => [
   { value: '2', label: '200%' },
 ])
 
-/** 小屏（<sm）整页适应宽度会把姓名缩到不可读，默认改为「适应单枚」；桌面端仍默认整页 */
-const zoomMode = ref(
-  typeof window !== 'undefined' && window.matchMedia?.('(max-width: 639px)').matches
-    ? 'fitLabel'
-    : 'fit',
-)
+/** 小屏（<sm）：预览默认「适应单枚」、导出弹窗高级选项默认折叠 */
+const isSmallViewport =
+  typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 639px)').matches
+const zoomMode = ref(isSmallViewport ? 'fitLabel' : 'fit')
 /** 小屏下把低频显示选项（裁切线/高亮缺失/裁切排序/对折双联/打印校准）收进「显示选项」，避免工具栏折成四行 */
 const displayOptionsOpen = ref(false)
 const displayOptionsActiveCount = computed(() =>
@@ -164,7 +162,7 @@ const exportChoiceOpen = ref(false)
 const pendingAction = ref<'pdf' | 'print' | 'png'>('pdf')
 /** 本次弹窗内用户已点「仍然导出」，收起未映射字段提示；重新打开弹窗重置 */
 const unmappedAcknowledged = ref(false)
-const emit = defineEmits<{ focusMapping: [] }>()
+const emit = defineEmits<{ focusMapping: [target?: 'missing'] }>()
 
 /** 未映射字段提示条文案：最多列 3 个字段名作例 */
 const unmappedNotice = computed(() => {
@@ -174,10 +172,13 @@ const unmappedNotice = computed(() => {
   return { count: fields.length, examples: fields.length > 3 ? `${examples}…` : examples }
 })
 
-function goToMapping() {
+function goToMapping(target?: 'missing') {
   exportChoiceOpen.value = false
-  emit('focusMapping')
+  emit('focusMapping', target)
 }
+
+/** 已映射字段为空的行数（成品中留空，不自动补全） */
+const missingRowsCount = computed(() => workspace.dataQuality.missingRows)
 
 /** 三种输出的一句话差异，弹窗内直接可见（不再只靠按钮 title） */
 const outputSubtitles = computed<Record<'print' | 'pdf' | 'png', string>>(() => ({
@@ -198,6 +199,8 @@ const pngMonochrome = ref(false)
 
 /** 电子座签模板：默认精确 800×480 + 纯黑白 */
 const isEinkTemplate = computed(() => workspace.template.id === 'eink800')
+/** 电子座签模板在 ≥sm 视口默认展开高级选项（预设 800×480 可见）；小屏一律折叠让主按钮首屏可见 */
+const pngAdvancedOpen = computed(() => isEinkTemplate.value && !isSmallViewport)
 
 /** 分辨率预设：custom = 自定义宽度（高度按模板比例推导）；其余为电子墨水屏常见规格精确像素 */
 const pngPresetId = ref('custom')
@@ -1231,13 +1234,26 @@ const hintKey = ref<HintKey | null>(null)
           <strong>{{ unmappedNotice.count }}</strong> {{ t('个字段未映射（') }}{{ unmappedNotice.examples }}{{ t('），成品中将留空。') }}
         </p>
         <span class="flex shrink-0 items-center gap-1.5">
-          <button type="button" class="btn btn-secondary btn-sm" data-testid="unmapped-go-mapping" @click="goToMapping">
+          <button type="button" class="btn btn-secondary btn-sm" data-testid="unmapped-go-mapping" @click="goToMapping()">
             {{ t('去映射') }}
           </button>
           <button type="button" class="btn btn-ghost btn-sm" data-testid="unmapped-export-anyway" @click="unmappedAcknowledged = true">
             {{ t('仍然导出') }}
           </button>
         </span>
+      </div>
+      <div
+        v-if="missingRowsCount > 0"
+        data-testid="missing-rows-export-notice"
+        role="status"
+        class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"
+      >
+        <p class="min-w-0 flex-1">
+          <strong>{{ missingRowsCount }}</strong> {{ t('行字段为空，成品中将留空') }}
+        </p>
+        <button type="button" class="btn btn-secondary btn-sm shrink-0" data-testid="missing-rows-go-mapping" @click="goToMapping('missing')">
+          {{ t('去查看') }}
+        </button>
       </div>
       <ul class="mb-3 space-y-0.5 text-xs leading-5 text-slate-500" data-testid="output-subtitles">
         <li
@@ -1259,7 +1275,7 @@ const hintKey = ref<HintKey | null>(null)
           }}
         </p>
         <details
-          :open="isEinkTemplate"
+          :open="pngAdvancedOpen"
           class="mt-3 rounded-lg border border-slate-200/80 bg-white px-3 py-2"
           data-testid="png-advanced-options"
         >
@@ -1381,10 +1397,9 @@ const hintKey = ref<HintKey | null>(null)
           {{ t('小验证：目标打印机先选「另存为 PDF」，导出的 PDF 是彩色就说明页面没问题，剩下的是打印机设置。') }}
         </p>
       </details>
-      <p class="leading-6">{{ t('选择导出方式') }}<span class="text-xs text-slate-500">{{ t('（点击即开始导出，可随时取消，取消不扣次数）') }}</span>{{ t('：') }}</p>
       <p
         v-if="pendingAction === 'pdf' && exportEstimate"
-        class="mt-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600"
+        class="rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600"
       >
         {{ t('共') }} {{ exportEstimate.pageCount }} {{ t('页') }} · {{ t('每页约') }} {{ exportEstimate.dpi }}dpi ·
         {{ t('预估体积约') }} <span class="font-bold text-slate-700">{{ exportEstimate.size }}</span>{{ t('（按页数自适应清晰度与压缩）') }}
@@ -1392,63 +1407,69 @@ const hintKey = ref<HintKey | null>(null)
           {{ t('页数较多时清晰度自动降档以控制体积；追求最高打印清晰度请改用「打印 / 矢量 PDF」。') }}
         </span>
       </p>
-      <div class="mt-3 grid gap-3">
-        <button
-          type="button"
-          class="relative flex items-start gap-3 rounded-lg border p-4 text-left transition-colors"
-          :class="quota.remaining > 0 ? 'border-brand-200 bg-brand-50 hover:border-brand-300' : 'border-slate-200 bg-slate-50 hover:border-slate-300'"
-          data-testid="choose-clean"
-          @click="chooseClean"
-        >
-          <span
-            v-if="quota.remaining <= 0"
-            class="absolute top-2 right-2 rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-600"
+      <template #actions>
+        <div class="w-full text-sm text-slate-600" data-testid="export-choice-actions">
+          <p class="leading-6">{{ t('选择导出方式') }}<span class="text-xs text-slate-500">{{ t('（点击即开始导出，可随时取消，取消不扣次数）') }}</span>{{ t('：') }}</p>
+          <div class="mt-2 grid gap-2.5 sm:mt-3 sm:gap-3">
+            <button
+              type="button"
+              class="relative flex items-start gap-3 rounded-lg border p-3 text-left transition-colors sm:p-4"
+              :class="quota.remaining > 0 ? 'border-brand-200 bg-brand-50 hover:border-brand-300' : 'border-slate-200 bg-slate-50 hover:border-slate-300'"
+              data-testid="choose-clean"
+              @click="chooseClean"
+            >
+              <span
+                v-if="quota.remaining <= 0"
+                class="absolute top-2 right-2 rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-600"
+              >
+                {{ t('今日 0 次') }}
+              </span>
+              <span
+                class="flex size-8 shrink-0 items-center justify-center rounded-lg text-white"
+                :class="quota.remaining > 0 ? 'bg-brand-600' : 'bg-slate-400'"
+              >
+                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m5 13 4 4 10-11" />
+                </svg>
+              </span>
+              <span>
+                <span class="block text-sm font-bold text-slate-900">{{ t('无水印导出（今日剩余 {n} 次）').replace('{n}', String(quota.remaining)) }}</span>
+                <span class="mt-0.5 block text-xs leading-5 text-slate-600">
+                  {{ quota.remaining > 0 ? t('页面不叠加任何标识') : (auth.isLoggedIn ? t('今日已用完，分享链接每被点开 1 次即得 1 次，或明日 0 点恢复') : t('今日已用完，登录后每天 3 次，还可分享送次数')) }}
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              class="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition-colors hover:border-slate-300 sm:p-4"
+              data-testid="choose-watermark"
+              @click="chooseWatermarked"
+            >
+              <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-600 text-white">
+                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3v18M3 12h18" />
+                </svg>
+              </span>
+              <span>
+                <span class="block text-sm font-bold text-slate-900">{{ t('带水印导出（不限次数）') }}</span>
+                <span class="mt-0.5 block text-xs leading-5 text-slate-600">
+                  {{ t('每张标签底边叠加细线签名式品牌水印（细线 + seatmark.cn 小字，配色随模板自适应），不遮挡姓名等核心内容') }}
+                </span>
+              </span>
+            </button>
+          </div>
+          <p
+            v-if="!auth.isLoggedIn && auth.serviceUnavailable"
+            class="mt-3 text-xs leading-5 text-slate-600"
+            data-testid="export-service-unavailable"
           >
-            {{ t('今日 0 次') }}
-          </span>
-          <span
-            class="flex size-8 shrink-0 items-center justify-center rounded-lg text-white"
-            :class="quota.remaining > 0 ? 'bg-brand-600' : 'bg-slate-400'"
-          >
-            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m5 13 4 4 10-11" />
-            </svg>
-          </span>
-          <span>
-            <span class="block text-sm font-bold text-slate-900">{{ t('无水印导出（今日剩余 {n} 次）').replace('{n}', String(quota.remaining)) }}</span>
-            <span class="mt-0.5 block text-xs leading-5 text-slate-600">
-              {{ quota.remaining > 0 ? t('页面不叠加任何标识') : (auth.isLoggedIn ? t('今日已用完，分享链接每被点开 1 次即得 1 次，或明日 0 点恢复') : t('今日已用完，登录后每天 3 次，还可分享送次数')) }}
-            </span>
-          </span>
-        </button>
-        <button
-          type="button"
-          class="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 text-left transition-colors hover:border-slate-300"
-          @click="chooseWatermarked"
-        >
-          <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-600 text-white">
-            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 3v18M3 12h18" />
-            </svg>
-          </span>
-          <span>
-            <span class="block text-sm font-bold text-slate-900">{{ t('带水印导出（不限次数）') }}</span>
-            <span class="mt-0.5 block text-xs leading-5 text-slate-600">
-              {{ t('每张标签底边叠加细线签名式品牌水印（细线 + seatmark.cn 小字，配色随模板自适应），不遮挡姓名等核心内容') }}
-            </span>
-          </span>
-        </button>
-      </div>
-      <p
-        v-if="!auth.isLoggedIn && auth.serviceUnavailable"
-        class="mt-3 text-xs leading-5 text-slate-600"
-        data-testid="export-service-unavailable"
-      >
-        {{ t('账号服务维护中，带水印导出不限次') }}
-      </p>
-      <p v-else-if="!auth.isLoggedIn" class="mt-3 text-xs leading-5 text-slate-600">
-        {{ t('注册即送 7 天专业版试用（无水印导出不限次）；免费版登录后每天') }} {{ QUOTA_USER_DAILY }} {{ t('次，分享链接每被点开 1 次再得 1 次。') }}
-      </p>
+            {{ t('账号服务维护中，带水印导出不限次') }}
+          </p>
+          <p v-else-if="!auth.isLoggedIn" class="mt-3 text-xs leading-5 text-slate-600">
+            {{ t('注册即送 7 天专业版试用（无水印导出不限次）；免费版登录后每天') }} {{ QUOTA_USER_DAILY }} {{ t('次，分享链接每被点开 1 次再得 1 次。') }}
+          </p>
+        </div>
+      </template>
     </ModalDialog>
 
     <ModalDialog
