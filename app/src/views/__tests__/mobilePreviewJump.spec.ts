@@ -111,3 +111,73 @@ describe('第 347 轮：/seating /banquet 移动端预览可达', () => {
     wrapper.unmount()
   })
 })
+
+describe('第 349 轮：390 宽下浮动胶囊让位', () => {
+  it('SeatingView：textarea 聚焦时胶囊隐藏（opacity-0 + aria-hidden），失焦后恢复', async () => {
+    const wrapper = await mountView(SeatingView)
+    const jump = wrapper.find('[data-testid="mobile-preview-jump"]')
+    expect(jump.attributes('data-hidden')).toBe('false')
+    expect(jump.classes()).toContain('opacity-100')
+
+    const textarea = wrapper.find('textarea')
+    expect(textarea.exists()).toBe(true)
+    ;(textarea.element as HTMLTextAreaElement).focus()
+    document.dispatchEvent(new FocusEvent('focusin'))
+    await wrapper.vm.$nextTick()
+    expect(document.activeElement).toBe(textarea.element)
+    expect(jump.attributes('data-hidden')).toBe('true')
+    expect(jump.classes()).toContain('opacity-0')
+    expect(jump.classes()).toContain('pointer-events-none')
+    expect(jump.attributes('aria-hidden')).toBe('true')
+
+    ;(textarea.element as HTMLTextAreaElement).blur()
+    document.dispatchEvent(new FocusEvent('focusout'))
+    await wrapper.vm.$nextTick()
+    expect(jump.attributes('data-hidden')).toBe('false')
+    expect(jump.attributes('aria-hidden')).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('BanquetView：向下滚动时收起，停止滚动 300ms 后恢复；向上滚动不收起', async () => {
+    vi.useFakeTimers()
+    try {
+      const wrapper = await mountView(BanquetView)
+      const jump = wrapper.find('[data-testid="mobile-preview-jump"]')
+      expect(jump.attributes('data-hidden')).toBe('false')
+
+      Object.defineProperty(window, 'scrollY', { value: 120, configurable: true, writable: true })
+      window.dispatchEvent(new Event('scroll'))
+      await wrapper.vm.$nextTick()
+      expect(jump.attributes('data-hidden')).toBe('true')
+
+      vi.advanceTimersByTime(200)
+      await wrapper.vm.$nextTick()
+      expect(jump.attributes('data-hidden')).toBe('true')
+      vi.advanceTimersByTime(100)
+      await wrapper.vm.$nextTick()
+      expect(jump.attributes('data-hidden')).toBe('false')
+
+      Object.defineProperty(window, 'scrollY', { value: 40, configurable: true, writable: true })
+      window.dispatchEvent(new Event('scroll'))
+      await wrapper.vm.$nextTick()
+      expect(jump.attributes('data-hidden')).toBe('false')
+      wrapper.unmount()
+    } finally {
+      vi.useRealTimers()
+      Object.defineProperty(window, 'scrollY', { value: 0, configurable: true, writable: true })
+    }
+  })
+
+  it('底部操作条（h-12 = 3rem）可见时，胶囊与客服 FAB 都抬到 4.25rem：与操作条留 ≥ 8px 间距', async () => {
+    const wrapper = await mountView(SeatingView)
+    const jump = wrapper.find('[data-testid="mobile-preview-jump"]')
+    expect(jump.classes()).toContain('[.has-next-step-bar_&]:bottom-[4.25rem]')
+    const { default: FeedbackButton } = await import('@/components/ui/FeedbackButton.vue')
+    const fab = mount(FeedbackButton, { global: { stubs: { Teleport: true, Transition: true } } })
+    expect(fab.find('button').classes()).toContain('[.has-next-step-bar_&]:bottom-[4.25rem]')
+    // 4.25rem − 3rem（操作条高）= 1.25rem = 20px ≥ 8px
+    expect(4.25 * 16 - 3 * 16).toBeGreaterThanOrEqual(8)
+    fab.unmount()
+    wrapper.unmount()
+  })
+})

@@ -218,7 +218,11 @@ onBeforeUnmount(() => {
           <div class="mt-3 min-h-0 flex-1 overflow-y-auto text-sm text-slate-600">
             <slot />
           </div>
-          <div class="mt-5 flex justify-end gap-2 empty:hidden">
+          <!-- 按钮约定：主操作放最后——桌面居右，移动端（<sm）竖排且主按钮置顶 -->
+          <div
+            class="mt-5 flex justify-end gap-2 empty:hidden max-sm:flex-col-reverse max-sm:[&>.btn]:w-full"
+            data-testid="modal-actions"
+          >
             <slot name="actions" />
           </div>
         </div>

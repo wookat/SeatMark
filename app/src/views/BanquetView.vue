@@ -1816,7 +1816,12 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         >
           {{ tr('删除空桌后导出') }}
         </button>
-        <button type="button" class="btn btn-primary btn-md" @click="confirmIssuesAndExport">
+        <button
+          type="button"
+          class="btn btn-primary btn-md"
+          data-testid="banquet-issues-confirm"
+          @click="confirmIssuesAndExport"
+        >
           {{
             onlyEmptyTableIssues
               ? posterLayout
