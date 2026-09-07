@@ -1,12 +1,28 @@
 import { describe, expect, it } from 'vitest'
 
 import { defaultTemplates } from '../defaultTemplates'
+import { guides } from '../guides'
+import { templateDetails } from '../templateDetails'
 import { TEMPLATE_COUNT } from '../templateMeta'
 import { TEMPLATE_SUBCATEGORIES, subcategoryOf } from '../templateTaxonomy'
 
 describe('templateMeta', () => {
   it('TEMPLATE_COUNT 与内置模板实际数量一致', () => {
     expect(TEMPLATE_COUNT).toBe(defaultTemplates.length)
+  })
+
+  it('第 355 轮：guides / templateDetails 正文不再写死「200 多款」，模板数量统一插值 TEMPLATE_COUNT', () => {
+    const stale = /200\s*多\s*款|两百多款|200\+\s*款/
+    for (const g of guides) {
+      const text = `${g.title}\n${g.description}\n${g.body}`
+      expect(text, `guide ${g.slug} 仍含「200 多款」`).not.toMatch(stale)
+    }
+    for (const d of templateDetails) {
+      const text = [d.seoTitle, d.seoDescription, d.intro, ...d.useCases, ...d.tips, ...(d.faqs ?? []).flatMap((f) => [f.q, f.a])].join('\n')
+      expect(text, `templateDetail ${d.slug} 仍含「200 多款」`).not.toMatch(stale)
+    }
+    const mentions = guides.filter((g) => g.body.includes(`${TEMPLATE_COUNT} 款`))
+    expect(mentions.length).toBeGreaterThanOrEqual(3)
   })
 })
 

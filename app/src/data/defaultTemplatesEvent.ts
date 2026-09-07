@@ -156,7 +156,7 @@ export const eventTemplates: LabelTemplate[] = [
     description: '2 列 × 5 行，奖项名金色小字压顶、获奖者姓名大字居中，颁奖典礼后台备卡上台不乱序。',
     scenario: '颁奖典礼 / 表彰会',
     accent: '#a16207',
-    sampleData: { award: '年度卓越贡献奖', name: '楚天阔', unit: '研发中心' },
+    sampleData: { award: '年度卓越贡献奖', name: '郭颖', unit: '研发中心' },
     label: plainLabel(90, 48, '#854d0e'),
     page: gridPage('A4', 2, 5, 90, 48, 8, 6),
     fields: [
@@ -168,7 +168,7 @@ export const eventTemplates: LabelTemplate[] = [
         letterSpacing: 0.3,
         background: 'transparent',
       }),
-      text('name', '获奖者', { x: 4, y: 14, width: 82, height: 20 }, '楚天阔', {
+      text('name', '获奖者', { x: 4, y: 14, width: 82, height: 20 }, '郭颖', {
         fontSize: 21,
         fontWeight: 'bold',
         letterSpacing: 0.12,
@@ -190,7 +190,7 @@ export const eventTemplates: LabelTemplate[] = [
     scenario: '贵宾接待 / 礼仪席位',
     accent: '#7f1d1d',
     fontFamily: SERIF_ZH,
-    sampleData: { name: '沈鹤龄', seatNo: 'VIP-03', honorific: '敬备嘉座 恭候莅临' },
+    sampleData: { name: '谢宇', seatNo: 'VIP-03', honorific: '敬备嘉座 恭候莅临' },
     label: { width: 90, height: 48, radius: 0, borderWidth: 0.5, borderColor: '#7f1d1d', background: '#fffbf5' },
     page: gridPage('A4', 2, 5, 90, 48, 8, 6),
     fields: [
@@ -201,7 +201,7 @@ export const eventTemplates: LabelTemplate[] = [
         color: '#991b1b',
         letterSpacing: 0.5,
       }),
-      text('name', '姓名', { x: 5, y: 14, width: 80, height: 20 }, '沈鹤龄', {
+      text('name', '姓名', { x: 5, y: 14, width: 80, height: 20 }, '谢宇', {
         fontSize: 22,
         fontWeight: 'bold',
         letterSpacing: 0.2,
@@ -267,7 +267,7 @@ export const eventTemplates: LabelTemplate[] = [
     description: '1 列 × 2 行半页对折，嘉宾姓名大字 + 所属议题与单位双行，圆桌研讨换场只换一张卡。',
     scenario: '圆桌研讨 / 闭门会',
     accent: '#334155',
-    sampleData: { name: '闻人靖', topic: '议题二 · 出海合规', unit: '天衡律师事务所' },
+    sampleData: { name: '罗斌', topic: '议题二 · 出海合规', unit: '天衡律师事务所' },
     label: plainLabel(190, 138, '#1e293b'),
     page: gridPage('A4', 1, 2, 190, 138, 0, 7),
     fields: [
@@ -277,7 +277,7 @@ export const eventTemplates: LabelTemplate[] = [
         letterSpacing: 0.2,
       }),
       hairline('ruleTop', { x: 70, y: 30, width: 50, height: 0.3 }),
-      text('name', '姓名', { x: 10, y: 44, width: 170, height: 48 }, '闻人靖', {
+      text('name', '姓名', { x: 10, y: 44, width: 170, height: 48 }, '罗斌', {
         fontSize: 54,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -358,12 +358,12 @@ export const eventTemplates: LabelTemplate[] = [
     description: 'A5 横向整页一枚，号码占满版面 + 姓名与组别上下压边，校运会与路跑赛别针佩戴。',
     scenario: '运动会 / 路跑赛事',
     accent: '#dc2626',
-    sampleData: { bibNo: '1024', name: '简立行', group: '男子甲组 · 1500 米' },
+    sampleData: { bibNo: '1024', name: '刘洋', group: '男子甲组 · 1500 米' },
     label: plainLabel(190, 128, '#b91c1c'),
     page: gridPage('A5L', 1, 1, 190, 128, 0, 0),
     fields: [
       bar('topBand', { x: 0, y: 0, width: 190, height: 16 }, '#dc2626'),
-      text('name', '姓名', { x: 4, y: 2, width: 182, height: 12 }, '简立行', {
+      text('name', '姓名', { x: 4, y: 2, width: 182, height: 12 }, '刘洋', {
         fontSize: 10,
         fontWeight: 'bold',
         color: '#ffffff',
@@ -394,7 +394,7 @@ export const eventTemplates: LabelTemplate[] = [
     description: '3 列 × 8 行圆角贴，「你好，我是」引导语 + 姓名大字与单位，撕下即贴衣襟，破冰社交利器。',
     scenario: '沙龙 / 社交破冰',
     accent: '#2563eb',
-    sampleData: { name: '姜暮云', unit: '得闲书店 · 主理人' },
+    sampleData: { name: '林芳', unit: '得闲书店 · 主理人' },
     label: { width: 60, height: 32, radius: 3, borderWidth: 0.35, borderColor: '#3b82f6', background: '#eff6ff' },
     page: gridPage('A4', 3, 8, 60, 32, 4, 2.8),
     fields: [
@@ -404,7 +404,7 @@ export const eventTemplates: LabelTemplate[] = [
         color: '#2563eb',
         letterSpacing: 0.2,
       }),
-      text('name', '姓名', { x: 3, y: 9.5, width: 54, height: 13.5 }, '姜暮云', {
+      text('name', '姓名', { x: 3, y: 9.5, width: 54, height: 13.5 }, '林芳', {
         fontSize: 14,
         fontWeight: 'bold',
         color: '#1e3a8a',
@@ -731,7 +731,7 @@ export const eventTemplates: LabelTemplate[] = [
     scenario: '寿宴 / 周年庆宴',
     accent: '#92400e',
     fontFamily: SERIF_ZH,
-    sampleData: { name: '安芷若', blessing: '福寿康宁 · 恭贺八秩华诞', table: '第 3 桌' },
+    sampleData: { name: '黄敏', blessing: '福寿康宁 · 恭贺八秩华诞', table: '第 3 桌' },
     label: { width: 90, height: 48, radius: 0, borderWidth: 0.45, borderColor: '#92400e', background: '#fffdf5' },
     page: gridPage('A4', 2, 5, 90, 48, 8, 6),
     fields: [
@@ -742,7 +742,7 @@ export const eventTemplates: LabelTemplate[] = [
         letterSpacing: 0.3,
         background: 'transparent',
       }),
-      text('name', '宾客姓名', { x: 4, y: 12, width: 82, height: 20 }, '安芷若', {
+      text('name', '宾客姓名', { x: 4, y: 12, width: 82, height: 20 }, '黄敏', {
         fontSize: 20,
         fontWeight: 'bold',
         color: '#451a03',

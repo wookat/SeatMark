@@ -35,11 +35,18 @@ export const SAMPLE_BY_FIELD_EN: Record<string, string> = {
   gender: 'F',
   school: 'No. 1 High School',
 }
+/** 会议类模板的会场示例值（不走考场编号规则） */
+export const SAMPLE_VALUE_EN: Record<string, string> = {
+  '主会场 A 区': 'Main Hall A',
+  主会场: 'Main Hall',
+}
 
 /** 示例值（sample / sampleData）本地化：考场编号→Room N，含中文的姓名/班级等→英文占位值，其余原样保留 */
 function localizeSample(fieldId: string, value: string): string {
   const room = ROOM_SAMPLE_RE.exec(value.trim())
   if (room) return `Room ${room[1] ?? room[2]}`
+  const exact = SAMPLE_VALUE_EN[value.trim()]
+  if (exact) return exact
   const fallback = SAMPLE_BY_FIELD_EN[fieldId]
   if (fallback && CJK_RE.test(value)) return fallback
   return value

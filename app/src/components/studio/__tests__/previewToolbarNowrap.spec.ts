@@ -36,10 +36,12 @@ describe('PreviewArea 导出按钮排版', () => {
     expect(recommended!.classes()).toContain('hidden')
     expect(recommended!.classes()).toContain('md:inline')
     expect(recommended!.classes()).not.toContain('sm:inline')
-    const badge = pdf.findAll('span').find((s) => s.classes().includes('absolute'))
-    expect(badge).toBeTruthy()
-    expect(badge!.classes()).toContain('right-0')
-    expect(badge!.classes().some((c) => /^-right-/.test(c))).toBe(false)
+    // 第 355 轮：额度角标改为按钮内联次要文字，不再绝对定位骑压按钮边缘
+    const badge = pdf.find('[data-testid="export-quota-badge"]')
+    expect(badge.exists()).toBe(true)
+    expect(badge.classes()).not.toContain('absolute')
+    expect(badge.classes().some((c) => /^-?(top|right)-/.test(c))).toBe(false)
+    expect(pdf.findAll('span').some((s) => s.classes().includes('absolute'))).toBe(false)
 
     const group = pdf.element.parentElement!
     expect(group.classList.contains('flex')).toBe(true)

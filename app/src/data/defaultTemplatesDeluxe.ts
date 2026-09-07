@@ -44,7 +44,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '180×90 mm 平放桌牌，靛紫极光渐变色带上下呼应，名字居中大字，现代科技感会议首选。',
     scenario: '峰会 / 发布会桌牌',
     accent: '#6366f1',
-    sampleData: { name: '欧阳晨曦', org: '星汉智能科技（深圳）有限公司', title: '首席技术官' },
+    sampleData: { name: '朱琳', org: '星汉智能科技（深圳）有限公司', title: '首席技术官' },
     label: decorLabel(
       180,
       90,
@@ -65,7 +65,7 @@ export const deluxeTemplates: LabelTemplate[] = [
         color: INK_MUTED,
         letterSpacing: 0.08,
       }),
-      text('name', '姓名', { x: 15, y: 30, width: 150, height: 34 }, '欧阳晨曦', {
+      text('name', '姓名', { x: 15, y: 30, width: 150, height: 34 }, '朱琳', {
         fontSize: 44,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -221,7 +221,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '96×62 mm 席卡 A4 一页 8 枚，底部三层青色波纹渐变叠浪，清爽学术气质，论坛研讨会席位标识。',
     scenario: '学术论坛 / 圆桌研讨',
     accent: '#0891b2',
-    sampleData: { name: '闻人静姝', org: '东湖大学经济学院' },
+    sampleData: { name: '陈静', org: '东湖大学经济学院' },
     label: decorLabel(
       96,
       62,
@@ -237,7 +237,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     ),
     page: gridPage('A4', 2, 4, 96, 62, 4, 5),
     fields: [
-      text('name', '姓名', { x: 8, y: 17, width: 84, height: 22 }, '闻人静姝', {
+      text('name', '姓名', { x: 8, y: 17, width: 84, height: 22 }, '陈静', {
         fontSize: 27,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -264,7 +264,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '96×62 mm 贵宾席卡，浅灰云石脉络纹理铺底 + 炭金双线框，低调高级，酒会晚宴贵宾席位。',
     scenario: '贵宾席 / 晚宴酒会',
     accent: '#57534e',
-    sampleData: { name: '杨云舒', title: '特邀贵宾' },
+    sampleData: { name: '郑爽', title: '特邀贵宾' },
     label: decorLabel(
       96,
       62,
@@ -287,7 +287,7 @@ export const deluxeTemplates: LabelTemplate[] = [
         color: '#a16207',
         letterSpacing: 0.6,
       }),
-      text('name', '姓名', { x: 12, y: 20, width: 76, height: 22 }, '杨云舒', {
+      text('name', '姓名', { x: 12, y: 20, width: 76, height: 22 }, '郑爽', {
         fontSize: 26,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -312,7 +312,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '180×90 mm 年会桌牌，四角金色星芒放射线与散点星光，白底金饰黑白打印不发闷，年会颁奖两相宜。',
     scenario: '公司年会 / 表彰晚会',
     accent: '#b45309',
-    sampleData: { name: '赵明玥', org: '晨风网络 2026 年度盛典', title: '年度优秀员工' },
+    sampleData: { name: '林芳', org: '晨风网络 2026 年度盛典', title: '年度优秀员工' },
     label: decorLabel(
       180,
       90,
@@ -338,7 +338,7 @@ export const deluxeTemplates: LabelTemplate[] = [
         color: '#92400e',
         letterSpacing: 0.16,
       }),
-      text('name', '姓名', { x: 30, y: 29, width: 120, height: 33 }, '赵明玥', {
+      text('name', '姓名', { x: 30, y: 29, width: 120, height: 33 }, '林芳', {
         fontSize: 43,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -360,7 +360,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '96×62 mm 年会席卡，左上角中国红绶带斜披 + 底部红金渐变线，喜庆而不俗，年会答谢宴通用。',
     scenario: '年会晚宴 / 答谢会',
     accent: '#b91c1c',
-    sampleData: { name: '刘若飞', org: '销售一部' },
+    sampleData: { name: '黄敏', org: '销售一部' },
     label: decorLabel(
       96,
       62,
@@ -381,7 +381,7 @@ export const deluxeTemplates: LabelTemplate[] = [
         color: '#b91c1c',
         letterSpacing: 0.5,
       }),
-      text('name', '姓名', { x: 10, y: 18, width: 80, height: 23 }, '刘若飞', {
+      text('name', '姓名', { x: 10, y: 18, width: 80, height: 23 }, '黄敏', {
         fontSize: 27,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -630,7 +630,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '90×55 mm 席位卡，顶部金色雨点渐次垂落如流苏，简洁不抢戏，与香槟色系婚礼布置天然相配。',
     scenario: '香槟色系婚宴',
     accent: '#b45309',
-    sampleData: { name: '温以宁', table: 'F 区 · 第 5 桌' },
+    sampleData: { name: '郭颖', table: 'F 区 · 第 5 桌' },
     label: decorLabel(
       90,
       55,
@@ -645,7 +645,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     ),
     page: gridPage('A4', 2, 5, 90, 55, 6, 2.5),
     fields: [
-      text('name', '宾客姓名', { x: 9, y: 18, width: 72, height: 20 }, '温以宁', {
+      text('name', '宾客姓名', { x: 9, y: 18, width: 72, height: 20 }, '郭颖', {
         fontSize: 24,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -668,7 +668,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '180×90 mm 桌牌，Art Deco 扇形放射与阶梯角饰，摩登复古，金婚银婚纪念宴与主题派对出彩之选。',
     scenario: '结婚纪念 / 主题派对',
     accent: '#155e75',
-    sampleData: { name: '赵与澜 · 秦书悦', note: '结婚三十周年纪念' },
+    sampleData: { name: '张伟 · 王芳', note: '结婚三十周年纪念' },
     label: decorLabel(
       180,
       90,
@@ -687,7 +687,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     ),
     page: gridPage('A4', 1, 3, 180, 90, 0, 5),
     fields: [
-      text('name', '主人公', { x: 25, y: 25, width: 130, height: 30 }, '赵与澜 · 秦书悦', {
+      text('name', '主人公', { x: 25, y: 25, width: 130, height: 30 }, '张伟 · 王芳', {
         fontSize: 33,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -716,7 +716,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '96×62 mm 席卡，墨蓝色内框配兰草笔触角饰，端庄含蓄，中式喜宴与商务宴请均不违和。',
     scenario: '中式喜宴 / 商务宴请',
     accent: '#1e3a8a',
-    sampleData: { name: '容景行', table: '兰厅 · 第 2 桌' },
+    sampleData: { name: '周杰', table: '兰厅 · 第 2 桌' },
     label: decorLabel(
       96,
       62,
@@ -733,7 +733,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     ),
     page: gridPage('A4', 2, 4, 96, 62, 4, 5),
     fields: [
-      text('name', '宾客姓名', { x: 12, y: 17, width: 76, height: 22 }, '容景行', {
+      text('name', '宾客姓名', { x: 12, y: 17, width: 76, height: 22 }, '周杰', {
         fontSize: 26,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -755,10 +755,10 @@ export const deluxeTemplates: LabelTemplate[] = [
     id: 'deluxeWedFoil',
     name: '婚礼席位卡·鎏金水彩',
     category: 'wedding',
-    description: '90×55 mm 席位卡 A4 一页 10 枚，腮红粉水彩晕染 + 鎏金细枝角饰，柔美高级的宴会厅婚礼质感。',
+    description: '90×55 mm 席位卡 A4 一页 10 枚，腮红粉水彩晕染 + 鎏金细枝角饰，适合宴会厅婚礼。',
     scenario: '宴会厅婚礼 / 订婚宴',
     accent: '#b45309',
-    sampleData: { name: '沈疏影', table: '第 6 桌' },
+    sampleData: { name: '李娜', table: '第 6 桌' },
     label: decorLabel(
       90,
       55,
@@ -785,7 +785,7 @@ export const deluxeTemplates: LabelTemplate[] = [
         color: '#d6a05a',
         letterSpacing: 0.9,
       }),
-      text('name', '宾客姓名', { x: 8, y: 17, width: 74, height: 18 }, '沈疏影', {
+      text('name', '宾客姓名', { x: 8, y: 17, width: 74, height: 18 }, '李娜', {
         fontSize: 24,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -904,7 +904,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '90×50 mm 桌贴 A4 一页 10 枚，顶部黑色信息条 + 座位号反白大字，机构感网格排版，远看一目了然。',
     scenario: '统一考试 / 校考桌贴',
     accent: '#111827',
-    sampleData: { name: '苏沐宸', room: '第3考场', seatNo: '11', examId: '2026061011' },
+    sampleData: { name: '刘洋', room: '第3考场', seatNo: '11', examId: '2026061011' },
     label: decorLabel(
       90,
       50,
@@ -932,7 +932,7 @@ export const deluxeTemplates: LabelTemplate[] = [
         align: 'left',
         letterSpacing: 0.4,
       }),
-      text('name', '姓名', { x: 8, y: 17, width: 74, height: 20 }, '苏沐宸', {
+      text('name', '姓名', { x: 8, y: 17, width: 74, height: 20 }, '刘洋', {
         fontSize: 26,
         fontWeight: 'bold',
         emphasis: 'hero',
@@ -1001,7 +1001,7 @@ export const deluxeTemplates: LabelTemplate[] = [
     description: '180×90 mm 桌牌，朱砂红回纹样条上下呼应 + 鎏金细线，取意传统纹样的国风会议桌牌，宋体大字庄重大气。',
     scenario: '国风论坛 / 文化交流会',
     accent: '#9f1239',
-    sampleData: { name: '林听澜', org: '国风文化研究院', title: '副院长' },
+    sampleData: { name: '赵磊', org: '国风文化研究院', title: '副院长' },
     label: decorLabel(
       180,
       90,
@@ -1026,7 +1026,7 @@ export const deluxeTemplates: LabelTemplate[] = [
         letterSpacing: 0.3,
         fontFamily: SERIF_ZH,
       }),
-      text('name', '姓名', { x: 15, y: 31, width: 150, height: 33 }, '林听澜', {
+      text('name', '姓名', { x: 15, y: 31, width: 150, height: 33 }, '赵磊', {
         fontSize: 42,
         fontWeight: 'bold',
         emphasis: 'hero',

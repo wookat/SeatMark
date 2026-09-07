@@ -679,6 +679,38 @@ export function countAssignedGuests(tables: BanquetTable[]): number {
   return tables.reduce((sum, t) => sum + t.guestIds.length, 0)
 }
 
+/** 排桌 → 标签工坊席位卡的名单表头（顺序即列顺序） */
+export const BANQUET_HANDOFF_HEADERS = ['姓名', '桌号', '分组', '座位号'] as const
+
+/**
+ * 已安排宾客 → 席位卡名单行：按桌顺序、桌内座次展开，桌号 = 桌名，座位号 = 桌内座次（1 起）。
+ * 未安排的宾客与找不到名单记录的 guestId 不出现；无人安排返回空数组（调用方据此禁用按钮）。
+ */
+export function buildBanquetHandoffRows(
+  guests: readonly BanquetGuest[],
+  tables: readonly BanquetTable[],
+  groups: readonly BanquetGroup[],
+): Record<(typeof BANQUET_HANDOFF_HEADERS)[number], string>[] {
+  const guestById = new Map(guests.map((g) => [g.id, g]))
+  const groupById = new Map(groups.map((g) => [g.id, g]))
+  const rows: Record<(typeof BANQUET_HANDOFF_HEADERS)[number], string>[] = []
+  for (const table of tables) {
+    let seat = 0
+    for (const id of table.guestIds) {
+      const guest = guestById.get(id)
+      if (!guest || !guest.name.trim()) continue
+      seat += 1
+      rows.push({
+        姓名: guest.name.trim(),
+        桌号: table.name,
+        分组: (guest.groupId && groupById.get(guest.groupId)?.name) || '',
+        座位号: String(seat),
+      })
+    }
+  }
+  return rows
+}
+
 /** 深拷贝桌位快照（含 guestIds），供“清空/切预设”后撤销恢复 */
 export function snapshotTables(tables: BanquetTable[]): BanquetTable[] {
   return tables.map((t) => ({ ...t, guestIds: [...t.guestIds] }))

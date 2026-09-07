@@ -176,3 +176,33 @@ describe('NextStepBar', () => {
     target.remove()
   })
 })
+
+describe('第 355 轮：常驻底部操作条不遮页脚版权行 / 额度文字内联', () => {
+  it('AppFooter 在 html.has-next-step-bar 下补 pb-12（= NextStepBar h-12 条高）', async () => {
+    const { default: AppFooter } = await import('@/components/ui/AppFooter.vue')
+    const { createPinia, setActivePinia } = await import('pinia')
+    const { RouterLinkStub } = await import('@vue/test-utils')
+    setActivePinia(createPinia())
+    const wrapper = mount(AppFooter, { global: { stubs: { RouterLink: RouterLinkStub } } })
+    const footer = wrapper.find('footer')
+    expect(footer.classes()).toContain('[.has-next-step-bar_&]:pb-12')
+    expect(footer.classes()).toContain('[.has-sticky-actions_&]:pb-12')
+    const target = document.createElement('section')
+    const bar = mountBar({ step: 'export', arrangeLabel: '随机排座', target })
+    expect(bar.find('.h-12').exists()).toBe(true)
+    bar.unmount()
+    wrapper.unmount()
+  })
+
+  it('额度文字作为按钮内联次要文字渲染（不再 absolute 骑压按钮边缘）', () => {
+    const target = document.createElement('section')
+    const badge = { text: '今日剩余 1 次', cls: 'bg-emerald-100 text-emerald-700' }
+    const wrapper = mount(NextStepBar, {
+      props: { step: 'export', arrangeLabel: '随机排座', target, quotaBadge: badge, quotaBadgeTitle: '额度说明' },
+    })
+    const badgeEl = wrapper.find('[data-testid="next-step-quota-badge"]')
+    expect(badgeEl.classes()).not.toContain('absolute')
+    expect(wrapper.find('[data-testid="next-step-action"]').element.contains(badgeEl.element)).toBe(true)
+    wrapper.unmount()
+  })
+})

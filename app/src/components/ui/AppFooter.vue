@@ -53,7 +53,8 @@ const GROUPS = computed(() => [
 </script>
 
 <template>
-  <footer class="no-print border-t border-slate-200 bg-white">
+  <!-- 页面带常驻底部操作条（html.has-next-step-bar，/seating /banquet）时补条高留白，版权行不被遮住 -->
+  <footer class="no-print border-t border-slate-200 bg-white [.has-next-step-bar_&]:pb-12 [.has-sticky-actions_&]:pb-12">
     <div class="mx-auto w-full max-w-6xl px-4 py-10">
       <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(3,1fr)]">
         <div>

@@ -432,7 +432,7 @@ const recommendedItems = computed(() => {
         </RouterLink>
       </div>
       <div class="mt-6 border-t border-slate-200 pt-5 text-left">
-        <p class="text-xs font-bold text-slate-600">{{ t('也许这些模板能满足需求') }}</p>
+        <p class="text-xs font-bold text-slate-600">{{ t('没有完全匹配的，先看看这些相近模板') }}</p>
         <div class="mt-3 grid gap-4 sm:grid-cols-3">
           <RouterLink
             v-for="rec in recommendedItems"

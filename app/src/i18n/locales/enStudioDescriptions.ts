@@ -334,8 +334,8 @@ export const enTemplateDescriptions: Record<string, string> = {
     '180×90 mm tent with Art Deco fans and stepped corners. Modern vintage for anniversaries and theme parties.',
   '96×62 mm 席卡，墨蓝色内框配兰草笔触角饰，端庄含蓄，中式喜宴与商务宴请均不违和。':
     '96×62 mm card with an ink-blue frame and orchid brushstroke corners. Dignified for Chinese and business banquets.',
-  '90×55 mm 席位卡 A4 一页 10 枚，腮红粉水彩晕染 + 鎏金细枝角饰，柔美高级的宴会厅婚礼质感。':
-    '90×55 mm place card, 10 per A4, with blush watercolour and fine gold branch corners. Soft luxury for ballroom weddings.',
+  '90×55 mm 席位卡 A4 一页 10 枚，腮红粉水彩晕染 + 鎏金细枝角饰，适合宴会厅婚礼。':
+    '90×55 mm place card, 10 per A4, with blush watercolour and fine gold branch corners. Made for ballroom weddings.',
   '180×70 mm 宽幅窗口牌，藏蓝底金色扭索纹样条 + 衬线窗口号大字，庄重可信的政务服务窗口气质。':
     '180×70 mm wide window sign: navy ground with a gold guilloche band and large serif window number. Formal and trustworthy.',
   '64×38 mm 姓名贴 A4 一页 21 枚，奶油马卡龙撞色圆角云朵与小太阳，软萌治愈的幼儿园开学装备。':

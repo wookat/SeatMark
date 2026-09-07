@@ -108,7 +108,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '3 列 × 8 行，层级徽章 + 姓名 + 上课教室三段式，走班制、分层教学快速对位。',
     scenario: '走班制 / 分层教学',
     accent: '#7c3aed',
-    sampleData: { level: 'B2', name: '苏念安', room: '数学 · 慎思楼 304' },
+    sampleData: { level: 'B2', name: '王芳', room: '数学 · 慎思楼 304' },
     label: plainLabel(60, 32),
     page: gridPage('A4', 3, 8, 60, 32, 4, 3.4),
     fields: [
@@ -125,7 +125,7 @@ export const campusTemplates: LabelTemplate[] = [
         color: INK_FAINT,
         letterSpacing: 0.2,
       }),
-      text('name', '姓名', { x: 21, y: 4, width: 36, height: 12 }, '苏念安', {
+      text('name', '姓名', { x: 21, y: 4, width: 36, height: 12 }, '王芳', {
         fontSize: 14,
         fontWeight: 'bold',
         align: 'left',
@@ -593,7 +593,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '4 列 × 10 行小签，机位号大字 + 姓名，信息课与机考机房对号入座，密排省纸。',
     scenario: '机房 / 信息课',
     accent: '#475569',
-    sampleData: { pcNo: '36', name: '康书禾', className: '初一（4）班' },
+    sampleData: { pcNo: '36', name: '马丽萍', className: '初一（4）班' },
     label: { width: 45, height: 25, radius: 0, borderWidth: 0.25, borderColor: '#334155', background: '#ffffff' },
     page: gridPage('A4', 4, 10, 45, 25, 3, 2),
     fields: [
@@ -605,7 +605,7 @@ export const campusTemplates: LabelTemplate[] = [
         background: 'transparent',
         emphasis: 'hero',
       }),
-      text('name', '姓名', { x: 18.5, y: 4, width: 24, height: 9 }, '康书禾', {
+      text('name', '姓名', { x: 18.5, y: 4, width: 24, height: 9 }, '马丽萍', {
         fontSize: 9.5,
         fontWeight: 'bold',
         align: 'left',
@@ -790,7 +790,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '3 列 × 8 行，机位号反白大字 + 姓名与准考证号，英语听说机考、上机考试对号入位。',
     scenario: '机考 / 听说考试',
     accent: '#0e7490',
-    sampleData: { pcNo: '24', name: '穆清和', examId: '2026041508', room: '机房 3' },
+    sampleData: { pcNo: '24', name: '孙丽', examId: '2026041508', room: '机房 3' },
     label: plainLabel(60, 32, '#155e75'),
     page: gridPage('A4', 3, 8, 60, 32, 4, 3.4),
     fields: [
@@ -808,7 +808,7 @@ export const campusTemplates: LabelTemplate[] = [
         letterSpacing: 0.2,
         background: 'transparent',
       }),
-      text('name', '姓名', { x: 21, y: 3.5, width: 36, height: 10 }, '穆清和', {
+      text('name', '姓名', { x: 21, y: 3.5, width: 36, height: 10 }, '孙丽', {
         fontSize: 12,
         fontWeight: 'bold',
         align: 'left',
@@ -834,7 +834,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '2 列 × 6 行，考位号与科目分列，组次与时段带字段名，理化生实验操作考试布场。',
     scenario: '实验操作考试',
     accent: '#15803d',
-    sampleData: { stationNo: '05', subject: '化学实验', session: '第 3 组 · 09:40', name: '任星野' },
+    sampleData: { stationNo: '05', subject: '化学实验', session: '第 3 组 · 09:40', name: '宋健' },
     label: plainLabel(90, 40, '#14532d'),
     page: gridPage('A4', 2, 6, 90, 40, 8, 5),
     fields: [
@@ -855,7 +855,7 @@ export const campusTemplates: LabelTemplate[] = [
         fontWeight: 'bold',
         align: 'left',
       }),
-      text('name', '姓名', { x: 37, y: 15, width: 49, height: 8.5 }, '任星野', {
+      text('name', '姓名', { x: 37, y: 15, width: 49, height: 8.5 }, '宋健', {
         fontSize: 9.5,
         align: 'left',
         caption: '考生',
@@ -876,7 +876,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '2 列 × 8 行，候考序号大字 + 姓名与预约时段，口语面试、才艺展示按号候场。',
     scenario: '口试 / 面试候考',
     accent: '#a21caf',
-    sampleData: { orderNo: '18', name: '柏语汐', slot: '上午场 · 10:20 前候考' },
+    sampleData: { orderNo: '18', name: '朱琳', slot: '上午场 · 10:20 前候考' },
     label: plainLabel(90, 30, '#86198f'),
     page: gridPage('A4', 2, 8, 90, 30, 8, 3.5),
     fields: [
@@ -888,7 +888,7 @@ export const campusTemplates: LabelTemplate[] = [
         background: 'transparent',
         emphasis: 'hero',
       }),
-      text('name', '姓名', { x: 27, y: 4, width: 59, height: 11 }, '柏语汐', {
+      text('name', '姓名', { x: 27, y: 4, width: 59, height: 11 }, '朱琳', {
         fontSize: 13,
         fontWeight: 'bold',
         align: 'left',
@@ -908,7 +908,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '3 列 × 3 行竖版证件，「监考」大字色条压顶，姓名、监考考场与场次分层，穿绳佩戴。',
     scenario: '监考 / 考务证件',
     accent: '#b91c1c',
-    sampleData: { name: '欧阳文瑾', room: '第 12 考场', session: '6 月 7 日 全天' },
+    sampleData: { name: '何平', room: '第 12 考场', session: '6 月 7 日 全天' },
     label: { width: 58, height: 88, radius: 2, borderWidth: 0.3, borderColor: '#7f1d1d', background: '#ffffff' },
     page: gridPage('A4', 3, 3, 58, 88, 8, 8),
     fields: [
@@ -926,7 +926,7 @@ export const campusTemplates: LabelTemplate[] = [
         letterSpacing: 0.4,
         background: 'transparent',
       }),
-      text('name', '姓名', { x: 4, y: 28, width: 50, height: 14 }, '欧阳文瑾', {
+      text('name', '姓名', { x: 4, y: 28, width: 50, height: 14 }, '何平', {
         fontSize: 15,
         fontWeight: 'bold',
       }),
@@ -956,7 +956,7 @@ export const campusTemplates: LabelTemplate[] = [
     description: '3 列 × 3 行竖版证件，与监考证同规格配深蓝识别色，姓名与巡查区域分层，考点证件成套。',
     scenario: '巡考 / 考点管理',
     accent: '#1e40af',
-    sampleData: { name: '费长青', zone: '教学楼 A 区 1–12 考场', unit: '考点办公室' },
+    sampleData: { name: '梁波', zone: '教学楼 A 区 1–12 考场', unit: '考点办公室' },
     label: { width: 58, height: 88, radius: 2, borderWidth: 0.3, borderColor: '#1e3a8a', background: '#ffffff' },
     page: gridPage('A4', 3, 3, 58, 88, 8, 8),
     fields: [
@@ -974,7 +974,7 @@ export const campusTemplates: LabelTemplate[] = [
         letterSpacing: 0.36,
         background: 'transparent',
       }),
-      text('name', '姓名', { x: 4, y: 28, width: 50, height: 14 }, '费长青', {
+      text('name', '姓名', { x: 4, y: 28, width: 50, height: 14 }, '梁波', {
         fontSize: 15,
         fontWeight: 'bold',
       }),

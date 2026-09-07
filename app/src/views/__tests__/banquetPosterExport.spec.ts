@@ -63,9 +63,11 @@ async function exportAndCapturePage(
   exportPagedPng.mockImplementationOnce(async (options: { getPage: () => HTMLElement }) => {
     captured = options.getPage()
   })
-  const pngBtn = wrapper.findAll('button').find((b) => b.text() === '导出高清 PNG')
-  expect(pngBtn).toBeTruthy()
-  await pngBtn!.trigger('click')
+  // 第 355 轮后按钮内还带内联额度文字，按 testid 定位
+  const pngBtn = wrapper.find('[data-testid="banquet-export-png"]')
+  expect(pngBtn.exists()).toBe(true)
+  expect(pngBtn.text()).toContain('导出高清 PNG')
+  await pngBtn.trigger('click')
   await wrapper.vm.$nextTick()
   // 圆桌预设 8 桌，48 人坐满 6 桌后剩 2 空桌：导出前检查提示空桌
   const keepEmpty = wrapper.findAll('button').find((b) => b.text().includes(emptyTableAction))

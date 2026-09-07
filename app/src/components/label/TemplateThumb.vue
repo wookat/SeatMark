@@ -13,13 +13,25 @@ const props = defineProps<{
 }>()
 
 const container = ref<HTMLElement | null>(null)
-const { width } = useElementSize(container)
+const { width, height } = useElementSize(container)
 
+/** 测到容器尺寸前不展示：避免 SSR / 首帧以 scale(1) 渲染原尺标签被容器裁成左上角 */
+const measured = computed(() => width.value > 0)
+
+/** 按容器宽高两个方向取较小缩放，容器高度受限时宽扁模板也完整可见 */
 const scale = computed(() => {
   const naturalWidth = props.template.label.width * MM_TO_PX
+  const naturalHeight = props.template.label.height * MM_TO_PX
   if (!width.value || !naturalWidth) return 1
-  return width.value / naturalWidth
+  const byWidth = width.value / naturalWidth
+  if (!height.value || !naturalHeight) return byWidth
+  return Math.min(byWidth, height.value / naturalHeight)
 })
+
+const cardStyle = computed(() => ({
+  transform: `translateX(-50%) scale(${scale.value})`,
+  visibility: measured.value ? undefined : ('hidden' as const),
+}))
 
 const revealed = ref(!props.defer)
 let observer: IntersectionObserver | null = null
@@ -60,8 +72,9 @@ onBeforeUnmount(() => {
     >
       <div
         v-if="revealed"
-        class="absolute top-0 left-0 origin-top-left"
-        :style="{ transform: `scale(${scale})` }"
+        class="absolute top-0 left-1/2 origin-top"
+        :style="cardStyle"
+        data-testid="template-thumb-card"
       >
         <LabelCard :template="template" sample-mode />
       </div>

@@ -272,9 +272,9 @@ function resolveEnSeo(base: string): PageSeo | null {
   if (base === '/pricing') {
     return {
       ...common,
-      title: 'Pricing: 7-Day Pro Trial on Sign-up | SeatMark',
+      title: 'Pricing: Pro Free for a Limited Time | SeatMark',
       description:
-        'Unlimited watermarked export for free; watermark-free 1/day (3 after sign-in). 7-day Pro trial on sign-up; invite friends for more. Data never leaves the browser.',
+        'Unlimited watermarked export; daily free quota for watermark-free export. Pro and Team free for a limited time (list price ¥19/¥49 a month). Data stays in your browser.',
       jsonLd: [
         SOFTWARE_APP_JSONLD_EN,
         breadcrumb([
@@ -391,9 +391,9 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
 
   if (p === '/pricing') {
     return {
-      title: '定价：注册送 7 天专业版，限时 0 折免费 - SeatMark 座签',
+      title: '定价：专业版限时 0 折免费，带水印导出不限次 - SeatMark 座签',
       description:
-        'SeatMark 座签定价：带水印导出/打印不限次数；无水印导出每日 1 次（登录后 3 次）；注册即送 7 天专业版，邀请好友双方各送 7 天可叠加；专业版限时 0 折免费（原价 ¥19/月），支持兑换码开通；团队版限时 0 折免费（原价 ¥49/月）支持预订登记。数据不出浏览器。',
+        'SeatMark 座签定价：带水印导出/打印不限次数；无水印导出每日有免费次数；专业版/团队版限时 0 折免费（原价 ¥19/¥49 每月），专业版支持兑换码开通，团队版支持预订登记。数据不出浏览器。',
       path: '/pricing',
       jsonLd: [
         {

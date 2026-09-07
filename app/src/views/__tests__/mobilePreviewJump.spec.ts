@@ -15,14 +15,23 @@ class ResizeObserverStub {
 }
 
 type IOCallback = (entries: Array<{ isIntersecting: boolean }>) => void
-let ioCallback: IOCallback | null = null
+/** 按被观察元素记录回调：页面上同时有预览区 / 名单输入区 / 下一步条三个观察者 */
+const ioCallbacks = new Map<Element, IOCallback>()
 class IntersectionObserverStub {
-  constructor(cb: IOCallback) {
-    ioCallback = cb
+  constructor(private readonly cb: IOCallback) {}
+  observe(el: Element) {
+    ioCallbacks.set(el, this.cb)
   }
-  observe() {}
   unobserve() {}
   disconnect() {}
+}
+function intersect(el: Element | undefined, isIntersecting: boolean) {
+  if (!el) throw new Error('intersect: element not observed')
+  ioCallbacks.get(el)?.([{ isIntersecting }])
+}
+/** 预览容器（胶囊的观察目标） */
+function previewOf(wrapper: ReturnType<typeof mount>) {
+  return wrapper.find('.overflow-auto').element
 }
 
 async function mountView(component: typeof BanquetView | typeof SeatingView) {
@@ -46,7 +55,7 @@ async function mountView(component: typeof BanquetView | typeof SeatingView) {
 beforeEach(async () => {
   vi.stubGlobal('ResizeObserver', ResizeObserverStub)
   vi.stubGlobal('IntersectionObserver', IntersectionObserverStub)
-  ioCallback = null
+  ioCallbacks.clear()
   Element.prototype.scrollIntoView = vi.fn()
   localStorage.clear()
   setActivePinia(createPinia())
@@ -70,7 +79,7 @@ describe('第 347 轮：/seating /banquet 移动端预览可达', () => {
     const previewEl = scroll.mock.instances[0] as HTMLElement
     expect(previewEl.className).toContain('overflow-auto')
 
-    ioCallback?.([{ isIntersecting: true }])
+    intersect(previewOf(wrapper), true)
     await wrapper.vm.$nextTick()
     expect(jump.text()).toBe('回到设置 ↑')
     expect(jump.attributes('data-state')).toBe('at-preview')
@@ -105,7 +114,7 @@ describe('第 347 轮：/seating /banquet 移动端预览可达', () => {
     expect(jump.exists()).toBe(true)
     expect(jump.classes()).toContain('md:hidden')
     expect(jump.text()).toBe('View seating preview ↓')
-    ioCallback?.([{ isIntersecting: true }])
+    intersect(previewOf(wrapper), true)
     await wrapper.vm.$nextTick()
     expect(jump.text()).toBe('Back to settings ↑')
     wrapper.unmount()
@@ -191,12 +200,12 @@ describe('第 349 轮：390 宽下浮动胶囊让位', () => {
       await wrapper.vm.$nextTick()
       expect(jump.attributes('data-hidden')).toBe('true')
 
-      ioCallback?.([{ isIntersecting: true }])
+      intersect(previewOf(wrapper), true)
       scrollTo(850)
       await wrapper.vm.$nextTick()
       expect(jump.attributes('data-hidden')).toBe('true')
 
-      ioCallback?.([{ isIntersecting: false }])
+      intersect(previewOf(wrapper), false)
       scrollTo(800)
       await wrapper.vm.$nextTick()
       expect(jump.attributes('data-hidden')).toBe('false')
@@ -223,5 +232,50 @@ describe('第 349 轮：390 宽下浮动胶囊让位', () => {
     expect(4.25 * 16 - 3 * 16).toBeGreaterThanOrEqual(8)
     fab.unmount()
     wrapper.unmount()
+  })
+})
+
+describe('第 355 轮：胶囊改右下角 + 名单输入区滚入视口时自动隐藏', () => {
+  it('胶囊靠右下（right-14，紧邻客服 FAB 左侧），不再固定在左下角', async () => {
+    const wrapper = await mountView(SeatingView)
+    const jump = wrapper.find('[data-testid="mobile-preview-jump"]')
+    expect(jump.classes()).toContain('right-14')
+    expect(jump.classes()).toContain('bottom-4')
+    expect(jump.classes()).not.toContain('left-4')
+    // FAB max-sm: right-3(12px) + size-10(40px) = 52px < right-14(56px)，两者不重叠
+    expect(14 * 4).toBeGreaterThan(3 * 4 + 10 * 4)
+    wrapper.unmount()
+  })
+
+  it.each([
+    ['SeatingView', SeatingView],
+    ['BanquetView', BanquetView],
+  ] as const)('%s：名单 textarea 滚入视口 → 胶囊隐藏；离开视口 → 恢复', async (_name, view) => {
+    const wrapper = await mountView(view)
+    const jump = wrapper.find('[data-testid="mobile-preview-jump"]')
+    const textarea = wrapper.find('textarea').element
+    expect(ioCallbacks.has(textarea)).toBe(true)
+    expect(jump.attributes('data-hidden')).toBe('false')
+
+    intersect(textarea, true)
+    await wrapper.vm.$nextTick()
+    expect(jump.attributes('data-avoid-visible')).toBe('true')
+    expect(jump.attributes('data-hidden')).toBe('true')
+    expect(jump.classes()).toContain('opacity-0')
+
+    intersect(textarea, false)
+    await wrapper.vm.$nextTick()
+    expect(jump.attributes('data-hidden')).toBe('false')
+    wrapper.unmount()
+  })
+
+  it('/seating 与 /banquet 表单列底部留白：页面根容器 pb-20，底部常驻条不压最后一个控件', async () => {
+    for (const view of [SeatingView, BanquetView]) {
+      const wrapper = await mountView(view)
+      const root = wrapper.find('.mx-auto.w-full')
+      expect(root.classes()).toContain('pb-20')
+      expect(root.classes()).toContain('sm:pb-20')
+      wrapper.unmount()
+    }
   })
 })
