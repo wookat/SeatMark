@@ -10,7 +10,7 @@ import { isCompositeMapping, templateColumnsValid } from '@/utils/fieldTemplate'
 const workspace = useWorkspaceStore()
 const { locale } = useI18n()
 
-/** 「第 X 行：姓名、桌号 为空」——行号为名单表格原始行号 */
+/** 「第 X 行：姓名、桌号 为空」——行号与导入预览序号一致（数据行 1 起，不含表头） */
 function missingDetailText(item: { rowIndex: number; fields: string[] }): string {
   const en = locale.value === 'en'
   const fields = item.fields.map((f) => t(f)).join(en ? ', ' : '、')
@@ -220,7 +220,7 @@ function onPhotoFiles(event: Event) {
                 {{ t('另有 {n} 行').replace('{n}', String(workspace.dataQuality.missingMore)) }}
               </li>
             </ul>
-            <p class="mt-1 font-sans opacity-85">{{ t('行号为名单表格的原始行号；空字段在成品中将留空，不会自动补全。') }}</p>
+            <p class="mt-1 font-sans opacity-85">{{ t('行号与「导入数据」预览中的序号一致（不含表头行）；空字段在成品中将留空，不会自动补全。') }}</p>
           </details>
         </li>
         <li v-if="workspace.dataQuality.duplicateExamIds">

@@ -381,7 +381,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const dataQuality = computed(() => {
     const result: {
       missingRows: number
-      /** 前 MISSING_DETAIL_LIMIT 条空字段明细；rowIndex 为名单表格 1 起的原始行号 */
+      /** 前 MISSING_DETAIL_LIMIT 条空字段明细；rowIndex 为数据行 1 起的序号（不含表头，与导入预览一致） */
       missingDetails: Array<{ rowIndex: number; fields: string[] }>
       /** 超出明细上限、未逐条列出的行数 */
       missingMore: number

@@ -365,8 +365,8 @@ export const en: Record<string, string> = {
   '第 {n} 行': 'Row {n}',
   '为空': 'empty',
   '另有 {n} 行': '{n} more rows',
-  '行号为名单表格的原始行号；空字段在成品中将留空，不会自动补全。':
-    'Row numbers refer to the original list rows; empty fields stay blank in the output and are not auto-filled.',
+  '行号与「导入数据」预览中的序号一致（不含表头行）；空字段在成品中将留空，不会自动补全。':
+    'Row numbers match the "Import data" preview (header row excluded); empty fields stay blank in the output and are not auto-filled.',
   '行字段为空，成品中将留空': 'rows have empty fields — they will stay blank in the output',
   '去查看': 'Show rows',
   '行数': 'Rows',
