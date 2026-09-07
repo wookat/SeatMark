@@ -376,6 +376,35 @@ describe('第 347 轮：拆分/空桌收尾动作', () => {
   })
 })
 
+describe('第 356 轮：未安排区操作指引对比度', () => {
+  it('拖拽/多选两种提示均用 text-slate-600，不再是 text-slate-400', async () => {
+    localStorage.setItem(
+      BANQUET_STATE_KEY,
+      JSON.stringify({
+        title: '测试', pasteText: '',
+        guests: [{ id: 'a1', name: '甲一', groupId: 'gA' }, { id: 'a2', name: '甲二', groupId: 'gA' }],
+        groups: [{ id: 'gA', name: '亲友', color: '#4f46e5' }],
+        tables: [table('t1', '1号桌', 2, ['a1'])],
+        markers: [], paper: 'a4', orientation: 'landscape', exportColors: false,
+      }),
+    )
+    const wrapper = await mountView()
+    const hint = wrapper.find('[data-testid="unassigned-pool-hint"]')
+    expect(hint.exists()).toBe(true)
+    expect(hint.text()).toContain('拖到餐桌上即可安排')
+    expect(hint.classes()).toContain('text-slate-600')
+    expect(hint.classes()).not.toContain('text-slate-400')
+
+    await wrapper.find('[data-testid="toggle-multi-select"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    const multiHint = wrapper.find('[data-testid="unassigned-pool-hint"]')
+    expect(multiHint.text()).toContain('点选宾客后在底部操作条批量归组')
+    expect(multiHint.classes()).toContain('text-slate-600')
+    expect(multiHint.classes()).not.toContain('text-slate-400')
+    wrapper.unmount()
+  })
+})
+
 describe('第 350 轮：桌面端画布列吸顶', () => {
   it('右列容器仅在 lg 断点 sticky（top 4.5rem、self-start、max-h + overflow-auto），无断点的 sticky 类不出现', async () => {
     seedState()

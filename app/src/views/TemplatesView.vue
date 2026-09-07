@@ -18,6 +18,9 @@ const { t, localePath, locale } = useI18n()
 
 const CJK_RE = /[\u4e00-\u9fff]/
 
+/** 列表前几张卡片在首屏内，直接渲染缩略图不走懒渲染 */
+const EAGER_THUMB_COUNT = 6
+
 /** en 下卡片说明：优先读已有英文译文，缺失时隐藏中文段落而不外泄 */
 function cardText(text: string | undefined): string {
   if (!text) return ''
@@ -456,7 +459,7 @@ const recommendedItems = computed(() => {
 
     <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       <RouterLink
-        v-for="item in visibleItems"
+        v-for="(item, index) in visibleItems"
         :key="item.detail.slug"
         :to="`/templates/${item.detail.slug}`"
         class="group relative flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-brand-300 hover:shadow-card-hover"
@@ -470,15 +473,23 @@ const recommendedItems = computed(() => {
         >
           <div class="mx-auto max-w-56 ">
             <div class="bg-white shadow-card">
-              <TemplateThumb :template="item.template!" defer />
+              <TemplateThumb :template="item.template!" :defer="index >= EAGER_THUMB_COUNT" />
             </div>
           </div>
-          <span
-            v-if="cardText(item.template!.scenario)"
-            class="absolute top-3 right-3 rounded bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200"
-          >
-            {{ cardText(item.template!.scenario) }}
-          </span>
+          <div class="absolute top-3 right-3 flex max-w-[calc(100%-1.5rem)] flex-wrap justify-end gap-1">
+            <span
+              v-if="cardText(item.template!.scenario)"
+              class="rounded bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200"
+            >
+              {{ cardText(item.template!.scenario) }}
+            </span>
+            <span
+              v-if="locale === 'en'"
+              lang="en"
+              class="rounded bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200"
+              data-testid="lang-badge-zh"
+            >Chinese</span>
+          </div>
         </div>
         <div class="flex flex-1 flex-col p-4">
           <h2 class="text-sm font-bold text-slate-900 group-hover:text-brand-600">

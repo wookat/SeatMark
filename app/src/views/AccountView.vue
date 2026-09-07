@@ -331,8 +331,12 @@ function formatDate(iso: string | null | undefined): string {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-4xl px-4 py-10 sm:py-14">
-    <!-- 未登录：登录表单 -->
+  <div
+    class="mx-auto w-full max-w-4xl px-4 py-10 sm:py-14"
+    :class="{ 'lg:flex lg:min-h-[calc(100svh-27rem)] lg:flex-col lg:justify-center': !auth.user }"
+    data-testid="account-page"
+  >
+    <!-- 未登录：登录表单（≥lg 时按页头 3.5rem + 页脚约 23.5rem 之外的剩余高度垂直居中，避免卡片与页脚间大段留白） -->
     <template v-if="!auth.user">
       <div class="mx-auto max-w-md">
         <div class="text-center">

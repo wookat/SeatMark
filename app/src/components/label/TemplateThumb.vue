@@ -78,6 +78,17 @@ onBeforeUnmount(() => {
       >
         <LabelCard :template="template" sample-mode />
       </div>
+      <div
+        v-else
+        aria-hidden="true"
+        class="absolute inset-0 flex items-center justify-center"
+        data-testid="template-thumb-skeleton"
+      >
+        <div class="flex w-3/5 flex-col items-center justify-center gap-1.5 rounded border border-dashed border-slate-300 bg-white/60 py-[8%]">
+          <span class="block h-1.5 w-1/2 rounded-full bg-slate-200"></span>
+          <span class="block h-1 w-1/3 rounded-full bg-slate-200"></span>
+        </div>
+      </div>
     </div>
   </div>
 </template>

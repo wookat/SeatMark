@@ -74,4 +74,21 @@ describe('AccountView：账号服务 503 分支', () => {
     expect(wrapper.find('button[type="submit"]').attributes('disabled')).toBeUndefined()
     expect(wrapper.find('form img').exists()).toBe(true)
   })
+
+  it('未登录态外层在 lg 起按剩余视口高度垂直居中（第 356 轮 P3-6）', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input)
+      if (url.endsWith('/api/auth/me')) return jsonResponse({ user: null })
+      if (url.endsWith('/api/auth/captcha')) return jsonResponse({ image: 'data:,', token: 'tok' })
+      return jsonResponse({}, 404)
+    })
+    const wrapper = mount(AccountView, { global: { stubs: { RouterLink: RouterLinkStub } } })
+    await flushPromises()
+    const page = wrapper.find('[data-testid="account-page"]')
+    expect(page.classes()).toEqual(
+      expect.arrayContaining(['lg:flex', 'lg:flex-col', 'lg:justify-center', 'lg:min-h-[calc(100svh-27rem)]']),
+    )
+    // 小屏留白不变：非 lg 前缀的布局类保持原样
+    expect(page.classes()).toEqual(expect.arrayContaining(['py-10', 'sm:py-14', 'max-w-4xl']))
+  })
 })

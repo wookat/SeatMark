@@ -37,6 +37,11 @@ function loadLocalUsage(): LocalUsage {
   return { date: todayStr(), used: 0 }
 }
 
+/** 每次导出尝试的幂等键（CSPRNG）：服务端对同一键重发不重复扣减 */
+function newExportId(): string {
+  return crypto.randomUUID()
+}
+
 export type ConsumeResult =
   | { ok: true }
   | { ok: false; reason: 'anon-limit' | 'user-limit' }
@@ -86,7 +91,7 @@ export const useQuotaStore = defineStore('quota', () => {
       try {
         const data = await apiFetch<{ used: number; limit: number; remaining: number }>(
           '/api/quota/consume',
-          { method: 'POST' },
+          { method: 'POST', body: { exportId: newExportId() } },
         )
         auth.user.quota.used = data.used
         auth.user.quota.limit = data.limit

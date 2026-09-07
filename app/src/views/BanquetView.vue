@@ -1872,10 +1872,12 @@ function toPlaceCards() {
           <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
             <p class="min-w-0 flex-1 text-xs font-bold text-slate-600">
               {{ tr('未安排宾客') }}{{ tr('（') }}{{ unassignedGuests.length }}{{ tr('）') }}
-              <span v-if="!multiSelect" class="ml-1 font-normal text-slate-400">{{
+              <span v-if="!multiSelect" class="ml-1 font-normal text-slate-600" data-testid="unassigned-pool-hint">{{
                 tr('拖到餐桌上即可安排；从桌上拖回这里撤下')
               }}</span>
-              <span v-else class="ml-1 font-normal text-slate-400">{{ tr('点选宾客后在底部操作条批量归组') }}</span>
+              <span v-else class="ml-1 font-normal text-slate-600" data-testid="unassigned-pool-hint">{{
+                tr('点选宾客后在底部操作条批量归组')
+              }}</span>
             </p>
             <div v-if="unassignedGuests.length" class="flex shrink-0 items-center gap-1.5">
               <button
@@ -1947,7 +1949,7 @@ function toPlaceCards() {
               {{ tr('载入示例') }}
             </button>
           </div>
-          <p v-else class="mt-1 text-xs text-slate-400">{{ tr('全部宾客都已安排上桌。') }}</p>
+          <p v-else class="mt-1 text-xs text-slate-500">{{ tr('全部宾客都已安排上桌。') }}</p>
         </div>
 
         <div v-if="groups.length" class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
