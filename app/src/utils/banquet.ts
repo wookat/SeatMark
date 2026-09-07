@@ -1,5 +1,6 @@
 import { currentLocale, t } from '@/i18n'
 import { uid } from '@/utils/id'
+import { comparePinyin } from '@/utils/pinyin'
 
 /** 宴会座位表本地持久化 key（口径同 SeatingView 的 seatmark.seating-state.v1） */
 export const BANQUET_STATE_KEY = 'seatmark.banquet-state.v1'
@@ -638,4 +639,103 @@ export const GROUP_COLORS = [
 export function nextGroupColor(existing: BanquetGroup[]): string {
   const used = new Set(existing.map((g) => g.color))
   return GROUP_COLORS.find((c) => !used.has(c)) ?? GROUP_COLORS[existing.length % GROUP_COLORS.length]!
+}
+
+// ---------- 宾客速查表（迎宾台索引 + 按桌名单） ----------
+
+export interface GuestIndexEntry {
+  name: string
+  tableName: string
+}
+
+export interface TableRosterRow {
+  tableName: string
+  /** 桌内座次（从 1 起）；未安排宾客为空串 */
+  seatNo: string
+  name: string
+  groupName: string
+}
+
+export interface TableRoster {
+  tableName: string
+  rows: TableRosterRow[]
+}
+
+export interface GuestQuickReference {
+  /** 按姓名拼音序的「姓名 → 桌名」索引（未安排宾客桌名为「待安排」） */
+  index: GuestIndexEntry[]
+  /** 按桌顺序的名单；空桌不出现；未安排宾客单列一组「待安排」放最后 */
+  tables: TableRoster[]
+}
+
+/** 未安排宾客在速查表中的分组名 */
+export function unassignedTableName(): string {
+  return t('待安排')
+}
+
+/**
+ * 生成宾客速查表数据（纯函数）：
+ * - 索引按姓名拼音序（Intl.Collator zh 拼音），同名按名单顺序稳定排列；
+ * - 按桌名单沿桌位顺序、桌内按 guestIds 顺序给座次；不在名单中的残留 id 跳过；
+ * - 没有宾客的桌不出现；未安排宾客汇总到「待安排」一组（座次留空）。
+ */
+export function buildGuestQuickReference(
+  guests: BanquetGuest[],
+  tables: BanquetTable[],
+  groups: BanquetGroup[],
+): GuestQuickReference {
+  const guestById = new Map(guests.map((g) => [g.id, g]))
+  const groupName = new Map(groups.map((g) => [g.id, g.name]))
+  const seated = new Set<string>()
+  const rosters: TableRoster[] = []
+  for (const table of tables) {
+    const rows: TableRosterRow[] = []
+    for (const id of table.guestIds) {
+      const guest = guestById.get(id)
+      if (!guest || seated.has(id)) continue
+      seated.add(id)
+      rows.push({
+        tableName: table.name,
+        seatNo: String(rows.length + 1),
+        name: guest.name,
+        groupName: (guest.groupId && groupName.get(guest.groupId)) || '',
+      })
+    }
+    if (rows.length) rosters.push({ tableName: table.name, rows })
+  }
+  const pending = guests.filter((g) => !seated.has(g.id) && g.name.trim())
+  if (pending.length) {
+    const tableName = unassignedTableName()
+    rosters.push({
+      tableName,
+      rows: pending.map((g) => ({
+        tableName,
+        seatNo: '',
+        name: g.name,
+        groupName: (g.groupId && groupName.get(g.groupId)) || '',
+      })),
+    })
+  }
+  const index = rosters
+    .flatMap((r) => r.rows.map((row) => ({ name: row.name, tableName: r.tableName })))
+    .map((entry, order) => ({ ...entry, order }))
+    .sort((a, b) => comparePinyin(a.name, b.name) || a.order - b.order)
+    .map(({ name, tableName }) => ({ name, tableName }))
+  return { index, tables: rosters }
+}
+
+function csvCell(value: string): string {
+  return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
+}
+
+/** 按桌名单 CSV（UTF-8 BOM，列：桌名/座次/姓名/分组），Excel 双击即可正确显示中文 */
+export function quickReferenceCsv(tables: TableRoster[]): string {
+  const header = [t('桌名'), t('座次'), t('姓名'), t('分组')]
+  const lines = [header.join(',')]
+  for (const table of tables) {
+    for (const row of table.rows) {
+      lines.push([row.tableName, row.seatNo, row.name, row.groupName].map(csvCell).join(','))
+    }
+  }
+  return '\ufeff' + lines.join('\r\n') + '\r\n'
 }

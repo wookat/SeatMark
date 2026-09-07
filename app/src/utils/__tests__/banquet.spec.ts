@@ -4,12 +4,14 @@ import {
   assignGroupToGuests,
   autoAssignGuests,
   buildDemoGuestNames,
+  buildGuestQuickReference,
   buildVenuePreset,
   countAssignedGuests,
   findDuplicateGuestNames,
   findOverlaps,
   parseBanquetGuests,
   parseBanquetGuestsFromTable,
+  quickReferenceCsv,
   snapshotTables,
   summarizeAssignments,
   removeEmptyTables,
@@ -460,5 +462,80 @@ describe('buildVenuePreset', () => {
       expect(tables.length).toBeGreaterThan(0)
       expect(findOverlaps(tables)).toEqual([])
     }
+  })
+})
+
+describe('buildGuestQuickReference / quickReferenceCsv', () => {
+  const groups: BanquetGroup[] = [
+    { id: 'g1', name: '男方亲友', color: '#000' },
+    { id: 'g2', name: '同事', color: '#111' },
+  ]
+  const guests: BanquetGuest[] = [
+    { id: 'a', name: '张伟', groupId: 'g1' },
+    { id: 'b', name: '李娜', groupId: 'g2' },
+    { id: 'c', name: '王芳', groupId: 'g1' },
+    { id: 'd', name: '陈静', groupId: null },
+    { id: 'e', name: '安琪', groupId: 'g2' },
+  ]
+  const tables: BanquetTable[] = [
+    table('1号桌', 10, { guestIds: ['a', 'c'] }),
+    table('空桌', 10),
+    table('2号桌', 10, { guestIds: ['b', 'zombie'] }),
+  ]
+
+  it('索引按拼音序，空桌不出现，未落座宾客单列「待安排」放最后', () => {
+    const ref = buildGuestQuickReference(guests, tables, groups)
+    expect(ref.index.map((e) => e.name)).toEqual(['安琪', '陈静', '李娜', '王芳', '张伟'])
+    expect(ref.index.find((e) => e.name === '张伟')?.tableName).toBe('1号桌')
+    expect(ref.index.find((e) => e.name === '陈静')?.tableName).toBe('待安排')
+    expect(ref.tables.map((t) => t.tableName)).toEqual(['1号桌', '2号桌', '待安排'])
+    expect(ref.tables[0]!.rows).toEqual([
+      { tableName: '1号桌', seatNo: '1', name: '张伟', groupName: '男方亲友' },
+      { tableName: '1号桌', seatNo: '2', name: '王芳', groupName: '男方亲友' },
+    ])
+    // 桌上残留的已删除 id 跳过，座次连续
+    expect(ref.tables[1]!.rows).toEqual([
+      { tableName: '2号桌', seatNo: '1', name: '李娜', groupName: '同事' },
+    ])
+    expect(ref.tables[2]!.rows.map((r) => [r.name, r.seatNo, r.groupName])).toEqual([
+      ['陈静', '', ''],
+      ['安琪', '', '同事'],
+    ])
+  })
+
+  it('同名宾客按名单顺序稳定排列，多次生成结果一致', () => {
+    const dup: BanquetGuest[] = [
+      { id: 'x1', name: '李明', groupId: null },
+      { id: 'x2', name: '李明', groupId: null },
+    ]
+    const t = [table('A', 4, { guestIds: ['x2'] }), table('B', 4, { guestIds: ['x1'] })]
+    const first = buildGuestQuickReference(dup, t, [])
+    const second = buildGuestQuickReference(dup, t, [])
+    expect(first.index.map((e) => e.tableName)).toEqual(['A', 'B'])
+    expect(second).toEqual(first)
+  })
+
+  it('全员未安排时只有「待安排」一组；名单为空时两部分都为空', () => {
+    const ref = buildGuestQuickReference(guests, [table('1号桌', 10)], groups)
+    expect(ref.tables.map((t) => t.tableName)).toEqual(['待安排'])
+    expect(ref.index).toHaveLength(5)
+    const empty = buildGuestQuickReference([], tables, groups)
+    expect(empty).toEqual({ index: [], tables: [] })
+  })
+
+  it('CSV 带 UTF-8 BOM、表头 桌名/座次/姓名/分组，每位宾客一行，特殊字符转义', () => {
+    const ref = buildGuestQuickReference(
+      [...guests, { id: 'f', name: 'Wang, "Lily"', groupId: null }],
+      tables,
+      groups,
+    )
+    const csv = quickReferenceCsv(ref.tables)
+    expect(csv.startsWith('\ufeff')).toBe(true)
+    const lines = csv.replace(/^\ufeff/, '').trimEnd().split('\r\n')
+    expect(lines[0]).toBe('桌名,座次,姓名,分组')
+    expect(lines).toHaveLength(1 + 6)
+    expect(lines[1]).toBe('1号桌,1,张伟,男方亲友')
+    expect(lines).toContain('待安排,,陈静,')
+    expect(lines).toContain('待安排,,"Wang, ""Lily""",')
   })
 })

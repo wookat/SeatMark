@@ -710,7 +710,7 @@ async function handleRequest(context) {
 
   const { kv, storage, blobStore } = await getStorage(env)
   // Rev 标记仅用于部署观测：探针可确认线上边缘函数版本，改动本文件时递增
-  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r344' }
+  const storageHeader = { 'X-SeatMark-Storage': storage, 'X-SeatMark-Rev': 'r345' }
 
   // 开发默认密钥公开可见：生产缺失 AUTH_SECRET 时会话/验证码/重置码 JWT 可被任意伪造，
   // 必须 fail closed；仅显式放行的本地 dev / 测试允许回退默认值

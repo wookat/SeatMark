@@ -5,8 +5,10 @@ import { footerGuideLinks } from '@/data/guideLinks'
 import BeianInfo from '@/components/ui/BeianInfo.vue'
 import BrandMark from '@/components/ui/BrandMark.vue'
 import { localePath, t, useI18n } from '@/i18n'
+import { useAuthStore } from '@/stores/auth'
 
 const { locale } = useI18n()
+const auth = useAuthStore()
 
 const GROUPS = computed(() => [
   {
@@ -14,7 +16,10 @@ const GROUPS = computed(() => [
     links: [
       { label: t('标签工坊'), to: localePath('/studio') },
       { label: t('模板库'), to: localePath('/templates') },
-      { label: t('定价（注册送 7 天专业版）'), to: localePath('/pricing') },
+      {
+        label: auth.serviceUnavailable ? t('定价') : t('定价（注册送 7 天专业版）'),
+        to: localePath('/pricing'),
+      },
       { label: t('教室座位表打印'), to: localePath('/seating') },
       { label: t('宴会座位表生成器'), to: localePath('/banquet') },
       { label: t('不干胶纸型库'), to: localePath('/papers') },

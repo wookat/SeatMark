@@ -277,6 +277,7 @@ export const en: Record<string, string> = {
   '显示选项': 'Display options',
   '最终输出是什么？': 'What do I get in the end?',
   '未映射': 'Unmapped',
+  '已按相近字段自动映射，可改': 'Auto-mapped from a similar field — change it if needed',
   '本设备有': 'You have',
   '条': 'rows',
   '条数据': 'rows',
@@ -496,6 +497,13 @@ export const en: Record<string, string> = {
   '加载失败': 'Failed to load',
   '暂不可用': 'Unavailable',
   '账号服务暂时不可用，稍后再试': 'Account service is temporarily unavailable. Please try again later.',
+  '带水印导出与打印不限次；无水印导出按未登录配额计算。':
+    'Watermarked export and printing are unlimited; watermark-free export follows the signed-out quota.',
+  '返回工坊': 'Back to Studio',
+  '账号服务维护中，带水印导出不限次': 'Account service under maintenance — watermarked export is unlimited',
+  '恢复后可注册领取专业版试用。': 'Once restored, sign up to claim the Pro trial.',
+  '限时 0 折免费': 'Free for a limited time',
+  '先用带水印导出': 'Use watermarked export for now',
   '导出与打印不受影响，可直接使用工坊。': 'Export and print are not affected — the Studio works as usual.',
   '即将调起浏览器打印': 'Opening the browser print dialog',
   '去兑换': 'Redeem now',
@@ -702,8 +710,26 @@ export const en: Record<string, string> = {
   'AI 设计请求过于频繁（每小时最多 30 次），请稍后再试':
     'Too many AI design requests (max 30 per hour). Please try again later.',
   '删除空桌后导出': 'Remove empty tables and export',
-  '继续导出时这些桌会以空白桌保留在座位图和桌卡中；不需要请删除空桌或减少桌数。':
-    'If you continue, these tables stay in the chart and table cards as blank tables; remove them or reduce the table count if they are not needed.',
+  '继续导出时这些桌会以空白桌保留在座位图中；不需要请删除空桌或减少桌数。':
+    'If you continue, these tables stay in the chart as blank tables; remove them or reduce the table count if they are not needed.',
+  '请先粘贴宾客名单': 'Paste the guest list first',
+  '速查表为 A4 纵向；也可在打印对话框「另存为 PDF」':
+    'The quick reference is A4 portrait; you can also choose "Save as PDF" in the print dialog',
+  '按桌名单': 'Roster by table',
+  'CSV 已下载': 'CSV downloaded',
+  '列：桌名 / 座次 / 姓名 / 分组，可直接用 Excel 打开':
+    'Columns: table / seat / name / group — opens directly in Excel',
+  '迎宾台配套': 'For the welcome desk',
+  '准备打印…': 'Preparing to print…',
+  '宾客速查表': 'Guest quick reference',
+  '按桌名单 .csv': 'Roster by table .csv',
+  '速查表为 A4 纵向：前半按姓名拼音索引「姓名 → 桌名」，后半按桌列名单，方便签到台快速查桌。':
+    'A4 portrait quick reference: a name → table index sorted by name first, then the roster of each table, so the check-in desk can look up seats fast.',
+  '姓名索引（拼音序）': 'Name index (alphabetical)',
+  '座次': 'Seat',
+  '姓名': 'Name',
+  '桌名': 'Table',
+  '待安排': 'Unassigned',
   '想起密码了？': 'Remembered your password?',
   '我的云端模板': 'My cloud templates',
   '或': 'or',

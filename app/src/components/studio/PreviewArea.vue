@@ -1430,7 +1430,14 @@ const hintKey = ref<HintKey | null>(null)
           </span>
         </button>
       </div>
-      <p v-if="!auth.isLoggedIn" class="mt-3 text-xs leading-5 text-slate-600">
+      <p
+        v-if="!auth.isLoggedIn && auth.serviceUnavailable"
+        class="mt-3 text-xs leading-5 text-slate-600"
+        data-testid="export-service-unavailable"
+      >
+        {{ t('账号服务维护中，带水印导出不限次') }}
+      </p>
+      <p v-else-if="!auth.isLoggedIn" class="mt-3 text-xs leading-5 text-slate-600">
         {{ t('注册即送 7 天专业版试用（无水印导出不限次）；免费版登录后每天') }} {{ QUOTA_USER_DAILY }} {{ t('次，分享链接每被点开 1 次再得 1 次。') }}
       </p>
     </ModalDialog>

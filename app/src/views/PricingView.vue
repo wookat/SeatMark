@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import { TEMPLATE_COUNT } from '@/data/templateMeta'
 
@@ -13,6 +13,11 @@ import { apiFetch, ApiError, isValidEmail } from '@/utils/api'
 
 const auth = useAuthStore()
 const toast = useToastStore()
+
+// 定价页展示「注册送 7 天」利益点前，探测一次账号服务是否可用（生产 AUTH_SECRET 缺失期间为 503）
+onMounted(() => {
+  void auth.probeServiceOnce()
+})
 
 interface Plan {
   name: string
@@ -49,11 +54,15 @@ const PLANS = computed<Plan[]>(() => [
     price: '¥0',
     priceUnit: t('/月'),
     originalPrice: '¥19',
-    badge: t('限时 0 折免费 · 注册送 7 天'),
+    badge: auth.serviceUnavailable ? t('限时 0 折免费') : t('限时 0 折免费 · 注册送 7 天'),
     tagline: t('考务与会务重度用户'),
     features: [
-      t('新用户注册即送 7 天专业版试用'),
-      t('邀请好友注册，双方各送 7 天，可累计叠加'),
+      ...(auth.serviceUnavailable
+        ? [t('账号服务维护中，带水印导出不限次')]
+        : [
+            t('新用户注册即送 7 天专业版试用'),
+            t('邀请好友注册，双方各送 7 天，可累计叠加'),
+          ]),
       t('无水印导出 / 打印不限次数'),
       t('照片批量核验与覆盖率统计'),
       t('自定义模板云端同步与跨设备找回'),
@@ -133,8 +142,16 @@ async function submitReserve() {
         {{ t('带水印导出与打印完全不限次数；无水印导出每天') }} {{ QUOTA_ANON_DAILY }} {{ t('次（登录后') }}
         {{ QUOTA_USER_DAILY }} {{ t('次），分享可再送次数。') }}
       </p>
-      <p class="mx-auto mt-1.5 max-w-xl text-sm leading-6 text-slate-600">
-        {{ t('注册即送 7 天专业版；邀请好友注册，双方各送 7 天，可累计叠加；专业版可用兑换码开通。') }}
+      <p
+        class="mx-auto mt-1.5 max-w-xl text-sm leading-6 text-slate-600"
+        data-testid="pricing-signup-benefit"
+      >
+        <template v-if="auth.serviceUnavailable">
+          {{ t('账号服务维护中，带水印导出不限次') }}{{ t('；') }}{{ t('恢复后可注册领取专业版试用。') }}
+        </template>
+        <template v-else>
+          {{ t('注册即送 7 天专业版；邀请好友注册，双方各送 7 天，可累计叠加；专业版可用兑换码开通。') }}
+        </template>
       </p>
     </div>
 
@@ -165,7 +182,7 @@ async function submitReserve() {
             {{ plan.originalPrice }}{{ plan.priceUnit }}
           </span>
           <span
-            v-if="plan.cta === 'pro-trial'"
+            v-if="plan.cta === 'pro-trial' && !auth.serviceUnavailable"
             class="mb-1 ml-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700"
           >
             {{ t('注册送 7 天') }}
@@ -191,17 +208,26 @@ async function submitReserve() {
 
         <RouterLink
           v-if="plan.cta === 'signup'"
-          :to="localePath(auth.user ? '/studio' : '/account')"
+          :to="localePath(auth.user || auth.serviceUnavailable ? '/studio' : '/account')"
           class="btn btn-secondary btn-md mt-6 w-full"
         >
           {{ t('免费开始使用') }}
         </RouterLink>
         <RouterLink
-          v-else-if="plan.cta === 'pro-trial'"
+          v-else-if="plan.cta === 'pro-trial' && !auth.serviceUnavailable"
           :to="localePath(auth.user ? '/account#redeem' : '/account')"
           class="btn btn-primary btn-md mt-6 w-full"
+          data-testid="pricing-pro-cta"
         >
           {{ auth.user ? t('使用兑换码开通 / 延长') : t('注册领 7 天试用') }}
+        </RouterLink>
+        <RouterLink
+          v-else-if="plan.cta === 'pro-trial'"
+          :to="localePath('/studio')"
+          class="btn btn-primary btn-md mt-6 w-full"
+          data-testid="pricing-pro-cta-degraded"
+        >
+          {{ t('先用带水印导出') }}
         </RouterLink>
         <button
           v-else
@@ -235,8 +261,11 @@ async function submitReserve() {
 
     <!-- CTA -->
     <div class="mt-12 text-center">
-      <RouterLink :to="localePath(auth.user ? '/studio' : '/account')" class="btn btn-primary btn-lg">
-        {{ auth.user ? t('进入标签工坊') : t('开始免费试用') }}
+      <RouterLink
+        :to="localePath(auth.user || auth.serviceUnavailable ? '/studio' : '/account')"
+        class="btn btn-primary btn-lg"
+      >
+        {{ auth.user || auth.serviceUnavailable ? t('进入标签工坊') : t('开始免费试用') }}
         <svg
           class="size-4"
           viewBox="0 0 24 24"

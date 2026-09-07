@@ -330,7 +330,7 @@ async function canvasToPngBlob(
 }
 
 /** 触发浏览器下载并释放对象 URL */
-function downloadBlob(blob: Blob, fileName: string): void {
+export function downloadBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

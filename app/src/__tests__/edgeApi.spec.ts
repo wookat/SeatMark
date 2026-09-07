@@ -1258,3 +1258,51 @@ describe("Blob SDK 加载瞬时失败后可重试", () => {
     vi.resetModules();
   });
 });
+
+describe("feedback.js 观测头 X-SeatMark-Rev", () => {
+  it("405 非 POST 响应带 X-SeatMark-Rev", async () => {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore JS 模块无类型声明
+    const { onRequest: onFeedback } = await import("../../../edge-functions/api/feedback.js");
+    const response: Response = await onFeedback({
+      request: new Request("http://localhost:5173/api/feedback", { method: "GET" }),
+      env: withTestEnv({}),
+    });
+    expect(response.status).toBe(405);
+    expect(response.headers.get("X-SeatMark-Rev")).toMatch(/^r\d+$/);
+  });
+
+  it("400 type 非法响应带 X-SeatMark-Rev", async () => {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore JS 模块无类型声明
+    const { onRequest: onFeedback } = await import("../../../edge-functions/api/feedback.js");
+    const response: Response = await onFeedback({
+      request: new Request("http://localhost:5173/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "spam", content: "hello" }),
+      }),
+      env: withTestEnv({}),
+    });
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { error: string }).error).toBe("反馈类型无效");
+    expect(response.headers.get("X-SeatMark-Rev")).toMatch(/^r\d+$/);
+  });
+
+  it("200 成功响应同时带 X-SeatMark-Rev 与 X-SeatMark-Storage", async () => {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore JS 模块无类型声明
+    const { onRequest: onFeedback } = await import("../../../edge-functions/api/feedback.js");
+    const response: Response = await onFeedback({
+      request: new Request("http://localhost:5173/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "suggestion", content: "hello" }),
+      }),
+      env: withTestEnv({}),
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("X-SeatMark-Rev")).toMatch(/^r\d+$/);
+    expect(response.headers.get("X-SeatMark-Storage")).toBe("memory");
+  });
+});

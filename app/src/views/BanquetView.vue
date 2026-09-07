@@ -16,6 +16,7 @@ import {
   assignGroupToGuests,
   autoAssignGuests,
   BANQUET_STATE_KEY,
+  buildGuestQuickReference,
   buildVenuePreset,
   countAssignedGuests,
   defaultTableName,
@@ -24,6 +25,7 @@ import {
   parseBanquetGuests,
   parseBanquetGuestsFromTable,
   type ParsedBanquetGuests,
+  quickReferenceCsv,
   snapshotTables,
   splitGroups,
   summarizeAssignments,
@@ -38,13 +40,16 @@ import {
   type BanquetIssues,
   type BanquetMarker,
   type BanquetTable,
+  type GuestQuickReference,
   type MarkerKind,
   type VenuePresetId,
 } from '@/utils/banquet'
 import { uid } from '@/utils/id'
 import { fitScale, MM_TO_PX } from '@/utils/layout'
 import { listJoin } from '@/utils/listJoin'
-import { exportPagedPng, sanitizeFileNamePart } from '@/utils/pngExport'
+import { setPrintPageSize } from '@/utils/paper'
+import { downloadBlob, exportPagedPng, sanitizeFileNamePart } from '@/utils/pngExport'
+import { printAndWaitUntilDone } from '@/utils/printing'
 import { defaultPdfFileName, exportPagedPdf } from '@/utils/pdfExport'
 
 const toast = useToastStore()
@@ -853,6 +858,46 @@ async function runExport() {
   }
 }
 
+// ---------- 宾客速查表（迎宾台索引 + 按桌名单）：打印 / CSV，全部浏览器本地 ----------
+
+const quickRef = ref<GuestQuickReference | null>(null)
+const renderQuickRefHost = ref(false)
+const quickRefPrinting = ref(false)
+/** 速查表姓名索引的分栏数：人数多时分三栏，少时两栏更易读 */
+const quickRefColumns = computed(() => ((quickRef.value?.index.length ?? 0) > 40 ? 3 : 2))
+
+function ensureGuestsForQuickRef(): boolean {
+  if (guestCount.value) return true
+  toast.warning(tr('名单为空'), tr('请先粘贴宾客名单'))
+  return false
+}
+
+async function printQuickReference() {
+  if (quickRefPrinting.value || !ensureGuestsForQuickRef()) return
+  quickRefPrinting.value = true
+  quickRef.value = buildGuestQuickReference(guests.value, tables.value, groups.value)
+  toast.info(tr('即将调起浏览器打印'), tr('速查表为 A4 纵向；也可在打印对话框「另存为 PDF」'))
+  setPrintPageSize(210, 297)
+  renderQuickRefHost.value = true
+  await nextTick()
+  await new Promise((resolve) => setTimeout(resolve, 1200))
+  try {
+    await printAndWaitUntilDone()
+  } finally {
+    renderQuickRefHost.value = false
+    quickRefPrinting.value = false
+  }
+}
+
+function downloadTableRosterCsv() {
+  if (!ensureGuestsForQuickRef()) return
+  const data = buildGuestQuickReference(guests.value, tables.value, groups.value)
+  const baseName = sanitizeFileNamePart(title.value) || tr('宴会座位表')
+  const blob = new Blob([quickReferenceCsv(data.tables)], { type: 'text/csv;charset=utf-8' })
+  downloadBlob(blob, `${baseName}-${tr('按桌名单')}.csv`)
+  toast.success(tr('CSV 已下载'), tr('列：桌名 / 座次 / 姓名 / 分组，可直接用 Excel 打开'))
+}
+
 // ---------- 渲染辅助 ----------
 
 function guestColor(guest: BanquetGuest, colored: boolean): string | null {
@@ -1185,6 +1230,31 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             <p class="text-xs leading-5 text-slate-600">
               {{ tr('导出前会自动检查未安排的宾客、空桌与餐桌重叠；名单全程不出浏览器。') }}
             </p>
+            <div class="mt-1 border-t border-slate-100 pt-3">
+              <p class="text-xs font-bold text-slate-700">{{ tr('迎宾台配套') }}</p>
+              <div class="mt-2 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  :disabled="quickRefPrinting"
+                  data-testid="banquet-quickref-print"
+                  @click="printQuickReference"
+                >
+                  {{ quickRefPrinting ? tr('准备打印…') : tr('宾客速查表') }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  data-testid="banquet-roster-csv"
+                  @click="downloadTableRosterCsv"
+                >
+                  {{ tr('按桌名单 .csv') }}
+                </button>
+              </div>
+              <p class="mt-1.5 text-xs leading-5 text-slate-500">
+                {{ tr('速查表为 A4 纵向：前半按姓名拼音索引「姓名 → 桌名」，后半按桌列名单，方便签到台快速查桌。') }}
+              </p>
+            </div>
           </div>
         </section>
       </aside>
@@ -1486,7 +1556,7 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
             {{ tr('空桌') }} {{ issues.emptyTables.length }} {{ tr('桌') }}{{ tr('：') }}{{ listJoin(issues.emptyTables) }}
           </p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">
-            {{ tr('继续导出时这些桌会以空白桌保留在座位图和桌卡中；不需要请删除空桌或减少桌数。') }}
+            {{ tr('继续导出时这些桌会以空白桌保留在座位图中；不需要请删除空桌或减少桌数。') }}
           </p>
         </div>
         <div v-if="issues.overCapacity.length">
@@ -1573,6 +1643,54 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
         </button>
       </template>
     </ModalDialog>
+
+    <!-- 宾客速查表打印宿主：A4 纵向，内容按浏览器分页自然流式排布 -->
+    <Teleport to="body">
+      <div v-if="renderQuickRefHost && quickRef" class="offscreen-host">
+        <div class="sheet-page quickref-sheet" data-testid="banquet-quickref-sheet">
+          <h2 class="quickref-title">{{ title || tr('宴会座位表') }} · {{ tr('宾客速查表') }}</h2>
+          <p class="quickref-meta">
+            {{ quickRef.index.length }} {{ tr('人') }} · {{ quickRef.tables.length }} {{ tr('桌') }}
+          </p>
+          <h3 class="quickref-section">{{ tr('姓名索引（拼音序）') }}</h3>
+          <ol class="quickref-index" :style="{ columnCount: quickRefColumns }">
+            <li v-for="(entry, i) in quickRef.index" :key="i" class="quickref-index-row">
+              <span class="quickref-index-name">{{ entry.name }}</span>
+              <span class="quickref-index-arrow" aria-hidden="true">→</span>
+              <span class="quickref-index-table">{{ entry.tableName }}</span>
+            </li>
+          </ol>
+          <h3 class="quickref-section">{{ tr('按桌名单') }}</h3>
+          <div class="quickref-tables">
+            <table v-for="table in quickRef.tables" :key="table.tableName" class="quickref-table">
+              <caption class="quickref-table-name">
+                {{ table.tableName }}
+                <span class="quickref-table-count">{{ table.rows.length }} {{ tr('人') }}</span>
+              </caption>
+              <thead>
+                <tr>
+                  <th>{{ tr('座次') }}</th>
+                  <th>{{ tr('姓名') }}</th>
+                  <th>{{ tr('分组') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, i) in table.rows" :key="i">
+                  <td>{{ row.seatNo || '—' }}</td>
+                  <td>{{ row.name }}</td>
+                  <td>{{ row.groupName || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="quickref-footer" aria-hidden="true">
+            <span class="quickref-footer-rule"></span>
+            <span>SeatMark 座签 · seatmark.cn</span>
+            <span class="quickref-footer-rule"></span>
+          </p>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- 导出宿主：teleport 到 body 离屏渲染，html2canvas 截取 -->
     <Teleport to="body">
@@ -1905,5 +2023,147 @@ const seatCount = computed(() => tables.value.reduce((sum, t) => sum + t.seats, 
   width: 2.6mm;
   height: 2.6mm;
   border-radius: 50%;
+}
+
+/* 宾客速查表打印页：高度随内容流式增长，由浏览器按 A4 纵向自然分页 */
+.quickref-sheet {
+  width: 210mm;
+  height: auto;
+  min-height: 297mm;
+  overflow: visible;
+  box-sizing: border-box;
+  padding: 12mm 14mm 10mm;
+  font-size: 3.4mm;
+  line-height: 1.5;
+  color: #0f172a;
+}
+
+.quickref-title {
+  text-align: center;
+  font-size: 6mm;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.quickref-meta {
+  margin-top: 1.5mm;
+  text-align: center;
+  font-size: 3mm;
+  color: #64748b;
+}
+
+.quickref-section {
+  margin: 6mm 0 2.5mm;
+  padding-bottom: 1mm;
+  border-bottom: 0.3mm solid #cbd5e1;
+  font-size: 4mm;
+  font-weight: 700;
+  break-after: avoid;
+}
+
+.quickref-index {
+  column-gap: 8mm;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.quickref-index-row {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5mm;
+  padding: 0.6mm 0;
+  border-bottom: 0.15mm dashed #e2e8f0;
+  break-inside: avoid;
+}
+
+.quickref-index-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.quickref-index-arrow {
+  color: #94a3b8;
+}
+
+.quickref-index-table {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.quickref-tables {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4mm 8mm;
+}
+
+.quickref-table {
+  width: 100%;
+  border-collapse: collapse;
+  break-inside: avoid;
+}
+
+.quickref-table-name {
+  text-align: left;
+  font-weight: 700;
+  padding-bottom: 1mm;
+  caption-side: top;
+}
+
+.quickref-table-count {
+  margin-left: 1.5mm;
+  font-weight: 500;
+  font-size: 2.8mm;
+  color: #64748b;
+}
+
+.quickref-table th,
+.quickref-table td {
+  padding: 0.7mm 1.2mm;
+  border-bottom: 0.15mm solid #e2e8f0;
+  text-align: left;
+  font-size: 3mm;
+  vertical-align: top;
+}
+
+.quickref-table th {
+  color: #64748b;
+  font-weight: 600;
+  border-bottom-color: #94a3b8;
+}
+
+.quickref-table td:first-child,
+.quickref-table th:first-child {
+  width: 10mm;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 底边细线签名：与标签水印同一形态（两侧细线夹极小字距文字） */
+.quickref-footer {
+  display: flex;
+  align-items: center;
+  gap: 2mm;
+  margin-top: 8mm;
+  font-size: 2.6mm;
+  line-height: 1;
+  letter-spacing: 0.2mm;
+  color: #94a3b8;
+  break-inside: avoid;
+}
+
+.quickref-footer-rule {
+  flex: 1;
+  height: 0.12mm;
+  min-height: 1px;
+  background: currentColor;
+  opacity: 0.55;
 }
 </style>

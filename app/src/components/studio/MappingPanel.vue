@@ -127,6 +127,13 @@ function onPhotoFiles(event: Event) {
           :options="mappingOptions"
           @update:model-value="onSelectMapping(field.id, $event)"
         />
+        <p
+          v-if="workspace.isBorrowedMapping(field.id)"
+          class="col-span-3 -mt-1 text-[11px] leading-4 text-slate-500"
+          data-testid="mapping-borrowed-hint"
+        >
+          {{ t('已按相近字段自动映射，可改') }}
+        </p>
         <div
           v-if="isComposite(workspace.mapping[field.id]) && compositeEditing !== field.id"
           class="col-span-3 -mt-0.5 flex items-center justify-between gap-2 rounded-lg bg-brand-50/60 px-2 py-1.5"

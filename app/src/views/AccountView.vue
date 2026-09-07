@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 
-import { t } from '@/i18n'
+import { localePath, t } from '@/i18n'
 import { isServiceUnavailableError, useAuthStore } from '@/stores/auth'
 import { QUOTA_ANON_DAILY, QUOTA_USER_DAILY, useQuotaStore } from '@/stores/quota'
 import { isValidTemplate, useTemplateLibrary } from '@/stores/templateLibrary'
@@ -350,16 +350,26 @@ function formatDate(iso: string | null | undefined): string {
           </p>
         </div>
 
-        <form class="mt-8 grid gap-4" @submit.prevent="onSubmit">
-          <div
-            v-if="serviceUnavailable"
-            data-testid="auth-service-unavailable"
-            role="status"
-            class="rounded border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm leading-6 text-amber-900"
+        <!-- 账号服务不可用（如 AUTH_SECRET 缺失导致 503）：整张表单不渲染，只保留降级卡 -->
+        <div
+          v-if="serviceUnavailable"
+          data-testid="auth-service-unavailable"
+          role="status"
+          class="mt-8 rounded border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-900"
+        >
+          <p class="font-semibold">{{ t('账号服务暂时不可用，稍后再试') }}</p>
+          <p class="mt-1 text-amber-800">{{ t('导出与打印不受影响，可直接使用工坊。') }}</p>
+          <p class="mt-1 text-amber-800">{{ t('带水印导出与打印不限次；无水印导出按未登录配额计算。') }}</p>
+          <RouterLink
+            :to="localePath('/studio')"
+            class="btn btn-secondary btn-sm mt-3"
+            data-testid="auth-service-unavailable-back"
           >
-            <p class="font-semibold">{{ t('账号服务暂时不可用，稍后再试') }}</p>
-            <p class="text-amber-800">{{ t('导出与打印不受影响，可直接使用工坊。') }}</p>
-          </div>
+            {{ t('返回工坊') }}
+          </RouterLink>
+        </div>
+
+        <form v-else class="mt-8 grid gap-4" @submit.prevent="onSubmit">
           <label class="grid gap-1.5">
             <span class="text-sm font-semibold text-slate-700">{{ t('邮箱') }}</span>
             <input
@@ -454,7 +464,7 @@ function formatDate(iso: string | null | undefined): string {
                   class="h-full w-full object-contain"
                 />
                 <span v-else class="text-xs text-slate-500">{{
-                  captchaLoading ? t('加载中...') : serviceUnavailable ? t('暂不可用') : t('加载失败')
+                  captchaLoading ? t('加载中...') : t('加载失败')
                 }}</span>
               </button>
               <input
@@ -486,7 +496,7 @@ function formatDate(iso: string | null | undefined): string {
           <button
             type="submit"
             class="btn btn-primary btn-md w-full"
-            :disabled="submitting || resetSending || serviceUnavailable"
+            :disabled="submitting || resetSending"
           >
             {{
               mode === 'register'
