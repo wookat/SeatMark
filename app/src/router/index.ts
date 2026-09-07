@@ -203,6 +203,9 @@ function scheduleAnchorCorrection(hash: string) {
   }
 }
 
+/** 会携带用户输入（搜索词、姓名）的查询参数，上报前一律剥离 */
+const USER_INPUT_QUERY_KEYS = ['q', 'name'] as const
+
 /** 分析上报前剥离搜索词等用户输入参数，搜索内容不随页面路径外发到第三方 */
 export function telemetryPath(fullPath: string): string {
   const qs = fullPath.indexOf('?')
@@ -210,7 +213,7 @@ export function telemetryPath(fullPath: string): string {
   const hashIdx = fullPath.indexOf('#', qs)
   const query = fullPath.slice(qs + 1, hashIdx === -1 ? undefined : hashIdx)
   const params = new URLSearchParams(query)
-  params.delete('q')
+  for (const key of USER_INPUT_QUERY_KEYS) params.delete(key)
   const rest = params.toString()
   return (
     fullPath.slice(0, qs) +
@@ -254,16 +257,23 @@ router.afterEach(async (to) => {
   const path = telemetryPath(to.fullPath)
 
   // GA4 pageview
-  const w = window as any
-  if (typeof w.gtag === 'function') {
-    w.gtag('event', 'page_view', {
+  if (typeof window.gtag === 'function') {
+    window.gtag('event', 'page_view', {
       page_path: path,
       page_title: document.title,
     })
   }
 
   // 百度统计 pageview
-  if (Array.isArray(w._hmt)) {
-    w._hmt.push(['_trackPageview', path])
+  if (Array.isArray(window._hmt)) {
+    window._hmt.push(['_trackPageview', path])
   }
 })
+
+/** 第三方统计脚本在 load 后由 index.html 注入，字段可能不存在 */
+declare global {
+  interface Window {
+    gtag?: (command: 'event', eventName: string, params: Record<string, unknown>) => void
+    _hmt?: unknown[]
+  }
+}

@@ -473,6 +473,7 @@ export const en: Record<string, string> = {
   '个自定义模板；云端已存': 'custom templates on this device; stored in cloud:',
   '云端模板已找回': 'Cloud templates restored',
   '人': 'guests',
+  '名单人数单位': 'students',
   '人排不下，请增加行列数。': 'won\'t fit — add more rows or columns.',
   '人（含性别列），与当前行列数一致': 'people (with gender column), matching current rows × columns',
   '仅同步模板版式结构，不含任何名单数据。': 'Only template layout structures are synced — never any roster data.',

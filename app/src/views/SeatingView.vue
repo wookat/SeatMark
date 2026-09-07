@@ -432,8 +432,10 @@ const nextStepTarget = computed(() => {
       return exportSection.value
   }
 })
+/** 考场语境的人数单位：共享键「人」在英文里是宴会语境的 guests，这里走考场专用键（en → students） */
+const personUnit = computed(() => (currentLocale() === 'en' ? tr('名单人数单位') : tr('人')))
 const nextStepProgress = computed(
-  () => `${filledCount.value} ${tr('人')} / ${seatCount.value} ${tr('座')}`,
+  () => `${filledCount.value} ${personUnit.value} / ${seatCount.value} ${tr('座')}`,
 )
 const overflowCount = computed(() => Math.max(filledCount.value - seatCount.value, 0))
 
@@ -871,7 +873,7 @@ function toDeskLabels() {
           class="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-500"
           data-testid="seating-empty-cta"
         >
-          <span>{{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} · 0 {{ tr('人') }}</span>
+          <span>{{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} · 0 {{ personUnit }}</span>
           <span aria-hidden="true">·</span>
           <button type="button" class="btn btn-primary btn-sm" @click="focusNamesInput">
             {{ tr('粘贴名单') }}
@@ -883,7 +885,7 @@ function toDeskLabels() {
         <p class="mb-1 text-[11px] leading-5 text-slate-500 md:hidden" data-testid="touch-swap-hint">
           {{ tr('触屏：先点一个座位再点另一个即可互换（拖拽仅支持鼠标）') }}
         </p>
-        <div class="mb-1 flex items-center justify-between gap-2 text-[11px] leading-5 text-slate-400 md:hidden">
+        <div class="mb-1 flex items-center justify-between gap-2 text-[11px] leading-5 text-slate-600 md:hidden">
           <p>{{ fitToWidth ? tr('已缩放至屏幕宽度，放大后可左右滑动查看细节') : `← ${tr('座位表超宽时可左右滑动查看')} →` }}</p>
           <button
             type="button"
@@ -958,7 +960,7 @@ function toDeskLabels() {
                     </div>
                   </div>
                   <p class="seating-footnote">
-                    {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} · {{ filledCount }} {{ tr('人') }} ·
+                    {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} · {{ filledCount }} {{ personUnit }} ·
                     {{ viewMode === 'teacher' ? tr('教师视角') : tr('学生视角') }} · {{ tr('seatmark.cn 生成') }}
                   </p>
                 </div>
@@ -1007,7 +1009,7 @@ function toDeskLabels() {
             </div>
           </div>
           <p class="seating-footnote">
-            {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} · {{ filledCount }} {{ tr('人') }} ·
+            {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} · {{ filledCount }} {{ personUnit }} ·
             {{ viewMode === 'teacher' ? tr('教师视角') : tr('学生视角') }} · {{ tr('seatmark.cn 生成') }}
           </p>
           <div v-if="withWatermark" class="sheet-watermark" aria-hidden="true">

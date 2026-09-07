@@ -1,9 +1,19 @@
 <script setup lang="ts">
+import EnIndexShell, { type EnIndexFeatured } from '@/components/ui/EnIndexShell.vue'
 import ZhOnlyNotice from '@/components/ui/ZhOnlyNotice.vue'
 import { vsPages } from '@/data/vsPages'
 import { useI18n } from '@/i18n'
 
-const { t, localePath } = useI18n()
+const { t, locale, localePath } = useI18n()
+
+/** /en 下列表区的英文替代块：主题说明 + 精选入口（英文标题，指向中文对比页） */
+const EN_INTRO =
+  'Hands-on, item-by-item comparisons of SeatMark with the usual ways people make desk cards and place cards — design tools, Word/WPS mail merge and online card makers — covering batch generation from a roster, print imposition, calibration accuracy, privacy and price. Where a competitor leads, we say so. These write-ups are in Chinese for now.'
+const EN_FEATURED: EnIndexFeatured[] = [
+  { title: 'SeatMark vs Canva', to: '/vs/canva' },
+  { title: 'SeatMark vs WPS / Word mail merge', to: '/vs/wps-mail-merge' },
+  { title: 'SeatMark vs placecard.us', to: '/vs/placecard-us' },
+]
 </script>
 
 <template>
@@ -19,7 +29,9 @@ const { t, localePath } = useI18n()
       <ZhOnlyNotice />
     </div>
 
-    <div class="mt-10 grid gap-5 sm:grid-cols-2">
+    <EnIndexShell v-if="locale === 'en'" :intro="EN_INTRO" :featured="EN_FEATURED" />
+
+    <div v-else class="mt-10 grid gap-5 sm:grid-cols-2">
       <RouterLink
         v-for="page in vsPages"
         :key="page.slug"

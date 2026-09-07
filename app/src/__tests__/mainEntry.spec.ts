@@ -1,0 +1,89 @@
+/**
+ * main.ts 装配：只创建一个 Vue 应用实例，Sentry 在 mount 之后懒初始化并拿到这同一个实例。
+ */
+import { defineComponent, h } from 'vue'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const created: unknown[] = []
+const mounted: unknown[] = []
+
+vi.mock('vue', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('vue')>()
+  const createApp: typeof mod.createApp = (...args) => {
+    const app = mod.createApp(...args)
+    created.push(app)
+    const mount = app.mount.bind(app)
+    app.mount = ((container: Element | string, ...rest: []) => {
+      mounted.push(app)
+      return mount(container, ...rest)
+    }) as typeof app.mount
+    return app
+  }
+  return { ...mod, createApp }
+})
+
+vi.mock('@/App.vue', () => ({
+  default: defineComponent({ name: 'AppStub', render: () => h('div', 'app-stub') }),
+}))
+
+vi.mock('@/assets/main.css', () => ({}))
+vi.mock('@/assets/fonts-plangothic.css', () => ({}))
+
+const installSentry = vi.fn(async () => true)
+const createPreInitErrorQueue = vi.fn(() => ({ drain: () => [], dispose: () => {} }))
+vi.mock('@/utils/sentry', () => ({
+  SENTRY_DSN: 'https://k@o1.ingest.us.sentry.io/1',
+  installSentry,
+  createPreInitErrorQueue,
+}))
+
+describe('main.ts 装配', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '<div id="app"></div>'
+    created.length = 0
+    mounted.length = 0
+  })
+
+  it('createApp 只调用一次（无幻影实例），Sentry 在 mount 之后以同一 app 初始化', async () => {
+    // 静态 import 不能进 main.ts（它有副作用），用动态 import 触发装配
+    await import('@/main')
+    // 等 router.isReady().then(mount) 与其中的 installSentry 调用
+    await vi.waitFor(() => {
+      expect(mounted.length).toBe(1)
+      expect(installSentry).toHaveBeenCalledTimes(1)
+    })
+    expect(created.length).toBe(1)
+    expect(document.querySelector('#app')?.textContent).toContain('app-stub')
+
+    // 队列在 mount 之前就已建立（挂载期错误也能缓存）
+    expect(createPreInitErrorQueue).toHaveBeenCalledTimes(1)
+    expect(createPreInitErrorQueue.mock.invocationCallOrder[0]!).toBeLessThan(
+      installSentry.mock.invocationCallOrder[0]!,
+    )
+
+    const [appArg, routerArg, deps] = installSentry.mock.calls[0]! as unknown as [
+      unknown,
+      { isReady: () => Promise<void> },
+      { queue: unknown },
+    ]
+    expect(appArg).toBe(created[0])
+    expect(appArg).toBe(mounted[0])
+    expect(typeof routerArg.isReady).toBe('function')
+    expect(deps.queue).toBe(createPreInitErrorQueue.mock.results[0]!.value)
+  })
+
+  it('入口静态依赖里没有 @sentry/vue（SDK 只走懒加载）', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const source = fs.readFileSync(path.resolve(process.cwd(), 'src/main.ts'), 'utf8')
+    expect(source).not.toMatch(/^import .*@sentry\/vue/m)
+    const sentryUtil = fs.readFileSync(path.resolve(process.cwd(), 'src/utils/sentry.ts'), 'utf8')
+    // utils/sentry.ts 对 @sentry/vue 只允许 type import 与动态 import()
+    for (const line of sentryUtil.split('\n')) {
+      if (line.includes("'@sentry/vue'") && line.trimStart().startsWith('import')) {
+        expect(line).toMatch(/^import type /)
+      }
+    }
+    expect(sentryUtil).toContain("import('@sentry/vue')")
+  })
+})

@@ -124,6 +124,8 @@ export default defineConfig(({ isSsrBuild }) => ({
               if (id.includes('vite/preload-helper')) return 'vendor-preload'
               if (/node_modules\/(jspdf|html2canvas-pro)\//.test(id)) return 'vendor-pdf'
               if (/node_modules\/xlsx\//.test(id)) return 'vendor-xlsx'
+              // Sentry SDK 在 app.mount 后才 import()，独立成块便于 Network 面板确认其在主包之后加载
+              if (/node_modules\/@sentry(-internal)?\//.test(id)) return 'vendor-sentry'
               return undefined
             },
       },

@@ -293,27 +293,31 @@ async function onDownloadSample() {
               {{ t('演示数据') }}
             </span>
           </p>
-          <p class="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-slate-600">
-            <template v-if="workspace.excel.sheetNames.length > 1">
-              <label class="flex items-center gap-1">
-                {{ t('工作表') }}
-                <select
-                  class="max-w-36 cursor-pointer truncate rounded border border-slate-300 bg-white px-1 py-0.5 text-xs text-slate-700"
-                  :value="workspace.excel.sheetName"
-                  :aria-label="t('切换工作表')"
-                  @change="
-                    workspace.switchSheet(($event.target as HTMLSelectElement).value)
-                  "
-                >
-                  <option v-for="name in workspace.excel.sheetNames" :key="name" :value="name">
-                    {{ name }}
-                  </option>
-                </select>
-              </label>
-            </template>
-            <template v-else>{{ t('工作表') }}「{{ workspace.excel.sheetName }}」</template>
-            ·
-            <span class="whitespace-nowrap"
+          <p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-600">
+            <span class="flex min-w-0 items-center gap-1" data-testid="import-sheet-label">
+              <template v-if="workspace.excel.sheetNames.length > 1">
+                <label class="flex items-center gap-1">
+                  {{ t('工作表') }}
+                  <select
+                    class="max-w-36 cursor-pointer truncate rounded border border-slate-300 bg-white px-1 py-0.5 text-xs text-slate-700"
+                    :value="workspace.excel.sheetName"
+                    :aria-label="t('切换工作表')"
+                    @change="
+                      workspace.switchSheet(($event.target as HTMLSelectElement).value)
+                    "
+                  >
+                    <option v-for="name in workspace.excel.sheetNames" :key="name" :value="name">
+                      {{ name }}
+                    </option>
+                  </select>
+                </label>
+              </template>
+              <template v-else>{{ t('工作表') }}「{{ workspace.excel.sheetName }}」</template>
+            </span>
+            <!-- 分隔点依附在第二段之前，换行时随其一起换行，不会孤悬行尾 -->
+            <span
+              class="whitespace-nowrap before:mr-2 before:content-['·']"
+              data-testid="import-row-count"
               >{{ t('共') }} <strong class="text-brand-600">{{ workspace.excel.rows.length }}</strong> {{ t('条数据') }}</span
             >
           </p>

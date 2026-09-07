@@ -191,7 +191,7 @@ async function submitReserve() {
         </div>
         <!-- 原价独立一行；免费版无原价时保留同高占位，三卡价格区对齐 -->
         <p
-          class="mt-1 min-h-4 text-xs leading-4 text-slate-400"
+          class="mt-1 min-h-4 text-xs leading-4 text-slate-500"
           data-testid="plan-original-price"
           :aria-hidden="plan.originalPrice ? undefined : 'true'"
         >
