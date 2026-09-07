@@ -5,6 +5,12 @@ description: How to end-to-end test SeatMark in production (www.seatmark.cn) via
 
 # Testing SeatMark online (www.seatmark.cn)
 
+## Anonymous responsive testing and cleanup
+- Connect to the visible Chrome CDP endpoint (probe the available port rather than assuming 9222), bypass service workers, and record the loaded entry bundle on each route. Python CDP automation requires `python -m pip install playwright`; attaching to an existing Chrome needs no browser download.
+- On mobile `/seating`, selecting the first seat can insert a hint and move the canvas. Re-read the second seat's bounding box after selection before dispatching real touch events; compare rendered names before/after rather than treating selection highlighting as a swap.
+- Demo import toasts can temporarily overlap mobile PNG choices. Capture the initial overlap, measure until auto-dismiss, and check both choices' actionability afterward; do not confuse a trial-click actionability check with a completed export.
+- For anonymous cleanup, first leave the application for `/robots.txt` so debounced saves and service-worker registration cannot recreate state. Clear local/session storage, then CDP origin data for apex/www origins. Explicitly clear cookies whose domain matches `(^|\.)seatmark\.cn$`: `Storage.clearDataForOrigin` may leave `.seatmark.cn` cookies. Verify cookie enumeration, IndexedDB databases, CacheStorage keys, SW registrations and usage, then navigate to `about:blank`.
+
 ## Deployment & 545 classification (r296+)
 Every normal API response now carries `X-SeatMark-Rev` — verify the expected revision via `curl -sI https://www.seatmark.cn/api/auth/me` before measuring, instead of only bundle-hash grepping (edge-function-only changes don't change bundle hashes). Registration is 20/day/IP; if register returns 429, switch to the standing probe accounts seatmark295probe1..10@example.com / probepass{N}{N} for login coverage. Gateway 545 responses carry neither rev nor storage headers — use header absence to classify gateway-layer failures. Root-cause status (post #302–#305): 545 correlates with Blob writes on the response critical path; auth writes now run as a serialized background chain via waitUntil (150ms delayed), which brought curl-probed login raw 545 from ~39% to ~7.5% and register 8/10→0/10, with frontend retry (≤5) absorbing the rest.
 
