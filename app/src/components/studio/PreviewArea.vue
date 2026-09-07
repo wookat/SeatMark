@@ -84,29 +84,32 @@ const previewContainer = ref<HTMLElement | null>(null)
 const { width: containerWidth } = useElementSize(previewContainer)
 
 /**
- * 预览工具栏（sticky）的自然底边（未滚动时相对视口）写入 html 的 --studio-toolbar-bottom，
- * 供 ToastHost 在 ≥lg 时把右上角的 toast 落到工具栏下方，不遮「图片版 PDF / PNG」按钮。
- * 工具栏高度随视口宽度换行而变，故用 ResizeObserver 跟随而不写死常量。
+ * 预览工具栏（sticky）当前相对视口的底边写入 html 的 --studio-toolbar-bottom，
+ * 供 ToastHost（fixed 定位）在 ≥lg 时把右上角的 toast 落到工具栏下方，不遮「图片版 PDF / PNG」按钮。
+ * 工具栏高度随视口宽度换行而变，且所在预览列在 md+ 为 sticky，故按视口坐标取值并在 resize / scroll 时跟随。
  */
 const toolbarEl = ref<HTMLElement | null>(null)
 const { height: toolbarHeight } = useElementSize(toolbarEl)
 function publishToolbarBottom() {
   if (typeof document === 'undefined') return
   const el = toolbarEl.value
-  const anchor = el?.parentElement
-  if (!el || !anchor) {
+  if (!el) {
     document.documentElement.style.removeProperty(STUDIO_TOOLBAR_BOTTOM_VAR)
     return
   }
-  // 父容器不启用 sticky，其文档坐标顶边即工具栏的自然顶边（不受当前滚动位置影响）
-  const naturalTop = anchor.getBoundingClientRect().top + window.scrollY
-  const bottom = Math.round(naturalTop + el.getBoundingClientRect().height)
+  const bottom = Math.round(el.getBoundingClientRect().bottom)
   document.documentElement.style.setProperty(STUDIO_TOOLBAR_BOTTOM_VAR, `${bottom}px`)
 }
 watch([toolbarEl, toolbarHeight], publishToolbarBottom, { flush: 'post' })
-if (typeof window !== 'undefined') window.addEventListener('resize', publishToolbarBottom)
+if (typeof window !== 'undefined') {
+  window.addEventListener('resize', publishToolbarBottom)
+  window.addEventListener('scroll', publishToolbarBottom, { passive: true })
+}
 onBeforeUnmount(() => {
-  if (typeof window !== 'undefined') window.removeEventListener('resize', publishToolbarBottom)
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', publishToolbarBottom)
+    window.removeEventListener('scroll', publishToolbarBottom)
+  }
   if (typeof document !== 'undefined') document.documentElement.style.removeProperty(STUDIO_TOOLBAR_BOTTOM_VAR)
 })
 
