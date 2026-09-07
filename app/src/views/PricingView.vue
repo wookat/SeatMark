@@ -164,11 +164,8 @@ async function submitReserve() {
       <div
         v-for="plan in PLANS"
         :key="plan.name"
-        class="relative flex flex-col rounded-lg border bg-white p-6 shadow-card"
-        :class="[
-          plan.highlight ? 'border-brand-400 ring-2 ring-brand-500/20' : 'border-slate-200',
-          plan.badge ? 'pt-7' : '',
-        ]"
+        class="relative flex flex-col rounded-lg border bg-white p-6 pt-7 shadow-card"
+        :class="plan.highlight ? 'border-brand-400 ring-2 ring-brand-500/20' : 'border-slate-200'"
       >
         <span
           v-if="plan.badge"
@@ -178,7 +175,7 @@ async function submitReserve() {
           {{ plan.badge }}
         </span>
         <h2 class="text-base font-bold text-slate-900">{{ plan.name }}</h2>
-        <p class="mt-0.5 text-xs text-slate-600">{{ plan.tagline }}</p>
+        <p class="mt-0.5 text-xs leading-4 text-slate-600 md:min-h-8">{{ plan.tagline }}</p>
 
         <div class="mt-4 flex items-end gap-2" data-testid="plan-price">
           <span class="text-4xl font-bold tracking-tight text-slate-900">{{ plan.price }}</span>
@@ -198,7 +195,7 @@ async function submitReserve() {
         >
           <template v-if="plan.originalPrice">
             {{ t('原价') }}
-            <s>{{ plan.originalPrice }}{{ plan.priceUnit }}</s>
+            <s>{{ plan.originalPrice }}</s>{{ plan.priceUnit }}
             · {{ t('限时 0 折') }}
           </template>
         </p>
