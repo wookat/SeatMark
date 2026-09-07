@@ -1910,7 +1910,7 @@ describe("第 350 轮：admin users/codes 逐键读取改受控并发，结果�
 });
 
 describe("第 353 轮：验证码答案哈希移出 JWT，改存 KV captcha:ans:<cid>", () => {
-  const PASSWORD = "cap-kv-secret-353";
+  const PASSWORD = "test-password-353";
 
   function decodeJwtPayload(token: string): Record<string, unknown> {
     const part = token.split(".")[1]!;
