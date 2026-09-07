@@ -270,6 +270,14 @@ export const FREE_ATTEMPTS: ReadonlyArray<{ url: string; timeoutMs: number }> = 
   { url: '/api/ai-design', timeoutMs: 90_000 },
 ]
 
+/** 同源代理失败时给用户看的简短原因：只保留状态码/超时，不透出上游服务商的原始响应体 */
+export function freeChannelFailureReason(err: unknown): string {
+  if (err instanceof AiHttpError) return `HTTP ${err.status}`
+  if (err instanceof DOMException && err.name === 'TimeoutError') return t('请求超时')
+  if (err instanceof TypeError) return t('网络错误')
+  return err instanceof Error ? err.message : String(err)
+}
+
 async function callChatFree(messages: ChatMessage[], signal?: AbortSignal): Promise<string> {
   let lastError = ''
   for (const attempt of FREE_ATTEMPTS) {
@@ -284,7 +292,7 @@ async function callChatFree(messages: ChatMessage[], signal?: AbortSignal): Prom
       if (isUserAbort(err, signal)) throw err
       const rejection = proxyRejectionMessage(err)
       if (rejection) throw new Error(rejection)
-      lastError = err instanceof Error ? err.message : String(err)
+      lastError = freeChannelFailureReason(err)
     }
   }
   throw new Error(
