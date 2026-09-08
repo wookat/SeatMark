@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * 第 355 轮：宴会排桌 → 座签工坊「一键生成席位卡 / 桌号牌」——
+ * 第 355 轮：宴会排桌 → 标签工坊「一键生成席位卡 / 桌号牌」——
  * 复用 SEATING_HANDOFF_KEY：载荷 rows=[{姓名, 桌号, 分组, 座位号}]、title=宴会名、source='banquet'；
  * /studio?from=banquet 读取后即删除载荷，默认切到婚礼席位卡并自动映射 姓名→name、桌号→tableNo；
  * 未安排宾客时按钮禁用。

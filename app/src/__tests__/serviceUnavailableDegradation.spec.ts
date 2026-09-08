@@ -10,6 +10,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import PreviewArea from '@/components/studio/PreviewArea.vue'
 import AppFooter from '@/components/ui/AppFooter.vue'
 import QuotaLimitDialog from '@/components/ui/QuotaLimitDialog.vue'
+import { faqMentionsAccountBonus, PRICING_FAQS } from '@/data/seo'
 import { useAuthStore } from '@/stores/auth'
 import { useQuotaStore } from '@/stores/quota'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -230,5 +231,66 @@ describe('第 345 轮：账号服务不可用降级文案', () => {
       expect(wrapper.text()).toContain('注册即送 7 天')
       wrapper.unmount()
     })
+  })
+})
+
+describe('第 365 轮：定价页「分享送次数」维护期注记', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    vi.restoreAllMocks()
+  })
+
+  it('faqMentionsAccountBonus：注册(即)?送 / 分享…送|得|+1 为真；无账号赠送承诺为假', () => {
+    expect(faqMentionsAccountBonus('邮箱注册即送 7 天专业版试用')).toBe(true)
+    expect(faqMentionsAccountBonus('新用户注册送 7 天')).toBe(true)
+    expect(faqMentionsAccountBonus('分享专属链接——每被点开 1 次即得 1 次无水印导出')).toBe(true)
+    expect(faqMentionsAccountBonus('分享给同事可再送次数')).toBe(true)
+    expect(faqMentionsAccountBonus('分享链接每次打开 +1 次')).toBe(true)
+    expect(faqMentionsAccountBonus('带水印导出与打印完全不限次数')).toBe(false)
+    expect(faqMentionsAccountBonus('名单全程浏览器本地处理，不上传任何服务器')).toBe(false)
+    expect(faqMentionsAccountBonus('团队版可在定价页预订登记，开通后邮件通知')).toBe(false)
+    // 真实 FAQ：「无水印次数用完了怎么办」因「分享…得」命中；「带水印和无水印区别」不命中
+    const byQ = (q: string) => PRICING_FAQS.find((f) => f.q === q)!.a
+    expect(faqMentionsAccountBonus(byQ('无水印次数用完了怎么办？'))).toBe(true)
+    expect(faqMentionsAccountBonus(byQ('带水印和无水印导出有什么区别？'))).toBe(false)
+    expect(faqMentionsAccountBonus(byQ('我的名单数据安全吗？'))).toBe(false)
+  })
+
+  it('维护态：免费版卡「分享送次数」bullet 尾注恰 1 处；「无水印次数用完了」FAQ 旁灰字恰 1 处；恢复后全部消失', async () => {
+    const auth = useAuthStore()
+    auth.ready = false
+    auth.serviceUnavailable = true
+    const wrapper = mount(PricingView, { global: { stubs } })
+    await flushPromises()
+
+    const cards = wrapper.findAll('[data-testid="pricing-plan-card"]')
+    const freeBullets = cards[0]!.findAll('li').map((li) => li.text())
+    const shareBullets = freeBullets.filter((b) => b.includes('分享链接每被点开 1 次'))
+    expect(shareBullets).toHaveLength(1)
+    expect(shareBullets[0]).toBe('分享链接每被点开 1 次即得 1 次无水印导出（服务维护中暂不可用）')
+    expect(freeBullets.filter((b) => b.includes('服务维护中'))).toHaveLength(1)
+    expect(cards[0]!.findAll('[data-testid="pricing-maintenance-hint"]')).toHaveLength(0)
+    expect(freeBullets).toHaveLength(6)
+
+    const faqBoxes = wrapper.findAll('h3').map((h) => h.element.parentElement!)
+    const faqHints = (q: string) =>
+      faqBoxes
+        .filter((box) => box.querySelector('h3')?.textContent === q)
+        .flatMap((box) => [...box.querySelectorAll('[data-testid="pricing-maintenance-hint"]')])
+    expect(faqHints('无水印次数用完了怎么办？')).toHaveLength(1)
+    expect(faqHints('无水印次数用完了怎么办？')[0]!.textContent).toBe(NEUTRAL)
+    expect(faqHints('使用需要注册账号吗？')).toHaveLength(1)
+    expect(faqHints('带水印和无水印导出有什么区别？')).toHaveLength(0)
+    expect(faqHints('我的名单数据安全吗？')).toHaveLength(0)
+
+    auth.serviceUnavailable = false
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('服务维护中')
+    expect(wrapper.find('[data-testid="pricing-maintenance-hint"]').exists()).toBe(false)
+    expect(
+      cards[0]!.findAll('li').map((li) => li.text()),
+    ).toContain('分享链接每被点开 1 次即得 1 次无水印导出')
+    wrapper.unmount()
   })
 })

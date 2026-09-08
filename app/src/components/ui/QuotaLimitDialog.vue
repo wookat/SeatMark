@@ -44,7 +44,7 @@ const valueLadder = computed(() => [
   {
     key: 'watermark',
     label: t('带水印导出永远免费、不限次数'),
-    detail: t('水印为页脚浅色角标，不遮挡姓名与座位号'),
+    detail: t('水印为每张标签底边细线 + seatmark.cn 小字，不遮挡姓名与座位号'),
     active: true,
   },
 ])
@@ -62,6 +62,9 @@ async function copyShareLink() {
 function close() {
   quota.limitDialogOpen = false
 }
+
+/** 从导出入口打开时才有回调：关弹窗并直接走带水印导出，不用回去重新点导出 */
+const canContinueWatermarked = computed(() => quota.limitDialogContinue !== null)
 </script>
 
 <template>
@@ -86,6 +89,16 @@ function close() {
         </span>
       </li>
     </ul>
+
+    <button
+      v-if="canContinueWatermarked"
+      type="button"
+      class="btn btn-secondary btn-md mt-4 w-full"
+      data-testid="quota-continue-watermarked"
+      @click="quota.continueWatermarked()"
+    >
+      {{ t('改用带水印导出，继续') }}
+    </button>
 
     <p
       v-if="serviceUnavailable"

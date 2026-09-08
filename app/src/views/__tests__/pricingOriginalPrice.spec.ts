@@ -113,8 +113,10 @@ describe('第 346 轮：PricingView 原价独立一行', () => {
     for (const card of cards) {
       const hints = card.findAll('[data-testid="pricing-maintenance-hint"]')
       expect(hints.length).toBeLessThanOrEqual(1)
+      // 第 365 轮：免费版「分享送次数」bullet 尾注与卡底提示二选一，每张卡「服务维护中」仍至多 1 处
       const bullets = card.findAll('li').map((li) => li.text())
-      expect(bullets.some((b) => b.includes('服务维护中'))).toBe(false)
+      const maintBullets = bullets.filter((b) => b.includes('服务维护中'))
+      expect(maintBullets.length + hints.length).toBeLessThanOrEqual(1)
       const occurrences = card.text().split('服务维护中').length - 1
       expect(occurrences).toBeLessThanOrEqual(1)
     }

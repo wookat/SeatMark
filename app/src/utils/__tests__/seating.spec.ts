@@ -9,6 +9,7 @@ import {
   interleaveByGender,
   parseSeatingRoster,
   parseSeatingRosterDetailed,
+  roomsFitIndividually,
   seatingExportFileName,
   seatingRosterTextFromTable,
   shuffleEntries,
@@ -283,6 +284,43 @@ describe('第 360 轮：多列首行带数字的关键词格（考场01 / 座位
       { id: '考场02', count: 15 },
     ])
     expect(withHeader.entries[0]).toEqual({ name: '学生01', room: '考场01' })
+  })
+})
+
+describe('第 365 轮：roomsFitIndividually（「全部」视图假溢出判定）', () => {
+  const roster59 = `姓名\t考场\n${Array.from({ length: 59 }, (_, i) => {
+    const room = i < 20 ? '考场01' : i < 40 ? '考场02' : '考场03'
+    return `学生${String(i + 1).padStart(2, '0')}\t${room}`
+  }).join('\n')}`
+
+  it('59 人 × 3 考场（20/20/19）vs 6×8=48 座：合排超 11 人但各考场单独都坐得下 → true', () => {
+    const r = parseSeatingRosterDetailed(roster59)
+    expect(r.entries).toHaveLength(59)
+    expect(r.rooms).toEqual([
+      { id: '考场01', count: 20 },
+      { id: '考场02', count: 20 },
+      { id: '考场03', count: 19 },
+    ])
+    expect(unseatedEntries(r.entries, 6, 8)).toHaveLength(11)
+    expect(roomsFitIndividually(r.rooms, 48)).toBe(true)
+  })
+
+  it('任一考场单独也排不下（60 人单考场 / 某考场 50 人）→ false，保留真实溢出提示', () => {
+    expect(roomsFitIndividually([{ id: '考场01', count: 60 }], 48)).toBe(false)
+    expect(
+      roomsFitIndividually(
+        [
+          { id: '考场01', count: 50 },
+          { id: '考场02', count: 9 },
+        ],
+        48,
+      ),
+    ).toBe(false)
+  })
+
+  it('无考场列或只有 1 个考场 → false（不启用引导）', () => {
+    expect(roomsFitIndividually([], 48)).toBe(false)
+    expect(roomsFitIndividually([{ id: '考场01', count: 10 }], 48)).toBe(false)
   })
 })
 

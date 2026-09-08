@@ -105,7 +105,7 @@ export const guidesRound3: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '演示名单可直接导出试打，确认尺寸无误再换成自己的名单；名单只在浏览器本地处理',
     },
     howTo: {
       name: '3 分钟自查在线工具是否上传你的名单',

@@ -292,7 +292,7 @@ onMounted(() => {
 
 <template>
   <div class="mx-auto w-full max-w-[1480px] px-4 py-5">
-    <h1 class="sr-only">{{ locale === 'en' ? 'SeatMark Studio: batch-generate place cards / seating labels / name tags' : 'SeatMark 座签工坊：批量生成桌牌 / 座签 / 席位卡' }}</h1>
+    <h1 class="sr-only">{{ locale === 'en' ? 'SeatMark Studio: batch-generate place cards / seating labels / name tags' : 'SeatMark 标签工坊：批量生成桌牌 / 座签 / 席位卡' }}</h1>
     <!-- 移动端分段切换：跟随页面吸顶，随时在设置与预览之间翻面 -->
     <div v-if="isMobile" class="sticky top-14 z-30 -mx-4 mb-3 bg-slate-50/90 px-4 py-2 backdrop-blur">
       <div class="flex rounded-lg border border-slate-200 bg-white p-1 shadow-card">

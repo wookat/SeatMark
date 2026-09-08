@@ -167,7 +167,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「会议大桌牌」+ 演示数据',
       to: '/studio?template=meetingTent&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看桌牌成品效果，再换成自己的名单，毫米级尺寸已按桌牌纸预设好；名单只在浏览器本地处理',
     },
     howTo: {
       name: '用 Excel 名单批量生成会议桌牌',
@@ -254,7 +254,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
     },
     faqs: [
       {
@@ -337,7 +337,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「照片核验版」+ 演示数据',
       to: '/studio?template=withPhoto&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先用演示名单看考场号、座位号等字段怎么落到标签上，再换成自己的考生名单；名单只在浏览器本地处理',
     },
     howTo: {
       name: '批量生成带照片的核验座签',
@@ -421,7 +421,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「家长会桌贴」+ 演示数据',
       to: '/studio?template=parentMeeting&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品效果，再换成班级或学生名单；免费、无需注册，名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -486,7 +486,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「会议大桌牌」+ 演示数据',
       to: '/studio?template=meetingTent&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看桌牌成品效果，再换成自己的名单，毫米级尺寸已按桌牌纸预设好；名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -556,7 +556,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「会议大桌牌」+ 演示数据',
       to: '/studio?template=meetingTent&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '演示名单可直接导出试打，确认尺寸无误再换成自己的名单；名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -632,7 +632,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
     },
     faqs: [
       {
@@ -723,7 +723,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「会议大桌牌」+ 演示数据',
       to: '/studio?template=meetingTent&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '演示名单可直接导出试打，确认尺寸无误再换成自己的名单；名单只在浏览器本地处理',
     },
     howTo: {
       name: '用 WPS 邮件合并批量制作桌牌',
@@ -808,7 +808,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
     },
     faqs: [
       {
@@ -893,7 +893,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先用演示名单看考场号、座位号等字段怎么落到标签上，再换成自己的考生名单；名单只在浏览器本地处理',
     },
     howTo: {
       name: '期中期末考务物料准备全流程',
@@ -995,7 +995,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「培训班桌贴」+ 演示数据',
       to: '/studio?template=trainingDesk&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品效果，再换成班级或学生名单；免费、无需注册，名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -1074,7 +1074,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「年会晚宴席位卡」+ 演示数据',
       to: '/studio?template=annualDinner&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看桌牌成品效果，再换成自己的名单，毫米级尺寸已按桌牌纸预设好；名单只在浏览器本地处理',
     },
     howTo: {
       name: '批量制作年会席位卡与桌牌',
@@ -1164,7 +1164,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「婚礼席位卡」+ 演示数据',
       to: '/studio?template=weddingPlace&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看席位卡、桌号牌的成品效果，再换成自己的宾客名单；名单只在浏览器本地处理',
     },
     howTo: {
       name: '用宾客名单批量制作婚礼席位卡',
@@ -1252,7 +1252,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '演示名单可直接导出试打，确认尺寸无误再换成自己的名单；名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -1325,7 +1325,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
     },
     faqs: [
       {
@@ -1396,7 +1396,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「照片核验版」+ 演示数据',
       to: '/studio?template=withPhoto&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '演示名单可直接导出试打，确认尺寸无误再换成自己的名单；名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -1480,7 +1480,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「考场门贴」+ 演示数据',
       to: '/studio?template=examDoor&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先用演示名单看考场号、座位号等字段怎么落到标签上，再换成自己的考生名单；名单只在浏览器本地处理',
     },
     howTo: {
       name: '批量制作考场门贴',
@@ -1562,7 +1562,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「考号贴」+ 演示数据',
       to: '/studio?template=examNo&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先用演示名单看考场号、座位号等字段怎么落到标签上，再换成自己的考生名单；名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -1633,7 +1633,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先用演示名单看考场号、座位号等字段怎么落到标签上，再换成自己的考生名单；名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -1713,7 +1713,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「工作证」模板 + 演示数据',
       to: '/studio?template=staffIdCard&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
     },
     howTo: {
       name: '批量制作员工/访客胸卡',
@@ -1792,7 +1792,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「幼儿园姓名贴」+ 演示数据',
       to: '/studio?template=kidsName&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品效果，再换成班级或学生名单；免费、无需注册，名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -1869,7 +1869,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「宿舍门贴」+ 演示数据',
       to: '/studio?template=dormDoor&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品效果，再换成班级或学生名单；免费、无需注册，名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -1944,7 +1944,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「面试候场号牌」+ 演示数据',
       to: '/studio?template=interviewNo&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '演示名单可直接导出试打，确认尺寸无误再换成自己的名单；名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -2025,7 +2025,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
     },
     faqs: [
       {

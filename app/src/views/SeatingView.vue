@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 
 import MobilePreviewJump from '@/components/MobilePreviewJump.vue'
@@ -32,6 +32,7 @@ import {
   parseSeatingRosterDetailed,
   reconcileArranged,
   roomIdHasLabel,
+  roomsFitIndividually,
   SEATING_HANDOFF_KEY,
   seatingExportFileName,
   seatingRosterTextFromTable,
@@ -277,8 +278,8 @@ function toastUndoable(title: string, text: string, snapshot: SeatingSnapshot) {
     },
   })
 }
-/** 换座 / 整排交换 / 随机排座的单层撤销快照（只保留最近一次），Ctrl/Cmd+Z 恢复 */
-const lastUndo = ref<SeatingSnapshot | null>(null)
+/** 换座 / 整排交换 / 随机排座的单层撤销快照（只保留最近一次），Ctrl/Cmd+Z 恢复；shallowRef 保证与 toast 内持有的快照同一引用 */
+const lastUndo = shallowRef<SeatingSnapshot | null>(null)
 function rememberUndo(): SeatingSnapshot {
   const snapshot: SeatingSnapshot = { ...takeSnapshot(), selectedSeat: null }
   lastUndo.value = snapshot
@@ -536,12 +537,26 @@ function workingEntries(): SeatingEntry[] {
   return out
 }
 
-function swapSeats(a: number, b: number) {
-  if (a === b) return
-  rememberUndo()
+function swapSeats(a: number, b: number): SeatingSnapshot | null {
+  if (a === b) return null
+  const snapshot = rememberUndo()
   const work = workingEntries()
   ;[work[a], work[b]] = [work[b]!, work[a]!]
   arranged.value = work
+  return snapshot
+}
+
+/** 点选 / 拖拽两座互换后的可撤销提示：文案含两人姓名与座位号（空座显示为「空座」） */
+function swapSeatsWithToast(a: number, b: number) {
+  const nameA = entries.value[a]?.name || tr('空座')
+  const nameB = entries.value[b]?.name || tr('空座')
+  const snapshot = swapSeats(a, b)
+  if (!snapshot) return
+  toastUndoable(
+    `${tr('已交换座位')} ${a + 1} ↔ ${b + 1}${tr('：')}${nameA} ⇄ ${nameB}`,
+    tr('10 秒内可撤销（Ctrl/Cmd+Z）'),
+    snapshot,
+  )
 }
 
 function swapRows(a: number, b: number) {
@@ -572,7 +587,7 @@ function onSeatClick(seat: Seat | null) {
     selectedSeat.value = null
     return
   }
-  swapSeats(selectedSeat.value, idx)
+  swapSeatsWithToast(selectedSeat.value, idx)
   selectedSeat.value = null
 }
 
@@ -654,7 +669,7 @@ function onDragPointerUp() {
   if (dragging.value) {
     suppressClick = true
     if (dragSeat.value != null && dropSeatTarget.value != null) {
-      swapSeats(dragSeat.value, dropSeatTarget.value)
+      swapSeatsWithToast(dragSeat.value, dropSeatTarget.value)
     } else if (dragRow.value != null) {
       if (dropRowTarget.value != null) swapRows(dragRow.value, dropRowTarget.value)
       else if (dropSeatTarget.value != null) {
@@ -706,6 +721,30 @@ const unseatedItems = computed(() => {
   return items
 })
 const overflowCount = computed(() => unseated.value.length)
+/**
+ * 名单含 ≥ 2 个考场且筛选为「全部」时，把各考场合排在一张图上会「假溢出」：
+ * 每个考场单独都坐得下就不提示排不下，改为引导先选考场。
+ */
+const allRoomsFitIndividually = computed(
+  () =>
+    roomFilterVisible.value &&
+    activeRoom.value === ROOM_ALL &&
+    roomsFitIndividually(rooms.value, seatCount.value),
+)
+const roomsGuideText = computed(() =>
+  tr('「全部」把 {roomCount} 个考场合排在一张图；各考场单独都坐得下，先选考场再排座').replace(
+    '{roomCount}',
+    String(rooms.value.length),
+  ),
+)
+function selectFirstRoom() {
+  const first = rooms.value[0]
+  if (!first) return
+  roomFilter.value = first.id
+  toast.info(
+    tr('已切到 {room}，可在下方下拉切换').replace('{room}', roomLabel(first.id)),
+  )
+}
 const unseatedOpen = ref(false)
 watch(overflowCount, (n) => {
   if (!n) unseatedOpen.value = false
@@ -843,7 +882,7 @@ async function chooseWatermarked() {
 async function chooseClean() {
   if (quota.remaining <= 0) {
     exportChoiceOpen.value = false
-    quota.limitDialogOpen = true
+    quota.openLimitDialog(() => void chooseWatermarked())
     return
   }
   exportChoiceOpen.value = false
@@ -1084,7 +1123,16 @@ function toDeskLabels() {
             {{ tr('已输入') }} <strong class="text-slate-700">{{ filledCount }}</strong> {{ tr('名学生') }} /
             <strong class="text-slate-700">{{ seatCount }}</strong> {{ tr('座') }}{{ tr('。') }}
             <button
-              v-if="overflowCount"
+              v-if="overflowCount && allRoomsFitIndividually"
+              type="button"
+              class="inline-flex max-w-full items-center gap-1 rounded-md text-left font-bold text-brand-700 underline decoration-brand-300 decoration-dotted underline-offset-2 hover:text-brand-800"
+              data-testid="seating-rooms-guide"
+              @click="selectFirstRoom"
+            >
+              {{ roomsGuideText }}
+            </button>
+            <button
+              v-else-if="overflowCount"
               type="button"
               class="inline-flex max-w-full items-center gap-1 rounded-md font-bold text-amber-600 underline decoration-amber-300 decoration-dotted underline-offset-2 hover:text-amber-700"
               :aria-expanded="unseatedOpen"

@@ -5,7 +5,7 @@ import { TEMPLATE_COUNT } from '@/data/templateMeta'
 
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import { currentLocale, localePath, t } from '@/i18n'
-import { PRICING_FAQS, faqMentionsSignupGift } from '@/data/seo'
+import { PRICING_FAQS, faqMentionsAccountBonus } from '@/data/seo'
 import { useAuthStore } from '@/stores/auth'
 import { QUOTA_ANON_DAILY, QUOTA_USER_DAILY } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
@@ -47,9 +47,9 @@ const PLANS = computed<Plan[]>(() => [
     badge: null,
     tagline: t('个人日常制签'),
     features: [
-      t('带水印导出 / 打印不限次数（页脚角标，不遮挡内容）'),
+      t('带水印导出 / 打印不限次数（每张标签底边细线 + seatmark.cn 小字，不遮挡内容）'),
       `${t('无水印导出每日')} ${QUOTA_ANON_DAILY} ${t('次（免费登录即升为每日')} ${QUOTA_USER_DAILY} ${t('次）')}`,
-      t('分享链接每被点开 1 次即得 1 次无水印导出'),
+      `${t('分享链接每被点开 1 次即得 1 次无水印导出')}${auth.serviceUnavailable ? t('（服务维护中暂不可用）') : ''}`,
       `${t('全部')} ${TEMPLATE_COUNT} ${t('款内置模板与设计器')}`,
       t('Excel 名单批量导入、A4 / A5 / A3 排版'),
       t('数据全程浏览器本地处理'),
@@ -281,7 +281,7 @@ async function submitReserve() {
           <h3 class="text-sm font-bold text-slate-900">{{ t(faq.q) }}</h3>
           <p class="mt-2 text-sm leading-6 text-slate-600">{{ t(faq.a) }}</p>
           <p
-            v-if="auth.serviceUnavailable && faqMentionsSignupGift(faq.a)"
+            v-if="auth.serviceUnavailable && faqMentionsAccountBonus(faq.a)"
             class="mt-1.5 text-xs leading-5 text-slate-500"
             data-testid="pricing-maintenance-hint"
           >
