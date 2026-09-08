@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 
 import { isServiceUnavailableError, useAuthStore } from '@/stores/auth'
 import { apiFetch, ApiError } from '@/utils/api'
@@ -56,6 +56,29 @@ export const useQuotaStore = defineStore('quota', () => {
   const localUsage = ref<LocalUsage>(loadLocalUsage())
   /** 达到限额时打开的引导弹窗 */
   const limitDialogOpen = ref(false)
+  /** 弹窗内「改用带水印导出，继续」的回调（由弹窗关闭时清空；为 null 时不渲染该按钮） */
+  const limitDialogContinue = shallowRef<(() => void) | null>(null)
+  watch(
+    limitDialogOpen,
+    (open) => {
+      if (!open) limitDialogContinue.value = null
+    },
+    { flush: 'sync' },
+  )
+
+  /** 打开限额引导弹窗；传入带水印导出回调时弹窗内多一个「改用带水印导出，继续」按钮 */
+  function openLimitDialog(onWatermarked?: () => void) {
+    limitDialogContinue.value = onWatermarked ?? null
+    limitDialogOpen.value = true
+  }
+
+  /** 关闭弹窗并执行「改用带水印导出，继续」 */
+  function continueWatermarked() {
+    const fn = limitDialogContinue.value
+    limitDialogOpen.value = false
+    limitDialogContinue.value = null
+    fn?.()
+  }
 
   // 多页签同步：其他页签消耗配额后本页签的剩余次数实时跟随
   if (typeof window !== 'undefined') {
@@ -138,6 +161,9 @@ export const useQuotaStore = defineStore('quota', () => {
   return {
     localUsage,
     limitDialogOpen,
+    limitDialogContinue,
+    openLimitDialog,
+    continueWatermarked,
     remaining,
     limit,
     anonRemaining,

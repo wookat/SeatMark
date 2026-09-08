@@ -21,7 +21,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
     },
     howTo: {
       name: '用裁切排序（摞优先）省掉人工分拣',
@@ -97,7 +97,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '演示名单可直接导出试打，确认尺寸无误再换成自己的名单；名单只在浏览器本地处理',
     },
     howTo: {
       name: '用组合字段把多列拼成一个显示内容',
@@ -168,7 +168,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
     },
     howTo: {
       name: '用单张覆写单独修改某一张标签',
@@ -397,7 +397,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '演示名单可直接导出试打，确认尺寸无误再换成自己的名单；名单只在浏览器本地处理',
     },
     howTo: {
       name: '在微信里收到链接后完成标签制作与打印',
@@ -482,7 +482,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
     },
     howTo: {
       name: '获取更多无水印导出次数',
@@ -646,7 +646,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「婚礼席位卡」+ 演示数据',
       to: '/studio?template=weddingPlace&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看席位卡、桌号牌的成品效果，再换成自己的宾客名单；名单只在浏览器本地处理',
     },
     howTo: {
       name: '制作并布置酒店婚宴席位卡',
@@ -726,7 +726,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「年会晚宴席位卡」+ 演示数据',
       to: '/studio?template=annualDinner&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看桌牌成品效果，再换成自己的名单，毫米级尺寸已按桌牌纸预设好；名单只在浏览器本地处理',
     },
     howTo: {
       name: '批量制作年会席位桌牌与配套物料',
@@ -807,7 +807,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「水杯毛巾贴」+ 演示数据',
       to: '/studio?template=kidsCup&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品效果，再换成班级或学生名单；免费、无需注册，名单只在浏览器本地处理',
     },
     howTo: {
       name: '批量打印幼儿园入园物品贴',
@@ -888,7 +888,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「医院床头卡」+ 演示数据',
       to: '/studio?template=wardBed&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '演示名单可直接导出试打，确认尺寸无误再换成自己的名单；名单只在浏览器本地处理',
     },
     howTo: {
       name: '批量制作病区床头卡插纸',
@@ -964,7 +964,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「档案盒脊标」+ 演示数据',
       to: '/studio?template=archiveBoxSpine&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
     },
     howTo: {
       name: '用档案台账批量打印档案盒标签',
@@ -1043,7 +1043,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「展会胸卡·横版」+ 演示数据',
       to: '/studio?template=expoBadgeH&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '演示名单可直接导出试打，确认尺寸无误再换成自己的名单；名单只在浏览器本地处理',
     },
     howTo: {
       name: '批量制作展会胸卡',
@@ -1119,7 +1119,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「毕业典礼席卡」+ 演示数据',
       to: '/studio?template=gradSeat&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品效果，再换成班级或学生名单；免费、无需注册，名单只在浏览器本地处理',
     },
     howTo: {
       name: '毕业典礼席位标识全套制作',
@@ -1195,7 +1195,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「电竞赛位牌」+ 演示数据',
       to: '/studio?template=esportsSeat&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看桌牌成品效果，再换成自己的名单，毫米级尺寸已按桌牌纸预设好；名单只在浏览器本地处理',
     },
     howTo: {
       name: '批量制作电竞赛事赛位物料',
@@ -1274,7 +1274,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「窗口牌」+ 演示数据',
       to: '/studio?template=windowCounter&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
     },
     howTo: {
       name: '批量制作服务窗口标识物料',
@@ -1354,7 +1354,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「餐桌预订牌」+ 演示数据',
       to: '/studio?template=reservedTable&demo=1',
-      note: '先看成品效果，再换成自己的名单；免费、无需注册，名单不出浏览器',
+      note: '先看桌牌成品效果，再换成自己的名单，毫米级尺寸已按桌牌纸预设好；名单只在浏览器本地处理',
     },
     howTo: {
       name: '批量制作餐厅宴会与门店标识',

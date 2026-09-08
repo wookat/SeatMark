@@ -153,7 +153,7 @@ function howToJsonLd(
 export const PRICING_FAQS = [
   {
     q: '带水印和无水印导出有什么区别？',
-    a: '带水印导出与打印完全不限次数，仅在页脚页边距区域叠加「SeatMark 座签 · seatmark.cn」小字角标，不遮挡任何标签内容；无水印导出未登录每天 1 次，登录后每天 3 次，每日 0 点自动恢复，预览、排版、模板设计始终不限次数。',
+    a: '带水印导出与打印完全不限次数，水印仅为每张标签底边一条细线 + seatmark.cn 小字，不遮挡任何标签内容；无水印导出未登录每天 1 次，登录后每天 3 次，每日 0 点自动恢复，预览、排版、模板设计始终不限次数。',
   },
   {
     q: '无水印次数用完了怎么办？',
@@ -177,9 +177,12 @@ export const PRICING_FAQS = [
   },
 ]
 
-/** FAQ 答案是否含「注册（即）送 N 天」类账号赠送承诺（账号服务维护期间需追加弱提示） */
-export function faqMentionsSignupGift(answer: string): boolean {
-  return /注册(即)?送/.test(answer)
+/**
+ * FAQ 答案是否含依赖账号服务的赠送承诺：「注册（即）送 N 天」或「分享…送 / 得 / +1 次」
+ * （账号服务维护期间需追加弱提示）
+ */
+export function faqMentionsAccountBonus(answer: string): boolean {
+  return /注册(即)?送/.test(answer) || /分享.*?(送|得|\+1)/.test(answer)
 }
 
 const guideListDescription =

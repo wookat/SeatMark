@@ -245,3 +245,42 @@ describe('quota store（每日无水印导出配额）', () => {
     expect(JSON.parse(localStorage.getItem('seatmark.clean-export-usage.v1')!).used).toBe(1)
   })
 })
+
+describe('第 365 轮：openLimitDialog 带「改用带水印导出，继续」回调', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+  })
+
+  it('openLimitDialog(fn) 打开弹窗并记住回调；continueWatermarked 关弹窗、清回调并调用一次', () => {
+    const quota = useQuotaStore()
+    const fn = vi.fn()
+    expect(quota.limitDialogContinue).toBeNull()
+    quota.openLimitDialog(fn)
+    expect(quota.limitDialogOpen).toBe(true)
+    expect(quota.limitDialogContinue).toBe(fn)
+
+    quota.continueWatermarked()
+    expect(quota.limitDialogOpen).toBe(false)
+    expect(quota.limitDialogContinue).toBeNull()
+    expect(fn).toHaveBeenCalledTimes(1)
+  })
+
+  it('不传回调打开 / tryConsume 触发的弹窗：limitDialogContinue 为 null；关闭弹窗时同步清空回调', async () => {
+    const quota = useQuotaStore()
+    quota.openLimitDialog()
+    expect(quota.limitDialogOpen).toBe(true)
+    expect(quota.limitDialogContinue).toBeNull()
+    quota.limitDialogOpen = false
+
+    const fn = vi.fn()
+    quota.openLimitDialog(fn)
+    quota.limitDialogOpen = false
+    expect(quota.limitDialogContinue).toBeNull()
+    expect(fn).not.toHaveBeenCalled()
+
+    for (let i = 0; i <= QUOTA_ANON_DAILY; i++) await quota.tryConsume()
+    expect(quota.limitDialogOpen).toBe(true)
+    expect(quota.limitDialogContinue).toBeNull()
+  })
+})

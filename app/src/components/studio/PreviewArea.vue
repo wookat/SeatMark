@@ -49,11 +49,13 @@ import {
   isValidExactPixelWidth,
   MAX_EXACT_PIXEL_WIDTH,
   MIN_EXACT_PIXEL_WIDTH,
+  pngPageFileName,
   presetAspectMismatch,
   sanitizeFileNamePart,
   type LabelExportItem,
 } from '@/utils/pngExport'
 import { templateColumnsValid } from '@/utils/fieldTemplate'
+import { parseLabelRange } from '@/utils/labelRange'
 import { templateHasCjk } from '@/utils/templateLocale'
 import { buildUnmappedNotice } from '@/utils/unmappedNotice'
 
@@ -310,6 +312,19 @@ const pngTotalLabels = computed(() =>
   workspace.pages.reduce((sum, page) => sum + page.filter((row) => row != null).length, 0),
 )
 
+/** 逐标签导出的「导出范围」（全局标签序号，空 = 全部），用于单张 / 若干张补打 */
+const pngLabelRange = ref('')
+const pngLabelRangeParsed = computed(() =>
+  pngExportUnit.value === 'label'
+    ? parseLabelRange(pngLabelRange.value, pngTotalLabels.value)
+    : parseLabelRange('', pngTotalLabels.value),
+)
+/** 本次实际要导出的标签数（范围非法时按全部计，导出时另行拦截） */
+const pngSelectedLabels = computed(() => {
+  const parsed = pngLabelRangeParsed.value
+  return parsed.ok && parsed.indices ? parsed.indices.length : pngTotalLabels.value
+})
+
 /**
  * 导出弹窗顶部「本次将输出什么」一行摘要：模板 · 纸张 · 标签数与页数 · 水印状态。
  * 水印部分只描述当前可选项（无水印需消耗额度 / 额度用完时只剩带水印），不改导出逻辑。
@@ -319,11 +334,16 @@ const exportSummary = computed(() => {
   const labels = pngTotalLabels.value
   const pages = workspace.totalPages
   if (pendingAction.value === 'png') {
+    const selected = pngSelectedLabels.value
     parts.push(
       pngExportUnit.value === 'label'
-        ? labels > 1
-          ? t('{n} 张 PNG，打包 zip').replace('{n}', String(labels))
-          : t('{n} 张 PNG').replace('{n}', String(labels))
+        ? selected !== labels
+          ? t('{n} 张 PNG（共 {m} 张中选 {n} 张）')
+              .replace(/\{n\}/g, String(selected))
+              .replace('{m}', String(labels))
+          : labels > 1
+            ? t('{n} 张 PNG，打包 zip').replace('{n}', String(labels))
+            : t('{n} 张 PNG').replace('{n}', String(labels))
         : t('{n} 张整页 PNG').replace('{n}', String(pages)),
     )
   } else {
@@ -627,7 +647,7 @@ async function chooseClean() {
   if (quota.remaining <= 0) {
     // 先关导出选择框再开配额引导弹窗，避免两层 modal 叠加遮挡
     exportChoiceOpen.value = false
-    quota.limitDialogOpen = true
+    quota.openLimitDialog(() => void chooseWatermarked())
     return
   }
   exportChoiceOpen.value = false
@@ -733,6 +753,17 @@ async function doExportPng() {
     toast.warning(t('像素宽度无效'), t('请输入 {min}–{max} 之间的整数像素宽度').replace('{min}', String(MIN_EXACT_PIXEL_WIDTH)).replace('{max}', String(MAX_EXACT_PIXEL_WIDTH)))
     return
   }
+  const range = pngLabelRangeParsed.value
+  if (!range.ok) {
+    toast.warning(
+      t('导出范围无效'),
+      t('请输入 1–{total} 之间的序号，如 5 或 1-3,10；留空导出全部；本次未扣除无水印次数').replace(
+        '{total}',
+        String(pngTotalLabels.value),
+      ),
+    )
+    return
+  }
   const abort = new AbortController()
   const cancel = () => abort.abort()
   workspace.setLoading(true, t('正在准备页面...'), cancel)
@@ -776,6 +807,19 @@ async function doExportPng() {
         })
         let n = 0
         for (const items of labelsByPage) for (const item of items) item.fileName = names[n++]
+      }
+      // 补打范围：按全局标签序号过滤，序号命名保持全量时的编号（补打第 5 张仍为 -005）
+      if (range.indices) {
+        const wanted = new Set(range.indices)
+        let n = 0
+        labelsByPage = labelsByPage.map((items) =>
+          items.filter((item) => {
+            const index = n++
+            if (!wanted.has(index)) return false
+            item.fileName ??= pngPageFileName(baseName, index)
+            return true
+          }),
+        )
       }
     }
     // 按字段命名（整页成图）：多枚模板每页取第一条记录求值；空模板/空字段回退序号命名
@@ -824,7 +868,7 @@ async function doExportPng() {
     })
     await consumeQuotaAfterSuccess()
     const exactW = pngPreset.value?.width ?? pngExactWidth.value
-    const unitCount = perLabel ? pngTotalLabels.value : pageCount
+    const unitCount = perLabel ? (range.indices?.length ?? pngTotalLabels.value) : pageCount
     const unitWord = perLabel ? t('张标签') : t('页')
     toast.push(
       'success',
@@ -1557,6 +1601,26 @@ const hintKey = ref<HintKey | null>(null)
           <p class="mt-2 text-xs leading-5 text-slate-600">
             {{ t('单张直接下载 PNG，多张自动打包为 zip；') }}{{ isEinkTemplate ? t('电子座签模板默认精确 800×480 像素 + 纯黑白，可直接导入电子桌牌系统。') : t('需要精确像素（如电子墨水屏）时选「精确像素」，可用分辨率预设或自定义宽度。') }}
           </p>
+          <template v-if="pngExportUnit === 'label'">
+            <label class="field-label mt-3" for="png-label-range">{{ t('导出范围') }}</label>
+            <input
+              id="png-label-range"
+              v-model="pngLabelRange"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              class="input-field w-full min-w-0"
+              :class="pngLabelRangeParsed.ok ? '' : '!border-amber-400'"
+              :placeholder="t('全部（如 5 或 1-3,10 只补打这些张）')"
+              data-testid="png-label-range"
+            />
+            <p v-if="!pngLabelRangeParsed.ok" class="mt-1.5 text-xs text-amber-600" data-testid="png-label-range-error">
+              {{ t('请输入 1–{total} 之间的序号，如 5 或 1-3,10；留空导出全部').replace('{total}', String(pngTotalLabels)) }}
+            </p>
+            <p v-else class="mt-1.5 text-xs leading-5 text-slate-600">
+              {{ t('按全部标签的序号补打，文件名中的序号与全量导出一致（补打第 5 张仍为 -005）；只选 1 张时直接下载 PNG') }}
+            </p>
+          </template>
           <template v-if="pngExportUnit === 'label' ? pngTotalLabels > 1 : workspace.totalPages > 1">
             <label class="field-label mt-3" for="png-name-mode">{{ t('zip 内文件命名') }}</label>
             <SelectField id="png-name-mode" v-model="pngNameMode" size="sm" :options="PNG_NAME_OPTIONS" />

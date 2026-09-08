@@ -489,6 +489,17 @@ export function unseatedEntries(
 }
 
 /**
+ * 名单含 ≥ 2 个考场且当前为「全部」视图时，各考场是否单独都坐得下：
+ * 为真时「全部」视图的溢出只是合排造成的假溢出，应引导先选考场而非提示增加行列数。
+ */
+export function roomsFitIndividually(
+  rooms: readonly SeatingRoomCount[],
+  seatCount: number,
+): boolean {
+  return rooms.length >= 2 && rooms.every((r) => r.count <= seatCount)
+}
+
+/**
  * PNG / 打印页脚的未排座提示：「另有 N 人未排座：甲、乙、丙…」，超过 max 位截断加「等」；
  * 无未排座返回空串。
  */

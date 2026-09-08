@@ -1162,7 +1162,7 @@ async function chooseWatermarked() {
 async function chooseClean() {
   if (quota.remaining <= 0) {
     exportChoiceOpen.value = false
-    quota.limitDialogOpen = true
+    quota.openLimitDialog(() => void chooseWatermarked())
     return
   }
   exportChoiceOpen.value = false
@@ -1918,8 +1918,8 @@ function toPlaceCards() {
               <p class="mt-1.5 text-xs leading-5 text-slate-500">
                 {{
                   canHandoff
-                    ? `${tr('已安排')} ${handoffRows.length} ${tr('位宾客的姓名与桌号会带到座签工坊，选席位卡模板即可批量导出；名单仍不出浏览器。')}`
-                    : tr('安排宾客后可用：姓名与桌号直接带到座签工坊生成席位卡，不用二次录入。')
+                    ? `${tr('已安排')} ${handoffRows.length} ${tr('位宾客的姓名与桌号会带到标签工坊，选席位卡模板即可批量导出；名单仍不出浏览器。')}`
+                    : tr('安排宾客后可用：姓名与桌号直接带到标签工坊生成席位卡，不用二次录入。')
                 }}
               </p>
             </div>

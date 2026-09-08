@@ -529,6 +529,13 @@
     page-break-after: auto;
   }
 
+  /* 滚动显现区块：打印时无滚动事件，直接按已显现渲染 */
+  .reveal-init {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
