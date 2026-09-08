@@ -5,6 +5,11 @@ description: How to end-to-end test SeatMark in production (www.seatmark.cn) via
 
 # Testing SeatMark online (www.seatmark.cn)
 
+## Hydrated forms and template categories
+- Production routes are prerendered: wait for `document.querySelector('#app').__vue_app__` and the interactive controls to settle before the first roster paste/import; an early fill can be overwritten during hydration.
+- Template category deep links use `?cat=<slug>` (for example `/en/templates?cat=life`), not `?category=`. At mobile widths measure the selected chip rectangle, scroll the chips with a real horizontal wheel, then verify `templates-chips-fade-left`, `templates-chips-back`, and `templates-chips-fade`; the back button should reduce `scrollLeft`.
+- The floating feedback panel can be visible without `[role=dialog]`; use the visible heading and close button to verify open/close, and never submit during open-only tests.
+
 ## Responsive overlay measurement
 - Measure the visible toast child (`[data-testid=toast-host] > div`) as well as its host. A host with both computed `top` and `bottom` can stretch across the viewport while `flex-col-reverse` leaves the toast at the bottom; `top:64px` alone does not prove the toast moved. Check rectangle intersection and `elementFromPoint` on the target action without clicking export rows.
 - For floating-feedback collision tests, scroll the underlying action into the bubble's vertical band, not merely to the document bottom. Test actual overlap at that scroll position; smaller bubble dimensions alone do not establish clearance.
