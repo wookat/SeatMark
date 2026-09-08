@@ -55,6 +55,24 @@ describe('paginateQuickRefBlocks', () => {
     expect(paginateQuickRefBlocks(rows, 950)).toEqual([0, 900, 1800, 2700])
   })
 
+  it('双栏并排块：切线不能横跨任何一栏的行——左栏行边界被右栏跨越时退回到两栏都干净的位置', () => {
+    // 左栏 30 行（100px 一行、90px 高）；右栏一个 850–1150 的整块（如带标题的短表）横跨 1000 处
+    const left = Array.from({ length: 30 }, (_, i) => ({ top: i * 100, bottom: i * 100 + 90 }))
+    const right = [{ top: 850, bottom: 1150 }]
+    const starts = paginateQuickRefBlocks([...left, ...right], 1000)
+    // 1000 / 990 / 900 都被右栏块横跨；800 是两栏都不横跨的最靠下切线
+    expect(starts[0]).toBe(0)
+    expect(starts[1]).toBe(800)
+    for (const s of starts.slice(1)) {
+      expect([...left, ...right].some((b) => b.top < s && s < b.bottom), `切线 ${s} 横跨了内容块`).toBe(false)
+    }
+    // 上一页与下一页之间不重叠：每页起点严格递增且页尾不超过页高
+    for (let i = 1; i < starts.length; i += 1) {
+      expect(starts[i]! - starts[i - 1]!).toBeGreaterThan(0)
+      expect(starts[i]! - starts[i - 1]!).toBeLessThanOrEqual(1000)
+    }
+  })
+
   it('单块高于一页时按页高硬切，不死循环；无块 → 单页', () => {
     expect(paginateQuickRefBlocks([{ top: 0, bottom: 2500 }], 1000)).toEqual([0, 1000, 2000])
     expect(paginateQuickRefBlocks([], 1000)).toEqual([0])
@@ -121,6 +139,9 @@ describe('第 364 轮：宾客速查表下载 PDF', () => {
     expect(captured).not.toBeNull()
     expect(captured!.classList.contains('quickref-pdf-viewport')).toBe(true)
     expect(captured!.querySelector('[data-testid="banquet-quickref-sheet"]')).toBeTruthy()
+    // 上下页边距白色遮罩：相邻页的行不会露在边距里
+    expect(captured!.querySelector('.quickref-pdf-mask-top')).toBeTruthy()
+    expect(captured!.querySelector('.quickref-pdf-mask-bottom')).toBeTruthy()
 
     resolveExport!()
     await new Promise((r) => setTimeout(r, 0))

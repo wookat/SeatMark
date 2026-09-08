@@ -1233,6 +1233,8 @@ const quickRefPrinting = ref(false)
 const quickRefPdfMode = ref(false)
 const quickRefPdfExporting = ref(false)
 const quickRefPageOffset = ref(0)
+/** 本页可见内容高度（px）；null = 末页，按默认下边距遮罩 */
+const quickRefPageSpan = ref<number | null>(null)
 const quickRefViewport = ref<HTMLElement | null>(null)
 const quickRefSheet = ref<HTMLElement | null>(null)
 const QUICKREF_PAGE_W = 210
@@ -1265,14 +1267,26 @@ async function printQuickReference() {
 
 function quickRefContentBlocks(sheet: HTMLElement, padTop: number): QuickRefBlock[] {
   const base = sheet.getBoundingClientRect().top + padTop
-  return Array.from(
-    sheet.querySelectorAll<HTMLElement>(
-      '.quickref-title, .quickref-meta, .quickref-section, .quickref-index-row, .quickref-table-name, .quickref-table tr, .quickref-footer',
-    ),
-  ).map((el) => {
-    const rect = el.getBoundingClientRect()
-    return { top: rect.top - base, bottom: rect.bottom - base }
+  const block = (top: Element, bottom: Element = top): QuickRefBlock => ({
+    top: top.getBoundingClientRect().top - base,
+    bottom: bottom.getBoundingClientRect().bottom - base,
   })
+  const blocks = Array.from(
+    sheet.querySelectorAll<HTMLElement>(
+      '.quickref-title, .quickref-meta, .quickref-section, .quickref-index-row, .quickref-footer',
+    ),
+  ).map((el) => block(el))
+  // 每张桌表：桌名 + 表头 + 第一行合成一块，避免桌名孤零零留在页尾
+  for (const table of Array.from(sheet.querySelectorAll<HTMLElement>('.quickref-table'))) {
+    const caption = table.querySelector('caption')
+    const headRow = table.querySelector('thead tr')
+    const bodyRows = Array.from(table.querySelectorAll<HTMLElement>('tbody tr'))
+    const head = caption ?? headRow ?? bodyRows[0]
+    if (!head) continue
+    blocks.push(block(head, bodyRows[0] ?? headRow ?? head))
+    for (const row of bodyRows.slice(1)) blocks.push(block(row))
+  }
+  return blocks
 }
 
 async function rebuildQuickRefHost() {
@@ -1305,6 +1319,8 @@ async function downloadQuickReferencePdf() {
       pageCount: starts.length,
       getPage: async (i) => {
         quickRefPageOffset.value = starts[i] ?? 0
+        const next = starts[i + 1]
+        quickRefPageSpan.value = next === undefined ? null : next - (starts[i] ?? 0)
         await nextTick()
         const el = quickRefViewport.value
         if (!el) throw new Error(tr('导出页渲染失败'))
@@ -1325,6 +1341,7 @@ async function downloadQuickReferencePdf() {
     renderQuickRefHost.value = false
     quickRefPdfMode.value = false
     quickRefPageOffset.value = 0
+    quickRefPageSpan.value = null
     quickRefPdfExporting.value = false
   }
 }
@@ -2489,6 +2506,18 @@ function toPlaceCards() {
           :class="quickRefPdfMode ? 'quickref-pdf-viewport' : undefined"
           :style="quickRefPdfMode ? { width: `${QUICKREF_PAGE_W}mm`, height: `${QUICKREF_PAGE_H}mm` } : undefined"
         >
+        <template v-if="quickRefPdfMode">
+          <div class="quickref-pdf-mask quickref-pdf-mask-top" aria-hidden="true"></div>
+          <div
+            class="quickref-pdf-mask quickref-pdf-mask-bottom"
+            :style="
+              quickRefPageSpan === null
+                ? undefined
+                : { top: `calc(var(--quickref-pad-top) + ${quickRefPageSpan}px)`, height: 'auto' }
+            "
+            aria-hidden="true"
+          ></div>
+        </template>
         <div
           ref="quickRefSheet"
           class="sheet-page quickref-sheet"
@@ -3063,7 +3092,8 @@ function toPlaceCards() {
   border-radius: 50%;
 }
 
-/* 速查表 PDF 模式：A4 纵向裁切视口，流式页面绝对定位并逐页上移，每页截图一次 */
+/* 速查表 PDF 模式：A4 纵向裁切视口，流式页面绝对定位并逐页上移，每页截图一次；
+   上下页边距用白色遮罩盖住，相邻页的内容不会露在边距里 */
 .quickref-pdf-viewport {
   position: relative;
   overflow: hidden;
@@ -3076,14 +3106,38 @@ function toPlaceCards() {
   min-height: 0;
 }
 
+.quickref-pdf-mask {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  background: #ffffff;
+}
+
+.quickref-pdf-mask-top {
+  top: 0;
+  height: var(--quickref-pad-top);
+}
+
+.quickref-pdf-mask-bottom {
+  bottom: 0;
+  height: var(--quickref-pad-bottom);
+}
+
 /* 宾客速查表打印页：高度随内容流式增长，由浏览器按 A4 纵向自然分页 */
+.quickref-pdf-viewport,
+.quickref-sheet {
+  --quickref-pad-top: 12mm;
+  --quickref-pad-bottom: 10mm;
+}
+
 .quickref-sheet {
   width: 210mm;
   height: auto;
   min-height: 297mm;
   overflow: visible;
   box-sizing: border-box;
-  padding: 12mm 14mm 10mm;
+  padding: var(--quickref-pad-top) 14mm var(--quickref-pad-bottom);
   font-size: 3.4mm;
   line-height: 1.5;
   color: #0f172a;

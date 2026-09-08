@@ -22,7 +22,9 @@
  * - 请求体 > 32KB → 413（先看 Content-Length，再看实际字节数）
  * - 按 IP 1 小时滑动窗口最多 30 次 → 429 + Retry-After
  * - 有密钥上游 fetch 共用 25s AbortController 超时；任一上游超时后不再尝试后续上游，直接 504
- * - 匿名 Pollinations 兜底两个 model 共用 10s 单一计时器（不叠加），到时直接 502 固定文案
+ * - 匿名 Pollinations 兜底两个 model 共用 10s 单一计时器（不叠加），到时直接 502 固定文案；
+ *   每次 fetch 的 eo.timeoutSetting 只给到剩余预算（connect ≤ 3s，read/write = 剩余 - connect），
+ *   运行时不及时响应 AbortSignal 时总耗时仍不超预算
  * - 无任何密钥且匿名兜底关闭 → 不发任何上游请求，直接 502（fail fast）
  * - 主模型告警推送不阻塞上游链路（有 waitUntil 时后台完成，否则不等待）
  * - 上游失败的诊断（模型名 / HTTP 状态）只进日志；502 响应体为固定文案，不泄露上游模型名
@@ -42,6 +44,10 @@ export const AI_RATE_LIMIT = 30
 export const AI_RATE_WINDOW_MS = 60 * 60 * 1000
 export const AI_UPSTREAM_TIMEOUT_MS = 25_000
 export const AI_ANON_FALLBACK_TIMEOUT_MS = 10_000
+/** 剩余预算低于此值时不再发起下一个 model 的请求 */
+export const AI_ANON_FALLBACK_MIN_BUDGET_MS = 500
+/** 匿名兜底单次连接超时上限；connect + read 合计不超剩余预算 */
+export const AI_ANON_FALLBACK_CONNECT_TIMEOUT_MS = 3_000
 export const AI_MAX_CONTENT_CHARS = 20 * 1024
 
 const encoder = new TextEncoder()
@@ -293,12 +299,20 @@ async function proxyUpstreams({ env, messages, signal, waitUntil }) {
   if (anonFallbackEnabled && !timedOut) {
     const anonAborter = new AbortController()
     const abortAnon = () => anonAborter.abort()
+    const anonDeadline = Date.now() + AI_ANON_FALLBACK_TIMEOUT_MS
     const anonTimer = setTimeout(abortAnon, AI_ANON_FALLBACK_TIMEOUT_MS)
     if (signal.aborted) abortAnon()
     else signal.addEventListener('abort', abortAnon)
     try {
       for (const model of POLLINATIONS_MODELS) {
         if (anonAborter.signal.aborted) break
+        const budget = anonDeadline - Date.now()
+        if (budget < AI_ANON_FALLBACK_MIN_BUDGET_MS) {
+          attempts.push(`${model}: 预算不足跳过`)
+          break
+        }
+        const connectTimeout = Math.min(budget, AI_ANON_FALLBACK_CONNECT_TIMEOUT_MS)
+        const transferTimeout = Math.max(budget - connectTimeout, AI_ANON_FALLBACK_MIN_BUDGET_MS)
         try {
           const upstream = await fetch(POLLINATIONS_URL, {
             method: 'POST',
@@ -307,9 +321,9 @@ async function proxyUpstreams({ env, messages, signal, waitUntil }) {
             signal: anonAborter.signal,
             eo: {
               timeoutSetting: {
-                connectTimeout: AI_ANON_FALLBACK_TIMEOUT_MS,
-                readTimeout: AI_ANON_FALLBACK_TIMEOUT_MS,
-                writeTimeout: AI_ANON_FALLBACK_TIMEOUT_MS,
+                connectTimeout,
+                readTimeout: transferTimeout,
+                writeTimeout: transferTimeout,
               },
             },
           })

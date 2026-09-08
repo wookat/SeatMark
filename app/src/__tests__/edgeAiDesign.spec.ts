@@ -6,6 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  AI_ANON_FALLBACK_CONNECT_TIMEOUT_MS,
   AI_ANON_FALLBACK_TIMEOUT_MS,
   AI_MAX_BODY_BYTES,
   AI_MAX_CONTENT_CHARS,
@@ -174,6 +175,65 @@ describe('ai-design 上游超时与截断', () => {
     expect(res.status).toBe(502)
     expect(fetchMock).toHaveBeenCalledTimes(2)
     warn.mockRestore()
+  })
+
+  it('第 364 轮：第一个 model 耗掉 3s 后，第二个 model 的 eo.timeoutSetting 只给剩余 7s 预算（connect ≤ 3s，connect+read ≤ 剩余）；剩余不足 500ms 则不再发起', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    interface EoInit extends RequestInit {
+      eo?: { timeoutSetting: { connectTimeout: number; readTimeout: number; writeTimeout: number } }
+    }
+    let calls = 0
+    const fetchMock = vi.fn((_url: string, init: EoInit) => {
+      calls += 1
+      if (calls === 1) {
+        return new Promise<Response>((resolve) => {
+          setTimeout(() => resolve(new Response('busy', { status: 503 })), 3000)
+        })
+      }
+      return new Promise<Response>((_resolve, reject) => {
+        const fail = () => reject(new DOMException('The operation was aborted.', 'AbortError'))
+        if (init.signal?.aborted) fail()
+        else init.signal?.addEventListener('abort', fail)
+      })
+    })
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const pending = onRequest({ request: post({ messages }, freshIp()), env: ENV })
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    const first = fetchMock.mock.calls[0]![1] as EoInit
+    const t1 = first.eo!.timeoutSetting
+    expect(t1.connectTimeout).toBe(AI_ANON_FALLBACK_CONNECT_TIMEOUT_MS)
+    expect(t1.connectTimeout + t1.readTimeout).toBeLessThanOrEqual(AI_ANON_FALLBACK_TIMEOUT_MS)
+    expect(t1.writeTimeout).toBe(t1.readTimeout)
+    await vi.advanceTimersByTimeAsync(3000)
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    const second = fetchMock.mock.calls[1]![1] as EoInit
+    const t2 = second.eo!.timeoutSetting
+    expect(t2.connectTimeout).toBe(AI_ANON_FALLBACK_CONNECT_TIMEOUT_MS)
+    expect(t2.connectTimeout + t2.readTimeout).toBeLessThanOrEqual(AI_ANON_FALLBACK_TIMEOUT_MS - 3000)
+    expect(t2.connectTimeout + t2.readTimeout).toBeGreaterThan(AI_ANON_FALLBACK_TIMEOUT_MS - 3000 - 200)
+    await vi.advanceTimersByTimeAsync(AI_ANON_FALLBACK_TIMEOUT_MS)
+    const res = await pending
+    expect(res.status).toBe(502)
+    warn.mockRestore()
+
+    // 第一个 model 拖到只剩 <500ms 才失败：第二个 model 不再发起，总耗时仍在 10s 内
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    const slowMock = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          setTimeout(() => resolve(new Response('busy', { status: 503 })), AI_ANON_FALLBACK_TIMEOUT_MS - 300)
+        }),
+    )
+    globalThis.fetch = slowMock as unknown as typeof fetch
+    const warn2 = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const pending2 = onRequest({ request: post({ messages }, freshIp()), env: ENV })
+    await vi.waitFor(() => expect(slowMock).toHaveBeenCalledTimes(1))
+    await vi.advanceTimersByTimeAsync(AI_ANON_FALLBACK_TIMEOUT_MS - 300 + 10)
+    const res2 = await pending2
+    expect(res2.status).toBe(502)
+    expect(slowMock).toHaveBeenCalledTimes(1)
+    warn2.mockRestore()
   })
 
   it('第 364 轮：告警 webhook 挂住不阻塞兜底上游（DeepSeek 500 → 立即请求智谱，webhook 交给 waitUntil）', async () => {
