@@ -240,7 +240,7 @@ function onCenterLayout() {
             >
               {{ t(recommendedPaper.spec.name) }}
             </button>
-            ，{{ tFitReason(recommendedPaper.fit.reason) }}
+            {{ t('，') }}{{ tFitReason(recommendedPaper.fit.reason) }}
           </span>
         </p>
       </div>

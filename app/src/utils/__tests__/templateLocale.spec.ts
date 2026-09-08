@@ -3,7 +3,14 @@ import { describe, expect, it } from 'vitest'
 import { standardTemplate } from '@/data/templateStandard'
 import type { LabelTemplate } from '@/types/template'
 import { defaultTemplates } from '@/data/defaultTemplates'
-import { localizeTemplateForLocale, SAMPLE_NAME_EN } from '@/utils/templateLocale'
+import { WEB_FONTS } from '@/data/fonts'
+import {
+  FONT_NAME_EN,
+  fontDisplayName,
+  localizeTemplateForLocale,
+  SAMPLE_NAME_EN,
+  templateHasCjk,
+} from '@/utils/templateLocale'
 
 const CJK = /[\u4e00-\u9fff]/
 
@@ -93,5 +100,81 @@ describe('localizeTemplateForLocale', () => {
       '学而不厌',
       'Li Ming',
     ])
+  })
+
+  it('r359 en：中英并排的固定文案只保留英文段，纯中文固定文案走映射表', () => {
+    const tpl: LabelTemplate = {
+      ...standardTemplate,
+      sampleData: undefined,
+      fields: [
+        { ...standardTemplate.fields[0]!, id: 'a', fixedText: '考试出入证 · EXAM PASS' },
+        { ...standardTemplate.fields[0]!, id: 'b', fixedText: '床位 BED' },
+        { ...standardTemplate.fields[0]!, id: 'c', fixedText: 'VIP GUEST · 贵宾席' },
+        { ...standardTemplate.fields[0]!, id: 'd', fixedText: '2026 行业博览会 · EXPO PASS' },
+        { ...standardTemplate.fields[0]!, id: 'e', fixedText: '诚信应考 · 遵守考场规则' },
+        { ...standardTemplate.fields[0]!, id: 'f', fixedText: '核验照片 PHOTO' },
+        { ...standardTemplate.fields[0]!, id: 'g', fixedText: '仅中文无英文段' },
+        { ...standardTemplate.fields[0]!, id: 'h', caption: '身份证号' },
+      ],
+    }
+    const out = localizeTemplateForLocale(tpl, 'en')
+    expect(out.fields.map((f) => f.fixedText)).toEqual([
+      'EXAM PASS',
+      'BED',
+      'VIP GUEST',
+      '2026 · EXPO PASS',
+      'Exam with integrity · Follow the rules',
+      'PHOTO',
+      '仅中文无英文段',
+      undefined,
+    ])
+    expect(out.fields[7]!.caption).toBe('ID NO.')
+  })
+
+  it('r359 en：示例值 第N桌/第N组/第 N 考场 与职务示例映射为英文', () => {
+    const tpl: LabelTemplate = {
+      ...standardTemplate,
+      sampleData: { table: '第 3 桌', group: '第2组', room: '第 12 考场', title: '首席技术官', org: '某某研究院' },
+      fields: [],
+    }
+    expect(localizeTemplateForLocale(tpl, 'en').sampleData).toEqual({
+      table: 'Table 3',
+      group: 'Group 2',
+      room: 'Room 12',
+      title: 'CTO',
+      org: 'Example Institute',
+    })
+  })
+
+  it('r359：全部默认模板 en 本地化后固定文案/小注不含中文；剩余中文示例由 templateHasCjk 识别；zh 下始终为原对象', () => {
+    for (const tpl of defaultTemplates) {
+      const out = localizeTemplateForLocale(tpl, 'en')
+      for (const f of out.fields) {
+        expect(f.fixedText ?? '', `${tpl.id}/${f.id} fixedText`).not.toMatch(CJK)
+        expect(f.caption ?? '', `${tpl.id}/${f.id} caption`).not.toMatch(CJK)
+      }
+      const hasSample =
+        out.fields.some((f) => CJK.test(f.sample ?? '')) ||
+        Object.values(out.sampleData ?? {}).some((v) => CJK.test(v))
+      expect(templateHasCjk(out), tpl.id).toBe(hasSample)
+      expect(localizeTemplateForLocale(tpl, 'zh')).toBe(tpl)
+    }
+  })
+})
+
+describe('fontDisplayName（r359）', () => {
+  it('en 下中文字体名显示英文别名，zh 下保持原名，未知名称原样返回', () => {
+    expect(fontDisplayName('宋体', 'en')).toBe('SimSun')
+    expect(fontDisplayName('黑体（微软雅黑）', 'en')).toBe('Microsoft YaHei')
+    expect(fontDisplayName('楷体', 'en')).toBe('KaiTi')
+    expect(fontDisplayName('宋体', 'zh')).toBe('宋体')
+    expect(fontDisplayName('Inter', 'en')).toBe('Inter')
+    expect(FONT_NAME_EN['黑体']).toBe('SimHei')
+  })
+
+  it('内置中文 WebFont 的名称全部有英文别名', () => {
+    for (const font of WEB_FONTS.filter((f) => f.lang === 'zh')) {
+      expect(fontDisplayName(font.name, 'en'), font.name).not.toMatch(CJK)
+    }
   })
 })

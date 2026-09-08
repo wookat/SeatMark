@@ -276,7 +276,7 @@ const SECTIONS = computed(() => [
             <circle cx="12" cy="12" r="10" />
             <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
           </svg>
-          <span class="hidden md:inline">{{ locale === 'en' ? '中文' : 'EN' }}</span>
+          <span class="hidden md:inline" :lang="locale === 'en' ? 'zh' : undefined">{{ locale === 'en' ? '中文' : 'EN' }}</span>
         </RouterLink>
 
         <RouterLink
@@ -404,7 +404,7 @@ const SECTIONS = computed(() => [
                   <circle cx="12" cy="12" r="10" />
                   <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                 </svg>
-                {{ locale === 'en' ? '中文' : 'English' }}
+                <span :lang="locale === 'en' ? 'zh' : undefined">{{ locale === 'en' ? '中文' : 'English' }}</span>
               </RouterLink>
             </nav>
           </Transition>

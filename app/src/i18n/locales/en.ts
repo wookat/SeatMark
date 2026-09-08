@@ -1748,7 +1748,9 @@ export const en: Record<string, string> = {
 
   // 模板库 / 教程中心 页面框架（正文仍为中文）
   '款免费内置模板覆盖考场座签、考号贴、课桌姓名贴、会议桌牌、出入证、学生证、工作证等场景，全部以毫米为单位精确排版，点击任意模板查看详情，或直接开始生成。': 'free built-in templates for exam seat labels, candidate-number stickers, desk name tags, conference place cards, passes, student and staff badges — all laid out to the millimetre. Open any template for details or start generating right away.',
-  '「': '"',
+  '「': ' “',
+  '」': '”',
+  '，': ', ',
   '」分类下无匹配，已在全部分类中找到': '" has no matches; found in all categories:',
   '在「': 'Found in "',
   '」分类中找到': '":',

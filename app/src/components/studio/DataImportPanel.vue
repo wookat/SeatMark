@@ -361,7 +361,7 @@ async function onDownloadSample() {
                   </select>
                 </label>
               </template>
-              <template v-else>{{ t('工作表') }}「{{ workspace.excel.sheetName }}」</template>
+              <template v-else>{{ t('工作表') }}{{ t('「') }}{{ workspace.excel.sheetName }}{{ t('」') }}</template>
             </span>
             <!-- 分隔点依附在第二段之前，换行时随其一起换行，不会孤悬行尾 -->
             <span
@@ -432,7 +432,7 @@ async function onDownloadSample() {
           {{ t('查看全部数据（可筛选排序）') }}
         </button>
         <p v-if="workspace.displayRows.length > 5" class="text-[11px] text-slate-600">
-          {{ t('仅展示前 5 条') }}，{{ t('共') }} {{ workspace.displayRows.length }} {{ t('条') }}
+          {{ t('仅展示前 5 条') }}{{ t('，') }}{{ t('共') }} {{ workspace.displayRows.length }} {{ t('条') }}
         </p>
       </div>
     </template>

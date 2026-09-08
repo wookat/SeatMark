@@ -11,8 +11,9 @@ import { templateDetails } from '@/data/templateDetails'
 import { TEMPLATE_SUBCATEGORIES, subcategoryOf } from '@/data/templateTaxonomy'
 import { t as tr } from '@/i18n'
 import { useI18n } from '@/i18n'
-import type { TemplateCategory } from '@/types/template'
+import type { LabelTemplate, TemplateCategory } from '@/types/template'
 import { matchesChineseQuery } from '@/utils/pinyin'
+import { localizeTemplateForLocale, templateHasCjk } from '@/utils/templateLocale'
 
 const { t, localePath, locale } = useI18n()
 
@@ -34,6 +35,24 @@ const items = templateDetails
     template: defaultTemplates.find((tpl) => tpl.id === detail.slug),
   }))
   .filter((item) => !!item.template)
+
+/** 橱窗缩略图按 locale 本地化固定文案/示例；仍含中文示例的外层标 lang="zh" */
+const thumbById = computed(() => {
+  const map = new Map<string, { template: LabelTemplate; lang: 'zh' | undefined }>()
+  for (const item of items) {
+    const tpl = item.template!
+    const localized = localizeTemplateForLocale(tpl, locale.value)
+    map.set(tpl.id, {
+      template: localized,
+      lang: locale.value === 'en' && templateHasCjk(localized) ? 'zh' : undefined,
+    })
+  }
+  return map
+})
+
+function thumbOf(tpl: LabelTemplate) {
+  return thumbById.value.get(tpl.id) ?? { template: tpl, lang: undefined }
+}
 
 type CategoryFilter = TemplateCategory | 'all'
 
@@ -467,7 +486,7 @@ const recommendedItems = computed(() => {
             class="group flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 transition-colors hover:border-brand-300"
           >
             <div class="w-16 shrink-0">
-              <TemplateThumb :template="rec.template!" />
+              <TemplateThumb :template="thumbOf(rec.template!).template" :lang="thumbOf(rec.template!).lang" />
             </div>
             <div class="min-w-0">
               <h3 class="truncate text-sm font-bold text-slate-800 group-hover:text-brand-600">
@@ -496,7 +515,11 @@ const recommendedItems = computed(() => {
         >
           <div class="mx-auto max-w-56 ">
             <div class="bg-white shadow-card">
-              <TemplateThumb :template="item.template!" :defer="index >= EAGER_THUMB_COUNT" />
+              <TemplateThumb
+                :template="thumbOf(item.template!).template"
+                :lang="thumbOf(item.template!).lang"
+                :defer="index >= EAGER_THUMB_COUNT"
+              />
             </div>
           </div>
           <div class="absolute top-3 right-3 flex max-w-[calc(100%-1.5rem)] flex-wrap justify-end gap-1">

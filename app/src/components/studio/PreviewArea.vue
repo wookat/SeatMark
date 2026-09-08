@@ -10,7 +10,7 @@ import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
 import { useQuotaBadge } from '@/composables/useQuotaBadge'
 import { STUDIO_TOOLBAR_BOTTOM_VAR } from '@/composables/useStickyActions'
-import { t } from '@/i18n'
+import { t, useI18n } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useCalibrationStore } from '@/stores/calibration'
 import { QUOTA_USER_DAILY, useQuotaStore } from '@/stores/quota'
@@ -54,6 +54,7 @@ import {
   type LabelExportItem,
 } from '@/utils/pngExport'
 import { templateColumnsValid } from '@/utils/fieldTemplate'
+import { templateHasCjk } from '@/utils/templateLocale'
 import { buildUnmappedNotice } from '@/utils/unmappedNotice'
 
 const workspace = useWorkspaceStore()
@@ -65,6 +66,12 @@ const calibrationStore = useCalibrationStore()
 const pageWidthPx = computed(() => workspace.template.page.paperWidth * MM_TO_PX)
 const pageHeightPx = computed(() => workspace.template.page.paperHeight * MM_TO_PX)
 const currentPaperLabel = computed(() => paperLabel(workspace.template.page))
+
+const { locale } = useI18n()
+/** en 界面下画布内容为中文设计稿时，标 lang="zh"（不改变渲染，仅语言标注） */
+const previewLang = computed(() =>
+  locale.value === 'en' && templateHasCjk(workspace.renderTemplate) ? 'zh' : undefined,
+)
 
 /** 浏览器打印的 @page 尺寸跟随模板纸张；校准补偿同步注入打印样式 */
 watchEffect(() => {
@@ -1324,7 +1331,11 @@ const hintKey = ref<HintKey | null>(null)
           class="relative origin-top-left"
           :style="{ width: `${pageWidthPx * scale}px`, height: `${pageHeightPx * scale}px` }"
         >
-          <div class="absolute top-0 left-0 origin-top-left" :style="{ transform: `scale(${scale})` }">
+          <div
+            class="absolute top-0 left-0 origin-top-left"
+            :style="{ transform: `scale(${scale})` }"
+            :lang="previewLang"
+          >
             <LabelSheet
               :key="workspace.rareFontTick"
               :template="workspace.renderTemplate"
