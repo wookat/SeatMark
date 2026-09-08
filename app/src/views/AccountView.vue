@@ -345,7 +345,7 @@ function formatDate(iso: string | null | undefined): string {
           </h1>
           <p class="mt-2 text-sm leading-6 text-slate-600">
             <template v-if="serviceUnavailable">
-              {{ t('账号服务维护中，带水印导出不限次') }}{{ t('。') }}
+              {{ t('登录/注册暂不可用（服务维护中）。不登录也能正常制作、带水印导出与打印，不限次数。') }}
             </template>
             <template v-else-if="mode === 'reset'">
               {{ t('输入注册邮箱获取重置验证码，验证后设置新密码即可重新登录。') }}

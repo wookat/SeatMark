@@ -9,6 +9,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { setLocale } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
+import { AUTH_MAINTENANCE_HINT } from '@/utils/maintenanceCopy'
 import PricingView from '@/views/PricingView.vue'
 
 const stubs = { RouterLink: RouterLinkStub, Teleport: true, Transition: true }
@@ -113,13 +114,13 @@ describe('第 346 轮：PricingView 原价独立一行', () => {
       const hints = card.findAll('[data-testid="pricing-maintenance-hint"]')
       expect(hints.length).toBeLessThanOrEqual(1)
       const bullets = card.findAll('li').map((li) => li.text())
-      expect(bullets.some((b) => b.includes('账号服务维护中'))).toBe(false)
-      const occurrences = card.text().split('账号服务维护中').length - 1
+      expect(bullets.some((b) => b.includes('服务维护中'))).toBe(false)
+      const occurrences = card.text().split('服务维护中').length - 1
       expect(occurrences).toBeLessThanOrEqual(1)
     }
     const proHints = cards[1]!.findAll('[data-testid="pricing-maintenance-hint"]')
     expect(proHints).toHaveLength(1)
-    expect(proHints[0]!.text()).toBe('账号服务维护中，带水印导出不限次；恢复后可领取')
+    expect(proHints[0]!.text()).toBe(AUTH_MAINTENANCE_HINT)
     wrapper.unmount()
   })
 

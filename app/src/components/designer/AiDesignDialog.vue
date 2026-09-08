@@ -115,6 +115,9 @@ async function generate() {
           :placeholder="t('座位号: 12 | 8\n姓名: 张三 | 欧阳娜娜\n考场: 第1考场\n准考证号: 2026061001\n照片:')"
         ></textarea>
         <p class="mt-1 text-[11px] text-slate-600">{{ t('字段名含「照片 / 头像」会生成图片占位框') }}</p>
+        <p class="mt-0.5 text-[11px] text-slate-500" data-testid="ai-design-privacy-hint">
+          {{ t('示例值会发送给 AI 服务，请用虚构内容，不要填真实姓名/证件号') }}
+        </p>
       </div>
 
       <div>

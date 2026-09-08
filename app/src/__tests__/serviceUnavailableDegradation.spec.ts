@@ -13,11 +13,14 @@ import QuotaLimitDialog from '@/components/ui/QuotaLimitDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useQuotaStore } from '@/stores/quota'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { AUTH_MAINTENANCE_HINT } from '@/utils/maintenanceCopy'
 import PricingView from '@/views/PricingView.vue'
 
-const NEUTRAL = '账号服务维护中，带水印导出不限次'
-/** 第 363 轮：定价卡底部维护提示与 features bullet 合并为一条 */
-const PRICING_CARD_HINT = '账号服务维护中，带水印导出不限次；恢复后可领取'
+/** 第 364 轮：定价页三处与配额弹窗统一为同一句短文案 */
+const NEUTRAL = AUTH_MAINTENANCE_HINT
+const PRICING_CARD_HINT = AUTH_MAINTENANCE_HINT
+/** 导出弹窗：维护说明挂在「无水印导出」选项内，不再在弹窗底部重复 */
+const EXPORT_HINT = '登录暂不可用（服务维护中），暂无法登录领取更多次数；下方带水印导出与打印不受影响'
 
 class ResizeObserverStub {
   observe() {}
@@ -86,7 +89,7 @@ describe('第 345 轮：账号服务不可用降级文案', () => {
       for (const c of cards) expect(c.findAll('li').filter((li) => li.text() === NEUTRAL)).toHaveLength(0)
       for (const h of hints) {
         if (!cards.some((c) => c.element.contains(h.element))) {
-          expect(h.text()).toBe('账号服务维护中，恢复后可领取')
+          expect(h.text()).toBe(NEUTRAL)
         }
       }
       // 定价不变：专业版原价 ¥19、团队版 ¥49
@@ -212,7 +215,10 @@ describe('第 345 轮：账号服务不可用降级文案', () => {
     it('serviceUnavailable=true：未登录提示改为中性文案', async () => {
       useAuthStore().serviceUnavailable = true
       const wrapper = await openExportChoice()
-      expect(wrapper.find('[data-testid="export-service-unavailable"]').text()).toBe(NEUTRAL)
+      const hint = wrapper.find('[data-testid="export-service-unavailable"]')
+      expect(hint.text()).toBe(EXPORT_HINT)
+      expect(wrapper.find('[data-testid="choose-clean"]').element.contains(hint.element)).toBe(true)
+      expect(wrapper.text().split('服务维护中').length - 1).toBe(1)
       expect(wrapper.text()).not.toContain('注册即送 7 天')
       wrapper.unmount()
     })

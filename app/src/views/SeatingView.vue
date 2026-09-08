@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch, watchEffect } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 
 import MobilePreviewJump from '@/components/MobilePreviewJump.vue'
@@ -37,6 +37,8 @@ import {
   seatingRosterTextFromTable,
   shuffleEntries,
   summarizeGenderMix,
+  unseatedEntries,
+  unseatedSummary,
   type Seat,
   type SeatingDuplicatePolicy,
   type SeatingEntry,
@@ -269,9 +271,38 @@ function restoreSnapshot(snapshot: SeatingSnapshot) {
 function toastUndoable(title: string, text: string, snapshot: SeatingSnapshot) {
   toast.push('info', title, text, UNDO_WINDOW_MS, {
     label: tr('撤销'),
-    onClick: () => restoreSnapshot(snapshot),
+    onClick: () => {
+      restoreSnapshot(snapshot)
+      if (lastUndo.value === snapshot) lastUndo.value = null
+    },
   })
 }
+/** 换座 / 整排交换 / 随机排座的单层撤销快照（只保留最近一次），Ctrl/Cmd+Z 恢复 */
+const lastUndo = ref<SeatingSnapshot | null>(null)
+function rememberUndo(): SeatingSnapshot {
+  const snapshot: SeatingSnapshot = { ...takeSnapshot(), selectedSeat: null }
+  lastUndo.value = snapshot
+  return snapshot
+}
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  if (target.isContentEditable) return true
+  const tag = target.tagName
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+}
+function onUndoKeydown(event: KeyboardEvent) {
+  if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.altKey) return
+  if (event.key !== 'z' && event.key !== 'Z') return
+  if (isEditableTarget(event.target)) return
+  const snapshot = lastUndo.value
+  if (!snapshot) return
+  event.preventDefault()
+  lastUndo.value = null
+  restoreSnapshot(snapshot)
+  toast.info(tr('已撤销上一步换座'))
+}
+onMounted(() => window.addEventListener('keydown', onUndoKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onUndoKeydown))
 /** 逐字输入时只提示一次：以连续编辑开始前的座次为基线，停顿后汇总净变化 */
 const RECONCILE_TOAST_DELAY_MS = 600
 let reconcileBase: SeatingEntry[] | null = null
@@ -432,9 +463,10 @@ function randomizeAll() {
     toast.warning(tr('名单为空'), tr('请先在左侧粘贴学生名单'))
     return
   }
+  const snapshot = rememberUndo()
   arranged.value = shuffleEntries(entries.value.filter((e) => e.name))
   selectedSeat.value = null
-  toast.success(tr('已完全随机排座'), tr('再点一次可重新打乱'))
+  toastUndoable(tr('已完全随机排座'), tr('再点一次可重新打乱；10 秒内可撤销（Ctrl/Cmd+Z）'), snapshot)
 }
 
 function genderMixMessage(list: readonly SeatingEntry[]): string {
@@ -458,10 +490,11 @@ function genderMixMessage(list: readonly SeatingEntry[]): string {
 
 function randomizeMixed() {
   if (!hasGender.value) return
+  const snapshot = rememberUndo()
   const list = interleaveByGender(parsedEntries.value.filter((e) => e.name))
   arranged.value = list
   selectedSeat.value = null
-  toast.success(tr('已按男女混排'), genderMixMessage(list))
+  toastUndoable(tr('已按男女混排'), genderMixMessage(list), snapshot)
 }
 
 function restoreOrder() {
@@ -493,10 +526,11 @@ const selectedRow = ref<number | null>(null)
 const dragSeat = ref<number | null>(null)
 const dragRow = ref<number | null>(null)
 
-/** 以当前座位序生成可交换的工作数组（长度补齐到座位数） */
+/** 以当前座位序生成可交换的工作数组（长度补齐到座位数；超员时保留座位数之后的未排座尾部） */
 function workingEntries(): SeatingEntry[] {
   const out: SeatingEntry[] = []
-  for (let i = 0; i < rows.value * cols.value; i++) {
+  const len = Math.max(rows.value * cols.value, entries.value.length)
+  for (let i = 0; i < len; i++) {
     out.push(entries.value[i] ?? { name: '' })
   }
   return out
@@ -504,6 +538,7 @@ function workingEntries(): SeatingEntry[] {
 
 function swapSeats(a: number, b: number) {
   if (a === b) return
+  rememberUndo()
   const work = workingEntries()
   ;[work[a], work[b]] = [work[b]!, work[a]!]
   arranged.value = work
@@ -511,13 +546,14 @@ function swapSeats(a: number, b: number) {
 
 function swapRows(a: number, b: number) {
   if (a === b) return
+  const snapshot = rememberUndo()
   const work = workingEntries()
   const c = cols.value
   for (let i = 0; i < c; i++) {
     ;[work[a * c + i], work[b * c + i]] = [work[b * c + i]!, work[a * c + i]!]
   }
   arranged.value = work
-  toast.success(`${tr('已交换排')}: ${a + 1} ⇄ ${b + 1}`)
+  toastUndoable(`${tr('已交换排')}: ${a + 1} ⇄ ${b + 1}`, tr('10 秒内可撤销（Ctrl/Cmd+Z）'), snapshot)
 }
 
 function onSeatClick(seat: Seat | null) {
@@ -659,7 +695,44 @@ const personUnit = computed(() => (currentLocale() === 'en' ? tr('名单人数�
 const nextStepProgress = computed(
   () => `${filledCount.value} ${personUnit.value} / ${seatCount.value} ${tr('座')}`,
 )
-const overflowCount = computed(() => Math.max(filledCount.value - seatCount.value, 0))
+/** 排不进座位的学生（按填充顺序座位数之后的非空姓名）及其在名单序中的位置，点姓名可与选中座位互换 */
+const unseated = computed(() => unseatedEntries(entries.value, rows.value, cols.value))
+const unseatedItems = computed(() => {
+  const items: { entry: SeatingEntry; index: number }[] = []
+  for (let i = seatCount.value; i < entries.value.length; i++) {
+    const entry = entries.value[i]!
+    if (entry.name) items.push({ entry, index: i })
+  }
+  return items
+})
+const overflowCount = computed(() => unseated.value.length)
+const unseatedOpen = ref(false)
+watch(overflowCount, (n) => {
+  if (!n) unseatedOpen.value = false
+})
+const unseatedFootnote = computed(() =>
+  unseatedSummary(unseated.value, {
+    template: tr('另有 {n} 人未排座：{names}'),
+    etc: tr('等'),
+    join: listJoin,
+  }),
+)
+/** 把未排座的学生放到当前选中的座位，原座位学生变为未排；未选中座位时提示先选 */
+function placeUnseated(index: number) {
+  const target = selectedSeat.value
+  if (target == null) {
+    toast.info(tr('先在预览中点选一个座位'), tr('再点未排座的姓名，就能把 TA 换到那个座位'))
+    return
+  }
+  const name = entries.value[index]?.name ?? ''
+  const displaced = entries.value[target]?.name ?? ''
+  swapSeats(target, index)
+  selectedSeat.value = null
+  toast.success(
+    tr('{name} 已排到座位 {no}').replace('{name}', name).replace('{no}', String(target + 1)),
+    displaced ? tr('{name} 变为未排座；可用 Ctrl/Cmd+Z 撤销').replace('{name}', displaced) : tr('可用 Ctrl/Cmd+Z 撤销'),
+  )
+}
 
 // ---------- A4 横向预览（mm 排版 + 缩放适配容器） ----------
 const SHEET_W = 297
@@ -841,7 +914,7 @@ function downloadRosterCsv() {
     return
   }
   const baseName = sanitizeFileNamePart(title.value) || tr('教室座位表')
-  const blob = new Blob([seatingRosterCsv(seats.value)], { type: 'text/csv;charset=utf-8' })
+  const blob = new Blob([seatingRosterCsv(seats.value, unseated.value)], { type: 'text/csv;charset=utf-8' })
   downloadBlob(blob, `${baseName}-${tr('座位清单')}.csv`)
   toast.success(
     tr('CSV 已下载'),
@@ -1010,10 +1083,56 @@ function toDeskLabels() {
           <p class="mt-2 text-xs leading-5 text-slate-600">
             {{ tr('已输入') }} <strong class="text-slate-700">{{ filledCount }}</strong> {{ tr('名学生') }} /
             <strong class="text-slate-700">{{ seatCount }}</strong> {{ tr('座') }}{{ tr('。') }}
-            <span v-if="overflowCount" class="font-bold text-amber-600">
-              {{ tr('超出') }} {{ overflowCount }} {{ tr('人排不下，请增加行列数。') }}
-            </span>
+            <button
+              v-if="overflowCount"
+              type="button"
+              class="inline-flex max-w-full items-center gap-1 rounded-md font-bold text-amber-600 underline decoration-amber-300 decoration-dotted underline-offset-2 hover:text-amber-700"
+              :aria-expanded="unseatedOpen"
+              aria-controls="seating-unseated-list"
+              data-testid="seating-unseated-toggle"
+              @click="unseatedOpen = !unseatedOpen"
+            >
+              <span>{{ tr('超出') }} {{ overflowCount }} {{ tr('人排不下，请增加行列数。') }}</span>
+              <svg
+                class="size-3 shrink-0 transition-transform"
+                :class="{ 'rotate-180': unseatedOpen }"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
           </p>
+          <div
+            v-if="overflowCount && unseatedOpen"
+            id="seating-unseated-list"
+            class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"
+            data-testid="seating-unseated-list"
+          >
+            <p>
+              {{ selectedSeat != null
+                ? tr('点姓名把 TA 排到已选中的座位，原座位学生变为未排座')
+                : tr('未排座的学生。先在预览中点选一个座位，再点姓名即可互换') }}
+            </p>
+            <div class="mt-1.5 flex flex-wrap gap-1.5">
+              <button
+                v-for="item in unseatedItems"
+                :key="item.index"
+                type="button"
+                class="max-w-full truncate rounded-full border border-amber-300 bg-white px-2.5 py-0.5 font-semibold text-amber-900 hover:border-amber-500 hover:bg-amber-100"
+                data-testid="seating-unseated-chip"
+                :title="selectedSeat != null ? tr('排到座位 {no}').replace('{no}', String(selectedSeat + 1)) : tr('先在预览中点选一个座位')"
+                @click="placeUnseated(item.index)"
+              >
+                {{ item.entry.name }}
+              </button>
+            </div>
+          </div>
           <p v-if="rosterHints.length" class="mt-1 text-xs leading-5 text-slate-500" data-testid="roster-hints">
             <span v-for="hint in rosterHints" :key="hint" class="mr-2 inline-block">{{ hint }}</span>
           </p>
@@ -1345,6 +1464,11 @@ function toDeskLabels() {
                       </template>
                     </div>
                   </div>
+                  <p
+                    v-if="unseatedFootnote"
+                    class="seating-footnote seating-footnote--unseated"
+                    data-testid="seating-preview-unseated"
+                  >{{ unseatedFootnote }}</p>
                   <p class="seating-footnote">
                     {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} · {{ filledCount }} {{ personUnit }} ·
                     {{ viewMode === 'teacher' ? tr('教师视角') : tr('学生视角') }} · {{ tr('seatmark.cn 生成') }}
@@ -1394,6 +1518,11 @@ function toDeskLabels() {
               </template>
             </div>
           </div>
+          <p
+            v-if="unseatedFootnote"
+            class="seating-footnote seating-footnote--unseated"
+            data-testid="seating-export-unseated"
+          >{{ unseatedFootnote }}</p>
           <p class="seating-footnote">
             {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} · {{ filledCount }} {{ personUnit }} ·
             {{ viewMode === 'teacher' ? tr('教师视角') : tr('学生视角') }} · {{ tr('seatmark.cn 生成') }}
@@ -1588,5 +1717,16 @@ function toDeskLabels() {
   text-align: center;
   font-size: 2.8mm;
   color: #94a3b8;
+}
+
+/* 未排座名单：页脚上方一行，深一档色标出超员事实，超长时自动换行 */
+.seating-footnote--unseated {
+  color: #b45309;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.seating-footnote--unseated + .seating-footnote {
+  margin-top: 1mm;
 }
 </style>

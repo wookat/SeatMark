@@ -39,6 +39,7 @@ import {
   detectBanquetPasteLayout,
   MARKER_PRESETS,
   nextGroupColor,
+  paginateQuickRefBlocks,
   parseBanquetGuests,
   parseBanquetGuestsFromTable,
   type BanquetParseMode,
@@ -59,6 +60,7 @@ import {
   type BanquetTable,
   type GuestQuickReference,
   type MarkerKind,
+  type QuickRefBlock,
   type VenuePresetId,
 } from '@/utils/banquet'
 import { POSTER_GAP_MM, computePosterLayout } from '@/utils/banquetExportLayout'
@@ -1227,6 +1229,14 @@ async function runExport() {
 const quickRef = ref<GuestQuickReference | null>(null)
 const renderQuickRefHost = ref(false)
 const quickRefPrinting = ref(false)
+/** 速查表宿主的 PDF 模式：套一层 A4 纵向裁切视口，逐页平移流式内容后截图 */
+const quickRefPdfMode = ref(false)
+const quickRefPdfExporting = ref(false)
+const quickRefPageOffset = ref(0)
+const quickRefViewport = ref<HTMLElement | null>(null)
+const quickRefSheet = ref<HTMLElement | null>(null)
+const QUICKREF_PAGE_W = 210
+const QUICKREF_PAGE_H = 297
 /** 速查表姓名索引的分栏数：人数多时分三栏，少时两栏更易读 */
 const quickRefColumns = computed(() => ((quickRef.value?.index.length ?? 0) > 40 ? 3 : 2))
 
@@ -1250,6 +1260,72 @@ async function printQuickReference() {
   } finally {
     renderQuickRefHost.value = false
     quickRefPrinting.value = false
+  }
+}
+
+function quickRefContentBlocks(sheet: HTMLElement, padTop: number): QuickRefBlock[] {
+  const base = sheet.getBoundingClientRect().top + padTop
+  return Array.from(
+    sheet.querySelectorAll<HTMLElement>(
+      '.quickref-title, .quickref-meta, .quickref-section, .quickref-index-row, .quickref-table-name, .quickref-table tr, .quickref-footer',
+    ),
+  ).map((el) => {
+    const rect = el.getBoundingClientRect()
+    return { top: rect.top - base, bottom: rect.bottom - base }
+  })
+}
+
+async function rebuildQuickRefHost() {
+  renderQuickRefHost.value = false
+  await nextTick()
+  renderQuickRefHost.value = true
+  await nextTick()
+}
+
+/** 速查表下载 PDF：非标签成品、不加水印也不占无水印次数，全部浏览器本地生成 */
+async function downloadQuickReferencePdf() {
+  if (quickRefPdfExporting.value || quickRefPrinting.value || !ensureGuestsForQuickRef()) return
+  quickRefPdfExporting.value = true
+  quickRef.value = buildGuestQuickReference(guests.value, tables.value, groups.value)
+  quickRefPdfMode.value = true
+  quickRefPageOffset.value = 0
+  renderQuickRefHost.value = true
+  await nextTick()
+  try {
+    const viewport = quickRefViewport.value
+    const sheet = quickRefSheet.value
+    if (!viewport || !sheet) throw new Error(tr('导出页渲染失败'))
+    const style = getComputedStyle(sheet)
+    const padTop = parseFloat(style.paddingTop) || 0
+    const padBottom = parseFloat(style.paddingBottom) || 0
+    const usable = viewport.clientHeight - padTop - padBottom
+    const starts = paginateQuickRefBlocks(quickRefContentBlocks(sheet, padTop), usable)
+    const baseName = sanitizeFileNamePart(title.value) || tr('宴会座位表')
+    await exportPagedPdf({
+      pageCount: starts.length,
+      getPage: async (i) => {
+        quickRefPageOffset.value = starts[i] ?? 0
+        await nextTick()
+        const el = quickRefViewport.value
+        if (!el) throw new Error(tr('导出页渲染失败'))
+        return el
+      },
+      rebuildHost: rebuildQuickRefHost,
+      pageWidth: QUICKREF_PAGE_W,
+      pageHeight: QUICKREF_PAGE_H,
+      fileName: `${baseName}-${tr('宾客速查表')}.pdf`,
+    })
+    toast.success(
+      tr('速查表 PDF 已导出'),
+      tr('共 {n} 页 A4 纵向，全程本地生成，不占无水印次数').replace('{n}', String(starts.length)),
+    )
+  } catch (error) {
+    toast.danger(tr('导出失败'), error instanceof Error ? error.message : String(error))
+  } finally {
+    renderQuickRefHost.value = false
+    quickRefPdfMode.value = false
+    quickRefPageOffset.value = 0
+    quickRefPdfExporting.value = false
   }
 }
 
@@ -1781,7 +1857,7 @@ function toPlaceCards() {
                 <button
                   type="button"
                   class="btn btn-secondary btn-sm"
-                  :disabled="quickRefPrinting"
+                  :disabled="quickRefPrinting || quickRefPdfExporting"
                   data-testid="banquet-quickref-print"
                   @click="printQuickReference"
                 >
@@ -1790,6 +1866,15 @@ function toPlaceCards() {
                 <button
                   type="button"
                   class="btn btn-secondary btn-sm"
+                  :disabled="quickRefPdfExporting || quickRefPrinting"
+                  data-testid="banquet-quickref-pdf"
+                  @click="downloadQuickReferencePdf"
+                >
+                  {{ quickRefPdfExporting ? tr('生成中…') : tr('下载 PDF') }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm col-span-2"
                   data-testid="banquet-roster-csv"
                   @click="downloadTableRosterCsv"
                 >
@@ -1798,6 +1883,7 @@ function toPlaceCards() {
               </div>
               <p class="mt-1.5 text-xs leading-5 text-slate-500">
                 {{ tr('速查表为 A4 纵向：前半按姓名拼音索引「姓名 → 桌名」，后半按桌列名单，方便签到台快速查桌。') }}
+                {{ tr('「下载 PDF」在浏览器本地生成，不占无水印次数。') }}
               </p>
             </div>
             <div class="mt-1 border-t border-slate-100 pt-3">
@@ -2398,7 +2484,17 @@ function toPlaceCards() {
     <!-- 宾客速查表打印宿主：A4 纵向，内容按浏览器分页自然流式排布 -->
     <Teleport to="body">
       <div v-if="renderQuickRefHost && quickRef" class="offscreen-host">
-        <div class="sheet-page quickref-sheet" data-testid="banquet-quickref-sheet">
+        <div
+          ref="quickRefViewport"
+          :class="quickRefPdfMode ? 'quickref-pdf-viewport' : undefined"
+          :style="quickRefPdfMode ? { width: `${QUICKREF_PAGE_W}mm`, height: `${QUICKREF_PAGE_H}mm` } : undefined"
+        >
+        <div
+          ref="quickRefSheet"
+          class="sheet-page quickref-sheet"
+          :style="quickRefPdfMode ? { top: `${-quickRefPageOffset}px` } : undefined"
+          data-testid="banquet-quickref-sheet"
+        >
           <h2 class="quickref-title">{{ title || tr('宴会座位表') }} · {{ tr('宾客速查表') }}</h2>
           <p class="quickref-meta">
             {{ quickRef.index.length }} {{ tr('人') }} · {{ quickRef.tables.length }} {{ tr('桌') }}
@@ -2439,6 +2535,7 @@ function toPlaceCards() {
             <span>SeatMark 座签 · seatmark.cn</span>
             <span class="quickref-footer-rule"></span>
           </p>
+        </div>
         </div>
       </div>
     </Teleport>
@@ -2964,6 +3061,19 @@ function toPlaceCards() {
   width: 2.6mm;
   height: 2.6mm;
   border-radius: 50%;
+}
+
+/* 速查表 PDF 模式：A4 纵向裁切视口，流式页面绝对定位并逐页上移，每页截图一次 */
+.quickref-pdf-viewport {
+  position: relative;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.quickref-pdf-viewport .quickref-sheet {
+  position: absolute;
+  left: 0;
+  min-height: 0;
 }
 
 /* 宾客速查表打印页：高度随内容流式增长，由浏览器按 A4 纵向自然分页 */

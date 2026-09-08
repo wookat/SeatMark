@@ -17,6 +17,13 @@ function readDismissed(): boolean {
 
 export const studioGuideDismissed: Ref<boolean> = ref(readDismissed())
 
+/** 本次会话内是否已成功导出/打印过一次（仅成功路径置位；失败/取消不算），供引导第 4 步勾选 */
+export const studioExportedOnce: Ref<boolean> = ref(false)
+
+export function markStudioExported(): void {
+  studioExportedOnce.value = true
+}
+
 export function isStudioGuideDismissed(): boolean {
   return studioGuideDismissed.value
 }

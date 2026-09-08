@@ -6,7 +6,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import FirstVisitGuide from '@/components/studio/FirstVisitGuide.vue'
 import { setLocale } from '@/i18n'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { studioGuideDismissed } from '@/utils/firstVisit'
+import { markStudioExported, studioExportedOnce, studioGuideDismissed } from '@/utils/firstVisit'
 
 const CJK = /[\u4e00-\u9fff]/
 
@@ -147,5 +147,50 @@ describe('第 352 轮：FirstVisitGuide compact 行保留演示数据按钮', ()
     await setLocale('en')
     const wrapper = mount(FirstVisitGuide, { props: { compact: true } })
     expect(wrapper.get('[data-testid="first-visit-guide-demo"]').text()).not.toMatch(CJK)
+  })
+})
+
+describe('第 364 轮：第 3/4 步进度真实化', () => {
+  beforeEach(async () => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    studioGuideDismissed.value = false
+    studioExportedOnce.value = false
+    await setLocale('zh')
+  })
+
+  it('未导入名单：第 3 步未勾选；导入演示数据且字段全部映射 → 第 3 步 done', async () => {
+    const wrapper = mount(FirstVisitGuide)
+    expect(wrapper.findAll('li')[2]!.find('svg').exists()).toBe(false)
+    const workspace = useWorkspaceStore()
+    workspace.useDemoData()
+    await wrapper.vm.$nextTick()
+    expect(workspace.mappableFields.length).toBeGreaterThan(0)
+    expect(workspace.unmappedFields).toHaveLength(0)
+    const step3 = wrapper.findAll('li')[2]!
+    expect(step3.find('svg').exists()).toBe(true)
+    expect(step3.text()).toContain('字段已按表头自动匹配，若表头不同请手动选择')
+  })
+
+  it('有未映射字段 → 第 3 步不勾且提示「还有 N 个字段未对上列」', async () => {
+    const workspace = useWorkspaceStore()
+    workspace.useDemoData()
+    const first = workspace.mappableFields[0]!
+    delete workspace.mapping[first.id]
+    const wrapper = mount(FirstVisitGuide)
+    await wrapper.vm.$nextTick()
+    expect(workspace.unmappedFields.length).toBeGreaterThan(0)
+    const step3 = wrapper.findAll('li')[2]!
+    expect(step3.find('svg').exists()).toBe(false)
+    expect(step3.text()).toContain(`还有 ${workspace.unmappedFields.length} 个字段未对上列`)
+  })
+
+  it('第 4 步跟随 studioExportedOnce：默认不勾，markStudioExported 后勾选', async () => {
+    useWorkspaceStore().useDemoData()
+    const wrapper = mount(FirstVisitGuide)
+    expect(wrapper.findAll('li')[3]!.find('svg').exists()).toBe(false)
+    markStudioExported()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.findAll('li')[3]!.find('svg').exists()).toBe(true)
   })
 })

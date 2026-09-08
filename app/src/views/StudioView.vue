@@ -22,6 +22,7 @@ import { useTemplateLibrary } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { LabelTemplate, TemplateCategory } from '@/types/template'
+import { pickHandoffTemplate } from '@/utils/handoffTemplate'
 import { uid } from '@/utils/id'
 import { cloneTemplate } from '@/utils/layout'
 import { applyLabelPaper } from '@/utils/labelPaper'
@@ -215,9 +216,26 @@ onMounted(() => {
         Object.keys(handoff.rows[0]!),
         handoff.rows,
       )
-      // 当前模板与座位名单字段大面积不匹配（如上次会话用的是证卡类模板）时，自动切到课桌贴模板
+      // 当前模板有字段对不上列时，优先换到能把全部字段对上（且不丢已对上列）的候选模板；
+      // 都对不全则沿用「命中不到一半切课桌贴」的旧行为
+      const headers = Object.keys(handoff.rows[0]!)
+      const candidates = [
+        workspace.template,
+        ...['seatOnly', 'deskName', 'standard']
+          .map((id) => library.findById(id))
+          .filter((tpl): tpl is LabelTemplate => !!tpl),
+      ]
+      const picked = pickHandoffTemplate(candidates, headers)
       const mappable = workspace.mappableFields.length
-      if (mappable > 0 && workspace.mappedCount < Math.ceil(mappable / 2)) {
+      if (picked) {
+        workspace.selectTemplate(picked.template, { silent: true })
+        toast.info(
+          t('已切换到「{template}」：{n} 个字段全部对上名单列')
+            .replace('{template}', picked.template.name)
+            .replace('{n}', String(picked.mapped)),
+          t('原模板有字段对不上座位名单；可在「模板」中更换其他样式'),
+        )
+      } else if (mappable > 0 && workspace.mappedCount < Math.ceil(mappable / 2)) {
         const desk = library.findById('deskName')
         if (desk) {
           workspace.selectTemplate(desk, { silent: true })

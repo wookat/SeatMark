@@ -14,7 +14,9 @@ import { defaultTemplates } from '@/data/defaultTemplates'
 import { setLocale } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
+import LabelCard from '@/components/label/LabelCard.vue'
 import { autoMapFields } from '@/utils/autoMap'
+import { pickHandoffTemplate } from '@/utils/handoffTemplate'
 import { SEATING_HANDOFF_KEY, type SeatingHandoff } from '@/utils/seating'
 import SeatingView from '@/views/SeatingView.vue'
 import StudioView from '@/views/StudioView.vue'
@@ -165,7 +167,8 @@ describe('第 351 轮：座位表 → 标签工坊字段带入', () => {
     wrapper.unmount()
   })
 
-  it('考场号为空的 handoff（无 考场 列）带入标准考场版：2/4 命中不自动切模板，考场位留空并提示未映射', async () => {
+  // 第 364 轮：考场号为空时标准考场版只能对上 2/4，改为换到能全部对上的座位号贴（原 r354 用例断言为不切模板、考场位留空）
+  it('考场号为空的 handoff（无 考场 列）带入标准考场版：切到座位号贴，字段全部对上、无未映射 toast，预览无「（空）」', async () => {
     const handoff: SeatingHandoff = {
       title: '高三(2)班 期末考试',
       rows: [{ 姓名: '张伟', 座位号: '1', 排: '1', 列: '1', 班级: '高三(2)班 期末考试' }],
@@ -188,11 +191,80 @@ describe('第 351 轮：座位表 → 标签工坊字段带入', () => {
     await flushPromises()
     const workspace = useWorkspaceStore()
     const toast = useToastStore()
-    expect(workspace.template.id).toBe('standard')
-    expect(workspace.mapping.room).toBeUndefined()
-    expect(workspace.unmappedFields.map((f) => f.id)).toEqual(['room', 'examId'])
+    expect(workspace.template.id).toBe('seatOnly')
+    expect(workspace.mapping.name).toBe('姓名')
+    expect(workspace.mapping.seatNo).toBe('座位号')
+    expect(workspace.unmappedFields).toHaveLength(0)
+    expect(toast.toasts.some((t) => t.title === '已切换到「座位号贴」：2 个字段全部对上名单列')).toBe(true)
     expect(toast.toasts.some((t) => t.title === '已切换到课桌贴模板')).toBe(false)
+    expect(toast.toasts.some((t) => t.title.includes('未映射'))).toBe(false)
+
+    const card = mount(LabelCard, {
+      props: {
+        template: workspace.template,
+        texts: Object.fromEntries(
+          workspace.template.fields
+            .filter((f) => f.type === 'text')
+            .map((f) => [f.id, workspace.fieldText(workspace.excel.rows[0]!, f.id)]),
+        ),
+        unmappedFields: new Set(workspace.unmappedFields.map((f) => f.id)),
+      },
+    })
+    expect(card.text()).not.toContain('（空）')
+    expect(card.text()).toContain('张伟')
+    card.unmount()
     wrapper.unmount()
+  })
+
+  it('考场号非空：标准考场版 姓名/座位号/考场 3 项对上（仅准考证号空）时不退到座位号贴（不丢考场列）', async () => {
+    const handoff: SeatingHandoff = {
+      title: '高三(2)班',
+      rows: [{ 姓名: '张伟', 座位号: '1', 排: '1', 列: '1', 班级: '高三(2)班', 考场: '03' }],
+    }
+    localStorage.setItem(SEATING_HANDOFF_KEY, JSON.stringify(handoff))
+    const router = await makeRouter('/studio?from=seating')
+    const wrapper = mount(StudioView, {
+      global: {
+        plugins: [router],
+        stubs: {
+          PreviewArea: true,
+          TemplateDesigner: true,
+          DataImportPanel: true,
+          MappingPanel: true,
+          LayoutPanel: true,
+          TemplatePickerPanel: true,
+        },
+      },
+    })
+    await flushPromises()
+    const workspace = useWorkspaceStore()
+    const toast = useToastStore()
+    expect(workspace.template.id).toBe('standard')
+    expect(workspace.mapping.room).toBe('考场')
+    expect(toast.toasts.some((t) => t.title.startsWith('已切换到'))).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('pickHandoffTemplate：当前全映射不切；候选需全映射且不少于当前已对上的列数，取 mappable 最多者', () => {
+    const byId = (id: string) => defaultTemplates.find((t) => t.id === id)!
+    const standard = byId('standard')
+    const seatOnly = byId('seatOnly')
+    const desk = byId('deskName')
+    const noRoom = ['姓名', '座位号', '排', '列', '班级']
+    // 无考场列：standard 2/4 → seatOnly 2/2；deskName 学号对不上不入选
+    expect(pickHandoffTemplate([standard, seatOnly, desk], noRoom)?.template.id).toBe('seatOnly')
+    expect(pickHandoffTemplate([standard, desk], noRoom)).toBeNull()
+    // 有考场列：standard 3/4，seatOnly 只能对 2 列 → 不切
+    expect(pickHandoffTemplate([standard, seatOnly, desk, standard], [...noRoom, '考场'])).toBeNull()
+    // 当前已全映射 → null
+    expect(pickHandoffTemplate([seatOnly, standard, desk], noRoom)).toBeNull()
+    // 当前 deskName（学号空）→ seatOnly；若名单含学号与考场、准考证号则 standard 4/4 最多
+    expect(pickHandoffTemplate([desk, seatOnly, standard], noRoom)?.template.id).toBe('seatOnly')
+    expect(pickHandoffTemplate([seatOnly, desk, standard], ['姓名', '座位号', '考场', '准考证号', '学号'])).toBeNull()
+    expect(
+      pickHandoffTemplate([desk, seatOnly, standard], ['姓名', '座位号', '考场', '准考证号'])?.template.id,
+    ).toBe('standard')
+    expect(pickHandoffTemplate([], noRoom)).toBeNull()
   })
 
   it('全部字段命中时不弹未映射 toast', async () => {

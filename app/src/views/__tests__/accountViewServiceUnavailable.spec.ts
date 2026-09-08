@@ -50,7 +50,7 @@ describe('AccountView：账号服务 503 分支', () => {
     expect(wrapper.find('input[type="email"]').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('加载失败')
     expect(wrapper.text()).not.toContain('7 天专业版')
-    expect(wrapper.text()).toContain('账号服务维护中，带水印导出不限次')
+    expect(wrapper.text()).toContain('登录/注册暂不可用（服务维护中）。不登录也能正常制作、带水印导出与打印，不限次数。')
 
     // 挂载时无条件确认登录态 + 拉取验证码
     const urls = fetchMock.mock.calls.map((c) => String(c[0]))

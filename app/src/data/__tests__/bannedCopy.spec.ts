@@ -21,14 +21,16 @@ import { enTemplateDescriptions } from '@/i18n/locales/enStudioDescriptions'
  *   第 355 轮新增：无缝衔接、绝配、质感翻倍、上一档、最会传播口碑、柔美高级、视觉语言（营销腔），
  *       扫描范围扩到 templateDetails*.ts 的 intro/useCases/tips 与 guides*.ts 全量正文
  *   第 358 轮新增：利器、大幅提升（改为「工具」「更快」等白描）
+ *   第 364 轮新增：焕新、组合拳、精雕细琢、零门槛、硬核（营销腔；「沉淀」因日常常用不入词表，仅改写具体句子）
  *
  * 例外：功能按钮名「一键生成对应桌贴」是 /seating 页真实按钮文案，教程正文/FAQ 引用该按钮名属功能说明，
  *       不在 SEO 标题 / 模板文案范围内单独禁止。
  */
 const MARKETING_R355 = ['无缝衔接', '绝配', '质感翻倍', '上一档', '最会传播口碑', '柔美高级', '视觉语言']
 const MARKETING_R358 = ['利器', '大幅提升']
-const BANNED = ['一键生成', '完整流程', '一次讲清', '全攻略', '一站式', '看完即可上手', '不出错', '保姆级', '拉满', '效率翻倍', '抓手', '链路', ...MARKETING_R355, ...MARKETING_R358]
-const NEW_THIS_ROUND = ['拉满', '效率翻倍', '抓手', '链路', ...MARKETING_R355, ...MARKETING_R358]
+const MARKETING_R364 = ['焕新', '组合拳', '精雕细琢', '零门槛', '硬核']
+const BANNED = ['一键生成', '完整流程', '一次讲清', '全攻略', '一站式', '看完即可上手', '不出错', '保姆级', '拉满', '效率翻倍', '抓手', '链路', ...MARKETING_R355, ...MARKETING_R358, ...MARKETING_R364]
+const NEW_THIS_ROUND = ['拉满', '效率翻倍', '抓手', '链路', ...MARKETING_R355, ...MARKETING_R358, ...MARKETING_R364]
 /** 限额词：全部数据文件（含教程正文）合计上限 */
 const BUDGETED: Record<string, number> = { 仪式感: 3 }
 /** 允许原样出现的功能名（按钮文案） */
@@ -89,10 +91,33 @@ describe('第 349 轮：禁词护栏（SEO / 专题 / 对比 / 模板 / 模板�
     expect(hits(collectStrings(guides), NEW_THIS_ROUND)).toEqual([])
   })
 
-  it('模板详情 intro/useCases/tips（含 Round2-4）不含第 355 / 358 轮营销腔词', () => {
+  it('模板详情 intro/useCases/tips（含 Round2-4）不含第 355 / 358 / 364 轮营销腔词', () => {
     const body = templateDetails.flatMap((d) => [d.intro, ...d.useCases, ...d.tips])
     expect(body.length).toBeGreaterThan(100)
-    expect(hits(body, [...MARKETING_R355, ...MARKETING_R358])).toEqual([])
+    expect(hits(body, [...MARKETING_R355, ...MARKETING_R358, ...MARKETING_R364])).toEqual([])
+  })
+
+  it('第 364 轮：边缘营销腔 6 处已白描化，源文件内新词 0 命中；fullPage / trainingDesk intro 旧句已改写', () => {
+    for (const rel of [
+      'data/templateDetails.ts',
+      'data/templateDetailsRound2.ts',
+      'data/templateDetailsRound4.ts',
+      'data/guides.ts',
+      'data/guidesRound4.ts',
+      'data/guidesRound5.ts',
+    ]) {
+      const src = readSrc(rel)
+      for (const w of MARKETING_R364) expect(src, `${rel} 含「${w}」`).not.toContain(w)
+    }
+    expect(readSrc('data/templateDetailsRound2.ts')).toContain('一次就能换新')
+    expect(readSrc('data/templateDetailsRound4.ts')).toContain('底色更深、更暗')
+    expect(readSrc('data/guidesRound5.ts')).toContain('建议这样组合')
+    expect(readSrc('data/guidesRound4.ts')).toContain('花一下午反复调整模板')
+    expect(readSrc('data/guidesRound4.ts')).toContain('几乎不用额外准备')
+    expect(readSrc('data/guides.ts')).toContain('保留邮件合并模板')
+    expect(readSrc('data/guides.ts')).toContain('用了多年的 .docx')
+    expect(readSrc('data/templateDetails.ts')).toContain('隔几米也看得清')
+    expect(readSrc('data/templateDetails.ts')).toContain('在签到台裁开就能发')
   })
 
   it('第 358 轮：「利器」「大幅提升」已改为白描，源文件内不再出现', () => {

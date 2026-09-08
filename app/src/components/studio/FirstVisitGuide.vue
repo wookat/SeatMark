@@ -4,7 +4,7 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from '@/i18n'
 
 import { useWorkspaceStore } from '@/stores/workspace'
-import { dismissStudioGuide, studioGuideDismissed } from '@/utils/firstVisit'
+import { dismissStudioGuide, studioExportedOnce, studioGuideDismissed } from '@/utils/firstVisit'
 
 /**
  * compact：侧栏同屏已有另一条完整提示（如纸型错配条）时，引导折叠为单行可展开态；
@@ -29,6 +29,11 @@ watch(
 const collapsed = computed(() => props.compact && !manuallyExpanded.value)
 
 const hasRows = computed(() => workspace.excel.rows.length > 0)
+const unmappedCount = computed(() => workspace.unmappedFields.length)
+/** 无可映射文本字段的模板（如纯固定文字）视为已核对完成 */
+const mappingDone = computed(
+  () => hasRows.value && (workspace.mappableFields.length === 0 || unmappedCount.value === 0),
+)
 
 /** 四步与左侧面板 step-chip 编号 1 选择模板 / 2 导入数据 / 3 字段映射 / 4 页面与版式 一一对应 */
 const steps = computed(() => [
@@ -40,10 +45,13 @@ const steps = computed(() => [
   },
   {
     title: t('核对字段映射与版式'),
-    desc: t('字段已按表头自动匹配，若表头不同请手动选择'),
-    done: false,
+    desc:
+      hasRows.value && unmappedCount.value > 0
+        ? t('还有 {n} 个字段未对上列').replace('{n}', String(unmappedCount.value))
+        : t('字段已按表头自动匹配，若表头不同请手动选择'),
+    done: mappingDone.value,
   },
-  { title: t('导出打印'), desc: t('预览面板工具栏导出 PDF / 打印'), done: false },
+  { title: t('导出打印'), desc: t('预览面板工具栏导出 PDF / 打印'), done: studioExportedOnce.value },
 ])
 
 function close() {

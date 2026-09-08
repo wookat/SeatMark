@@ -475,6 +475,34 @@ export function buildSeats(
   return out
 }
 
+/**
+ * 人数超过座位数时排不进座位的名单条目：按填充顺序取第 rows×cols 位之后的非空姓名，
+ * 与 buildSeats 的截断口径一致（座位内的空位不计入）。
+ */
+export function unseatedEntries(
+  entries: readonly SeatingEntry[],
+  rows: number,
+  cols: number,
+): SeatingEntry[] {
+  const seatCount = Math.max(rows * cols, 0)
+  return entries.slice(seatCount).filter((e) => e.name)
+}
+
+/**
+ * PNG / 打印页脚的未排座提示：「另有 N 人未排座：甲、乙、丙…」，超过 max 位截断加「等」；
+ * 无未排座返回空串。
+ */
+export function unseatedSummary(
+  unseated: readonly SeatingEntry[],
+  labels: { template: string; etc: string; join: (items: readonly string[]) => string },
+  max = 10,
+): string {
+  if (!unseated.length) return ''
+  const names = unseated.slice(0, max).map((e) => e.name)
+  const list = labels.join(names) + (unseated.length > max ? labels.etc : '')
+  return labels.template.replace('{n}', String(unseated.length)).replace('{names}', list)
+}
+
 /** 按物理行列索引摆放座位（渲染网格用） */
 export function buildSeatGrid(seats: readonly Seat[], rows: number, cols: number): (Seat | null)[][] {
   const grid: (Seat | null)[][] = Array.from({ length: rows }, () =>

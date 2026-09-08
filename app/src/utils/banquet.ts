@@ -1091,3 +1091,34 @@ export function quickReferenceCsv(tables: TableRoster[]): string {
   }
   return '\ufeff' + lines.join('\r\n') + '\r\n'
 }
+
+/** 速查表 PDF 分页：一个不可拆分的内容块（索引行 / 表格行 / 标题）在流式页面中的纵向区间（px） */
+export interface QuickRefBlock {
+  top: number
+  bottom: number
+}
+
+/**
+ * 把流式排版的速查表切成 A4 逐页截图的起点（px）：
+ * 贪心装页，块跨越页底时整块推到下一页开头，不在行中间切开；
+ * 单块高于一页时按页高硬切；页数只到最后一个内容块为止，不产出空白尾页。
+ */
+export function paginateQuickRefBlocks(
+  blocks: readonly QuickRefBlock[],
+  pageHeight: number,
+): number[] {
+  if (pageHeight <= 0) return [0]
+  const sorted = [...blocks]
+    .filter((b) => b.bottom > b.top)
+    .sort((a, b) => a.top - b.top || a.bottom - b.bottom)
+  const starts = [0]
+  let pageStart = 0
+  for (const block of sorted) {
+    if (block.top < pageStart) continue
+    while (block.bottom > pageStart + pageHeight) {
+      pageStart = block.top > pageStart ? block.top : pageStart + pageHeight
+      starts.push(pageStart)
+    }
+  }
+  return starts
+}
