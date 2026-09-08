@@ -269,7 +269,7 @@ const SECTIONS = computed(() => [
           :to="switchTarget"
           class="btn btn-ghost btn-sm hidden max-md:min-h-11 max-md:min-w-11 sm:inline-flex"
           :aria-label="locale === 'en' ? t('切换到中文') : 'Switch to English'"
-          :title="locale === 'en' ? '中文' : 'English'"
+          :title="locale === 'en' ? t('切换到中文') : 'Switch to English'"
           @click="onSwitchLocale"
         >
           <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
