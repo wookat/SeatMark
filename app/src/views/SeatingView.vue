@@ -31,6 +31,7 @@ import {
   interleaveByGender,
   parseSeatingRosterDetailed,
   reconcileArranged,
+  roomIdHasLabel,
   SEATING_HANDOFF_KEY,
   seatingExportFileName,
   seatingRosterTextFromTable,
@@ -69,6 +70,17 @@ interface SeatingPersistedState {
   duplicatePolicy?: SeatingDuplicatePolicy
   /** 名单含考场列时选中的考场号；空 = 全部 */
   roomFilter?: string
+  /** 非当前考场的手工排座缓存（key 为考场 id，全部视图为 ''）；当前考场的座次在 arranged */
+  arrangedByRoom?: Record<string, SeatingEntry[]>
+}
+
+function sanitizeArrangedByRoom(raw: unknown): Record<string, SeatingEntry[]> {
+  const out: Record<string, SeatingEntry[]> = {}
+  if (!raw || typeof raw !== 'object') return out
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (Array.isArray(value)) out[key] = value as SeatingEntry[]
+  }
+  return out
 }
 
 function loadPersistedState(): SeatingPersistedState | null {
@@ -125,15 +137,21 @@ const roomOptions = computed<SelectOption[]>(() => [
   },
   ...rooms.value.map((r) => ({
     value: r.id,
-    label: `${tr('考场')} ${r.id}`,
+    label: roomLabel(r.id),
     hint: `${r.count} ${personUnit.value}`,
   })),
 ])
-const parsedEntries = computed<SeatingEntry[]>(() => {
+/** 考场下拉与提示用的考场名：原始单元格已带「考场/试室/room」时不再重复加前缀 */
+function roomLabel(id: string): string {
+  if (id === ROOM_ALL) return tr('全部')
+  return roomIdHasLabel(id) ? id : `${tr('考场')} ${id}`
+}
+/** 指定考场（'' = 全部）当前名单中的成员 */
+function entriesForRoom(room: string): SeatingEntry[] {
   const list = dedupedRoster.value.entries
-  const room = activeRoom.value
   return room ? list.filter((e) => e.room === room) : list
-})
+}
+const parsedEntries = computed<SeatingEntry[]>(() => entriesForRoom(activeRoom.value))
 const duplicateNames = computed(() => dedupedRoster.value.duplicates)
 const duplicateHint = computed(() => {
   const list = duplicateNames.value
@@ -215,6 +233,44 @@ function onRosterFileChange(event: Event) {
  * 切换重名策略 / 考场筛选仍还原为名单顺序，但同样 toast 明示。
  */
 const arranged = ref<SeatingEntry[] | null>(persisted?.arranged ?? null)
+/** 其它考场的手工排座（当前考场不在其中）：切场时存入 / 取出，避免往返切换丢掉各场排座 */
+const arrangedByRoom = ref<Record<string, SeatingEntry[]>>(sanitizeArrangedByRoom(persisted?.arrangedByRoom))
+
+/** 破坏性操作（还原名单顺序 / 切换重名处理）前的快照，toast 上可在 UNDO_WINDOW_MS 内撤销 */
+const UNDO_WINDOW_MS = 10_000
+interface SeatingSnapshot {
+  arranged: SeatingEntry[] | null
+  arrangedByRoom: Record<string, SeatingEntry[]>
+  selectedSeat: number | null
+  keepDuplicates: boolean
+}
+function takeSnapshot(): SeatingSnapshot {
+  return {
+    arranged: arranged.value ? arranged.value.map((e) => ({ ...e })) : null,
+    arrangedByRoom: Object.fromEntries(
+      Object.entries(arrangedByRoom.value).map(([k, list]) => [k, list.map((e) => ({ ...e }))]),
+    ),
+    selectedSeat: selectedSeat.value,
+    keepDuplicates: keepDuplicates.value,
+  }
+}
+/** 撤销回写开关时让 keepDuplicates 监听器跳过一次，避免再次清空座次 / 弹第二次 toast */
+let suppressNextDuplicateToggle = false
+function restoreSnapshot(snapshot: SeatingSnapshot) {
+  if (keepDuplicates.value !== snapshot.keepDuplicates) {
+    suppressNextDuplicateToggle = true
+    keepDuplicates.value = snapshot.keepDuplicates
+  }
+  arrangedByRoom.value = snapshot.arrangedByRoom
+  arranged.value = snapshot.arranged
+  selectedSeat.value = snapshot.selectedSeat
+}
+function toastUndoable(title: string, text: string, snapshot: SeatingSnapshot) {
+  toast.push('info', title, text, UNDO_WINDOW_MS, {
+    label: tr('撤销'),
+    onClick: () => restoreSnapshot(snapshot),
+  })
+}
 /** 逐字输入时只提示一次：以连续编辑开始前的座次为基线，停顿后汇总净变化 */
 const RECONCILE_TOAST_DELAY_MS = 600
 let reconcileBase: SeatingEntry[] | null = null
@@ -239,7 +295,20 @@ function flushReconcileToast() {
   )
 }
 
+/** 名单变更后对其它考场的缓存逐场对齐；无人保留的考场删掉缓存 */
+function reconcileOtherRooms() {
+  const keys = Object.keys(arrangedByRoom.value)
+  if (!keys.length) return
+  const next: Record<string, SeatingEntry[]> = {}
+  for (const key of keys) {
+    const result = reconcileArranged(arrangedByRoom.value[key]!, entriesForRoom(key))
+    if (result.kept > 0) next[key] = result.entries
+  }
+  arrangedByRoom.value = next
+}
+
 watch(namesText, () => {
+  reconcileOtherRooms()
   if (!arranged.value) return
   const result = reconcileArranged(arranged.value, parsedEntries.value)
   if (result.kept === 0) {
@@ -260,10 +329,22 @@ watch(namesText, () => {
 onBeforeUnmount(() => {
   if (reconcileToastTimer !== undefined) clearTimeout(reconcileToastTimer)
 })
-watch(keepDuplicates, () => {
-  if (!arranged.value) return
+watch(keepDuplicates, (_value, prev) => {
+  if (suppressNextDuplicateToggle) {
+    suppressNextDuplicateToggle = false
+    return
+  }
+  const hadCache = Object.keys(arrangedByRoom.value).length > 0
+  if (!arranged.value && !hadCache) return
+  const snapshot = { ...takeSnapshot(), keepDuplicates: prev }
   arranged.value = null
-  toast.info(tr('重名处理已切换，座位已按名单顺序重排'))
+  arrangedByRoom.value = {}
+  selectedSeat.value = null
+  toastUndoable(
+    tr('重名处理已切换，座位已按名单顺序重排'),
+    tr('10 秒内可撤销，恢复原开关与手工座次'),
+    snapshot,
+  )
 })
 /** 考场号输入框由筛选自动带入的值；用户手填过（与自动值不同）则不覆盖 */
 let roomNoAutoValue = ''
@@ -276,14 +357,26 @@ watch(activeRoom, (room, prev) => {
     roomNo.value = ''
     roomNoAutoValue = ''
   }
-  if (!arranged.value) return
-  arranged.value = null
+  // 当前场的手工排座存入缓存，目标场有缓存则恢复，否则回到名单顺序
+  const cache = { ...arrangedByRoom.value }
+  const prevKey = prev ?? ROOM_ALL
+  if (arranged.value) cache[prevKey] = arranged.value
+  else delete cache[prevKey]
+  const restored = cache[room]
+  delete cache[room]
+  arrangedByRoom.value = cache
+  const hadArranged = arranged.value !== null
+  arranged.value = restored ?? null
   selectedSeat.value = null
-  toast.info(tr('已切换考场，座位已按名单顺序重排'))
+  if (restored) {
+    toast.info(tr('已切换到 {room}，已恢复该场上次排座').replace('{room}', roomLabel(room)))
+  } else if (hadArranged) {
+    toast.info(tr('已切换考场，座位已按名单顺序重排'))
+  }
 })
 
 watch(
-  [title, roomNo, rows, cols, podium, fillOrder, aisles, namesText, arranged, keepDuplicates, roomFilter],
+  [title, roomNo, rows, cols, podium, fillOrder, aisles, namesText, arranged, keepDuplicates, roomFilter, arrangedByRoom],
   () => {
     try {
       const state: SeatingPersistedState = {
@@ -298,6 +391,7 @@ watch(
         arranged: arranged.value,
         duplicatePolicy: duplicatePolicy.value,
         roomFilter: roomFilter.value,
+        arrangedByRoom: arrangedByRoom.value,
       }
       localStorage.setItem(SEATING_STATE_KEY, JSON.stringify(state))
     } catch {
@@ -350,9 +444,10 @@ function randomizeMixed() {
 }
 
 function restoreOrder() {
+  const snapshot = takeSnapshot()
   arranged.value = null
   selectedSeat.value = null
-  toast.info(tr('已还原为名单原始顺序'))
+  toastUndoable(tr('已还原为名单原始顺序'), tr('10 秒内可撤销，恢复刚才的手工座次'), snapshot)
 }
 
 // ---------- 座位计算 ----------

@@ -591,7 +591,7 @@ type Translate = (zh: string) => string
 
 /** 演示值中带编号 / 称谓的固定句式 → 英文 */
 const EN_VALUE_RULES: ReadonlyArray<[RegExp, (m: RegExpExecArray, tr: Translate) => string]> = [
-  [/^第(\d+)考场$/, (m) => `Room ${m[1]}`],
+  [/^第(\d+)考场$/, (m) => `No. ${m[1]}`],
   [/^第(\d+)组$/, (m) => `Group ${m[1]}`],
   [/^高三（(\d+)）班$/, (m) => `Grade 12 Class ${m[1]}`],
   [/^五年级（(\d+)）班$/, (m) => `Grade 5 Class ${m[1]}`],

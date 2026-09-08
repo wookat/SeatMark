@@ -48,6 +48,10 @@ const NAME_HEADER = /姓名|名字$|^(?:student[ _-]?)?name$|^students?$/i
 const GENDER_HEADER = /性别|^gender$|^sex$/i
 /** 列模式下的考场列表头（仅在识别到表头行时生效，无表头不猜测） */
 const ROOM_HEADER = /考场|考场号|试室|^room$|^exam ?room$/i
+/** 考场原始值本身已带「考场/试室/room」字样（如「考场01」「Room 1」），展示时不应再加前缀 */
+export function roomIdHasLabel(id: string): boolean {
+  return /考场|试室|room/i.test(id)
+}
 /** 首行命中这些关键词时视为表头（Excel 复制常见列名） */
 const ROSTER_HEADER = /姓名|名字|性别|学号|班级|座位|序号|^name$|^students?$|^gender$|^sex$|^no\.?$|^id$/i
 /** 无表头时，列内任一值带数字或班级词则视为学号/班级类附属列 */
@@ -96,9 +100,10 @@ export function parseSeatingRosterDetailed(text: string): ParsedSeatingRoster {
     .split(/[\t,，、]+|\s{2,}|\s+/)
     .map((c) => c.trim())
     .filter(Boolean)
+  // 带数字的单元格（考场01 / 座位12 / 宿舍302）是数据不是列名，不计入表头命中
   const headerHit =
     firstCells.length >= 2
-      ? firstCells.some((c) => ROSTER_HEADER.test(c))
+      ? firstCells.some((c) => !/\d/.test(c) && ROSTER_HEADER.test(c))
       : NAME_HEADER.test(firstCells[0] ?? '') && lines.length > 1
   if (tabLines < 2 && !headerHit) {
     for (const line of lines) parseRosterLine(line, plain.entries)

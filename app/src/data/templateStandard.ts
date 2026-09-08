@@ -23,7 +23,7 @@ export const standardTemplate: LabelTemplate = {
   scenario: '桌贴 / 门贴通用',
   accent: '#4f46e5',
   builtin: true,
-  sampleData: { seatNo: '12', name: '谢跃平', room: '考场-1', examId: '2025053002' },
+  sampleData: { seatNo: '12', name: '谢跃平', room: '第1考场', examId: '2025053002' },
   fontFamily: FONT_FAMILY,
   fontFamilyEn: FONT_FAMILY_EN,
   label: {
@@ -120,7 +120,7 @@ export const standardTemplate: LabelTemplate = {
       padding: 0.5,
       lineHeight: 1.1,
       maxLines: 1,
-      sample: '考场-1',
+      sample: '第1考场',
     },
     {
       id: 'examId',

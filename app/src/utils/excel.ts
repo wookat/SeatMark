@@ -206,6 +206,19 @@ const DEMO_DEPARTMENTS = ['教务处', '招生办', '信息中心', '后勤保�
 /** 判断粘贴首行是否为表头的常见列名关键词 */
 const HEADER_KEYWORDS =
   /姓名|名字|name|性别|班级|学号|座位|考场|准考证|部门|职务|工号|单位|学校|编号|号码|电话|手机|宿舍|桌号|组别|序号/i
+/** 单列名单只有首格恰为姓名类列名时才当表头 */
+const SINGLE_COLUMN_HEADER = /^(?:姓名|名字|name)$/i
+
+/**
+ * 首行是否为表头：只统计不含数字的单元格命中关键词（「考场01 / 座位12 / 宿舍302」是数据不是列名）；
+ * 多列时命中 ≥ 1 格即可，单列时仅首格恰为姓名类列名。
+ */
+function detectHeaderRow(firstRow: string[]): boolean {
+  if (firstRow.length >= 2) {
+    return firstRow.some((cell) => !/\d/.test(cell) && HEADER_KEYWORDS.test(cell))
+  }
+  return SINGLE_COLUMN_HEADER.test(firstRow[0] ?? '')
+}
 
 export interface PastedRoster {
   headers: string[]
@@ -243,8 +256,7 @@ export function parsePastedRoster(text: string, firstRowHeader?: boolean): Paste
   const table = lines.map((line) => line.split(splitter).map((cell) => cell.trim()))
 
   const columnCount = table.reduce((max, row) => Math.max(max, row.length), 0)
-  const headerDetected =
-    firstRowHeader ?? table[0]!.some((cell) => HEADER_KEYWORDS.test(cell))
+  const headerDetected = firstRowHeader ?? detectHeaderRow(table[0]!)
 
   const used = new Set<string>()
   const headers = Array.from({ length: columnCount }, (_, i) => {

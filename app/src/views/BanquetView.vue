@@ -1652,6 +1652,9 @@ function toPlaceCards() {
                 <path d="m4 6 4 4 4-4" />
               </svg>
             </button>
+            <p v-if="!avoidOpen" class="px-3 pb-2 text-xs leading-5 text-slate-500" data-testid="avoid-collapsed-hint">
+              {{ tr('标记两位宾客不同桌，自动分配会避开') }}
+            </p>
             <div v-if="avoidOpen" class="border-t border-slate-100 px-3 pb-3" data-testid="avoid-panel">
               <p class="mt-2 text-xs leading-5 text-slate-600">
                 {{ tr('标记两位宾客不同桌：自动分配会尽量避开（仅在没有其它可坐的桌时才同桌）；手动拖到一起会提醒但不阻止。清单只存在本机。') }}

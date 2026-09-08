@@ -76,13 +76,14 @@ describe('localizeTemplateForLocale', () => {
     }
   })
 
-  it('en：示例值考场编号→Room N，姓名/班级→英文占位值，无占位的字段 sample 原样保留', () => {
+  it('en：示例值考场编号→No. N（不与小注 ROOM 重复），姓名/班级→英文占位值，无占位的字段 sample 原样保留', () => {
     const out = localizeTemplateForLocale(standardTemplate, 'en')
-    expect(out.fields.find((f) => f.id === 'room')!.sample).toBe('Room 1')
+    expect(out.fields.find((f) => f.id === 'room')!.sample).toBe('No. 1')
     expect(out.fields.find((f) => f.id === 'name')!.sample).toBe(SAMPLE_NAME_EN)
     expect(out.fields.find((f) => f.id === 'seatNo')!.sample).toBe('12')
-    expect(out.sampleData).toMatchObject({ room: 'Room 1', name: SAMPLE_NAME_EN, seatNo: '12' })
-    expect(standardTemplate.sampleData!.room).toBe('考场-1')
+    expect(out.sampleData).toMatchObject({ room: 'No. 1', name: SAMPLE_NAME_EN, seatNo: '12' })
+    // r360 数据口径：样例考场统一为「第1考场」（不再用「考场-1」）
+    expect(standardTemplate.sampleData!.room).toBe('第1考场')
 
     const tpl: LabelTemplate = {
       ...standardTemplate,
@@ -95,7 +96,7 @@ describe('localizeTemplateForLocale', () => {
       ],
     }
     expect(localizeTemplateForLocale(tpl, 'en').fields.map((f) => f.sample)).toEqual([
-      'Room 3',
+      'No. 3',
       'Class 9-5',
       '学而不厌',
       'Li Ming',
@@ -131,6 +132,15 @@ describe('localizeTemplateForLocale', () => {
     expect(out.fields[7]!.caption).toBe('ID NO.')
   })
 
+  it('r360 en：caption「座位号」→ SEAT NO.', () => {
+    const tpl: LabelTemplate = {
+      ...standardTemplate,
+      sampleData: undefined,
+      fields: [{ ...standardTemplate.fields[0]!, id: 'seatNo', caption: '座位号', sample: '12' }],
+    }
+    expect(localizeTemplateForLocale(tpl, 'en').fields[0]!.caption).toBe('SEAT NO.')
+  })
+
   it('r359 en：示例值 第N桌/第N组/第 N 考场 与职务示例映射为英文', () => {
     const tpl: LabelTemplate = {
       ...standardTemplate,
@@ -140,7 +150,7 @@ describe('localizeTemplateForLocale', () => {
     expect(localizeTemplateForLocale(tpl, 'en').sampleData).toEqual({
       table: 'Table 3',
       group: 'Group 2',
-      room: 'Room 12',
+      room: 'No. 12',
       title: 'CTO',
       org: 'Example Institute',
     })
