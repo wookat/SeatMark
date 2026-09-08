@@ -631,7 +631,7 @@ const FAQS = computed(() => [
           <p class="section-eyebrow">Features</p>
           <h2 class="section-heading">{{ t('为批量制签和打印交付打磨的细节') }}</h2>
           <p class="section-sub">
-            {{ t('从名单解析到裁切线，每一步都按真实考务与会务交付流程设计') }}
+            {{ t('名单解析、字段映射、裁切线与出血、批量导出——按考场与会场实际打印需求逐项打磨') }}
           </p>
         </div>
         <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

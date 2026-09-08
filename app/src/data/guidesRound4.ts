@@ -21,7 +21,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费使用，名单不出浏览器',
     },
     howTo: {
       name: '用裁切排序（摞优先）省掉人工分拣',
@@ -168,7 +168,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费使用，名单不出浏览器',
     },
     howTo: {
       name: '用单张覆写单独修改某一张标签',
@@ -482,7 +482,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费使用，名单不出浏览器',
     },
     howTo: {
       name: '获取更多无水印导出次数',
@@ -675,7 +675,7 @@ export const guidesRound4: Guide[] = [
     related: ['wedding-place-card-guide', 'cut-stack-sort-order', 'composite-field-template-string', 'desk-card-etiquette-seating'],
     body: `
 <h2>席位卡是婚宴动线的「最后一米」</h2>
-<p>请柬解决「来不来」，座位表解决「坐哪桌」，而席位卡解决「坐哪把椅子」。酒店宴会厅二三十桌、三四百位宾客，开席前 30 分钟集中入场，没有席位卡就是三四百人的现场找座混乱。婚礼策划的共识是：<strong>主桌与长辈桌必须有席位卡，全场席位卡是高完成度婚礼的标配</strong>。</p>
+<p>婚礼前一晚在酒店对桌，策划师最常遇到的两件事：新人家里临时多报了七八位亲戚，要么加一桌、要么把原来一桌拆到相邻两桌；同时还有两桌因为出差、生病来不了几位，座位空出来。桌数一动，席位卡、桌号牌就要跟着重做。酒店宴会厅二三十桌、三四百位宾客，开席前 30 分钟集中入场，没有席位卡就是三四百人的现场找座混乱。婚礼策划的共识是：<strong>主桌与长辈桌必须有席位卡，全场席位卡是高完成度婚礼的标配</strong>。</p>
 <p>但席位卡也是婚礼物料里最容易拖到最后的：名单迟迟定不下来、改了又改，手写来不及、找设计做一版改三天。用 <a href="/studio">SeatMark</a> 的思路是把「设计」和「名单」解耦：模板先定，名单最后一刻定稿也能十分钟出全部成品。</p>
 
 <h2>第一步：名单整理，称谓是关键</h2>
@@ -807,7 +807,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「水杯毛巾贴」+ 演示数据',
       to: '/studio?template=kidsCup&demo=1',
-      note: '先看成品效果，再换成班级或学生名单；免费、无需注册，名单只在浏览器本地处理',
+      note: '先看成品效果，再换成班级或学生名单；免费使用，名单只在浏览器本地处理',
     },
     howTo: {
       name: '批量打印幼儿园入园物品贴',
@@ -964,7 +964,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「档案盒脊标」+ 演示数据',
       to: '/studio?template=archiveBoxSpine&demo=1',
-      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费使用，名单不出浏览器',
     },
     howTo: {
       name: '用档案台账批量打印档案盒标签',
@@ -1119,7 +1119,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「毕业典礼席卡」+ 演示数据',
       to: '/studio?template=gradSeat&demo=1',
-      note: '先看成品效果，再换成班级或学生名单；免费、无需注册，名单只在浏览器本地处理',
+      note: '先看成品效果，再换成班级或学生名单；免费使用，名单只在浏览器本地处理',
     },
     howTo: {
       name: '毕业典礼席位标识全套制作',
@@ -1274,7 +1274,7 @@ export const guidesRound4: Guide[] = [
     quickStart: {
       label: '一键载入「窗口牌」+ 演示数据',
       to: '/studio?template=windowCounter&demo=1',
-      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费使用，名单不出浏览器',
     },
     howTo: {
       name: '批量制作服务窗口标识物料',

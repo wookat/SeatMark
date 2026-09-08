@@ -19,6 +19,7 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import { dismissStudioGuide, markStudioExported } from '@/utils/firstVisit'
 import { labelPosition, labelsPerPage, MM_TO_PX } from '@/utils/layout'
 import { matchPaperPreset, paperLabel, setPrintPageSize } from '@/utils/paper'
+import { missingExampleText } from '@/utils/missingDetail'
 import {
   deliverPdfForMobilePrint,
   isMobilePrintEnvironment,
@@ -240,6 +241,10 @@ const unmappedBannerVisible = computed(
 
 /** 已映射字段为空的行数（成品中留空，不自动补全） */
 const missingRowsCount = computed(() => workspace.dataQuality.missingRows)
+/** 导出旁首个缺失示例（与 MappingPanel 明细同一口径），便于直接定位到行 */
+const missingExample = computed(() =>
+  missingExampleText(workspace.dataQuality.missingDetails, missingRowsCount.value, locale.value, t),
+)
 /** 完全重复的名单行（所有已映射字段全同）：纯提示，不阻断 */
 const duplicateRows = computed(() => workspace.duplicateRows)
 
@@ -1506,6 +1511,7 @@ const hintKey = ref<HintKey | null>(null)
       >
         <p class="min-w-0 flex-1">
           <strong>{{ missingRowsCount }}</strong> {{ t('行字段为空，成品中将留空') }}
+          <span v-if="missingExample" class="block opacity-85 [overflow-wrap:anywhere]" data-testid="missing-rows-export-example">{{ missingExample }}</span>
         </p>
         <button type="button" class="btn btn-secondary btn-sm shrink-0" data-testid="missing-rows-go-mapping" @click="goToMapping('missing')">
           {{ t('去查看') }}

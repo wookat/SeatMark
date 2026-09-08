@@ -133,7 +133,7 @@ const SECTIONS = computed(() => [
       >
         <BrandMark class="size-8 shrink-0 text-brand-600" />
         <span class="text-base font-bold tracking-tight whitespace-nowrap text-slate-900">
-          <template v-if="locale === 'en'"><span class="hidden lg:inline">Seat<span class="text-brand-600">Mark</span></span></template>
+          <template v-if="locale === 'en'"><span class="hidden max-md:inline lg:inline" data-testid="brand-wordmark-en">Seat<span class="text-brand-600">Mark</span></span></template>
           <template v-else><span class="hidden md:inline">SeatMark </span><span class="text-brand-600">座签</span></template>
         </span>
       </RouterLink>

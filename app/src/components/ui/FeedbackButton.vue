@@ -51,7 +51,7 @@ const SCROLL_DELTA_PX = 2
 
 /**
  * 窄屏让位：向下滚动（阅读 / 填表）时收起气泡，不常驻压住右对齐的行内按钮；
- * 回到页顶或用户向上滚动时恢复。仅 <sm 生效（class 用 max-sm: 前缀），桌面常驻。
+ * 回到页顶或用户向上滚动时恢复。仅 <md（<768px，含平板竖屏以下）生效（class 用 max-md: 前缀），桌面 ≥md 常驻。
  */
 const collapsed = ref(false)
 let lastScrollY = 0
@@ -158,9 +158,9 @@ async function submit() {
   <!-- 浮动按钮：画布页（html.has-canvas-safe-area）在 ≥md 缩为 size-10 并贴边 right-3，配合预览列的 md:pr-16 与底部固定层留白不压座位图；
        底部操作条在场时按实际条高 --sm-nextstep-h + 12px 抬高 -->
   <button
-    class="no-print fixed right-5 bottom-5 z-50 flex size-12 items-center justify-center rounded-full bg-brand-600 text-white transition-all hover:bg-brand-700 max-sm:right-3 max-sm:size-10 md:[.has-canvas-safe-area_&]:right-3 md:[.has-canvas-safe-area_&]:size-10 [.has-next-step-bar_&]:bottom-[calc(var(--sm-nextstep-h,3rem)_+_0.75rem)] [.has-sticky-actions_&]:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]"
+    class="no-print fixed right-5 bottom-5 z-50 flex size-12 items-center justify-center rounded-full bg-brand-600 text-white transition-all hover:bg-brand-700 max-md:right-3 max-md:size-10 md:[.has-canvas-safe-area_&]:right-3 md:[.has-canvas-safe-area_&]:size-10 [.has-next-step-bar_&]:bottom-[calc(var(--sm-nextstep-h,3rem)_+_0.75rem)] [.has-sticky-actions_&]:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]"
     :class="[
-      hiddenOnNarrow && 'max-sm:pointer-events-none max-sm:translate-y-2 max-sm:opacity-0',
+      hiddenOnNarrow && 'max-md:pointer-events-none max-md:translate-y-2 max-md:opacity-0',
       hiddenForFooter && 'pointer-events-none translate-y-2 opacity-0',
     ]"
     :data-collapsed="hiddenOnNarrow ? 'true' : 'false'"

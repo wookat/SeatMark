@@ -1,7 +1,7 @@
 # 交接上下文（Handoff Context）
 
 > 按 company-os `templates/handoff-context.md` 结构维护。每条事实后附可复核的文件路径或命令；不写任何凭证值。
-> 换会话/换负责人时，把本文档整体注入新会话首条消息。最后更新：第 342 轮。
+> 换会话/换负责人时，把本文档整体注入新会话首条消息。最后更新：第 366 轮。
 
 ## 项目目标
 
@@ -25,7 +25,7 @@ SeatMark 座签：上传 Excel 名单，在浏览器本地批量生成考场座�
 cd app
 npm install
 npm run dev          # vite 开发服务器
-npm run test         # vitest run（第 340 轮：51 个文件 / 461 用例）
+npm run test         # vitest run（第 366 轮：157 个文件 / 1442 用例）
 npm run build        # vue-tsc --noEmit -p tsconfig.json && vite build && npm run prerender
 node scripts/i18n-audit.mjs   # /en 中文泄漏守卫，exit 0 = 0 条非允许泄漏
 ```
@@ -50,7 +50,7 @@ node scripts/i18n-audit.mjs   # /en 中文泄漏守卫，exit 0 = 0 条非允许
 | --- | --- | --- |
 | `[[default]].js` | `/api/*` catch-all：`/api/auth/*`（邮箱验证码/密码登录注册、JWT httpOnly 会话）、配额、模板同步、分享短链、`/api/admin/health` 等（路由清单见文件头注释） | `AUTH_SECRET`、`ADMIN_EMAILS`、`TENCENT_SES_SECRET_ID`、`TENCENT_SES_SECRET_KEY`、`TENCENT_SES_REGION`、`TENCENT_SES_TEMPLATE_ID`、`RESEND_API_KEY`、`MAIL_FROM`、`SEATMARK_ALLOW_MEMORY_STORAGE`、`DEV` |
 | `ai-design.js` | `POST /api/ai-design`（AI 标签设计同源代理；主模型 DeepSeek，兜底智谱 glm-4-flash） | `DEEPSEEK_API_KEY`、`AI_API_KEY`、`AI_BASE_URL`、`AI_MODEL`、`ALERT_WEBHOOK`（可选告警） |
-| `feedback.js` | `POST /api/feedback`（用户反馈，转发到机器人 webhook） | `FEEDBACK_WEBHOOK`（可选） |
+| `feedback.js` | `POST /api/feedback`（用户反馈，先归档再转发机器人 webhook；第 366 轮起 webhook 按 `response.ok` 判定投递成功，非 2xx/超时经 `waitUntil(retryLater)` 只重试一次） | `FEEDBACK_WEBHOOK`（可选） |
 | `_storage.js` | 内部模块：KV → Blob → 内存三级存储抽象 | KV 绑定名 `seatmark_kv`；Blob 依赖根 `package.json` 的 `@edgeone/pages-blob` |
 | `_security.js` | 内部模块：API 响应安全头 | — |
 
@@ -76,6 +76,24 @@ node scripts/i18n-audit.mjs   # /en 中文泄漏守卫，exit 0 = 0 条非允许
 - 定价：专业版原价 ¥19、团队版 ¥49、限时 0 折免费；不接入真实支付（`app/src/views/PricingView.vue`、`en.ts` 中 'Pro is free for a limited time (normally ¥19/mo)'）。
 - 公司规则：所有仓库不需要 CI，GitHub Actions 保持禁用；验收 = 本地 test/typecheck/build 全绿 + 生产复测，本地全绿即可合并。
 - git：新分支 `devin/<时间戳>-<描述>`；禁止 `git add .`、amend、force push main、跳过 hooks；仓库无 CI / 无 auto-merge，本地全绿后由负责人经 GitHub API squash 合并并 GET 确认 `merged=true`。
+
+## 第 366 轮实施结论（edge_changed=true，`X-SeatMark-Rev` r364 → r366）
+
+证据分级：**直接实证** = 本会话本机实跑命令/接口得到的输出；**报告转述** = 子会话/测试代理报告，未亲自复现；**未验证** = 未做。
+
+| # | 项 | 改动位置 | 结论 | 证据级别 |
+| --- | --- | --- | --- | --- |
+| 1 | 反馈 webhook 投递可靠性 | `edge-functions/api/feedback.js`（`push()` 改为 `await fetch` 后检查 `response.ok`，非 2xx 抛带状态码错误，走既有 `console.warn + waitUntil(retryLater(push))` 重试一次；`delivered` 仅 2xx 置 true；`!archived && !delivered → 503` 语义不变；webhook 仍只读 `env.FEEDBACK_WEBHOOK`）；`_rev.js` r366 | `app/src/__tests__/edgeFeedback.spec.ts` 新增 200 / 4xx / 5xx / 超时(AbortSignal) 四类用例，断言 delivered、响应码（有归档 200、无归档且非 2xx 503）与 retryLater 调度；20 用例通过 | 直接实证（本地 vitest） |
+| 2 | 宴会自动分配前容量预估 | `app/src/utils/banquet.ts` 新增纯函数 `estimateCapacity()`（与 `summarizeBanquet` 同文件同口径；锁定桌只计其已就座宾客，未用锁定座位不计入可分配容量）；`BanquetView.vue` 第 3 步「一键自动分配」上方 `data-testid="capacity-estimate"`；「无桌可整组容纳」改为「这组 n 人没有一桌能坐下整组，已拆到 m 桌」（`en.ts` 同步） | `banquetSummary.spec.ts`：48 人 / 8 桌×10 座 → 至少 5 桌·预计空 3 桌；30 人 / 3×8 → 还差 6 座；空表/无名单；含锁定桌；组件断言文案与分配后摘要不矛盾 | 直接实证（本地 vitest） |
+| 3 | ≤768px 浮动反馈按钮让位 | `FeedbackButton.vue` `max-sm:*` → `max-md:*`（注释同步），桌面 ≥md 不变 | `feedbackButton.spec.ts` 新增 767px（matchMedia 模拟）滚动收起 / textarea 聚焦收起 / 回顶恢复 / 768px 不收起；`mobilePreviewJump.spec.ts` 断言同步 | 直接实证（本地 vitest）；生产 390/768 宽截图见下「生产复测」 |
+| 4 | 文案去 AI 味 | `HomeView.vue` 副标题改为能力清单式（`en.ts` 同步）；`guides.ts` 去掉「500 人…耗掉半天」；8 篇教程首段按人群重写（考务/班主任 3、行政会务 3、婚庆 2，分布在 `guides.ts` / `guidesRound4.ts` / `guidesRound5.ts`），quickStart.note 去重「无需注册」 | `marketingCopyRestraint.spec.ts` 新增：HomeView「每一步都按」=0、guides「耗掉半天」=0、单篇首段「无需注册」≤1、合计 ≤6；i18n 审计 0 leaks；预渲染 353 页（与改动前一致，本轮未增删路径） | 直接实证（本地 vitest / build / i18n-audit） |
+| 5 | 名单本地持久化失败不再静默 | `stores/workspace.ts` `persistRoster`：JSON 长度 > 4 MiB 直接跳过 `sessionStorage`；catch 置 `rosterPersistFailed=true`，成功写入复位；`MappingPanel.vue` 新增 `data-testid="roster-persist-notice"` 温和提示。不引入上传/压缩上云，不改照片处理 | 新增 `stores/__tests__/workspaceRosterPersistNotice.spec.ts`：QuotaExceededError → 提示渲染；正常 26 行 → 不渲染；超预算跳过 setItem 且渲染；成功后复位 | 直接实证（本地 vitest） |
+| 6 | 定价 FAQ 维护提示聚合 + /en 窄屏字标 | `PricingView.vue` FAQ 逐条提示删除，改为标题下方仅 1 条（`auth.serviceUnavailable && PRICING_FAQS.some(faqMentionsAccountBonus)`），套餐卡内提示不动；`AppHeader.vue` 英文字标 `hidden max-md:inline lg:inline`（<md 与 ≥lg 显示，md–lg 仍让位给行内导航，布局不改） | `serviceUnavailableDegradation.spec.ts` 改为「维护态 FAQ 区恰 1 个 / 恢复后 0 个」；`appHeader.spec.ts` 新增 en 路由窄屏字标含 SeatMark | 直接实证（本地 vitest） |
+| 7 | 导出旁缺失字段示例可定位 | 新增 `app/src/utils/missingDetail.ts`（`missingDetailText` / `missingExampleText`），`MappingPanel.vue` 与 `PreviewArea.vue` 共用；`dataQuality.missingDetails[]` 附 `name`（姓名列非空时）；导出提示追加「例：第 3 行 张三 · 座位号为空 等 N 行」，「去查看」按钮与非阻断导出不变 | `utils/__tests__/missingDetail.spec.ts`、`mappingPanelMissingDetails.spec.ts`、`previewAreaUnmapped.spec.ts` 新增断言 | 直接实证（本地 vitest） |
+
+本地验收（2026-09-08，本机实跑）：`cd app && npm run test` → 157 files / 1442 tests passed；`npm run build`（vue-tsc + vite build + prerender）→ exit 0，353 页预渲染，sitemap 344 urls；`node scripts/i18n-audit.mjs` → 0 leaks；`git diff --check` → 无告警。
+
+生产复测：合并部署后进行（匿名，不注册/不登录/不发信/不提交预订；`POST /api/feedback` 仅提交 1 条不含真实联系方式的测试反馈核对 `X-SeatMark-Rev: r366` 与返回码；结束清理 localStorage/sessionStorage）。结果登记在 `docs/test-plans/test-report.md`「第 366 轮」一节；PR 描述与本节以该报告为准，未写入的项一律视为**未验证**。
 
 ## 已知缺口
 

@@ -48,6 +48,7 @@ import {
   snapshotTables,
   summarizeAssignments,
   removeEmptyTables,
+  estimateCapacity,
   summarizeBanquet,
   validateBanquet,
   VENUE_HEIGHT,
@@ -727,6 +728,26 @@ function moveGroupToTable(groupId: string, tableId: string) {
 
 /** 画布上方的结果摘要（随安排实时变化，不仅限于自动排座后） */
 const summary = computed(() => summarizeBanquet(guests.value, tables.value, groups.value))
+
+/** 自动分配前的容量预估（与摘要栏 / 导出检查同一份 guests / tables） */
+const capacityEstimate = computed(() => estimateCapacity(guests.value, tables.value))
+const capacityEstimateText = computed(() => {
+  const c = capacityEstimate.value
+  if (c.status === 'no-guests') return tr('请先在第 1 步导入宾客名单，再分配座位。')
+  if (c.status === 'no-tables') return tr('请先在第 2 步添加餐桌，再分配座位。')
+  const head = tr('{n} 位宾客 · {k} 桌 {s} 座')
+    .replace('{n}', String(c.guests))
+    .replace('{k}', String(c.tables))
+    .replace('{s}', String(c.seats))
+  if (c.status === 'short') {
+    return `${head}${tr('，还差 {d} 个座位，请加桌或提高每桌座位数').replace('{d}', String(c.shortage))}`
+  }
+  const tail = tr('；按每桌坐满至少需要 {m} 桌，分配后预计空 {e} 桌')
+    .replace('{m}', String(c.minTables))
+    .replace('{e}', String(c.expectedEmptyTables))
+  const note = assignStrategy.value === 'fill-tables' ? '' : tr('（同组同桌策略实际空桌数以分配后摘要为准）')
+  return `${head}${tail}${note}`
+})
 
 /** 被拆到多桌的分组明细（摘要中「拆分分组」可展开查看）：含拆分原因与所在桌号 */
 const splitGroupDetails = computed(() => explainSplit(guests.value, tables.value, groups.value))
@@ -1730,7 +1751,15 @@ function toPlaceCards() {
               data-testid="assign-strategy"
             />
           </div>
-          <div class="mt-3 flex flex-wrap gap-2">
+          <p
+            class="mt-3 text-xs leading-5"
+            :class="capacityEstimate.status === 'short' ? 'font-medium text-amber-700' : 'text-slate-600'"
+            data-testid="capacity-estimate"
+            :data-status="capacityEstimate.status"
+          >
+            {{ capacityEstimateText }}
+          </p>
+          <div class="mt-2 flex flex-wrap gap-2">
             <button type="button" class="btn btn-primary btn-sm" data-testid="auto-assign" @click="autoAssign">
               {{ assignStrategy === 'fill-tables' ? tr('一键自动分配（优先坐满）') : tr('一键自动分配（同组同桌）') }}
             </button>
@@ -2037,7 +2066,11 @@ function toPlaceCards() {
                 :title="tr('没有一桌剩余座位够整组坐下')"
                 :data-testid="`move-group-${g.groupId}-disabled`"
               >
-                {{ tr('无桌可整组容纳') }}
+                {{
+                  tr('这组 {n} 人没有一桌能坐下整组，已拆到 {m} 桌')
+                    .replace('{n}', String(g.groupSize))
+                    .replace('{m}', String(g.tables.length))
+                }}
               </span>
             </span>
           </li>

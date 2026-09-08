@@ -16,6 +16,8 @@ const auth = useAuthStore()
 const toast = useToastStore()
 /** 英文行内链接前后需要空格分词，中文不加 */
 const wordGap = computed(() => (currentLocale() === 'en' ? ' ' : ''))
+/** FAQ 区是否有条目提到账号权益（注册送天数等）：维护态下在区块标题下只渲染一次提示 */
+const faqSectionMentionsAccountBonus = PRICING_FAQS.some((f) => faqMentionsAccountBonus(f.a))
 
 // 定价页展示「注册送 7 天」利益点前，探测一次账号服务是否可用（生产 AUTH_SECRET 缺失期间为 503）。
 // 直接落地 /pricing 时本组件的 mounted 先于 App 的 bootstrap，ready 尚为 false，需等 ready 后再探
@@ -272,6 +274,13 @@ async function submitReserve() {
     <!-- FAQ -->
     <section class="mx-auto mt-14 max-w-3xl">
       <h2 class="text-center text-2xl font-bold tracking-tight text-slate-900">{{ t('定价常见问题') }}</h2>
+      <p
+        v-if="auth.serviceUnavailable && faqSectionMentionsAccountBonus"
+        class="mx-auto mt-3 max-w-xl text-center text-xs leading-5 text-slate-500"
+        data-testid="pricing-maintenance-hint"
+      >
+        {{ t(AUTH_MAINTENANCE_HINT) }}
+      </p>
       <div class="mt-6 grid gap-4">
         <div
           v-for="faq in PRICING_FAQS"
@@ -280,13 +289,6 @@ async function submitReserve() {
         >
           <h3 class="text-sm font-bold text-slate-900">{{ t(faq.q) }}</h3>
           <p class="mt-2 text-sm leading-6 text-slate-600">{{ t(faq.a) }}</p>
-          <p
-            v-if="auth.serviceUnavailable && faqMentionsAccountBonus(faq.a)"
-            class="mt-1.5 text-xs leading-5 text-slate-500"
-            data-testid="pricing-maintenance-hint"
-          >
-            {{ t(AUTH_MAINTENANCE_HINT) }}
-          </p>
         </div>
       </div>
     </section>

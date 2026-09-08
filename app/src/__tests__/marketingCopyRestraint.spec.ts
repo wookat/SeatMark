@@ -3,6 +3,8 @@
  * 第 346 轮：首页与教程摘要营销化表达收敛护栏。
  * 首页渲染文本「一键」≤1、「毫米级」≤1、「思路很简单」=0、「几分钟」=0；
  * 教程 title/description 合计「一键」≤1（/guides 索引页一屏可见）、「思路很简单」=0、「几分钟」=0。
+ * 第 366 轮：首页「每一步都按」=0；guides 全文「耗掉半天」=0；
+ * 教程开场（quickStart 尾注 + 正文首段）单篇「无需注册」≤1、全部合计 ≤6。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
@@ -133,5 +135,100 @@ describe('第 346 轮：营销化表达收敛', () => {
     const text = w.text()
     expect(text).not.toContain('排版精确到毫米')
     expect(text).toContain('尺寸按毫米设定，打印后与模板标注一致')
+  })
+})
+
+/** 教程开场：文章头部 quickStart 尾注 + 正文第一段（读者最先看到的两处） */
+function guideOpening(g: (typeof guides)[number]): string {
+  const m = /<p>([\s\S]*?)<\/p>/.exec(g.body)
+  const firstParagraph = m ? m[1]!.replace(/<[^>]+>/g, '') : ''
+  return `${g.quickStart?.note ?? ''}\n${firstParagraph}`
+}
+
+describe('第 366 轮：文案去模板化与伪精确数字', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    sessionStorage.clear()
+    setActivePinia(createPinia())
+    vi.stubGlobal('scrollTo', vi.fn())
+    vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+    vi.stubGlobal('IntersectionObserver', IntersectionObserverStub)
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('prefers-reduced-motion'),
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    )
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 404 }))
+  })
+  afterEach(async () => {
+    mounted?.unmount()
+    mounted = null
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+    document.body.innerHTML = ''
+    await setLocale('zh')
+  })
+
+  it('首页（zh）：「每一步都按」=0，副标题改为具体能力清单', async () => {
+    const w = await mountApp('/')
+    const text = w.text()
+    expect(count(text, '每一步都按')).toBe(0)
+    expect(text).toContain('名单解析、字段映射、裁切线与出血、批量导出')
+  })
+
+  it('首页（en）：无 "every step is designed" 泛化表述，能力清单译文生效', async () => {
+    await setLocale('en')
+    const w = await mountApp('/en')
+    const text = w.text()
+    expect(text.toLowerCase()).not.toContain('every step is designed')
+    expect(text).toContain('List parsing, field mapping, cut lines and bleed, batch export')
+  })
+
+  it('guides 全文「耗掉半天」=0；考场座位贴教程首段不再用伪精确人数 + 时长', () => {
+    const all = guides.map((g) => `${g.title}\n${g.description}\n${g.quickStart?.note ?? ''}\n${g.body}`).join('\n')
+    expect(count(all, '耗掉半天')).toBe(0)
+    const exam = guides.find((g) => g.slug === 'exam-seat-label-batch-print')!
+    expect(guideOpening(exam)).not.toContain('500 人')
+    expect(guideOpening(exam)).toContain('名单每改一次都要从头再来')
+  })
+
+  it('教程开场（尾注 + 首段）：单篇「无需注册」≤1，全部合计 ≤6', () => {
+    let total = 0
+    for (const g of guides) {
+      const n = count(guideOpening(g), '无需注册')
+      expect(n, g.slug).toBeLessThanOrEqual(1)
+      total += n
+    }
+    expect(total).toBeLessThanOrEqual(6)
+  })
+
+  it('按人群重写的 8 篇开场：以该人群真实起点开头，首段不再堆叠隐私/免费声明', () => {
+    const rewritten: Record<string, string> = {
+      'exam-seat-label-batch-print': '考前一天下午',
+      'class-teacher-exam-workflow': '考前一晚',
+      'parent-meeting-desk-card': '家长会通知发下去以后',
+      'excel-generate-desk-cards': '报名截止那天',
+      'hr-annual-meeting-materials': '年会前一周',
+      'desk-sign-online-maker': '下午四点',
+      'wedding-place-card-guide': '婚期前两周',
+      'hotel-wedding-place-card-setup': '婚礼前一晚在酒店对桌',
+    }
+    for (const [slug, lead] of Object.entries(rewritten)) {
+      const g = guides.find((x) => x.slug === slug)
+      expect(g, slug).toBeDefined()
+      const m = /<p>([\s\S]*?)<\/p>/.exec(g!.body)
+      const first = m ? m[1]!.replace(/<[^>]+>/g, '') : ''
+      expect(first.startsWith(lead), slug).toBe(true)
+      expect(count(first, '无需注册'), slug).toBe(0)
+      expect(count(first, '不出浏览器') + count(first, '不离开浏览器'), slug).toBe(0)
+    }
   })
 })

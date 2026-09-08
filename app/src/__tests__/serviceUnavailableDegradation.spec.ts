@@ -79,20 +79,19 @@ describe('第 345 轮：账号服务不可用降级文案', () => {
       expect(wrapper.find('[data-testid="pricing-pro-cta"]').exists()).toBe(false)
       expect(wrapper.find('[data-testid="pricing-pro-cta-degraded"]').exists()).toBe(true)
       // 第 348 轮：权益卡与含「注册送 7 天」承诺的 FAQ 旁出现弱提示；
-      // 第 363 轮：卡内不再重复 features bullet，卡底一条合并文案，FAQ 旁仍为短提示
+      // 第 363 轮：卡内不再重复 features bullet，卡底一条合并文案；
+      // 第 366 轮：FAQ 区聚合为标题下方恰 1 条，不再逐条 FAQ 重复
       const hints = wrapper.findAll('[data-testid="pricing-maintenance-hint"]')
-      expect(hints.length).toBeGreaterThanOrEqual(2)
+      expect(hints).toHaveLength(2)
       const cards = wrapper.findAll('[data-testid="pricing-plan-card"]')
       expect(cards).toHaveLength(3)
       const cardHints = cards.flatMap((c) => c.findAll('[data-testid="pricing-maintenance-hint"]'))
       expect(cardHints).toHaveLength(1)
       expect(cardHints[0]!.text()).toBe(PRICING_CARD_HINT)
       for (const c of cards) expect(c.findAll('li').filter((li) => li.text() === NEUTRAL)).toHaveLength(0)
-      for (const h of hints) {
-        if (!cards.some((c) => c.element.contains(h.element))) {
-          expect(h.text()).toBe(NEUTRAL)
-        }
-      }
+      const faqHints = hints.filter((h) => !cards.some((c) => c.element.contains(h.element)))
+      expect(faqHints).toHaveLength(1)
+      expect(faqHints[0]!.text()).toBe(NEUTRAL)
       // 定价不变：专业版原价 ¥19、团队版 ¥49
       expect(wrapper.text()).toContain('¥19')
       expect(wrapper.text()).toContain('¥49')
@@ -257,7 +256,7 @@ describe('第 365 轮：定价页「分享送次数」维护期注记', () => {
     expect(faqMentionsAccountBonus(byQ('我的名单数据安全吗？'))).toBe(false)
   })
 
-  it('维护态：免费版卡「分享送次数」bullet 尾注恰 1 处；「无水印次数用完了」FAQ 旁灰字恰 1 处；恢复后全部消失', async () => {
+  it('维护态：免费版卡「分享送次数」bullet 尾注恰 1 处；FAQ 区标题下灰字恰 1 处（不逐条重复）；恢复后全部消失', async () => {
     const auth = useAuthStore()
     auth.ready = false
     auth.serviceUnavailable = true
@@ -274,15 +273,17 @@ describe('第 365 轮：定价页「分享送次数」维护期注记', () => {
     expect(freeBullets).toHaveLength(6)
 
     const faqBoxes = wrapper.findAll('h3').map((h) => h.element.parentElement!)
-    const faqHints = (q: string) =>
-      faqBoxes
-        .filter((box) => box.querySelector('h3')?.textContent === q)
-        .flatMap((box) => [...box.querySelectorAll('[data-testid="pricing-maintenance-hint"]')])
-    expect(faqHints('无水印次数用完了怎么办？')).toHaveLength(1)
-    expect(faqHints('无水印次数用完了怎么办？')[0]!.textContent).toBe(NEUTRAL)
-    expect(faqHints('使用需要注册账号吗？')).toHaveLength(1)
-    expect(faqHints('带水印和无水印导出有什么区别？')).toHaveLength(0)
-    expect(faqHints('我的名单数据安全吗？')).toHaveLength(0)
+    for (const box of faqBoxes) {
+      expect(box.querySelectorAll('[data-testid="pricing-maintenance-hint"]')).toHaveLength(0)
+    }
+    const faqSection = wrapper.findAll('h2').find((h) => h.text() === '定价常见问题')!.element.parentElement!
+    const faqHints = faqSection.querySelectorAll('[data-testid="pricing-maintenance-hint"]')
+    expect(faqHints).toHaveLength(1)
+    expect(faqHints[0]!.textContent?.trim()).toBe(NEUTRAL)
+    // 标题下方、FAQ 列表之前
+    const h2 = faqSection.querySelector('h2')!
+    expect(h2.compareDocumentPosition(faqHints[0]!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(faqHints[0]!.compareDocumentPosition(faqBoxes[0]!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
     auth.serviceUnavailable = false
     await flushPromises()

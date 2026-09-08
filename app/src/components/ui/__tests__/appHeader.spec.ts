@@ -181,6 +181,28 @@ describe('第 347 轮：AppHeader <sm 汉堡抽屉导航', () => {
     expect(nav.text()).toContain('Pricing')
   })
 
+  it('第 366 轮：en 路由窄屏（<md）字标显示 SeatMark，与 AppFooter 一致；md–lg 仍让位、≥lg 显示', async () => {
+    await setLocale('en')
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', name: 'home', component: { template: '<div />' } },
+        { path: '/en', name: 'en-home', component: { template: '<div />' } },
+        { path: '/:rest(.*)*', name: 'any', component: { template: '<div />' } },
+      ],
+    })
+    await router.push('/en')
+    await router.isReady()
+    const wrapper = mount(AppHeader, { global: { plugins: [router] } })
+    const brand = wrapper.get('[data-testid="brand-link"]')
+    expect(brand.text()).toContain('SeatMark')
+    expect(brand.text()).not.toContain('座签')
+    const mark = brand.get('[data-testid="brand-wordmark-en"]')
+    expect(mark.classes()).toEqual(expect.arrayContaining(['hidden', 'max-md:inline', 'lg:inline']))
+    expect(brand.find('.whitespace-nowrap').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
   it('点外部 / Esc / 路由切换 均关闭抽屉', async () => {
     const wrapper = await mountHeader()
     const toggle = wrapper.get('[data-testid="nav-drawer-toggle"]')

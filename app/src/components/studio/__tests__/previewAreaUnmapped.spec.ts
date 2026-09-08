@@ -160,6 +160,48 @@ describe('PreviewArea 导出弹窗：未映射字段提示条', () => {
 
     wrapper.unmount()
   })
+
+  it('第 366 轮：导出提示附首个缺失示例（行号 + 姓名 + 字段），多行时带「等 N 行」，不阻断导出', async () => {
+    const workspace = useWorkspaceStore()
+    workspace.useDemoData()
+    const nameHeader = workspace.mapping['name']!
+    const seatField = workspace.mappableFields.find((f) => f.id !== 'name' && workspace.mapping[f.id])!
+    const seatHeader = workspace.mapping[seatField.id]!
+    workspace.excel.rows = workspace.excel.rows.slice(0, 4).map((row, i) => {
+      const filled: Record<string, string> = {}
+      for (const h of workspace.excel.headers) filled[h] = String(row[h] ?? '').trim() || 'x'
+      filled[nameHeader] = `学生${i + 1}`
+      return filled
+    })
+    expect(workspace.dataQuality.missingRows).toBe(0)
+    workspace.excel.rows[2]![seatHeader] = ''
+    workspace.excel.rows[3]![seatHeader] = ''
+    expect(workspace.dataQuality.missingRows).toBe(2)
+    expect(workspace.dataQuality.missingDetails[0]).toEqual({ rowIndex: 3, fields: [seatField.label], name: '学生3' })
+
+    const wrapper = await mountPreview()
+    await openPdfExportDialog(wrapper)
+    const notice = wrapper.get('[data-testid="missing-rows-export-notice"]')
+    const example = notice.get('[data-testid="missing-rows-export-example"]')
+    expect(example.text()).toBe(`例：第 3 行 学生3 · ${seatField.label}为空 等 2 行`)
+    // 仍可继续导出：提示条只是说明，主按钮不被禁用
+    expect(wrapper.find('[data-testid="missing-rows-go-mapping"]').exists()).toBe(true)
+    const primary = wrapper.findAll('button').filter((b) => b.attributes('disabled') !== undefined && b.text().includes('导出'))
+    expect(primary).toHaveLength(0)
+
+    // 只剩 1 行缺失：不带「等 N 行」
+    workspace.excel.rows[3]![seatHeader] = 'x'
+    await wrapper.vm.$nextTick()
+    expect(notice.get('[data-testid="missing-rows-export-example"]').text()).toBe(`例：第 3 行 学生3 · ${seatField.label}为空`)
+
+    // 姓名本身为空时示例不带姓名
+    workspace.excel.rows[2]![nameHeader] = ''
+    await wrapper.vm.$nextTick()
+    const emptyLabels = workspace.dataQuality.missingDetails[0]!.fields.join('、')
+    expect(emptyLabels.split('、').sort()).toEqual(['姓名', seatField.label].sort())
+    expect(notice.get('[data-testid="missing-rows-export-example"]').text()).toBe(`例：第 3 行 · ${emptyLabels}为空`)
+    wrapper.unmount()
+  })
 })
 
 describe('第 346 轮：PNG 导出弹窗高级选项默认折叠', () => {

@@ -120,17 +120,17 @@ describe('第 353 轮：窄屏向下滚动收起反馈气泡（不常驻压住�
     Object.defineProperty(window, 'scrollY', { value: 0, configurable: true, writable: true })
   })
 
-  it('初始常驻；向下滚动后 data-collapsed=true 且带 max-sm:opacity-0 / pointer-events-none；停住不自动恢复', async () => {
+  it('初始常驻；向下滚动后 data-collapsed=true 且带 max-md:opacity-0 / pointer-events-none；停住不自动恢复', async () => {
     const w = mountFeedback()
     const btn = w.get('button[aria-label="反馈"]')
     expect(btn.attributes('data-collapsed')).toBe('false')
-    expect(btn.classes()).not.toContain('max-sm:opacity-0')
+    expect(btn.classes()).not.toContain('max-md:opacity-0')
 
     scrollTo(300)
     await w.vm.$nextTick()
     expect(btn.attributes('data-collapsed')).toBe('true')
-    expect(btn.classes()).toContain('max-sm:opacity-0')
-    expect(btn.classes()).toContain('max-sm:pointer-events-none')
+    expect(btn.classes()).toContain('max-md:opacity-0')
+    expect(btn.classes()).toContain('max-md:pointer-events-none')
 
     scrollTo(301)
     await w.vm.$nextTick()
@@ -158,7 +158,7 @@ describe('第 353 轮：窄屏向下滚动收起反馈气泡（不常驻压住�
     w.unmount()
   })
 
-  it('收起只作用于窄屏：桌面尺寸 class 保持 size-12，隐藏 class 全部带 max-sm: 前缀', async () => {
+  it('收起只作用于窄屏：桌面尺寸 class 保持 size-12，隐藏 class 全部带 max-md: 前缀（≥md 常驻）', async () => {
     const w = mountFeedback()
     scrollTo(500)
     await w.vm.$nextTick()
@@ -166,7 +166,111 @@ describe('第 353 轮：窄屏向下滚动收起反馈气泡（不常驻压住�
     expect(btn.classes()).toContain('size-12')
     const hiding = btn.classes().filter((c) => /opacity-0|pointer-events-none|translate-y/.test(c))
     expect(hiding.length).toBeGreaterThan(0)
-    expect(hiding.every((c) => c.startsWith('max-sm:'))).toBe(true)
+    expect(hiding.every((c) => c.startsWith('max-md:'))).toBe(true)
+    expect(btn.classes().some((c) => c.startsWith('max-sm:'))).toBe(false)
+    w.unmount()
+  })
+})
+
+describe('第 366 轮：让位范围扩到 <md（768px 档，matchMedia 模拟）', () => {
+  function scrollTo(y: number) {
+    Object.defineProperty(window, 'scrollY', { value: y, configurable: true, writable: true })
+    window.dispatchEvent(new Event('scroll'))
+  }
+
+  /** 模拟视口宽度 width：innerWidth + matchMedia（Tailwind max-md = (width < 48rem)） */
+  function stubViewport(width: number) {
+    Object.defineProperty(window, 'innerWidth', { value: width, configurable: true, writable: true })
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => {
+        const lt = /width\s*<\s*([\d.]+)rem/.exec(query)
+        const max = /max-width:\s*([\d.]+)px/.exec(query)
+        const min = /min-width:\s*([\d.]+)px/.exec(query)
+        let matches = false
+        if (lt) matches = width < Number(lt[1]) * 16
+        else if (max) matches = width <= Number(max[1])
+        else if (min) matches = width >= Number(min[1])
+        return { matches, media: query, onchange: null, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, dispatchEvent: () => false } as unknown as MediaQueryList
+      }),
+    )
+  }
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true, writable: true })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('767px（< md）：向下滚动后 collapsed，隐藏 class 为 max-md:（该档命中），尺寸 class 为 max-md:size-10', async () => {
+    stubViewport(767)
+    expect(window.matchMedia('(width < 48rem)').matches).toBe(true)
+    const w = mountFeedback()
+    const btn = w.get('button[aria-label="反馈"]')
+    expect(btn.classes()).toContain('max-md:size-10')
+    expect(btn.classes()).toContain('max-md:right-3')
+    scrollTo(400)
+    await w.vm.$nextTick()
+    expect(btn.attributes('data-collapsed')).toBe('true')
+    expect(btn.classes()).toContain('max-md:opacity-0')
+    expect(btn.classes()).toContain('max-md:pointer-events-none')
+    expect(btn.classes()).toContain('max-md:translate-y-2')
+    w.unmount()
+  })
+
+  it('textarea 聚焦后收起（data-input-focused=true + max-md 隐藏 class）；失焦后恢复', async () => {
+    stubViewport(767)
+    const ta = document.createElement('textarea')
+    document.body.appendChild(ta)
+    const w = mountFeedback()
+    const btn = w.get('button[aria-label="反馈"]')
+    expect(btn.attributes('data-collapsed')).toBe('false')
+
+    ta.focus()
+    document.dispatchEvent(new Event('focusin'))
+    await w.vm.$nextTick()
+    expect(btn.attributes('data-input-focused')).toBe('true')
+    expect(btn.attributes('data-collapsed')).toBe('true')
+    expect(btn.classes()).toContain('max-md:opacity-0')
+
+    ta.blur()
+    document.dispatchEvent(new Event('focusout'))
+    await w.vm.$nextTick()
+    expect(btn.attributes('data-input-focused')).toBe('false')
+    expect(btn.attributes('data-collapsed')).toBe('false')
+    expect(btn.classes()).not.toContain('max-md:opacity-0')
+    ta.remove()
+    w.unmount()
+  })
+
+  it('回到页顶（scrollY < 80）恢复常驻', async () => {
+    stubViewport(767)
+    const w = mountFeedback()
+    const btn = w.get('button[aria-label="反馈"]')
+    scrollTo(800)
+    await w.vm.$nextTick()
+    expect(btn.attributes('data-collapsed')).toBe('true')
+    scrollTo(20)
+    await w.vm.$nextTick()
+    expect(btn.attributes('data-collapsed')).toBe('false')
+    expect(btn.classes()).not.toContain('max-md:pointer-events-none')
+    w.unmount()
+  })
+
+  it('768px（= md）：max-md 媒体查询不命中，隐藏 class 不含 md: 以上前缀，桌面 size-12 保持', async () => {
+    stubViewport(768)
+    expect(window.matchMedia('(width < 48rem)').matches).toBe(false)
+    const w = mountFeedback()
+    const btn = w.get('button[aria-label="反馈"]')
+    scrollTo(400)
+    await w.vm.$nextTick()
+    const hiding = btn.classes().filter((c) => /opacity-0|pointer-events-none|translate-y/.test(c))
+    expect(hiding.every((c) => c.startsWith('max-md:'))).toBe(true)
+    expect(btn.classes()).toContain('size-12')
+    expect(btn.classes().some((c) => /^(opacity-0|pointer-events-none|md:opacity-0|lg:opacity-0)$/.test(c))).toBe(false)
     w.unmount()
   })
 })

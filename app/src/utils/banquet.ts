@@ -967,6 +967,60 @@ export function summarizeBanquet(
   }
 }
 
+/**
+ * 自动分配前的容量预估（第 3 步按钮上方说明）。
+ * - 锁定桌自动分配不动：其已就座宾客视为已占位，空位不计入可用容量；
+ * - minTables：按每桌坐满的下限 = 锁定桌数 + ceil(待排宾客 / 未锁定桌平均座位)，与「优先坐满」策略一致，
+ *   「同组同桌」策略实际留空桌数以 summarizeBanquet 为准。
+ */
+export interface CapacityEstimate {
+  status: 'no-guests' | 'no-tables' | 'enough' | 'short'
+  guests: number
+  tables: number
+  seats: number
+  lockedTables: number
+  /** 可用容量：未锁定桌座位 + 锁定桌已就座人数 */
+  capacity: number
+  /** status=short 时缺口座位数，否则 0 */
+  shortage: number
+  /** status=enough 时按每桌坐满至少需要的桌数，否则 0 */
+  minTables: number
+  /** status=enough 时预计留空桌数（tables - minTables），否则 0 */
+  expectedEmptyTables: number
+}
+
+export function estimateCapacity(guests: BanquetGuest[], tables: BanquetTable[]): CapacityEstimate {
+  const guestIds = new Set(guests.map((g) => g.id))
+  const seats = tables.reduce((sum, t) => sum + Math.max(0, Math.floor(t.seats) || 0), 0)
+  const lockedList = tables.filter((t) => t.locked)
+  const unlocked = tables.filter((t) => !t.locked)
+  const lockedSeated = lockedList.reduce(
+    (sum, t) => sum + t.guestIds.filter((id) => guestIds.has(id)).length,
+    0,
+  )
+  const unlockedSeats = unlocked.reduce((sum, t) => sum + Math.max(0, Math.floor(t.seats) || 0), 0)
+  const base = {
+    guests: guests.length,
+    tables: tables.length,
+    seats,
+    lockedTables: lockedList.length,
+    capacity: unlockedSeats + lockedSeated,
+    shortage: 0,
+    minTables: 0,
+    expectedEmptyTables: 0,
+  }
+  if (!guests.length) return { ...base, status: 'no-guests' }
+  if (!tables.length) return { ...base, status: 'no-tables' }
+  if (base.capacity < guests.length) {
+    return { ...base, status: 'short', shortage: guests.length - base.capacity }
+  }
+  const remaining = guests.length - lockedSeated
+  const avgUnlocked = unlocked.length ? unlockedSeats / unlocked.length : 0
+  const needUnlocked = remaining > 0 && avgUnlocked > 0 ? Math.ceil(remaining / avgUnlocked) : 0
+  const minTables = Math.min(tables.length, lockedList.length + needUnlocked)
+  return { ...base, status: 'enough', minTables, expectedEmptyTables: tables.length - minTables }
+}
+
 /** 默认分组配色（可自定义覆盖） */
 export const GROUP_COLORS = [
   '#4f46e5',

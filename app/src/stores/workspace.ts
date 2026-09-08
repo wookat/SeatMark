@@ -7,6 +7,7 @@ import { useLoadingStore } from '@/stores/loading'
 import { isValidTemplate } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
 import type { DataRow, FieldMapping, LabelTemplate, TemplateField } from '@/types/template'
+import type { MissingDetailItem } from '@/utils/missingDetail'
 import { autoMapFieldsDetailed } from '@/utils/autoMap'
 import { evaluateFieldTemplate, isCompositeMapping } from '@/utils/fieldTemplate'
 import {
@@ -56,6 +57,8 @@ function loadInitialTemplate(): { template: LabelTemplate; id: string } {
 
 /** 已导入名单的会话级持久化键（sessionStorage）：整页跳转/刷新 /studio 不丢名单 */
 const WORKSPACE_ROSTER_KEY = 'seatmark.workspace-roster.v1'
+/** 名单 JSON 预算（字符数，≈4 MB）：超出即不尝试写 sessionStorage，避免逼近浏览器配额反复抛错 */
+const WORKSPACE_ROSTER_MAX_CHARS = 4 * 1024 * 1024
 
 interface PersistedRoster {
   fileName: string
@@ -162,27 +165,36 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   // 名单会话内持久化（防抖）：经 URL / 落地页整页跳转进 /studio 时不丢已导入名单；
   // 仅存本页签的 sessionStorage，关闭页签即清除，符合「数据不出浏览器」承诺
   let rosterTimer: number | undefined
+  /**
+   * 名单未能写入 sessionStorage（超出预算 / 配额 / 隐私模式），仅保存在本页内存：
+   * 刷新或整页跳转后需重新导入。成功写入或清空名单后复位。
+   */
+  const rosterPersistFailed = ref(false)
   function persistRoster() {
     try {
       if (!excel.rows.length) {
         sessionStorage.removeItem(WORKSPACE_ROSTER_KEY)
+        rosterPersistFailed.value = false
         return
       }
-      sessionStorage.setItem(
-        WORKSPACE_ROSTER_KEY,
-        JSON.stringify({
-          fileName: excel.fileName,
-          sheetName: excel.sheetName,
-          headers: excel.headers,
-          rows: excel.rows,
-          mapping,
-          isDemoData: isDemoData.value,
-          hadPhotos: photos.value.size > 0,
-          photoColumn: photoColumn.value,
-        }),
-      )
+      const json = JSON.stringify({
+        fileName: excel.fileName,
+        sheetName: excel.sheetName,
+        headers: excel.headers,
+        rows: excel.rows,
+        mapping,
+        isDemoData: isDemoData.value,
+        hadPhotos: photos.value.size > 0,
+        photoColumn: photoColumn.value,
+      })
+      if (json.length > WORKSPACE_ROSTER_MAX_CHARS) {
+        rosterPersistFailed.value = true
+        return
+      }
+      sessionStorage.setItem(WORKSPACE_ROSTER_KEY, json)
+      rosterPersistFailed.value = false
     } catch {
-      /* 名单过大超出配额 / 隐私模式：静默跳过，仅影响整页跳转后的恢复 */
+      rosterPersistFailed.value = true
     }
   }
   function schedulePersistRoster() {
@@ -395,7 +407,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const result: {
       missingRows: number
       /** 前 MISSING_DETAIL_LIMIT 条空字段明细；rowIndex 为数据行 1 起的序号（不含表头，与导入预览一致） */
-      missingDetails: Array<{ rowIndex: number; fields: string[] }>
+      missingDetails: MissingDetailItem[]
       /** 超出明细上限、未逐条列出的行数 */
       missingMore: number
       duplicateExamIds: number
@@ -413,7 +425,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         if (!fields.length) return
         result.missingRows += 1
         if (result.missingDetails.length < MISSING_DETAIL_LIMIT) {
-          result.missingDetails.push({ rowIndex: index + 1, fields })
+          const name = mapping['name'] ? fieldText(row, 'name').trim() : ''
+          result.missingDetails.push(name ? { rowIndex: index + 1, fields, name } : { rowIndex: index + 1, fields })
         } else {
           result.missingMore += 1
         }
@@ -813,6 +826,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     unmappedFields,
     mappingSummary,
     dataQuality,
+    rosterPersistFailed,
     duplicateRows,
     hasDataQualityRisk,
     photoStats,

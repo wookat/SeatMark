@@ -37,9 +37,10 @@ describe('第 347 轮：dataQuality.missingDetails', () => {
 
     expect(ws.dataQuality.missingRows).toBe(2)
     expect(ws.dataQuality.missingMore).toBe(0)
+    // 第 366 轮：姓名非空的行附 name，供导出旁示例定位
     expect(ws.dataQuality.missingDetails).toEqual([
       { rowIndex: 2, fields: ['姓名'] },
-      { rowIndex: 3, fields: ['考场'] },
+      { rowIndex: 3, fields: ['考场'], name: '丙' },
     ])
   })
 
