@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 
+/* 含 768px 平板竖屏在内的窄屏（Tailwind max-md 为 <768px，不含 iPad 竖屏正好 768px 的档） */
+@custom-variant tablet-down (@media (width <= 768px));
+
 @theme {
   --color-brand-50: #eef2ff;
   --color-brand-100: #e0e7ff;
