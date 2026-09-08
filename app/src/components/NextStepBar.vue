@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
+import { useIsNarrow } from '@/composables/useMediaQuery'
 import { useNextStepBarHeight } from '@/composables/useNextStepBarHeight'
 import type { QuotaBadge } from '@/composables/useQuotaBadge'
 import { t as tr } from '@/i18n'
@@ -25,6 +26,7 @@ const props = withDefaults(
 )
 
 const showQuotaBadge = computed(() => props.step === 'export' && !!props.quotaBadge)
+const isNarrow = useIsNarrow()
 
 const label = computed(() => {
   switch (props.step) {
@@ -33,7 +35,10 @@ const label = computed(() => {
     case 'arrange':
       return `${tr('下一步：')}${props.arrangeLabel}`
     case 'export':
-      return tr('下一步：检查并导出')
+      // 窄屏上角标与次按钮同行，主按钮文案收短以免角标溢出视口
+      return showQuotaBadge.value && isNarrow.value
+        ? tr('下一步：导出')
+        : tr('下一步：检查并导出')
   }
 })
 

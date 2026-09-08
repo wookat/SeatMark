@@ -606,6 +606,7 @@ export const en: Record<string, string> = {
   '下一步：导入名单': 'Next: import roster',
   '下一步：': 'Next: ',
   '下一步：检查并导出': 'Next: check & export',
+  '下一步：导出': 'Next: export',
   '自动分配': 'Auto-assign',
   '已删除空桌': 'Removed empty tables:',
   '默认桌名已重新编号': 'Default table names have been renumbered',
