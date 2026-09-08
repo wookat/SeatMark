@@ -186,7 +186,7 @@ describe("第 358 轮：MappingPanel 未使用列提示", () => {
     await wrapper.vm.$nextTick();
     const hint = wrapper.get('[data-testid="mapping-unused-columns"]');
     expect(hint.text()).toBe("未使用列：职务、备注");
-    expect(hint.classes()).toContain("text-slate-400");
+    expect(hint.classes()).toContain("text-slate-500");
     wrapper.unmount();
   });
 

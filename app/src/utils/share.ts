@@ -1,4 +1,4 @@
-import { isValidTemplate } from '@/utils/templateValidate'
+import { isValidTemplate, sanitizeTemplateForImport } from '@/utils/templateValidate'
 import { apiFetch, ApiError } from '@/utils/api'
 import type { LabelTemplate } from '@/types/template'
 
@@ -82,7 +82,7 @@ export async function decodeSharedTemplate(payload: string): Promise<LabelTempla
       return null
     }
     const parsed: unknown = JSON.parse(new TextDecoder().decode(utf8))
-    return isValidTemplate(parsed) ? parsed : null
+    return isValidTemplate(parsed) ? sanitizeTemplateForImport(parsed) : null
   } catch {
     return null
   }

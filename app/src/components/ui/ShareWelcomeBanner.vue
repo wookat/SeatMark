@@ -20,7 +20,7 @@ const emit = defineEmits<{ close: [] }>()
       </span>
       <p class="min-w-0 flex-1 text-xs leading-5 text-slate-600">
         <strong class="text-slate-800">{{ t('同事向你推荐了 SeatMark 座签') }}</strong>
-        {{ t('— 上传 Excel 名单，三步批量生成考场座位标签 / 桌牌席卡，排版精确到毫米，名单数据全程只在你的浏览器本地处理。') }}
+        {{ t('— 上传 Excel 名单，三步批量生成考场座位标签 / 桌牌席卡，排版精确到毫米。') }}
       </p>
       <div class="flex shrink-0 items-center gap-1.5 max-sm:basis-full max-sm:justify-end">
         <RouterLink :to="localePath('/studio?demo=1')" class="btn btn-primary btn-sm" @click="emit('close')">

@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
 import { afterEach, describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
+import { footerGuideLinks } from '@/data/guideLinks'
 import { guides } from '@/data/guides'
 import { setLocale } from '@/i18n'
 import NotFoundView from '@/views/NotFoundView.vue'
@@ -53,5 +57,20 @@ describe('第 341 轮：NotFoundView 英文化', () => {
     expect(links.slice(0, 5)).toEqual(['/', '/studio', '/templates', '/guides', '/pricing'])
     expect(links.slice(5)).toEqual(guides.slice(0, 3).map((g) => `/guides/${g.slug}`))
     for (const g of guides.slice(0, 3)) expect(w.text()).toContain(g.title)
+  })
+})
+
+describe('第 371 轮：404 页不再全量引入教程正文', () => {
+  it('推荐清单取自 guideLinks 且前 3 条与 guides 前 3 篇一致', () => {
+    const picked = footerGuideLinks.slice(0, 3)
+    expect(picked.map((l) => l.to)).toEqual(guides.slice(0, 3).map((g) => `/guides/${g.slug}`))
+    expect(picked.map((l) => l.label)).toEqual(guides.slice(0, 3).map((g) => g.title))
+    expect(picked.map((l) => l.category)).toEqual(guides.slice(0, 3).map((g) => g.category))
+  })
+
+  it('NotFoundView 源码不 import @/data/guides', () => {
+    const src = readFileSync(resolve(__dirname, '../NotFoundView.vue'), 'utf8')
+    expect(src).not.toMatch(/from '@\/data\/guides'/)
+    expect(src).toMatch(/from '@\/data\/guideLinks'/)
   })
 })

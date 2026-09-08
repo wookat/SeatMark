@@ -77,7 +77,7 @@ const canContinueWatermarked = computed(() => quota.limitDialogContinue !== null
       <li v-for="item in valueLadder" :key="item.key" class="flex items-start gap-2.5">
         <span
           class="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full"
-          :class="item.active ? 'bg-brand-600 text-white' : 'bg-slate-300 text-white'"
+          :class="item.active ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-500'"
         >
           <svg class="size-2.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="m3.5 8.5 3 3 6-7" />

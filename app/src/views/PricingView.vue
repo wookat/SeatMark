@@ -54,7 +54,7 @@ const PLANS = computed<Plan[]>(() => [
       `${t('分享链接每被点开 1 次即得 1 次无水印导出')}${auth.serviceUnavailable ? t('（服务维护中暂不可用）') : ''}`,
       `${t('全部')} ${TEMPLATE_COUNT} ${t('款内置模板与设计器')}`,
       t('Excel 名单批量导入、A4 / A5 / A3 排版'),
-      t('数据全程浏览器本地处理'),
+      t('名单不会上传，数据只留在这台设备的浏览器里'),
     ],
     highlight: false,
     cta: 'signup',
@@ -268,7 +268,7 @@ async function submitReserve() {
     </div>
 
     <p class="mt-6 text-center text-xs text-slate-600">
-      {{ t('在线支付通道开通前，专业版通过兑换码开通') }}{{ t('（') }}<RouterLink :to="localePath('/account#redeem')" class="font-semibold text-brand-600 hover:underline">{{ t('去兑换') }}</RouterLink>{{ t('）；') }}{{ t('团队版预订登记不收取任何费用；所有名单数据仅在浏览器本地处理，不会上传服务器。') }}
+      {{ t('在线支付通道开通前，专业版通过兑换码开通') }}{{ t('（') }}<RouterLink :to="localePath('/account#redeem')" class="font-semibold text-brand-600 hover:underline">{{ t('去兑换') }}</RouterLink>{{ t('）；') }}{{ t('团队版预订登记不收取任何费用。') }}
     </p>
 
     <!-- FAQ -->

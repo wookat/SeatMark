@@ -366,6 +366,10 @@ const nextStepProgress = computed(
   () => `${tr('已安排')} ${assignmentSummary.value.assigned}/${guests.value.length}`,
 )
 
+/** 空名单时叠在画布顶部的引导条：可手动关闭，导入名单后自动消失 */
+const canvasEmptyHintDismissed = ref(false)
+const showCanvasEmptyHint = computed(() => !guests.value.length && !canvasEmptyHintDismissed.value)
+
 // ---------- 第 2 步：场地布局 ----------
 
 const selectedId = ref<string | null>(null)
@@ -1447,7 +1451,7 @@ function toPlaceCards() {
         {{ tr('宴会座位表生成器') }}
       </h1>
       <p class="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-        {{ tr('婚宴、年会、答谢宴的桌位安排：粘贴宾客名单并分组，选圆桌/长桌/U 形等场地布局，一键自动分配（优先把同组宾客排在同桌），拖拽微调后导出 A4/A3 高清座位图直接打印。数据全程在浏览器本地处理。') }}
+        {{ tr('婚宴、年会、答谢宴的桌位安排：粘贴宾客名单并分组，选圆桌/长桌/U 形等场地布局，一键自动分配（优先把同组宾客排在同桌），拖拽微调后导出 A4/A3 高清座位图直接打印。名单不会上传，数据只留在这台设备的浏览器里。') }}
       </p>
       <p class="mt-2 text-xs text-slate-500">
         {{ tr('要排教室座位？用') }}
@@ -1919,7 +1923,7 @@ function toPlaceCards() {
               {{ tr('导出 PDF（可直接打印）') }}
             </button>
             <p class="text-xs leading-5 text-slate-600">
-              {{ tr('导出前会自动检查未安排的宾客、空桌与餐桌重叠；名单全程不出浏览器。') }}
+              {{ tr('导出前会自动检查未安排的宾客、空桌与餐桌重叠。') }}
             </p>
             <div class="mt-1 border-t border-slate-100 pt-3">
               <p class="text-xs font-bold text-slate-700">{{ tr('迎宾台配套') }}</p>
@@ -1971,7 +1975,7 @@ function toPlaceCards() {
               <p class="mt-1.5 text-xs leading-5 text-slate-500">
                 {{
                   canHandoff
-                    ? `${tr('已安排')} ${handoffRows.length} ${tr('位宾客的姓名与桌号会带到标签工坊，选席位卡模板即可批量导出；名单仍不出浏览器。')}`
+                    ? `${tr('已安排')} ${handoffRows.length} ${tr('位宾客的姓名与桌号会带到标签工坊，选席位卡模板即可批量导出。')}`
                     : tr('安排宾客后可用：姓名与桌号直接带到标签工坊生成席位卡，不用二次录入。')
                 }}
               </p>
@@ -2138,6 +2142,43 @@ function toPlaceCards() {
           >
             {{ fitToWidth ? tr('放大查看') : tr('适配屏宽') }}
           </button>
+        </div>
+        <div
+          v-if="showCanvasEmptyHint"
+          role="status"
+          class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-xs"
+          data-testid="banquet-canvas-empty-hint"
+        >
+          <p class="min-w-0 flex-1 font-semibold text-slate-700">
+            {{ tr('先导入宾客名单，再点“自动分配”一键分桌') }}
+          </p>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              data-testid="banquet-canvas-empty-import"
+              @click="focusPasteInput"
+            >
+              {{ tr('导入宾客名单') }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary btn-sm"
+              data-testid="banquet-canvas-empty-demo"
+              @click="loadDemoGuests()"
+            >
+              {{ tr('用演示名单试试') }}
+            </button>
+            <button
+              type="button"
+              class="rounded-md px-1.5 py-1 text-base leading-none text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+              :aria-label="tr('关闭')"
+              data-testid="banquet-canvas-empty-dismiss"
+              @click="canvasEmptyHintDismissed = true"
+            >
+              ×
+            </button>
+          </div>
         </div>
         <div
           ref="canvasContainer"
