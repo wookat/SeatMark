@@ -90,6 +90,11 @@ const CODE_EMAIL_DAILY_LIMIT = 10
 const PASSWORD_MIN_LENGTH = 8
 const PASSWORD_MAX_LENGTH = 72
 const PBKDF2_ITERATIONS = 100000
+/**
+ * 登录时账号不存在 / 未设密码也跑一次 PBKDF2，抹平与「密码错误」的时序差（防邮箱枚举）。
+ * 固定盐与摘要均为占位常量，不对应任何真实密码。
+ */
+const DUMMY_PASSWORD_HASH = `pbkdf2$${PBKDF2_ITERATIONS}$QUFBQUFBQUFBQUFBQUFBQQ$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`
 const LOGIN_FAIL_LIMIT = 10
 const LOGIN_FAIL_WINDOW_MS = 15 * 60 * 1000
 const REGISTER_IP_DAILY_LIMIT = 20
@@ -149,7 +154,7 @@ class BodyTooLargeError extends Error {
 }
 
 /** 存储降级 memory 时必须 fail closed 的持久化写入路由（path → 受限方法） */
-const MEMORY_UNSAFE_ROUTES = {
+export const MEMORY_UNSAFE_ROUTES = {
   '/api/auth/code': ['POST'],
   '/api/auth/verify': ['POST'],
   '/api/auth/register': ['POST'],
@@ -1197,14 +1202,15 @@ async function handleRequest(context) {
     await markCaptchaUsed(kv, captcha)
 
     const user = await getUser(kv, email)
-    if (!user || !user.passwordHash) {
-      return json(
-        { error: user ? '该账号尚未设置密码，请先注册设置' : '邮箱或密码不正确' },
-        user ? 409 : 401,
-        storageHeader,
-      )
+    // 账号不存在 / 未设密码与密码错误同文案同状态码，且都跑一次 PBKDF2 抹平时序；
+    // 未设密码的存量账号同样计入失败计数，不存在的邮箱不落计数键
+    let ok = false
+    if (user && user.passwordHash) {
+      ok = await verifyPassword(password, user.passwordHash)
+    } else {
+      await verifyPassword(password, DUMMY_PASSWORD_HASH)
     }
-    const ok = await verifyPassword(password, user.passwordHash)
+    if (!user) return json({ error: '邮箱或密码不正确' }, 401, storageHeader)
     if (!ok) {
       fails.count += 1
       await deferWrite(() =>
@@ -1440,9 +1446,10 @@ async function handleRequest(context) {
     if (status.remaining <= 0) {
       return json({ error: '今日无水印导出次数已用完', ...status }, 429, storageHeader)
     }
+    // 幂等键先落、计数后落：中途失败最坏是少扣一次，而不是重试双扣
     const used = status.used + 1
-    await kv.put(`usage:${email}:${status.date}`, String(used), dailyTtl)
     if (idempotencyKey) await kv.put(idempotencyKey, '1', dailyTtl)
+    await kv.put(`usage:${email}:${status.date}`, String(used), dailyTtl)
     return json(
       { ok: true, ...status, used, remaining: status.limit - used },
       200,
@@ -1498,11 +1505,31 @@ async function handleRequest(context) {
     } catch {
       confirmed = null
     }
-    if (!confirmed || confirmed.usedBy !== email) {
+    if (confirmed && confirmed.usedBy && confirmed.usedBy !== email) {
       return json({ error: '兑换码已被使用' }, 409, storageHeader)
     }
-    grantProDays(user, record.days)
-    await putUser(kv, user)
+    // 回读为空/损坏，或发放落库失败：回滚认领声明，避免码被标记已用却未发放（死码）
+    const rollbackClaim = async () => {
+      record.usedBy = null
+      record.usedAt = null
+      try {
+        await kv.put(recordKey, JSON.stringify(record))
+      } catch (e) {
+        console.error('[seatmark-api] redeem 回滚失败:', e instanceof Error ? e.message : String(e))
+      }
+    }
+    if (!confirmed || confirmed.usedBy !== email) {
+      await rollbackClaim()
+      return json({ error: '兑换未完成，请稍后重试' }, 503, storageHeader)
+    }
+    try {
+      grantProDays(user, record.days)
+      await putUser(kv, user)
+    } catch (e) {
+      console.error('[seatmark-api] redeem 发放失败:', e instanceof Error ? e.message : String(e))
+      await rollbackClaim()
+      return json({ error: '兑换未完成，请稍后重试' }, 503, storageHeader)
+    }
     return json({ ok: true, days: record.days, pro: proStatus(user) }, 200, storageHeader)
   }
 
