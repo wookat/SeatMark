@@ -148,6 +148,40 @@ describe('NextStepBar', () => {
     spy.mockRestore()
   })
 
+  it('第 367 轮：次按钮被截断（scrollWidth > clientWidth）同样触发紧凑模式，并通过 secondary 作用域插槽下发 compact', async () => {
+    const target = document.createElement('section')
+    const badge = { text: '1 watermark-free left today', compactText: '1 watermark-free', cls: 'bg-emerald-100 text-emerald-700' }
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: query === '(max-width: 639px)',
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    )
+    const scrollW = vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.dataset.testid === 'secondary-stub' ? 150 : 0
+    })
+    const clientW = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.dataset.testid === 'secondary-stub' ? 26 : 0
+    })
+    const wrapper = mount(NextStepBar, {
+      props: { step: 'export', arrangeLabel: 'Random seating', target, quotaBadge: badge },
+      slots: {
+        secondary: `<template #secondary="{ compact }"><button data-testid="secondary-stub" :data-compact="compact ? 'true' : 'false'">{{ compact ? 'Preview' : 'View seating preview' }}</button></template>`,
+      },
+    })
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[data-testid="next-step-quota-badge"]').text()).toBe('1 watermark-free')
+    const stub = wrapper.find('[data-testid="secondary-stub"]')
+    expect(stub.attributes('data-compact')).toBe('true')
+    expect(stub.text()).toBe('Preview')
+    wrapper.unmount()
+    scrollW.mockRestore()
+    clientW.mockRestore()
+  })
+
   it('无目标区块时不渲染', () => {
     const wrapper = mountBar({ step: 'import', arrangeLabel: '随机排座', target: null })
     expect(wrapper.find('[data-testid="next-step-bar"]').exists()).toBe(false)
