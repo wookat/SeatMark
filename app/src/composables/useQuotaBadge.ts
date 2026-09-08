@@ -5,6 +5,8 @@ import { QUOTA_USER_DAILY } from '@/stores/quota'
 export interface QuotaBadge {
   text: string
   cls: string
+  /** 窄屏空间不足时的紧凑文案（仍带「无水印」主语） */
+  compactText?: string
 }
 
 export interface QuotaBadgeSource {
@@ -38,6 +40,7 @@ export function useQuotaBadge(
     quota.remaining > 0
       ? {
           text: t('无水印 今日剩余 {n} 次').replace('{n}', String(quota.remaining)),
+          compactText: t('无水印 剩 {n} 次').replace('{n}', String(quota.remaining)),
           cls: 'bg-emerald-100 text-emerald-700',
         }
       : { text: t('带水印免费'), cls: 'bg-sky-100 text-sky-700' },

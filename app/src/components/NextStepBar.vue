@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { useIsNarrow } from '@/composables/useMediaQuery'
 import { useNextStepBarHeight } from '@/composables/useNextStepBarHeight'
@@ -27,6 +27,26 @@ const props = withDefaults(
 
 const showQuotaBadge = computed(() => props.step === 'export' && !!props.quotaBadge)
 const isNarrow = useIsNarrow()
+
+/** 窄屏上完整角标仍超出视口时（如英文长文案）退到紧凑文案，按真实渲染宽度判定而不依赖语言 */
+const actionEl = ref<HTMLElement | null>(null)
+const compactBadge = ref(false)
+const badgeText = computed(() =>
+  compactBadge.value ? (props.quotaBadge?.compactText ?? props.quotaBadge?.text) : props.quotaBadge?.text,
+)
+
+async function measureBadgeFit() {
+  if (!isNarrow.value || !showQuotaBadge.value) {
+    compactBadge.value = false
+    return
+  }
+  compactBadge.value = false
+  await nextTick()
+  const el = actionEl.value
+  if (!el || typeof window === 'undefined') return
+  const limit = (barEl.value?.getBoundingClientRect().right || window.innerWidth) - 16
+  if (el.getBoundingClientRect().right > limit) compactBadge.value = true
+}
 
 const label = computed(() => {
   switch (props.step) {
@@ -89,6 +109,18 @@ onBeforeUnmount(() => {
 const barEl = ref<HTMLElement | null>(null)
 useNextStepBarHeight(barEl)
 
+watch(
+  () => [visible.value, isNarrow.value, showQuotaBadge.value, props.quotaBadge?.text, label.value] as const,
+  () => void measureBadgeFit(),
+  { flush: 'post' },
+)
+const onResize = () => void measureBadgeFit()
+onMounted(() => {
+  window.addEventListener('resize', onResize)
+  void measureBadgeFit()
+})
+onBeforeUnmount(() => window.removeEventListener('resize', onResize))
+
 function prefersReducedMotion() {
   return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
@@ -112,11 +144,12 @@ function go() {
     @focusout="barFocused = false"
   >
     <div class="mx-auto flex h-12 w-full max-w-[1480px] items-center justify-between gap-3 px-4">
-      <p class="min-w-0 truncate text-xs text-slate-500" data-testid="next-step-progress">{{ progress }}</p>
-      <div class="flex shrink-0 items-center gap-2">
-        <!-- 次按钮位（如 <md 的「查看座位预览」），并入条内而不再独立悬浮 -->
+      <p class="min-w-0 shrink-[100] truncate text-xs text-slate-500" data-testid="next-step-progress">{{ progress }}</p>
+      <div class="flex min-w-0 items-center gap-2">
+        <!-- 次按钮位（如 <md 的「查看座位预览」），并入条内而不再独立悬浮；空间不足时次按钮收缩截断，主按钮不收缩 -->
         <slot name="secondary" />
         <button
+          ref="actionEl"
           type="button"
           class="btn btn-primary btn-sm relative shrink-0"
           :title="showQuotaBadge ? quotaBadgeTitle : undefined"
@@ -129,7 +162,8 @@ function go() {
             class="ml-1 whitespace-nowrap rounded-full px-1.5 py-px text-[11px] font-semibold"
             :class="quotaBadge.cls"
             data-testid="next-step-quota-badge"
-          >{{ quotaBadge.text }}</span>
+            :data-compact="compactBadge ? 'true' : undefined"
+          >{{ badgeText }}</span>
         </button>
       </div>
     </div>

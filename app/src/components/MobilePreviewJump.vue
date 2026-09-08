@@ -172,7 +172,7 @@ function go() {
   <button
     v-if="preview && inline"
     type="button"
-    class="btn btn-secondary btn-sm shrink-0 md:hidden"
+    class="btn btn-secondary btn-sm min-w-0 truncate md:hidden"
     data-testid="mobile-preview-jump-inline"
     :data-state="previewVisible ? 'at-preview' : 'at-settings'"
     @click="go"
