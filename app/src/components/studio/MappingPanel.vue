@@ -21,6 +21,16 @@ const photoInput = ref<HTMLInputElement | null>(null)
 /** 下拉中「自定义组合」选项的哨兵值（不会与真实表头冲突） */
 const COMPOSITE_OPTION = '__composite__'
 
+/** 低命中模板推荐文案：「检测到名单更像「会议桌牌」，切换后可自动映射 3/4 字段」 */
+const suggestionText = computed(() => {
+  const s = workspace.templateSuggestion
+  if (!s) return ''
+  return t('检测到名单更像「{template}」，切换后可自动映射 {matched}/{total} 字段')
+    .replace('{template}', t(s.template.name))
+    .replace('{matched}', String(s.mapped))
+    .replace('{total}', String(s.mappable))
+})
+
 const TONE_CLASSES: Record<string, string> = {
   muted: 'border-slate-200 bg-slate-50 text-slate-600',
   success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
@@ -125,6 +135,33 @@ function onPhotoFiles(event: Event) {
   <section class="panel-card" data-mapping-panel tabindex="-1">
     <div class="panel-head">
       <h2 class="section-title"><span class="step-chip">3</span>{{ t('字段映射') }}</h2>
+    </div>
+
+    <div
+      v-if="suggestionText"
+      data-testid="template-suggestion"
+      role="status"
+      class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-brand-200 bg-brand-50/70 px-3 py-2 text-xs leading-5 text-brand-900"
+    >
+      <p class="min-w-0 flex-1">{{ suggestionText }}</p>
+      <div class="flex shrink-0 items-center gap-1.5">
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          data-testid="template-suggestion-accept"
+          @click="workspace.acceptTemplateSuggestion()"
+        >
+          {{ t('切换') }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm"
+          data-testid="template-suggestion-dismiss"
+          @click="workspace.dismissTemplateSuggestion()"
+        >
+          {{ t('保留当前') }}
+        </button>
+      </div>
     </div>
 
     <div

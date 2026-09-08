@@ -7,10 +7,16 @@ import {
   dedupeSeatingEntries,
   duplicateSuffix,
   interleaveByGender,
+  isSeatBlocked,
+  isSeatingSpacing,
   parseSeatingRoster,
   parseSeatingRosterDetailed,
   roomsFitIndividually,
+  SEATING_SPACINGS,
+  seatCapacity,
   seatingExportFileName,
+  type SeatingFillOrder,
+  type SeatingSpacing,
   seatingRosterTextFromTable,
   shuffleEntries,
   unseatedEntries,
@@ -474,6 +480,94 @@ describe('unseatedEntries（第 364 轮）：超出座位数的名单条目', ()
     expect(unseatedEntries(entries.slice(0, 10), 6, 8)).toEqual([])
     expect(unseatedEntries([...entries, { name: '' }, { name: '甲' }, { name: '' }], 6, 8)).toEqual([{ name: '甲' }])
     expect(unseatedEntries([{ name: 'A' }], 0, 8)).toEqual([{ name: 'A' }])
+  })
+})
+
+describe('第 368 轮：buildSeats 座位间隔 spacing（4 档 × 2 种填充顺序）', () => {
+  const names = (n: number) => Array.from({ length: n }, (_, i) => ({ name: `S${i + 1}` }))
+  const FILLS: SeatingFillOrder[] = ['rows', 'serpentine']
+
+  it('isSeatingSpacing 守卫：只接受 4 个已知值，旧状态的 undefined / 乱串不成立', () => {
+    for (const s of SEATING_SPACINGS) expect(isSeatingSpacing(s)).toBe(true)
+    expect(isSeatingSpacing(undefined)).toBe(false)
+    expect(isSeatingSpacing('skip')).toBe(false)
+    expect(isSeatingSpacing(1)).toBe(false)
+  })
+
+  it('seatCapacity：6×8 教室 none=48 / skipCol=24 / skipRow=24 / checker=24；5×5 奇数尺寸按实际可坐数', () => {
+    expect(seatCapacity(6, 8, 'none')).toBe(48)
+    expect(seatCapacity(6, 8, 'skipCol')).toBe(24)
+    expect(seatCapacity(6, 8, 'skipRow')).toBe(24)
+    expect(seatCapacity(6, 8, 'checker')).toBe(24)
+    expect(seatCapacity(5, 5, 'skipCol')).toBe(10) // 每排第 2、4 列可坐
+    expect(seatCapacity(5, 5, 'skipRow')).toBe(15) // 第 1、3、5 排可坐
+    expect(seatCapacity(5, 5, 'checker')).toBe(13)
+    expect(seatCapacity(0, 8, 'checker')).toBe(0)
+  })
+
+  it('验收场景：20 人进 6×8 选隔位 → 名单分布到 5 排而非堆在前 3 排，每排坐 4 人且左右不相邻', () => {
+    const seats = buildSeats(names(20), 6, 8, 'rows', 'skipCol')
+    expect(seats).toHaveLength(24)
+    const filled = seats.filter((s) => s.name)
+    expect(new Set(filled.map((s) => s.row))).toEqual(new Set([1, 2, 3, 4, 5]))
+    for (let r = 1; r <= 5; r++) expect(filled.filter((s) => s.row === r)).toHaveLength(4)
+    expect(filled.filter((s) => s.row === 1).map((s) => s.col)).toEqual([2, 4, 6, 8])
+    for (const s of seats) expect(isSeatBlocked(s.row - 1, s.col - 1, 'skipCol')).toBe(false)
+  })
+
+  it.each(FILLS)('%s × skipCol：奇数列留空，座号连续，反序排仍守同一留空列', (fill) => {
+    const seats = buildSeats(names(6), 3, 4, fill, 'skipCol')
+    expect(seats).toHaveLength(6)
+    expect(seats.map((s) => s.seatNo)).toEqual([1, 2, 3, 4, 5, 6])
+    expect(seats.every((s) => s.col % 2 === 0)).toBe(true)
+    expect(seats.slice(0, 2).map((s) => [s.row, s.col])).toEqual([[1, 2], [1, 4]])
+    // 第 2 排：按行从左到右；S 形从右到左（列 4 → 列 2）
+    expect(seats.slice(2, 4).map((s) => s.col)).toEqual(fill === 'rows' ? [2, 4] : [4, 2])
+  })
+
+  it.each(FILLS)('%s × skipRow：首排靠讲台照常坐，偶数排留空', (fill) => {
+    const seats = buildSeats(names(8), 4, 3, fill, 'skipRow')
+    expect(seats).toHaveLength(6)
+    expect(new Set(seats.map((s) => s.row))).toEqual(new Set([1, 3]))
+    expect(seats.map((s) => s.seatNo)).toEqual([1, 2, 3, 4, 5, 6])
+    // 第 3 排（0 起为偶数排）在两种填充顺序下都是从左到右
+    expect(seats.filter((s) => s.row === 3).map((s) => s.col)).toEqual([1, 2, 3])
+  })
+
+  it.each(FILLS)('%s × checker：相邻排错开，任两个座位前后左右都不相邻', (fill) => {
+    const seats = buildSeats(names(8), 4, 4, fill, 'checker')
+    expect(seats).toHaveLength(8)
+    for (const s of seats) expect((s.row + s.col) % 2).toBe(0)
+    for (const a of seats) {
+      for (const b of seats) {
+        if (a === b) continue
+        const adjacent = Math.abs(a.row - b.row) + Math.abs(a.col - b.col) === 1
+        expect(adjacent).toBe(false)
+      }
+    }
+    expect(seats.filter((s) => s.row === 2).map((s) => s.col)).toEqual(fill === 'rows' ? [2, 4] : [4, 2])
+  })
+
+  it.each(FILLS)('%s × none：与不传 spacing 完全一致（向后兼容）', (fill) => {
+    expect(buildSeats(names(10), 3, 4, fill, 'none')).toEqual(buildSeats(names(10), 3, 4, fill))
+  })
+
+  it('溢出只数可坐座位：30 人进 6×8 隔位（24 座）→ 6 人未排座；不隔时 0 人', () => {
+    const entries = names(30)
+    expect(unseatedEntries(entries, 6, 8, 'skipCol').map((e) => e.name)).toEqual(['S25', 'S26', 'S27', 'S28', 'S29', 'S30'])
+    expect(unseatedEntries(entries, 6, 8, 'checker')).toHaveLength(6)
+    expect(unseatedEntries(entries, 6, 8, 'skipRow')).toHaveLength(6)
+    expect(unseatedEntries(entries, 6, 8, 'none')).toEqual([])
+    expect(unseatedEntries(entries, 6, 8)).toEqual([])
+  })
+
+  it('留空位置在座位网格中为 null，学生视角镜像后仍保持留空列', () => {
+    const spacing: SeatingSpacing = 'skipCol'
+    const seats = buildSeats(names(4), 2, 4, 'rows', spacing)
+    const grid = buildSeatGrid(seats, 2, 4)
+    expect(grid[0]!.map((s) => s?.name ?? null)).toEqual([null, 'S1', null, 'S2'])
+    const student = buildDisplayGrid(grid, 4, new Set(), 'student')
+    expect(student[0]!.map((c) => c.seat?.name ?? null)).toEqual(['S2', null, 'S1', null])
   })
 })
 

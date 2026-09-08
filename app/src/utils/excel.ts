@@ -203,9 +203,16 @@ const DEMO_HEADERS = [
 const DEMO_SCHOOL = '市第一中学'
 const DEMO_DEPARTMENTS = ['教务处', '招生办', '信息中心', '后勤保障部']
 
+/**
+ * 表头关键词中的「人名类」列名：除了用于识别表头，也必须能被 autoMap 映射到 name 字段
+ *（单测断言两套词表不漂移）
+ */
+export const PERSON_NAME_HEADER_WORDS: readonly string[] = ['姓名', '名字', 'name', '与会人员', '人员', '嘉宾', '代表']
 /** 判断粘贴首行是否为表头的常见列名关键词 */
-const HEADER_KEYWORDS =
-  /姓名|名字|name|性别|班级|学号|座位|考场|准考证|部门|职务|工号|单位|学校|编号|号码|电话|手机|宿舍|桌号|组别|序号|与会人员|人员|头衔|职称|职位|公司|嘉宾|代表|科室|系别|专业|年级|届|桌次|席位|邮箱|title|company|dept|department|class|grade|seat|table|email/i
+const HEADER_KEYWORDS = new RegExp(
+  `${PERSON_NAME_HEADER_WORDS.join('|')}|性别|班级|学号|座位|考场|准考证|部门|职务|工号|单位|学校|编号|号码|电话|手机|宿舍|桌号|组别|序号|头衔|职称|职位|公司|科室|系别|专业|年级|届|桌次|席位|邮箱|title|company|dept|department|class|grade|seat|table|email`,
+  'i',
+)
 /** 单列名单只有首格恰为姓名类列名时才当表头 */
 const SINGLE_COLUMN_HEADER = /^(?:姓名|名字|name)$/i
 

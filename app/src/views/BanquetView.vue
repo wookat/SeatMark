@@ -2519,7 +2519,7 @@ function toPlaceCards() {
       @close="exportChoiceOpen = false"
     >
       <p class="text-sm text-slate-600">
-        {{ tr('带水印导出永远免费、不限次数（页脚一行 seatmark.cn 细线签名）；无水印导出今日剩余') }} {{ quota.remaining }}{{ tr('。') }}
+        {{ tr('带水印导出永远免费、不限次数（页脚一行 seatmark.cn 细线签名）；无水印导出今日剩余') }} {{ tr('{n} 次').replace('{n}', String(quota.remaining)) }}{{ tr('。') }}
       </p>
       <template #actions>
         <button type="button" class="btn btn-secondary btn-md" @click="chooseWatermarked">

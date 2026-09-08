@@ -5,7 +5,10 @@ import {
   CATEGORY_DEMO_DATASET,
   DEMO_DATASETS,
   demoExcelFor,
+  demoGenderOf,
   demoPersonNames,
+  localizeDemoExcel,
+  NAME_GENDERS,
   resolveDemoDataset,
   sampleExcelFor,
   TEMPLATE_DEMO_DATASET_OVERRIDES,
@@ -198,5 +201,38 @@ describe('demoDatasets', () => {
       expect(demoPersonNames(0)).toEqual([])
       expect(demoPersonNames(2)).toEqual(['张伟', '王芳'])
     })
+  })
+})
+
+describe('第 368 轮：演示名单性别按名定、英文考场用 Room N', () => {
+  it('NAME_GENDERS 每个名字有标注，考场演示行性别与名池标注一致（无「X娜 男」类错配）', () => {
+    expect(NAME_GENDERS.length).toBeGreaterThanOrEqual(24)
+    for (const [name, gender] of NAME_GENDERS) {
+      expect(['男', '女']).toContain(gender)
+      expect(demoGenderOf(name)).toBe(gender)
+    }
+    const exam = DEMO_DATASETS.find((d) => d.id === 'exam')!
+    for (const row of exam.rows) {
+      const annotated = demoGenderOf(row['姓名']!)
+      if (annotated) expect(row['性别'], row['姓名']).toBe(annotated)
+      else expect(['男', '女']).toContain(row['性别'])
+    }
+    const female = exam.rows.filter((r) => r['性别'] === '女').length
+    expect(female).toBeGreaterThan(0)
+    expect(female).toBeLessThan(exam.rows.length)
+  })
+
+  it('en 演示 Excel：考场值为 Room N，座位号等编号仍保留 No.', () => {
+    const standard = defaultTemplates.find((t) => t.id === 'standard')!
+    const en = localizeDemoExcel(demoExcelFor(standard), (s) => (s === '考场' ? 'Room' : s))
+    const rooms = en.rows.map((r) => r['Room']).filter((v): v is string => !!v)
+    expect(rooms.length).toBeGreaterThan(0)
+    for (const v of rooms) expect(v).toMatch(/^Room \d+$/)
+    expect(rooms).toContain('Room 1')
+    const banquet = localizeDemoExcel(
+      { headers: ['桌号'], rows: [{ 桌号: '3 号' }], fileName: 'x.xlsx', sheetName: 's', mapping: {} },
+      (s) => s,
+    )
+    expect(banquet.rows[0]!['桌号']).toBe('No. 3')
   })
 })

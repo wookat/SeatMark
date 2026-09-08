@@ -1,5 +1,5 @@
 import { t } from '@/i18n'
-import type { LabelSpec, TemplateField, TextAlign, VerticalAlign } from '@/types/template'
+import type { FieldType, LabelSpec, TemplateField, TextAlign, VerticalAlign } from '@/types/template'
 import { uid } from '@/utils/id'
 import { clamp, round1 } from '@/utils/layout'
 
@@ -139,7 +139,7 @@ JSON 结构（可选键不需要时省略）：
 键的说明：
 - id：语义化英文 id，数据字段优先用 seatNo / name / room / examId / className / studentId / idCard / gender / school；装饰元素用 divider1、tip1 等。
 - label：字段中文名，与用户提供的字段名保持一致。
-- type：只能是 "text" 或 "image"；照片、头像类字段用 "image"（只需 x/y/width/height/borderWidth/borderColor/radius，sample 固定写 "photo"）。
+- type：只能是 "text"、"image" 或 "qr"；照片、头像类字段用 "image"（只需 x/y/width/height/borderWidth/borderColor/radius，sample 固定写 "photo"）；二维码字段用 "qr"（方形，只需 x/y/width/height，内容取绑定列），用户未要求时不要加二维码。
 - fontSize 单位 pt；align 取 left/center/right；verticalAlign 取 top/middle/bottom；颜色一律十六进制。
 - caption：可选，渲染在内容前的小字标签名（如「姓名 张三」效果）。
 - emphasis："hero" 只给最核心的超大字段（如座位号），最多一个。
@@ -337,9 +337,9 @@ function sanitizeField(
   labelH: number,
   usedIds: Set<string>,
 ): TemplateField {
-  const type = raw.type === 'image' ? 'image' : 'text'
+  const type: FieldType = raw.type === 'image' ? 'image' : raw.type === 'qr' ? 'qr' : 'text'
   let id = (str(raw.id) ?? '').replace(/[^a-zA-Z0-9_-]/g, '')
-  if (!id || usedIds.has(id)) id = uid(type === 'image' ? 'photo' : 'field')
+  if (!id || usedIds.has(id)) id = uid(type === 'image' ? 'photo' : type === 'qr' ? 'qr' : 'field')
   usedIds.add(id)
 
   const width = clamp(num(raw.width) ?? 20, 1, labelW)
@@ -369,6 +369,15 @@ function sanitizeField(
 
   if (type === 'image') {
     field.sample = 'photo'
+    return field
+  }
+
+  if (type === 'qr') {
+    const vAlign = str(raw.verticalAlign)
+    field.verticalAlign = (vAlign === 'top' || vAlign === 'bottom' ? vAlign : 'middle') as VerticalAlign
+    field.padding = clamp(num(raw.padding) ?? 0.5, 0, 10)
+    const sample = str(raw.sample)
+    if (sample) field.sample = sample
     return field
   }
 

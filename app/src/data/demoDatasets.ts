@@ -1,5 +1,6 @@
 import type { DataRow, FieldMapping, LabelTemplate, TemplateCategory } from '@/types/template'
 import { autoMapFields } from '@/utils/autoMap'
+import { isMappableField } from '@/utils/fieldType'
 
 /**
  * 场景演示数据集：不同使用场景（考场 / 会议 / 婚宴 / 幼儿园 / 年会 / 医院 /
@@ -20,11 +21,20 @@ export interface DemoDataset {
   blankCells?: ReadonlyArray<{ row: number; header: string }>
 }
 
-const NAMES = [
-  '张伟', '王芳', '李娜', '刘洋', '陈静', '杨帆', '赵磊', '黄敏',
-  '周杰', '吴霞', '徐强', '孙丽', '马超', '朱琳', '胡军', '郭颖',
-  '何平', '高翔', '林芳', '罗斌', '郑爽', '梁波', '谢宇', '宋健',
+export type DemoGender = '男' | '女'
+
+/** 演示姓名池：[姓名, 按名字标注的性别]，性别列一律从这里取，不按行号奇偶推定 */
+export const NAME_GENDERS: ReadonlyArray<readonly [name: string, gender: DemoGender]> = [
+  ['张伟', '男'], ['王芳', '女'], ['李娜', '女'], ['刘洋', '男'], ['陈静', '女'], ['杨帆', '男'], ['赵磊', '男'], ['黄敏', '女'],
+  ['周杰', '男'], ['吴霞', '女'], ['徐强', '男'], ['孙丽', '女'], ['马超', '男'], ['朱琳', '女'], ['胡军', '男'], ['郭颖', '女'],
+  ['何平', '男'], ['高翔', '男'], ['林芳', '女'], ['罗斌', '男'], ['郑爽', '女'], ['梁波', '男'], ['谢宇', '男'], ['宋健', '男'],
 ]
+
+const NAMES: readonly string[] = NAME_GENDERS.map(([name]) => name)
+
+export function demoGenderOf(name: string): DemoGender | undefined {
+  return NAME_GENDERS.find(([n]) => n === name)?.[1]
+}
 
 /** 与 NAMES 逐一对应的拼音英文名（姓全大写 + 名首字母大写），供双语模板演示 */
 const EN_NAMES = [
@@ -108,8 +118,8 @@ const SCHOOL = '市第一中学'
 
 /** 考场考务：考场布置 / 考号贴 / 监考巡考等 */
 const examRows: DataRow[] = buildRows(24, (i) => ({
-  姓名: NAMES[i % NAMES.length]!,
-  性别: i % 2 === 0 ? '男' : '女',
+  姓名: NAME_GENDERS[i % NAME_GENDERS.length]![0],
+  性别: NAME_GENDERS[i % NAME_GENDERS.length]![1],
   考场: `第${Math.floor(i / 12) + 1}考场`,
   座位号: pad2((i % 12) + 1),
   准考证号: String(2026061001 + i),
@@ -548,9 +558,7 @@ export interface DemoExcel {
  */
 export function demoExcelFor(template: LabelTemplate): DemoExcel {
   const dataset = resolveDemoDataset(template)
-  const mappable = template.fields.filter(
-    (f) => f.type === 'text' && f.fixedText == null && f.mirrorOf == null,
-  )
+  const mappable = template.fields.filter(isMappableField)
   const mapping = autoMapFields(mappable, dataset.headers)
   const headers = [...dataset.headers]
   const rows = dataset.rows.map((r) => ({ ...r }))
@@ -591,7 +599,7 @@ type Translate = (zh: string) => string
 
 /** 演示值中带编号 / 称谓的固定句式 → 英文 */
 const EN_VALUE_RULES: ReadonlyArray<[RegExp, (m: RegExpExecArray, tr: Translate) => string]> = [
-  [/^第(\d+)考场$/, (m) => `No. ${m[1]}`],
+  [/^第(\d+)考场$/, (m) => `Room ${m[1]}`],
   [/^第(\d+)组$/, (m) => `Group ${m[1]}`],
   [/^高三（(\d+)）班$/, (m) => `Grade 12 Class ${m[1]}`],
   [/^五年级（(\d+)）班$/, (m) => `Grade 5 Class ${m[1]}`],

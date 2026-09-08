@@ -115,6 +115,7 @@ import { computed, type CSSProperties } from 'vue'
 import { localizeSampleText } from '@/data/demoDatasets'
 import { combineFontStacks, DEFAULT_FONT_STACK, withRareCJKFallback } from '@/data/fonts'
 import { currentLocale, t, t as tr } from '@/i18n'
+import { qrToSvg } from '@/utils/qrcode'
 import { sanitizeDecorSvg } from '@/utils/svgSanitize'
 import { watermarkToneFor } from '@/utils/watermark'
 import type { LabelTemplate, TemplateField } from '@/types/template'
@@ -266,6 +267,38 @@ function textOf(field: TemplateField): string {
   return props.texts?.[source.id] ?? ''
 }
 
+/**
+ * 二维码字段：取该行单元格文本本地编码（纠错 M），空值不渲染；
+ * 文本过长（超出 QR 容量）时也不渲染，不让单张卡拖垮整页
+ */
+function qrSvgOf(field: TemplateField): string | null {
+  const value = textOf(field).trim()
+  if (!value) return null
+  try {
+    return qrToSvg(value, 'M')
+  } catch {
+    return null
+  }
+}
+
+/** 字段 id → 二维码 SVG（仅有值的 qr 字段），每次渲染只编码一遍 */
+const qrSvgs = computed<Record<string, string>>(() => {
+  const out: Record<string, string> = {}
+  for (const field of props.template.fields) {
+    if (field.type !== 'qr') continue
+    const svg = qrSvgOf(field)
+    if (svg) out[field.id] = svg
+  }
+  return out
+})
+
+/** 二维码按字段内框短边取方 */
+function qrBoxStyle(field: TemplateField): CSSProperties {
+  const pad = field.padding ?? 0.8
+  const side = Math.max(0, Math.min(field.width, field.height) - pad * 2)
+  return { width: `${side}mm`, height: `${side}mm` }
+}
+
 function imageSrcOf(field: TemplateField): string | null {
   if (field.imageSrc) return field.imageSrc
   if (props.sampleMode) return null
@@ -316,7 +349,7 @@ function fieldStyle(field: TemplateField): CSSProperties {
 function isUnmapped(field: TemplateField): boolean {
   return (
     !props.sampleMode &&
-    field.type === 'text' &&
+    (field.type === 'text' || field.type === 'qr') &&
     field.fixedText == null &&
     field.mirrorOf == null &&
     !!props.unmappedFields?.has(field.id) &&
@@ -330,7 +363,10 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
     'label-field--hero': field.emphasis === 'hero',
     'label-field--unmapped': isUnmapped(field),
     'label-field--empty':
-      empty && field.type === 'text' && field.fixedText == null && !textOf(field).trim(),
+      empty &&
+      (field.type === 'text' || field.type === 'qr') &&
+      field.fixedText == null &&
+      !textOf(field).trim(),
     'label-field--photo-missing': empty && field.type === 'image' && !imageSrcOf(field),
     // 矢量图标（SVG data URL）：完整等比显示且无照片底色
     'label-field--vector':
@@ -355,6 +391,22 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
           <span v-if="field.caption" class="label-field__caption">{{ tr(field.caption) }}</span>
           <span class="label-field__content">{{ textOf(field) }}</span>
         </span>
+        <span v-if="isUnmapped(field)" class="label-field__unmapped" aria-hidden="true">{{ t('（空）') }}</span>
+      </div>
+      <div
+        v-else-if="field.type === 'qr'"
+        class="label-field label-field--qr"
+        :class="fieldClasses(field)"
+        :style="fieldStyle(field)"
+      >
+        <div
+          v-if="qrSvgs[field.id]"
+          class="label-field__qr"
+          :style="qrBoxStyle(field)"
+          role="img"
+          :aria-label="t('二维码')"
+          v-html="qrSvgs[field.id]"
+        ></div>
         <span v-if="isUnmapped(field)" class="label-field__unmapped" aria-hidden="true">{{ t('（空）') }}</span>
       </div>
       <div

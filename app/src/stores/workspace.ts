@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, shallowRef, watch } from 'vue'
 
 import { defaultTemplates } from '@/data/defaultTemplates'
 import { useFontsStore } from '@/stores/fonts'
@@ -10,6 +10,8 @@ import type { DataRow, FieldMapping, LabelTemplate, TemplateField } from '@/type
 import type { MissingDetailItem } from '@/utils/missingDetail'
 import { autoMapFieldsDetailed } from '@/utils/autoMap'
 import { evaluateFieldTemplate, isCompositeMapping } from '@/utils/fieldTemplate'
+import { isColumnField, isMappableField } from '@/utils/fieldType'
+import { pickBetterTemplate, type HandoffMapStat } from '@/utils/handoffTemplate'
 import {
   findUnsupportedChars,
   findUnsupportedMinorityChars,
@@ -135,6 +137,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     },
     { deep: true },
   )
+
+  /**
+   * 用户自行粘贴 / 上传名单后当前模板命中率 < 50% 时的模板推荐（不自动切换，由映射区顶部提示条承接）；
+   * 站内带入链路（座位表 / 排桌）自己决定切模板，不走这里
+   */
+  const templateSuggestion = shallowRef<HandoffMapStat | null>(null)
 
   // ---------- 数据 ----------
   const restoredRoster = loadInitialRoster()
@@ -320,12 +328,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const loading = loadingStore.loading
 
   // ---------- 派生状态 ----------
+  /** 从名单列取值的字段（文本 / 二维码） */
   const textFields = computed<TemplateField[]>(() =>
-    template.value.fields.filter((f) => f.type === 'text'),
+    template.value.fields.filter(isColumnField),
   )
-  /** 参与 Excel 映射的文本字段（排除固定文本与镜像字段） */
+  /** 参与 Excel 映射的字段（排除固定文本与镜像字段） */
   const mappableFields = computed<TemplateField[]>(() =>
-    textFields.value.filter((f) => f.fixedText == null && f.mirrorOf == null),
+    template.value.fields.filter(isMappableField),
   )
   const imageFields = computed<TemplateField[]>(() =>
     template.value.fields.filter((f) => f.type === 'image'),
@@ -517,6 +526,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     template.value = cloneTemplate(next)
     selectedTemplateId.value = next.id
     previewPage.value = 1
+    templateSuggestion.value = null
     let paperNote = ''
     if (currentPaper) {
       const fit = evaluatePaperFit(template.value, currentPaper)
@@ -591,6 +601,29 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const auto = autoMapFieldsDetailed(template.value.fields, data.headers)
     Object.assign(mapping, auto.mapping)
     Object.assign(mappingBorrowed, auto.borrowed)
+    templateSuggestion.value = null
+  }
+
+  function refreshTemplateSuggestion() {
+    templateSuggestion.value = excel.rows.length
+      ? pickBetterTemplate([template.value, ...defaultTemplates], excel.headers)
+      : null
+  }
+  /** 采纳推荐：切模板并对已导入名单重新自动映射，不重新解析名单 */
+  function acceptTemplateSuggestion() {
+    const picked = templateSuggestion.value
+    if (!picked) return
+    selectTemplate(picked.template, { silent: true })
+    templateSuggestion.value = null
+    toast.info(
+      tr('已切换到「{template}」').replace('{template}', tr(picked.template.name)),
+      tr('已自动映射 {matched}/{total} 个字段')
+        .replace('{matched}', String(mappedCount.value))
+        .replace('{total}', String(mappableFields.value.length)),
+    )
+  }
+  function dismissTemplateSuggestion() {
+    templateSuggestion.value = null
   }
 
   /**
@@ -639,6 +672,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         applyExcel(parsed)
         importedFile = file
         isDemoData.value = false
+        refreshTemplateSuggestion()
         const multiSheetNote =
           parsed.sheetNames.length > 1
             ? `；文件含 ${parsed.sheetNames.length} 个工作表，可在导入面板切换`
@@ -659,6 +693,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         const parsed = await parseExcelFile(importedFile!, sheetName)
         applyExcel(parsed)
         isDemoData.value = false
+        refreshTemplateSuggestion()
         toast.success(`已切换到工作表「${parsed.sheetName}」`, `已读取 ${parsed.rows.length} 条数据`)
         void warnRareChars(parsed.rows)
       } catch (err) {
@@ -667,10 +702,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     })
   }
 
-  /** 由站内功能（如教室座位表）直接注入名单数据，等效于导入一份 Excel */
-  function applyDataset(fileName: string, headers: string[], rows: DataRow[]) {
+  /**
+   * 由站内功能（如教室座位表）直接注入名单数据，等效于导入一份 Excel；
+   * suggestTemplate（粘贴导入）：名单是用户自己的，命中不足时给出模板推荐
+   */
+  function applyDataset(
+    fileName: string,
+    headers: string[],
+    rows: DataRow[],
+    options: { suggestTemplate?: boolean } = {},
+  ) {
     applyExcel({ fileName, sheetName: '站内数据', headers, rows })
     isDemoData.value = false
+    if (options.suggestTemplate) refreshTemplateSuggestion()
   }
 
   /** 当前模板的演示数据；en 下表头 / 姓名 / 枚举值换用英文样例 */
@@ -699,6 +743,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     excel.headers = []
     excel.rows = []
     isDemoData.value = false
+    templateSuggestion.value = null
     for (const key of Object.keys(mapping)) delete mapping[key]
     for (const key of Object.keys(mappingBorrowed)) delete mappingBorrowed[key]
     clearPhotos()
@@ -836,6 +881,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     importExcel,
     switchSheet,
     applyDataset,
+    templateSuggestion,
+    acceptTemplateSuggestion,
+    dismissTemplateSuggestion,
     useDemoData,
     clearData,
     setMappingValue,

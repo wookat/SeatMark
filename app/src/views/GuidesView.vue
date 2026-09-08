@@ -15,9 +15,24 @@ const { t, locale, localePath } = useI18n()
 const EN_INTRO =
   'Our guides cover the full workflow of making and printing place cards, desk cards, seat labels and ID badges — cleaning up an Excel roster, choosing a template, calibrating your printer and cutting the sheets. They are written in Chinese for now; browse the Chinese index or start with one of the featured guides below.'
 const EN_FEATURED: EnIndexFeatured[] = [
-  { title: 'Batch-print exam seat labels from a class roster', to: '/guides/exam-seat-label-batch-print' },
-  { title: 'Generate desk cards from an Excel list', to: '/guides/excel-generate-desk-cards' },
-  { title: 'Label printing troubleshooting: offsets, cut lines and margins', to: '/guides/label-print-troubleshooting' },
+  {
+    title: 'Batch-print exam seat labels from a class roster',
+    summary:
+      'Five steps from an Excel roster to 24 seat labels per A4 page: import, check the field mapping, export a PDF, print and cut — all processed in your browser.',
+    to: '/guides/exam-seat-label-batch-print',
+  },
+  {
+    title: 'Generate desk cards from an Excel list',
+    summary:
+      'Upload the attendee list once instead of editing Word cards one by one; covers half-page A4 desk cards and full-page name signs.',
+    to: '/guides/excel-generate-desk-cards',
+  },
+  {
+    title: 'Label printing troubleshooting: offsets, cut lines and margins',
+    summary:
+      'Symptom-by-symptom fixes for offset labels, wrong sizes, uneven cuts and blurry text: scaling, margins, paper and driver settings.',
+    to: '/guides/label-print-troubleshooting',
+  },
 ]
 
 const activeCategory = ref('全部')
@@ -110,7 +125,12 @@ const recommendedGuides = computed(() => {
       <ZhOnlyNotice />
     </div>
 
-    <EnIndexShell v-if="locale === 'en'" :intro="EN_INTRO" :featured="EN_FEATURED" lang-badge />
+    <EnIndexShell
+      v-if="locale === 'en'"
+      :intro="EN_INTRO"
+      featured-heading="Featured guides"
+      :featured="EN_FEATURED"
+    />
 
     <!-- 筛选器：移动端默认折叠为一行 sticky，展开时不再 sticky；桌面端始终展开且 static -->
     <div
