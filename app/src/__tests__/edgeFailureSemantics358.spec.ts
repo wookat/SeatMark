@@ -1,6 +1,6 @@
 /**
  * 第 358 轮：边缘函数失败语义
- * - ai-design 无密钥兜底全部 502 时：响应 body 不含上游原文，上游诊断只进 console.warn（前 300 字）
+ * - ai-design 无密钥兜底全部 502 时：响应 body 为固定文案（第 363 轮起连模型名/HTTP 状态也不出 body），上游诊断只进 console.warn（前 300 字）
  * - feedback KV 归档与 webhook 都失败 → 503 且 console.error 被调用
  * - feedback 仅 webhook 失败 → 200，ctx.waitUntil 收到 2s 后重试的 promise
  */
@@ -33,7 +33,7 @@ afterEach(() => {
 const SENSITIVE = 'upstream diag: api key sk-secret-1234 at 10.0.0.7 traceback line 42'
 
 describe('第 358 轮：ai-design 上游 502 诊断不出 body', () => {
-  it('mock 上游 502 带敏感诊断：客户端只见模型名 + 状态码，原文只进 console.warn', async () => {
+  it('mock 上游 502 带敏感诊断：客户端只见固定文案（第 363 轮：不含模型名/状态码），诊断只进 console.warn', async () => {
     const fetchMock = vi.fn(async () => new Response(SENSITIVE.repeat(20), { status: 502 }))
     globalThis.fetch = fetchMock as unknown as typeof fetch
     const res: Response = await aiOnRequest({
@@ -47,7 +47,9 @@ describe('第 358 轮：ai-design 上游 502 诊断不出 body', () => {
     expect(res.status).toBe(502)
     const text = await res.text()
     expect(text).toContain('AI 服务暂时不可用，请稍后再试')
-    expect(text).toMatch(/HTTP 502/)
+    expect(text).not.toMatch(/HTTP 502/)
+    expect(text).not.toContain('openai')
+    expect(text).not.toContain('mistral')
     expect(text).not.toContain('sk-secret')
     expect(text).not.toContain('traceback')
     expect(text).not.toContain('10.0.0.7')

@@ -10,12 +10,12 @@ export const enTemplateDescriptions: Record<string, string> = {
     '2 cols × 4 rows with an extra-large seat number and enlarged name, designed for long-range reading in large rooms.',
   '2 列 × 5 行，居中大字姓名、座位号徽章与双语提示，适合签到与会议桌牌。':
     '2 cols × 5 rows: centered large name, seat badge and bilingual note. Suits check-in and meeting table tents.',
-  '1 列 × 2 行，A4 半页一枚的大桌牌，特大姓名远距清晰，适合讲座与大型会议。':
-    '1 col × 2 rows, one half-A4 table tent per label with an extra-large name legible from afar. For lectures and large conferences.',
+  '1 列 × 2 行，A4 半页一枚的大桌牌，姓名字高约 22 mm（64pt），5 米外可读，适合讲座与大型会议。':
+    '1 col × 2 rows, one half-A4 table tent per label; name about 22 mm tall (64 pt), readable from 5 m. For lectures and large conferences.',
   '2 列 × 6 行（A5 纵向），小开本批量桌贴，与标准版同源的分栏排版。':
     '2 cols × 6 rows on portrait A5: compact desk labels sharing the standard column layout.',
-  '整页一枚（A4），特大姓名与座位徽章，适合面试、答辩与讲台名牌。':
-    'One per A4 page with an extra-large name and seat badge. For interviews, defenses and lectern nameplates.',
+  '整页一枚（A4），特大姓名（字高约 31 mm，88pt）与座位徽章，适合面试、答辩与讲台名牌。':
+    'One per A4 page with an extra-large name (about 31 mm tall, 88 pt) and seat badge. For interviews, defenses and lectern nameplates.',
   '2 列 × 6 行，含性别、身份证号等完整信息，逐项小注便于人工核对。':
     '2 cols × 6 rows with full details including gender and ID number, each captioned for manual checking.',
   '3 列 × 3 行竖版出入证，墨色顶条、核验照片与座位徽章，可穿绳佩戴。':
@@ -32,8 +32,8 @@ export const enTemplateDescriptions: Record<string, string> = {
     '2 cols × 5 rows: centered guest name with a table badge in an elegant serif. Works for any banquet.',
   '2 列 × 5 行，墨色序号区醒目远视，右侧姓名岗位与场次，附候场提示。':
     '2 cols × 5 rows with a bold dark number block, name, position and session on the right, plus a waiting note.',
-  '2 列 × 8 行，姓名大字配单位与分组，左侧色条区分批次，培训签到即贴即用。':
-    '2 cols × 8 rows: large name with organization and group, color bar on the left for batches. Peel and stick at training check-in.',
+  '2 列 × 8 行，姓名大字配单位与分组，左侧色条区分批次，签到时撕下即贴，无需再手写。':
+    '2 cols × 8 rows: large name with organization and group, color bar on the left for batches. Peel off and stick at check-in — no handwriting needed.',
   '1 列 × 2 行半页大牌，嘉宾姓名特大字配头衔与单位，讲座论坛主席台适用。':
     '1 col × 2 rows half-page tent: extra-large guest name with title and organization, for lecture and forum head tables.',
   '3 列 × 10 行小尺寸标签，品名加粗、编号与归属分列，图书角与物品归类通用。':

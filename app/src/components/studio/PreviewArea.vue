@@ -211,6 +211,8 @@ const exportChoiceOpen = ref(false)
 const pendingAction = ref<'pdf' | 'print' | 'png'>('pdf')
 /** 本次弹窗内用户已点「仍然导出」，收起未映射字段提示；重新打开弹窗重置 */
 const unmappedAcknowledged = ref(false)
+/** 同上：重复行提示的「仍然导出」 */
+const duplicateAcknowledged = ref(false)
 const emit = defineEmits<{ focusMapping: [target?: 'missing'] }>()
 
 /** 未映射字段提示条文案：最多列 3 个字段名作例 */
@@ -236,6 +238,8 @@ const unmappedBannerVisible = computed(
 
 /** 已映射字段为空的行数（成品中留空，不自动补全） */
 const missingRowsCount = computed(() => workspace.dataQuality.missingRows)
+/** 完全重复的名单行（所有已映射字段全同）：纯提示，不阻断 */
+const duplicateRows = computed(() => workspace.duplicateRows)
 
 /** 三种输出的一句话差异，弹窗内直接可见（不再只靠按钮 title） */
 const outputSubtitles = computed<Record<'print' | 'pdf' | 'png', string>>(() => ({
@@ -305,6 +309,29 @@ const PNG_UNIT_OPTIONS = computed<SelectOption[]>(() => [
 const pngTotalLabels = computed(() =>
   workspace.pages.reduce((sum, page) => sum + page.filter((row) => row != null).length, 0),
 )
+
+/**
+ * 导出弹窗顶部「本次将输出什么」一行摘要：模板 · 纸张 · 标签数与页数 · 水印状态。
+ * 水印部分只描述当前可选项（无水印需消耗额度 / 额度用完时只剩带水印），不改导出逻辑。
+ */
+const exportSummary = computed(() => {
+  const parts: string[] = [t(workspace.template.name) || t('考场座位标签'), currentPaperLabel.value]
+  const labels = pngTotalLabels.value
+  const pages = workspace.totalPages
+  if (pendingAction.value === 'png') {
+    parts.push(
+      pngExportUnit.value === 'label'
+        ? labels > 1
+          ? t('{n} 张 PNG，打包 zip').replace('{n}', String(labels))
+          : t('{n} 张 PNG').replace('{n}', String(labels))
+        : t('{n} 张整页 PNG').replace('{n}', String(pages)),
+    )
+  } else {
+    parts.push(`${labels} ${t('个标签')} / ${pages} ${t('页')}`)
+  }
+  parts.push(quota.remaining > 0 ? t('无水印（消耗 1 次额度）或带底边细线水印') : t('带底边细线水印'))
+  return parts.join(' · ')
+})
 
 /** 命名模板默认取第一列（多为姓名）；切换到字段命名且为空时填入 */
 watch(pngNameMode, (mode) => {
@@ -591,6 +618,7 @@ function openExportChoice(action: 'pdf' | 'print' | 'png') {
   if (!workspace.excel.rows.length) return
   pendingAction.value = action
   unmappedAcknowledged.value = false
+  duplicateAcknowledged.value = false
   exportChoiceOpen.value = true
 }
 
@@ -1438,6 +1466,30 @@ const hintKey = ref<HintKey | null>(null)
           {{ t('去查看') }}
         </button>
       </div>
+      <div
+        v-if="duplicateRows.groups > 0 && !duplicateAcknowledged"
+        data-testid="duplicate-rows-export-notice"
+        role="status"
+        class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"
+      >
+        <p class="min-w-0 flex-1">
+          <strong>{{ duplicateRows.rows }}</strong> {{ t('行内容完全重复') }}<template v-if="duplicateRows.example">{{ t('（示例：') }}{{ duplicateRows.example }}{{ t('）') }}</template>{{ t('，导出后会得到同样的多张标签。') }}
+        </p>
+        <span class="flex shrink-0 items-center gap-1.5">
+          <button type="button" class="btn btn-secondary btn-sm" data-testid="duplicate-rows-go-mapping" @click="goToMapping()">
+            {{ t('去查看') }}
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" data-testid="duplicate-rows-export-anyway" @click="duplicateAcknowledged = true">
+            {{ t('仍然导出') }}
+          </button>
+        </span>
+      </div>
+      <p
+        data-testid="export-summary"
+        class="mb-2 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs leading-5 text-slate-700"
+      >
+        <span class="font-semibold text-slate-800">{{ t('本次输出') }}</span>{{ t('：') }}{{ exportSummary }}
+      </p>
       <ul class="mb-3 space-y-0.5 text-xs leading-5 text-slate-500" data-testid="output-subtitles">
         <li
           v-for="(text, key) in outputSubtitles"

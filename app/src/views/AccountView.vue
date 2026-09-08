@@ -272,7 +272,7 @@ async function copyShareLink() {
 
 const shareCopyText = computed(
   () =>
-    `${t('推荐一个好用的工具：SeatMark 座签，上传 Excel 名单就能批量生成考场座位标签、桌牌、席位卡，排版精确到毫米，数据全程不出浏览器。点我的链接直接用：')}${shareLink.value}`,
+    `${t('推荐一个好用的工具：SeatMark 座签，上传 Excel 名单就能批量生成考场座位标签、桌牌、席位卡，尺寸按毫米设定，打印后与模板标注一致，数据全程不出浏览器。点我的链接直接用：')}${shareLink.value}`,
 )
 
 async function copyShareText() {

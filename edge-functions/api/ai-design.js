@@ -6,7 +6,8 @@
  *
  * 主模型：DeepSeek v4 Flash（通过环境变量 DEEPSEEK_API_KEY 配置）
  * 兜底模型：智谱 glm-4-flash（通过环境变量 AI_API_KEY 配置，永久免费）
- * 无密钥兜底：服务端代理 Pollinations 匿名接口。前端免费通道仅调本同源代理，
+ * 无密钥兜底：服务端代理 Pollinations 匿名接口（SEATMARK_AI_ANON_FALLBACK=0 可关闭，关闭后
+ * 密钥上游全部失败即直接 502）。前端免费通道仅调本同源代理，
  * 浏览器不直连任何第三方模型接口，所有兜底都在服务端完成。
  *
  * 环境变量（EdgeOne Pages 控制台配置）：
@@ -15,11 +16,13 @@
  * - AI_BASE_URL       兜底接口地址，默认 https://open.bigmodel.cn/api/paas/v4
  * - AI_MODEL          兜底模型名，默认 glm-4-flash
  * - ALERT_WEBHOOK     可选，告警 webhook（企业微信机器人）；仅从环境变量读取，未配置时跳过告警推送
+ * - SEATMARK_AI_ANON_FALLBACK  可选，设为 '0' 时跳过 Pollinations 匿名兜底；默认开启
  *
  * 防护：
  * - 请求体 > 32KB → 413（先看 Content-Length，再看实际字节数）
  * - 按 IP 1 小时滑动窗口最多 30 次 → 429 + Retry-After
- * - 上游 fetch 共用 25s AbortController 超时；全部上游因超时失败 → 504
+ * - 上游 fetch 共用 25s AbortController 超时；任一上游超时后不再尝试后续上游，直接 504
+ * - 上游失败的诊断（模型名 / HTTP 状态）只进日志；502 响应体为固定文案，不泄露上游模型名
  * - 回复 content > 20KB 截断并在响应顶层标记 truncated:true
  *
  * 存储降级：AI 为可选功能，存储为 memory（未放行）时限频跳过、只保留字节上限与超时——
@@ -246,9 +249,9 @@ async function proxyUpstreams({ env, messages, signal }) {
     }
   }
 
-  // 兜底：智谱 glm-4-flash
+  // 兜底：智谱 glm-4-flash（共用超时已触发时不再尝试）
   const fallbackKey = env && env.AI_API_KEY
-  if (fallbackKey) {
+  if (fallbackKey && !timedOut) {
     const fallbackBaseUrl = String((env && env.AI_BASE_URL) || FALLBACK_BASE_URL)
     const fallbackModel = (env && env.AI_MODEL) || FALLBACK_MODEL
     try {
@@ -260,9 +263,12 @@ async function proxyUpstreams({ env, messages, signal }) {
     }
   }
 
-  // 无密钥兜底：服务端代理 Pollinations 匿名接口（前端不直连，这是唯一的第三方调用点）
+  // 无密钥兜底：服务端代理 Pollinations 匿名接口（前端不直连，这是唯一的第三方调用点）；
+  // SEATMARK_AI_ANON_FALLBACK=0 时关闭，上游超时后也不再逐个尝试
+  const anonFallbackEnabled = String((env && env.SEATMARK_AI_ANON_FALLBACK) ?? '') !== '0'
   const attempts = []
-  for (const model of POLLINATIONS_MODELS) {
+  for (const model of anonFallbackEnabled ? POLLINATIONS_MODELS : []) {
+    if (timedOut) break
     try {
       const upstream = await fetch(POLLINATIONS_URL, {
         method: 'POST',
@@ -290,5 +296,9 @@ async function proxyUpstreams({ env, messages, signal }) {
   }
 
   if (timedOut) return json({ error: 'AI 服务响应超时，请稍后再试' }, 504)
-  return json({ error: `AI 服务暂时不可用，请稍后再试（${attempts.join('；').slice(0, 300)}）` }, 502)
+  // 各上游的模型名 / HTTP 状态已逐条 console.warn；这里只汇总次数，响应体固定文案
+  console.warn(
+    `[seatmark-ai-design] all upstreams failed (anonFallback=${anonFallbackEnabled ? 'on' : 'off'}, attempts=${attempts.length})`,
+  )
+  return json({ error: 'AI 服务暂时不可用，请稍后再试' }, 502)
 }

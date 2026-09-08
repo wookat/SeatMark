@@ -12,6 +12,8 @@ import App from '@/App.vue'
 import { createAppRouter } from '@/router'
 import { setLocale } from '@/i18n'
 import { guides } from '@/data/guides'
+import { defaultTemplates } from '@/data/defaultTemplates'
+import { templateDetails } from '@/data/templateDetails'
 import { footerGuideLinks } from '@/data/guideLinks'
 
 class ResizeObserverStub {
@@ -108,5 +110,28 @@ describe('第 346 轮：营销化表达收敛', () => {
       expect(guide, link.to).toBeDefined()
       expect(link.label).toBe(guide!.title)
     }
+  })
+
+  it('第 363 轮：模板文案改为可验证表述——无「特大姓名远距清晰」「培训签到即贴即用」「排版精确到毫米」', async () => {
+    const descriptions = defaultTemplates.map((tpl) => tpl.description ?? '').join('\n')
+    expect(descriptions).not.toContain('特大姓名远距清晰')
+    expect(descriptions).not.toContain('培训签到即贴即用')
+    expect(descriptions).toContain('姓名字高约 22 mm')
+    expect(descriptions).toContain('5 米外可读')
+    expect(descriptions).toContain('字高约 31 mm')
+    expect(descriptions).toContain('签到时撕下即贴，无需再手写')
+
+    const details = templateDetails
+      .map((d) => `${d.seoDescription}\n${d.intro}`)
+      .join('\n')
+    expect(details).not.toContain('特大姓名远距离清晰')
+    expect(details).not.toContain('签到即贴即用')
+    expect(details).toContain('姓名字高约 22 mm')
+    expect(details).toContain('姓名字高约 31 mm')
+
+    const w = await mountApp('/')
+    const text = w.text()
+    expect(text).not.toContain('排版精确到毫米')
+    expect(text).toContain('尺寸按毫米设定，打印后与模板标注一致')
   })
 })

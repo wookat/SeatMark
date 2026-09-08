@@ -16,6 +16,8 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import PricingView from '@/views/PricingView.vue'
 
 const NEUTRAL = '账号服务维护中，带水印导出不限次'
+/** 第 363 轮：定价卡底部维护提示与 features bullet 合并为一条 */
+const PRICING_CARD_HINT = '账号服务维护中，带水印导出不限次；恢复后可领取'
 
 class ResizeObserverStub {
   observe() {}
@@ -72,10 +74,21 @@ describe('第 345 轮：账号服务不可用降级文案', () => {
       expect(wrapper.text()).toContain(NEUTRAL)
       expect(wrapper.find('[data-testid="pricing-pro-cta"]').exists()).toBe(false)
       expect(wrapper.find('[data-testid="pricing-pro-cta-degraded"]').exists()).toBe(true)
-      // 第 348 轮：权益卡与含「注册送 7 天」承诺的 FAQ 旁出现弱提示
+      // 第 348 轮：权益卡与含「注册送 7 天」承诺的 FAQ 旁出现弱提示；
+      // 第 363 轮：卡内不再重复 features bullet，卡底一条合并文案，FAQ 旁仍为短提示
       const hints = wrapper.findAll('[data-testid="pricing-maintenance-hint"]')
       expect(hints.length).toBeGreaterThanOrEqual(2)
-      for (const h of hints) expect(h.text()).toBe('账号服务维护中，恢复后可领取')
+      const cards = wrapper.findAll('[data-testid="pricing-plan-card"]')
+      expect(cards).toHaveLength(3)
+      const cardHints = cards.flatMap((c) => c.findAll('[data-testid="pricing-maintenance-hint"]'))
+      expect(cardHints).toHaveLength(1)
+      expect(cardHints[0]!.text()).toBe(PRICING_CARD_HINT)
+      for (const c of cards) expect(c.findAll('li').filter((li) => li.text() === NEUTRAL)).toHaveLength(0)
+      for (const h of hints) {
+        if (!cards.some((c) => c.element.contains(h.element))) {
+          expect(h.text()).toBe('账号服务维护中，恢复后可领取')
+        }
+      }
       // 定价不变：专业版原价 ¥19、团队版 ¥49
       expect(wrapper.text()).toContain('¥19')
       expect(wrapper.text()).toContain('¥49')

@@ -19,6 +19,7 @@ interface Env {
   SEATMARK_ALLOW_MEMORY_STORAGE?: string
   DEEPSEEK_API_KEY?: string
   AI_API_KEY?: string
+  SEATMARK_AI_ANON_FALLBACK?: string
 }
 
 const ENV: Env = { SEATMARK_ALLOW_MEMORY_STORAGE: '1' }
@@ -134,6 +135,29 @@ describe('ai-design 上游超时与截断', () => {
     expect(res.status).toBe(504)
     const data = (await res.json()) as { error: string }
     expect(data.error).toContain('超时')
+    // 第 363 轮：超时后 break 出上游循环，不再逐个尝试后续 Pollinations 模型
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('第 363 轮：有密钥上游超时后不再尝试兜底上游，fetch 只调用 1 次', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const fetchMock = vi.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          const fail = () => reject(new DOMException('The operation was aborted.', 'AbortError'))
+          if (init.signal?.aborted) fail()
+          else init.signal?.addEventListener('abort', fail)
+        }),
+    )
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+    const env: Env = { ...ENV, DEEPSEEK_API_KEY: 'test-key', AI_API_KEY: 'test-key-2' }
+    const pending = onRequest({ request: post({ messages }, freshIp()), env })
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    await vi.advanceTimersByTimeAsync(AI_UPSTREAM_TIMEOUT_MS + 10)
+    const res = await pending
+    expect(res.status).toBe(504)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('api.deepseek.com')
   })
 
   it('回复 content 超过 20KB 截断并标记 truncated:true', async () => {
@@ -144,5 +168,51 @@ describe('ai-design 上游超时与截断', () => {
     const data = (await res.json()) as { choices: Array<{ message: { content: string } }>; truncated?: boolean }
     expect(data.truncated).toBe(true)
     expect(data.choices[0]!.message.content.length).toBe(AI_MAX_CONTENT_CHARS)
+  })
+})
+
+describe('第 363 轮：匿名兜底可关闭 + 502 不泄露上游模型名', () => {
+  it('SEATMARK_AI_ANON_FALLBACK=0 且无任何密钥 → 502，fetch 未调用 Pollinations，body 为固定文案', async () => {
+    const fetchMock = vi.fn(async () => chatReply('should not be called'))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const env: Env = { ...ENV, SEATMARK_AI_ANON_FALLBACK: '0' }
+    const res = await onRequest({ request: post({ messages }, freshIp()), env })
+    expect(res.status).toBe(502)
+    expect(fetchMock).not.toHaveBeenCalled()
+    const data = (await res.json()) as { error: string }
+    expect(data.error).toBe('AI 服务暂时不可用，请稍后再试')
+    warn.mockRestore()
+  })
+
+  it('SEATMARK_AI_ANON_FALLBACK=0 且密钥上游失败 → 直接 502，不再请求 Pollinations', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response('upstream down', { status: 500 }))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const env: Env = { ...ENV, SEATMARK_AI_ANON_FALLBACK: '0', AI_API_KEY: 'test-key' }
+    const res = await onRequest({ request: post({ messages }, freshIp()), env })
+    expect(res.status).toBe(502)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    for (const call of fetchMock.mock.calls) {
+      expect(String(call[0])).not.toContain('pollinations')
+    }
+    warn.mockRestore()
+  })
+
+  it('默认开启匿名兜底：全部 Pollinations 模型失败 → 502，body 不含模型名/HTTP 状态，详情只进 console.warn', async () => {
+    const fetchMock = vi.fn(async () => new Response('rate limited', { status: 429 }))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const res = await onRequest({ request: post({ messages }, freshIp()), env: ENV })
+    expect(res.status).toBe(502)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const body = await res.text()
+    expect(body).toBe(JSON.stringify({ error: 'AI 服务暂时不可用，请稍后再试' }))
+    for (const leak of ['openai', 'mistral', 'deepseek', 'glm', 'pollinations', '429', 'HTTP']) {
+      expect(body).not.toContain(leak)
+    }
+    const logged = warn.mock.calls.map((c) => c.map(String).join(' ')).join('\n')
+    expect(logged).toContain('openai: HTTP 429')
+    warn.mockRestore()
   })
 })

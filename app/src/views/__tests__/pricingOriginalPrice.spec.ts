@@ -92,6 +92,37 @@ describe('第 346 轮：PricingView 原价独立一行', () => {
     wrapper.unmount()
   })
 
+  it('第 363 轮：md 档两列 + 第三卡跨两列居中同宽；服务不可用时每张卡维护提示至多 1 处且不在 features 中重复', () => {
+    const auth = useAuthStore()
+    auth.ready = false
+    auth.serviceUnavailable = true
+    const wrapper = mount(PricingView, { global: { stubs } })
+
+    const cards = wrapper.findAll('[data-testid="pricing-plan-card"]')
+    expect(cards).toHaveLength(3)
+    const grid = cards[0]!.element.parentElement!
+    expect(grid.className).toContain('md:grid-cols-2')
+    expect(grid.className).toContain('lg:grid-cols-3')
+    expect(grid.className).not.toContain('md:grid-cols-3')
+    expect(cards[2]!.classes()).toEqual(
+      expect.arrayContaining(['md:col-span-2', 'lg:col-span-1', 'md:mx-auto', 'md:w-[calc(50%-0.625rem)]']),
+    )
+    expect(cards[0]!.classes()).not.toContain('md:col-span-2')
+
+    for (const card of cards) {
+      const hints = card.findAll('[data-testid="pricing-maintenance-hint"]')
+      expect(hints.length).toBeLessThanOrEqual(1)
+      const bullets = card.findAll('li').map((li) => li.text())
+      expect(bullets.some((b) => b.includes('账号服务维护中'))).toBe(false)
+      const occurrences = card.text().split('账号服务维护中').length - 1
+      expect(occurrences).toBeLessThanOrEqual(1)
+    }
+    const proHints = cards[1]!.findAll('[data-testid="pricing-maintenance-hint"]')
+    expect(proHints).toHaveLength(1)
+    expect(proHints[0]!.text()).toBe('账号服务维护中，带水印导出不限次；恢复后可领取')
+    wrapper.unmount()
+  })
+
   it('第 347 轮：底部 CTA 英文行内链接前后有空格，中文无空格', async () => {
     const zh = mountPricing()
     const zhText = zh.findAll('p').map((p) => p.text()).find((s) => s.includes('还不确定'))
