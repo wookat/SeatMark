@@ -7,7 +7,13 @@ import { useDragScroll } from '@/composables/useDragScroll'
 import { t } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { compareCellText, dedupeDataRows, downloadSampleExcel, parsePastedRoster } from '@/utils/excel'
+import {
+  compareCellText,
+  dedupeDataRows,
+  downloadSampleExcel,
+  looksLikeHeaderRow,
+  parsePastedRoster,
+} from '@/utils/excel'
 import { PASTE_MANUAL_PARSE_THRESHOLD, PASTE_PARSE_DEBOUNCE_MS } from '@/utils/importLimits'
 
 const workspace = useWorkspaceStore()
@@ -251,6 +257,19 @@ function togglePasteHeader(value: boolean) {
   pasteHeaderOverride.value = value
 }
 
+/**
+ * 未识别为表头但首行长得像列名（多列短词、不含数字）时的醒目提醒；
+ * 未检测到表头时首行就是 rows[0]，按自动表头顺序取回原文。
+ */
+const pasteHeaderHintCells = computed<string[]>(() => {
+  const parsed = pasteParsed.value
+  if (parsed.headerDetected || pasteHeaderOverride.value === false) return []
+  const first = parsed.rows[0]
+  if (!first) return []
+  const cells = parsed.headers.map((h) => String(first[h] ?? ''))
+  return looksLikeHeaderRow(cells) ? cells : []
+})
+
 function openPasteDialog() {
   pasteText.value = ''
   pasteHeaderOverride.value = null
@@ -374,6 +393,14 @@ async function onDownloadSample() {
         <div class="flex shrink-0 gap-1.5">
           <button type="button" class="btn btn-secondary btn-sm" @click="fileInput?.click()">
             {{ t('重新上传') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm"
+            data-testid="paste-reopen"
+            @click="openPasteDialog"
+          >
+            {{ t('重新粘贴') }}
           </button>
           <button type="button" class="btn btn-danger btn-sm" @click="workspace.clearData()">
             {{ t('清空') }}
@@ -504,6 +531,34 @@ async function onDownloadSample() {
           {{ t('首行是表头') }}
         </CheckboxField>
       </div>
+      <div
+        v-if="pasteHeaderHintCells.length"
+        class="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs leading-4 text-amber-800"
+        role="status"
+        data-testid="paste-header-hint"
+      >
+        <svg
+          class="mt-0.5 size-4 shrink-0 text-amber-500"
+          viewBox="0 0 20 20"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M10 3 2.5 16h15L10 3Z" />
+          <path d="M10 8v4M10 14.5h.01" />
+        </svg>
+        <span class="min-w-0 flex-1">
+          {{
+            t('首行「{cells}」看起来像列名，未识别为表头，如是请勾选上方「首行是表头」').replace(
+              '{cells}',
+              pasteHeaderHintCells.join(t('、')),
+            )
+          }}
+        </span>
+      </div>
       <template #actions>
         <button type="button" class="btn btn-secondary btn-md" @click="pasteOpen = false">
           {{ t('取消') }}
@@ -514,7 +569,7 @@ async function onDownloadSample() {
           :disabled="!pasteText.trim() || (!pasteStale && !pasteParsed.rows.length)"
           @click="confirmPaste"
         >
-          {{ t('导入名单') }}
+          {{ workspace.excel.rows.length ? t('导入并覆盖当前名单') : t('导入名单') }}
         </button>
       </template>
     </ModalDialog>

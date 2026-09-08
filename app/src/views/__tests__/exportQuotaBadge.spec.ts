@@ -47,18 +47,18 @@ beforeEach(async () => {
 })
 
 describe('导出按钮额度角标（/seating 与 /banquet）', () => {
-  it('匿名首次访问：两页导出按钮角标同为「今日剩余 N 次」，且 N 来自同一 quota store', async () => {
+  it('匿名首次访问：两页导出按钮角标同为「无水印 今日剩余 N 次」，且 N 来自同一 quota store', async () => {
     const quota = useQuotaStore()
     expect(quota.remaining).toBe(QUOTA_ANON_DAILY)
 
     const seating = await mountView(SeatingView, '/seating')
     const seatingBadge = seating.find('[data-testid="export-quota-badge"]')
     expect(seatingBadge.exists()).toBe(true)
-    expect(seatingBadge.text()).toBe(`今日剩余 ${QUOTA_ANON_DAILY} 次`)
+    expect(seatingBadge.text()).toBe(`无水印 今日剩余 ${QUOTA_ANON_DAILY} 次`)
     expect(seatingBadge.classes()).toContain('bg-emerald-100')
     // 第 355 轮：额度文字改为按钮内联次要文字（不再绝对定位骑压按钮边缘）
     const seatingBtn = seating.find('[data-testid="seating-export-png"]')
-    expect(seatingBtn.text()).toBe(`导出 PNG 今日剩余 ${QUOTA_ANON_DAILY} 次`)
+    expect(seatingBtn.text()).toBe(`导出 PNG 无水印 今日剩余 ${QUOTA_ANON_DAILY} 次`)
     expect(seatingBtn.element.contains(seatingBadge.element)).toBe(true)
     expect(seatingBadge.classes()).not.toContain('absolute')
 
@@ -66,7 +66,7 @@ describe('导出按钮额度角标（/seating 与 /banquet）', () => {
     const banquetBadge = banquet.find('[data-testid="export-quota-badge"]')
     expect(banquetBadge.text()).toBe(seatingBadge.text())
     const banquetBtn = banquet.find('[data-testid="banquet-export-png"]')
-    expect(banquetBtn.text()).toBe(`导出高清 PNG 今日剩余 ${QUOTA_ANON_DAILY} 次`)
+    expect(banquetBtn.text()).toBe(`导出高清 PNG 无水印 今日剩余 ${QUOTA_ANON_DAILY} 次`)
     expect(banquetBtn.element.contains(banquetBadge.element)).toBe(true)
     expect(banquetBadge.classes()).not.toContain('absolute')
     seating.unmount()

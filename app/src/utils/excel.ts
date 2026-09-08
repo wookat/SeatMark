@@ -205,7 +205,7 @@ const DEMO_DEPARTMENTS = ['教务处', '招生办', '信息中心', '后勤保�
 
 /** 判断粘贴首行是否为表头的常见列名关键词 */
 const HEADER_KEYWORDS =
-  /姓名|名字|name|性别|班级|学号|座位|考场|准考证|部门|职务|工号|单位|学校|编号|号码|电话|手机|宿舍|桌号|组别|序号/i
+  /姓名|名字|name|性别|班级|学号|座位|考场|准考证|部门|职务|工号|单位|学校|编号|号码|电话|手机|宿舍|桌号|组别|序号|与会人员|人员|头衔|职称|职位|公司|嘉宾|代表|科室|系别|专业|年级|届|桌次|席位|邮箱|title|company|dept|department|class|grade|seat|table|email/i
 /** 单列名单只有首格恰为姓名类列名时才当表头 */
 const SINGLE_COLUMN_HEADER = /^(?:姓名|名字|name)$/i
 
@@ -218,6 +218,19 @@ function detectHeaderRow(firstRow: string[]): boolean {
     return firstRow.some((cell) => !/\d/.test(cell) && HEADER_KEYWORDS.test(cell))
   }
   return SINGLE_COLUMN_HEADER.test(firstRow[0] ?? '')
+}
+
+/**
+ * 首行“长得像”列名但未被关键词识别时，用于提醒用户手动勾选表头：
+ * 多列且每格都是不含数字、长度 ≤ 6 的短词（「与会人员 / 头衔 / 公司」）；
+ * 两列人名（「张三 / 李四」）也会命中，所以它只做提醒，不参与自动判定。
+ */
+export function looksLikeHeaderRow(firstRow: readonly string[]): boolean {
+  if (firstRow.length < 2) return false
+  return firstRow.every((cell) => {
+    const text = cell.trim()
+    return text !== '' && text.length <= 6 && !/\d/.test(text)
+  })
 }
 
 export interface PastedRoster {

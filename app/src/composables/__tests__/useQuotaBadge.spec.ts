@@ -7,14 +7,15 @@ import { QUOTA_USER_DAILY } from '@/stores/quota'
 const t = (key: string) => key
 
 describe('useQuotaBadge', () => {
-  it('remaining > 0：正向展示「今日剩余 n 次」（绿色），title 带 n/limit 与登录提示', () => {
+  it('remaining > 0：正向展示「无水印 今日剩余 n 次」（绿色），title 带不限次说明、n/limit 与登录提示', () => {
     const quota = reactive({ remaining: 1, limit: 1 })
     const auth = reactive({ isLoggedIn: false })
     const { badge, title } = useQuotaBadge(quota, auth, t)
     expect(badge.value).toEqual({
-      text: '今日剩余 1 次',
+      text: '无水印 今日剩余 1 次',
       cls: 'bg-emerald-100 text-emerald-700',
     })
+    expect(title.value).toContain('打印、带水印导出、CSV、速查表 PDF 均不限次')
     expect(title.value).toContain('无水印今日剩余 1/1 次')
     expect(title.value).toContain(`，免费登录后每天 ${QUOTA_USER_DAILY} 次`)
   })
@@ -32,7 +33,7 @@ describe('useQuotaBadge', () => {
     const auth = reactive({ isLoggedIn: true })
     const { badge, title } = useQuotaBadge(quota, auth, t)
     expect(title.value).not.toContain('免费登录后每天')
-    expect(badge.value.text).toBe('今日剩余 3 次')
+    expect(badge.value.text).toBe('无水印 今日剩余 3 次')
     quota.remaining = 0
     expect(badge.value.text).toBe('带水印免费')
   })

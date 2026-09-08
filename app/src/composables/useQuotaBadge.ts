@@ -25,8 +25,9 @@ export interface QuotaBadgeResult {
 
 /**
  * 导出按钮角标（工坊 / 排座 / 宴会共用同一口径）：
- * 额度 > 0 时正向展示「今日剩余 n 次」（与导出弹窗一致），用完后不展示刺眼的 0，
- * 改为强调「带水印导出永远免费、不限次数」；title 补充登录后的每日额度。
+ * 额度 > 0 时正向展示「无水印 今日剩余 n 次」（带主语，避免被误读为导出总次数），
+ * 用完后不展示刺眼的 0，改为强调「带水印导出永远免费、不限次数」；
+ * title 说明哪些操作不限次，并补充登录后的每日额度。
  */
 export function useQuotaBadge(
   quota: QuotaBadgeSource,
@@ -36,14 +37,14 @@ export function useQuotaBadge(
   const badge = computed<QuotaBadge>(() =>
     quota.remaining > 0
       ? {
-          text: t('今日剩余 {n} 次').replace('{n}', String(quota.remaining)),
+          text: t('无水印 今日剩余 {n} 次').replace('{n}', String(quota.remaining)),
           cls: 'bg-emerald-100 text-emerald-700',
         }
       : { text: t('带水印免费'), cls: 'bg-sky-100 text-sky-700' },
   )
   const title = computed(
     () =>
-      `${t('带水印导出永远免费、不限次数；无水印今日剩余')} ${quota.remaining}/${quota.limit} ${t('次')}${
+      `${t('打印、带水印导出、CSV、速查表 PDF 均不限次')}${t('；')}${t('带水印导出永远免费、不限次数；无水印今日剩余')} ${quota.remaining}/${quota.limit} ${t('次')}${
         auth.isLoggedIn ? '' : `${t('，免费登录后每天')} ${QUOTA_USER_DAILY} ${t('次')}`
       }`,
   )

@@ -89,7 +89,8 @@ const CODE_IP_DAILY_LIMIT = 20
 const CODE_EMAIL_DAILY_LIMIT = 10
 const PASSWORD_MIN_LENGTH = 8
 const PASSWORD_MAX_LENGTH = 72
-const PBKDF2_ITERATIONS = 100000
+/** OWASP 2023 建议值；verifyPassword 按存储串内的迭代数校验，存量 100k 哈希继续可用 */
+const PBKDF2_ITERATIONS = 600000
 /**
  * 登录时账号不存在 / 未设密码也跑一次 PBKDF2，抹平与「密码错误」的时序差（防邮箱枚举）。
  * 固定盐与摘要均为占位常量，不对应任何真实密码。
@@ -99,6 +100,11 @@ const LOGIN_FAIL_LIMIT = 10
 const LOGIN_FAIL_WINDOW_MS = 15 * 60 * 1000
 const REGISTER_IP_DAILY_LIMIT = 20
 const CAPTCHA_TTL_SECONDS = 5 * 60
+/** 图片验证码每 IP 日限：正常用户换题几十次已足够，拦截脚本刷图 / 刷 KV 写入 */
+export const CAPTCHA_IP_DAILY_LIMIT = 300
+/** 分享短码撞码时的最大重试次数，仍冲突则 fail closed 抛错而不覆写他人映射 */
+const SHARE_CODE_MAX_ATTEMPTS = 5
+const HEX_ALPHABET = '0123456789abcdef'
 const TEMPLATES_MAX_BYTES = 512 * 1024
 /** 默认请求体上限（仅 /api/account/templates 用 TEMPLATES_MAX_BYTES），超限 413 */
 const BODY_MAX_BYTES = 64 * 1024
@@ -497,10 +503,23 @@ function normalizeRedeemCode(input) {
   return `SM-${body.slice(0, 4)}-${body.slice(4, 8)}-${body.slice(8, 12)}`
 }
 
-async function shareCodeFor(kv, email, defer) {
+/**
+ * 用户的分享短码：已有则直接返回；否则用 CSPRNG 生成 8 位 hex，
+ * 落库前读 `share:code:<code>` 确认未被其他邮箱占用，撞码重试有限次，仍冲突则抛错。
+ */
+export async function shareCodeFor(kv, email, defer) {
   const existing = await kv.get(`share:owner:${email}`)
   if (existing) return existing
-  const code = (await sha256Hex(`${email}:${Date.now()}`)).slice(0, 8)
+  let code = null
+  for (let attempt = 0; attempt < SHARE_CODE_MAX_ATTEMPTS; attempt++) {
+    const candidate = randomToken(8, HEX_ALPHABET)
+    const owner = await kv.get(`share:code:${candidate}`)
+    if (!owner || owner === email) {
+      code = candidate
+      break
+    }
+  }
+  if (!code) throw new Error('share code collision: exhausted retries')
   const write = () =>
     Promise.all([kv.put(`share:owner:${email}`, code), kv.put(`share:code:${code}`, email)])
   if (defer) defer(write)
@@ -992,6 +1011,12 @@ async function handleRequest(context) {
   // ----- 认证 -----
   // 表单验证码：图片字符 + 签名令牌（5 分钟有效，答对后一次性消费），注册/登录/重置密码均需携带
   if (path === '/api/auth/captcha' && method === 'GET') {
+    const captchaRlKey = `rl:captcha:${await sha256Hex(clientIp(request))}:${today()}`
+    const captchaCount = await getCounter(kv, captchaRlKey)
+    if (captchaCount >= CAPTCHA_IP_DAILY_LIMIT) {
+      return json({ error: '请求过于频繁，请明天再试' }, 429, storageHeader)
+    }
+    await deferWrite(() => kv.put(captchaRlKey, String(captchaCount + 1), dailyTtl))
     let code = ''
     for (let i = 0; i < CAPTCHA_LENGTH; i++) {
       code += CAPTCHA_CHARSET[randomInt(CAPTCHA_CHARSET.length)]

@@ -704,10 +704,22 @@ function localizeExportError(err: unknown): string {
   return t(err instanceof Error ? err.message : String(err))
 }
 
+/** 准备阶段（加载导出分包与字体）超这么久仍未进入渲染时，提示可取消重试 */
+const PREPARING_HINT_DELAY_MS = 8_000
+
+/** 进入准备阶段：返回的函数在进入首页渲染或流程结束时调用，清除慢准备提示计时器 */
+function beginPreparing(cancel: () => void): () => void {
+  workspace.setLoading(true, t('正在准备页面...'), cancel)
+  const timer = setTimeout(() => {
+    workspace.setLoading(true, t('仍在准备（加载导出组件与字体）…可点「取消」后重试'), cancel)
+  }, PREPARING_HINT_DELAY_MS)
+  return () => clearTimeout(timer)
+}
+
 async function doExportPdf() {
   const abort = new AbortController()
   const cancel = () => abort.abort()
-  workspace.setLoading(true, t('正在准备页面...'), cancel)
+  const donePreparing = beginPreparing(cancel)
   try {
     const pageCount = workspace.totalPages
     // 渲染倍率按标签物理尺寸自适应：大尺寸桌牌降档避免过采样
@@ -717,6 +729,7 @@ async function doExportPdf() {
       signal: abort.signal,
       // 分页分批：每次只挂载并栅格化一页，60+ 页任务内存占用恒定
       getPage: async (i) => {
+        donePreparing()
         workspace.setLoading(true, t('正在渲染第 {i}/{n} 页...').replace('{i}', String(i + 1)).replace('{n}', String(pageCount)), cancel)
         await mountHost(i)
         const el = hostRef.value?.querySelector<HTMLElement>('.sheet-page')
@@ -748,6 +761,7 @@ async function doExportPdf() {
       toast.danger(t('PDF 生成失败'), `${localizeExportError(err)}${t('；本次未扣除无水印次数，可直接重试')}`)
     }
   } finally {
+    donePreparing()
     workspace.setLoading(false)
     unmountHost()
   }
@@ -771,7 +785,7 @@ async function doExportPng() {
   }
   const abort = new AbortController()
   const cancel = () => abort.abort()
-  workspace.setLoading(true, t('正在准备页面...'), cancel)
+  const donePreparing = beginPreparing(cancel)
   try {
     const pageCount = workspace.totalPages
     const exact = pngSizeMode.value === 'exact'
@@ -841,6 +855,7 @@ async function doExportPng() {
       pageCount,
       signal: abort.signal,
       getPage: async (i) => {
+        donePreparing()
         workspace.setLoading(true, t('正在渲染第 {i}/{n} 页...').replace('{i}', String(i + 1)).replace('{n}', String(pageCount)), cancel)
         await mountHost(i)
         const el = hostRef.value?.querySelector<HTMLElement>('.sheet-page')
@@ -902,6 +917,7 @@ async function doExportPng() {
       toast.danger(t('PNG 生成失败'), `${localizeExportError(err)}${t('；本次未扣除无水印次数，可直接重试')}`)
     }
   } finally {
+    donePreparing()
     workspace.setLoading(false)
     unmountHost()
     hostSuppressCutLines.value = false
@@ -946,7 +962,7 @@ async function doPrint() {
 async function doMobilePrint() {
   const abort = new AbortController()
   const cancel = () => abort.abort()
-  workspace.setLoading(true, t('正在准备页面...'), cancel)
+  const donePreparing = beginPreparing(cancel)
   try {
     const pageCount = workspace.totalPages
     const fileName = defaultPdfFileName(exportNamePrefix.value)
@@ -954,6 +970,7 @@ async function doMobilePrint() {
       pageCount,
       signal: abort.signal,
       getPage: async (i) => {
+        donePreparing()
         workspace.setLoading(true, t('正在渲染第 {i}/{n} 页...').replace('{i}', String(i + 1)).replace('{n}', String(pageCount)), cancel)
         await mountHost(i)
         const el = hostRef.value?.querySelector<HTMLElement>('.sheet-page')
@@ -993,6 +1010,7 @@ async function doMobilePrint() {
       toast.danger(t('打印 PDF 生成失败'), `${localizeExportError(err)}${t('；本次未扣除无水印次数，可直接重试')}`)
     }
   } finally {
+    donePreparing()
     workspace.setLoading(false)
     unmountHost()
   }
@@ -1272,7 +1290,7 @@ const hintKey = ref<HintKey | null>(null)
           <span class="md:hidden xl:inline">{{ t('图片版 PDF') }}</span><span class="hidden md:inline xl:hidden">PDF</span><span class="hidden md:inline md:max-xl:hidden">{{ t('（推荐）') }}</span>
           <span
             v-if="!sharePromptVisible"
-            class="ml-1 rounded-full px-1.5 py-px text-[11px] font-semibold"
+            class="ml-1 whitespace-nowrap rounded-full px-1.5 py-px text-[11px] font-semibold"
             :class="exportBadge.cls"
             :title="exportBadgeTitle"
             data-testid="export-quota-badge"

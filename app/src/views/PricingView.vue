@@ -230,7 +230,7 @@ async function submitReserve() {
           class="mt-3 text-xs leading-5 text-slate-500"
           data-testid="pricing-maintenance-hint"
         >
-          {{ t(AUTH_MAINTENANCE_HINT) }}
+          {{ t('注册领取试用暂不可用，见页顶说明') }}
         </p>
 
         <RouterLink
