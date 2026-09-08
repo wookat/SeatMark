@@ -2,6 +2,8 @@
 /**
  * 第 360 轮：预览工具栏平板（md–xl）收敛——统计 chip 合并为一枚、左簇 min-w-0 + 右簇 ml-auto、
  * 导出按钮短标签但 aria-label / title 保留完整文案、testid 不变、缩放选择 <xl 用 w-20。
+ * 跟进：md–xl 两簇 display:contents 让全部控件在同一 flex-wrap 内紧凑排布（xl 起恢复左/右簇），
+ * 汇总 chip 纸张只取预设名（A4），「打印 / 矢量 PDF」在 md–xl 显示为「打印」但 aria-label 完整。
  */
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
@@ -40,6 +42,7 @@ describe('PreviewArea 平板工具栏收敛（r360）', () => {
     expect(text).toContain(`${ws.excel.rows.length} 个标签`)
     expect(text).toContain(`${ws.totalPages} 页`)
     expect(text.split(' · ')).toHaveLength(3)
+    expect(text.endsWith(' · A4')).toBe(true)
     const chips = summary.element.parentElement!.querySelectorAll('span')
     expect(chips).toHaveLength(4)
     Array.from(chips)
@@ -57,11 +60,14 @@ describe('PreviewArea 平板工具栏收敛（r360）', () => {
     const toolbar = wrapper.get('[data-testid="preview-toolbar"]')
     expect(toolbar.classes()).toContain('sticky')
     const left = wrapper.get('[data-testid="preview-toolbar-left"]')
-    expect(left.classes()).toEqual(expect.arrayContaining(['flex', 'flex-wrap', 'min-w-0']))
+    expect(left.classes()).toEqual(
+      expect.arrayContaining(['flex', 'flex-wrap', 'min-w-0', 'md:max-xl:contents']),
+    )
     expect(left.find('[data-testid="preview-toolbar-summary"]').exists()).toBe(true)
     expect(left.find('input[type="number"]').exists()).toBe(true)
     const right = wrapper.get('[data-testid="export-pdf-button"]').element.parentElement!
     expect(right.classList.contains('ml-auto')).toBe(true)
+    expect(right.classList.contains('md:max-xl:contents')).toBe(true)
     expect(right.parentElement).toBe(toolbar.element)
     expect(left.element.parentElement).toBe(toolbar.element)
     wrapper.unmount()
@@ -92,9 +98,14 @@ describe('PreviewArea 平板工具栏收敛（r360）', () => {
       expect.arrayContaining(['hidden', 'md:inline', 'xl:hidden']),
     )
 
-    // 「打印 / 矢量 PDF」文案不变
+    // 「打印 / 矢量 PDF」：sm–md 与 xl 起显示全文，md–xl 只显示「打印」，aria-label 恒为全文
     const print = wrapper.findAll('button').find((b) => b.text().includes('矢量 PDF'))!
     expect(print.text().replace(/\s+/g, ' ')).toBe('打印 / 矢量 PDF')
+    expect(print.attributes('aria-label')).toBe('打印 / 矢量 PDF')
+    const printSuffix = print.findAll('span').find((s) => s.text().includes('矢量 PDF'))!
+    expect(printSuffix.classes()).toEqual(
+      expect.arrayContaining(['hidden', 'sm:inline', 'md:max-xl:hidden']),
+    )
     wrapper.unmount()
   })
 
