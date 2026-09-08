@@ -54,7 +54,7 @@ describe("(a) Permissions-Policy 响应头", () => {
       env,
     })) as Response;
     expect(health.headers.get("Permissions-Policy")).toBe(PERMISSIONS_POLICY);
-    expect(health.headers.get("X-SeatMark-Rev")).toBe("r367");
+    expect(health.headers.get("X-SeatMark-Rev")).toBe("r369");
 
     const captcha = await getCaptcha(env, "203.0.113.9");
     expect(captcha.status).toBe(200);

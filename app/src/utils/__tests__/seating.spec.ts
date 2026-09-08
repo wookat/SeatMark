@@ -19,6 +19,7 @@ import {
   type SeatingSpacing,
   seatingRosterTextFromTable,
   shuffleEntries,
+  spreadBlockedSet,
   unseatedEntries,
   unseatedSummary,
 } from '../seating'
@@ -568,6 +569,97 @@ describe('第 368 轮：buildSeats 座位间隔 spacing（4 档 × 2 种填充�
     expect(grid[0]!.map((s) => s?.name ?? null)).toEqual([null, 'S1', null, 'S2'])
     const student = buildDisplayGrid(grid, 4, new Set(), 'student')
     expect(student[0]!.map((c) => c.seat?.name ?? null)).toEqual(['S2', null, 'S1', null])
+  })
+})
+
+describe('第 369 轮：「尽量散开」spread 间隔档', () => {
+  const names = (n: number) => Array.from({ length: n }, (_, i) => ({ name: `S${i + 1}` }))
+  const FILLS: SeatingFillOrder[] = ['rows', 'serpentine']
+  const emptiesPerRow = (rows: number, cols: number, blocked: ReadonlySet<number>) =>
+    Array.from({ length: rows }, (_, r) =>
+      Array.from({ length: cols }, (_, c) => r * cols + c).filter((i) => blocked.has(i)).length,
+    )
+
+  it('SEATING_SPACINGS 追加 spread，isSeatingSpacing 接受；旧 4 档不变', () => {
+    expect(SEATING_SPACINGS).toEqual(['none', 'skipCol', 'skipRow', 'checker', 'spread'])
+    expect(isSeatingSpacing('spread')).toBe(true)
+    expect(seatCapacity(6, 8, 'none')).toBe(48)
+    expect(seatCapacity(6, 8, 'skipCol')).toBe(24)
+    expect(seatCapacity(6, 8, 'skipRow')).toBe(24)
+    expect(seatCapacity(6, 8, 'checker')).toBe(24)
+  })
+
+  it.each(FILLS)('%s：30 人 6×8 全员入座，每排 5 人，48 座留空 18 且任两排空位数差 ≤ 1', (fill) => {
+    const entries = names(30)
+    const blocked = spreadBlockedSet(6, 8, 30, fill)
+    expect(blocked.size).toBe(18)
+    const empties = emptiesPerRow(6, 8, blocked)
+    expect(Math.max(...empties) - Math.min(...empties)).toBeLessThanOrEqual(1)
+
+    const seats = buildSeats(entries, 6, 8, fill, 'spread')
+    expect(seats).toHaveLength(30)
+    expect(seats.filter((s) => s.name)).toHaveLength(30)
+    expect(seats.map((s) => s.seatNo)).toEqual(entries.map((_, i) => i + 1))
+    for (let r = 1; r <= 6; r++) expect(seats.filter((s) => s.row === r)).toHaveLength(5)
+    expect(seatCapacity(6, 8, 'spread', 30)).toBe(30)
+    expect(unseatedEntries(entries, 6, 8, 'spread')).toEqual([])
+    for (const s of seats) {
+      expect(isSeatBlocked(s.row - 1, s.col - 1, 'spread', { rows: 6, cols: 8, count: 30, fillOrder: fill })).toBe(false)
+    }
+  })
+
+  it.each(FILLS)('%s：20 人 6×8 spread 与 checker 一致（前后左右不相邻）', (fill) => {
+    const entries = names(20)
+    const spread = buildSeats(entries, 6, 8, fill, 'spread')
+    expect(spread).toEqual(buildSeats(entries, 6, 8, fill, 'checker'))
+    expect(seatCapacity(6, 8, 'spread', 20)).toBe(24)
+    const filled = spread.filter((s) => s.name)
+    for (const a of filled) {
+      for (const b of filled) {
+        if (a === b) continue
+        expect(Math.abs(a.row - b.row) + Math.abs(a.col - b.col)).not.toBe(1)
+      }
+    }
+  })
+
+  it('人数超过棋盘但 ≤ 隔位容量时等价 skipCol：5×5 教室 13 人为 checker，10 人也为 checker，2×3 教室 3 人为 skipCol', () => {
+    // 5×5：checker=13、skipCol=10；13 人仍坐得下棋盘
+    expect(buildSeats(names(13), 5, 5, 'rows', 'spread')).toEqual(buildSeats(names(13), 5, 5, 'rows', 'checker'))
+    // 2×3：checker=3（位置 0,2,4）、skipCol=2；3 人坐得下棋盘
+    expect(seatCapacity(2, 3, 'spread', 3)).toBe(3)
+    // 3×4：checker=6、skipCol=6；7 人都坐不下 → 均匀留空 5 位
+    expect(spreadBlockedSet(3, 4, 7).size).toBe(5)
+    expect(seatCapacity(3, 4, 'spread', 7)).toBe(7)
+    // 2×4：checker=4、skipCol=4；人数 4 → checker
+    expect(spreadBlockedSet(2, 4, 4)).toEqual(new Set([1, 3, 4, 6]))
+  })
+
+  it('4 人 2×2 spread：不阻塞任何座位，4 人全坐；人数超过座位总数也不留空且溢出口径与 none 一致', () => {
+    expect(spreadBlockedSet(2, 2, 4).size).toBe(0)
+    const seats = buildSeats(names(4), 2, 2, 'rows', 'spread')
+    expect(seats).toHaveLength(4)
+    expect(seats.map((s) => s.name)).toEqual(['S1', 'S2', 'S3', 'S4'])
+    expect(seatCapacity(2, 2, 'spread', 4)).toBe(4)
+    expect(unseatedEntries(names(4), 2, 2, 'spread')).toEqual([])
+
+    expect(spreadBlockedSet(6, 8, 52).size).toBe(0)
+    expect(seatCapacity(6, 8, 'spread', 52)).toBe(48)
+    expect(unseatedEntries(names(52), 6, 8, 'spread').map((e) => e.name)).toEqual(['S49', 'S50', 'S51', 'S52'])
+  })
+
+  it('无人 / 0 人时 spread 等价棋盘（演示名单按棋盘容量生成）；非法尺寸为 0', () => {
+    expect(seatCapacity(6, 8, 'spread')).toBe(24)
+    expect(seatCapacity(6, 8, 'spread', 0)).toBe(24)
+    expect(spreadBlockedSet(0, 8, 10).size).toBe(0)
+    expect(seatCapacity(0, 8, 'spread', 10)).toBe(0)
+  })
+
+  it('其他四档不受 count 参数影响', () => {
+    for (const spacing of ['none', 'skipCol', 'skipRow', 'checker'] as const) {
+      expect(seatCapacity(6, 8, spacing, 30)).toBe(seatCapacity(6, 8, spacing))
+      expect(buildSeats(names(30), 6, 8, 'rows', spacing, 5)).toEqual(buildSeats(names(30), 6, 8, 'rows', spacing))
+      expect(unseatedEntries(names(30), 6, 8, spacing, 5)).toEqual(unseatedEntries(names(30), 6, 8, spacing))
+    }
   })
 })
 

@@ -295,11 +295,48 @@ function parseCookies(request) {
   return out
 }
 
-async function currentUserEmail(request, env) {
+/** 会话 JWT：sub = 邮箱，iat 签发秒时间戳（与注销墓碑比对，注销后重新注册的新会话不受影响），exp 30 天 */
+async function signSessionToken(email, env) {
+  const iat = Math.floor(Date.now() / 1000)
+  return signJwt({ sub: email, iat, exp: iat + SESSION_TTL_SECONDS }, getSecret(env))
+}
+
+/** 账号注销墓碑键：值为删除时间戳（ms），TTL = 会话 JWT 最长有效期，这期间注销前签发的旧会话一律拒绝 */
+export function revokedSessionKey(email) {
+  return `sm:revoked:${email}`
+}
+
+/** 会话已被墓碑吊销：由 onRequest 统一转为 401 并清 cookie */
+class SessionRevokedError extends Error {
+  constructor(headers) {
+    super('session revoked')
+    this.headers = headers
+  }
+}
+
+/**
+ * 解析会话 cookie：签名与有效期校验通过后再查一次注销墓碑，
+ * 命中且令牌签发不晚于删除时刻（无 iat 的存量令牌视为早于）→ revoked。
+ * 返回 { email, revoked }；匿名 / 无效令牌为 { email: null, revoked: false }。
+ */
+async function resolveSession(request, env, kv) {
   const token = parseCookies(request)[SESSION_COOKIE]
-  if (!token) return null
+  if (!token) return { email: null, revoked: false }
   const payload = await verifyJwt(token, getSecret(env))
-  return payload && typeof payload.sub === 'string' ? payload.sub : null
+  if (!payload || typeof payload.sub !== 'string') return { email: null, revoked: false }
+  const tombstone = await kv.get(revokedSessionKey(payload.sub))
+  if (tombstone !== null && tombstone !== undefined) {
+    const deletedAt = Number(tombstone)
+    const issuedAt = typeof payload.iat === 'number' ? payload.iat * 1000 : 0
+    if (!Number.isFinite(deletedAt) || issuedAt <= deletedAt) return { email: null, revoked: true }
+  }
+  return { email: payload.sub, revoked: false }
+}
+
+async function currentUserEmail(request, env, kv, headers) {
+  const session = await resolveSession(request, env, kv)
+  if (session.revoked) throw new SessionRevokedError(headers)
+  return session.email
 }
 
 function sessionCookie(token, maxAge = SESSION_TTL_SECONDS) {
@@ -868,6 +905,15 @@ export async function onRequest(context) {
     if (err instanceof BodyTooLargeError) {
       return withSecurityHeaders(json({ error: '请求内容过长' }, 413, err.headers))
     }
+    if (err instanceof SessionRevokedError) {
+      return withSecurityHeaders(
+        json(
+          { error: '登录已失效，请重新登录' },
+          401,
+          { ...err.headers, 'Set-Cookie': sessionCookie('', 0) },
+        ),
+      )
+    }
     console.error(
       '[seatmark-api] 未捕获异常:',
       context?.request?.method,
@@ -1113,8 +1159,7 @@ async function handleRequest(context) {
     }
     await putUser(kv, user)
 
-    const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
-    const token = await signJwt({ sub: email, exp }, getSecret(env))
+    const token = await signSessionToken(email, env)
     // 会话签发成功后才消费验证码：中途实例异常时码仍有效，用户重试同一码即可
     await deferWrite(() => kv.delete(codeKey))
     return json(
@@ -1189,8 +1234,7 @@ async function handleRequest(context) {
     user.passwordSetAt = now
     await putUser(kv, user)
 
-    const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
-    const token = await signJwt({ sub: email, exp }, getSecret(env))
+    const token = await signSessionToken(email, env)
     return json(
       { ok: true, user: await publicUser(kv, email, env, user, deferWrite) },
       200,
@@ -1250,8 +1294,7 @@ async function handleRequest(context) {
     if (failsRaw) await deferWrite(() => kv.delete(failKey))
     await deferWrite(() => putUser(kv, user))
 
-    const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
-    const token = await signJwt({ sub: email, exp }, getSecret(env))
+    const token = await signSessionToken(email, env)
     return json(
       { ok: true, user: await publicUser(kv, email, env, user, deferWrite) },
       200,
@@ -1357,8 +1400,7 @@ async function handleRequest(context) {
     await deferWrite(() => kv.delete(resetKey))
     await deferWrite(() => kv.delete(`pwfail:${email}`))
 
-    const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
-    const token = await signJwt({ sub: email, exp }, getSecret(env))
+    const token = await signSessionToken(email, env)
     return json(
       { ok: true, user: await publicUser(kv, email, env, user, deferWrite) },
       200,
@@ -1367,9 +1409,13 @@ async function handleRequest(context) {
   }
 
   if (path === '/api/auth/me' && method === 'GET') {
-    const email = await currentUserEmail(request, env)
-    if (!email) return json({ user: null }, 200, storageHeader)
-    return json({ user: await publicUser(kv, email, env) }, 200, storageHeader)
+    const session = await resolveSession(request, env, kv)
+    if (session.revoked) {
+      // 注销后的旧会话：按匿名口径返回并清 cookie，前端据此清本地登录标记
+      return json({ user: null }, 200, { ...storageHeader, 'Set-Cookie': sessionCookie('', 0) })
+    }
+    if (!session.email) return json({ user: null }, 200, storageHeader)
+    return json({ user: await publicUser(kv, session.email, env) }, 200, storageHeader)
   }
 
   if (path === '/api/auth/logout' && method === 'POST') {
@@ -1378,8 +1424,12 @@ async function handleRequest(context) {
 
   // ----- 账号注销（删除与账号关联的全部个人信息） -----
   if (path === '/api/account/delete' && method === 'POST') {
-    const email = await currentUserEmail(request, env)
+    const email = await currentUserEmail(request, env, kv, storageHeader)
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
+    // 先写墓碑再删数据：墓碑写入失败则整个注销失败（onRequest 转 500），不会出现“数据已删而旧会话仍可用”
+    await kv.put(revokedSessionKey(email), String(Date.now()), {
+      expirationTtl: SESSION_TTL_SECONDS,
+    })
     const shareCode = await kv.get(`share:owner:${email}`)
     await kv.delete(`user:${email}`)
     await templateStore.delete(email)
@@ -1400,7 +1450,7 @@ async function handleRequest(context) {
 
   // ----- 云端模板 -----
   if (path === '/api/account/templates') {
-    const email = await currentUserEmail(request, env)
+    const email = await currentUserEmail(request, env, kv, storageHeader)
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
 
     if (method === 'GET') {
@@ -1445,7 +1495,7 @@ async function handleRequest(context) {
 
   // ----- 配额 -----
   if (path === '/api/quota' && method === 'GET') {
-    const email = await currentUserEmail(request, env)
+    const email = await currentUserEmail(request, env, kv, storageHeader)
     if (!email) {
       return json(
         { anonymous: true, limit: QUOTA_ANON_DAILY, loggedInLimit: QUOTA_USER_DAILY },
@@ -1457,7 +1507,7 @@ async function handleRequest(context) {
   }
 
   if (path === '/api/quota/consume' && method === 'POST') {
-    const email = await currentUserEmail(request, env)
+    const email = await currentUserEmail(request, env, kv, storageHeader)
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
     // 幂等键：同一次导出重试（网络重发 / 5xx 重试）不重复扣减；非法或缺失按无键处理。
     // KV 无条件写，本项为幂等而非严格原子，并发窗口与 redeem 两段式同级别
@@ -1484,7 +1534,7 @@ async function handleRequest(context) {
 
   // ----- 兑换码 -----
   if (path === '/api/redeem' && method === 'POST') {
-    const email = await currentUserEmail(request, env)
+    const email = await currentUserEmail(request, env, kv, storageHeader)
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
 
     // IP 日限频：防暴力枚举兑换码
@@ -1560,7 +1610,7 @@ async function handleRequest(context) {
 
   // ----- 分享裂变 -----
   if (path === '/api/share/mine' && method === 'GET') {
-    const email = await currentUserEmail(request, env)
+    const email = await currentUserEmail(request, env, kv, storageHeader)
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
     return json(await shareStats(kv, email), 200, storageHeader)
   }
@@ -1573,7 +1623,7 @@ async function handleRequest(context) {
     if (!owner) return json({ error: '分享码无效' }, 400, storageHeader)
 
     // 访问者本人打开自己的链接不计数
-    const visitor = await currentUserEmail(request, env)
+    const visitor = (await resolveSession(request, env, kv)).email
     if (visitor && visitor === owner) return json({ ok: true, counted: false }, 200, storageHeader)
 
     // IP + 日去重
@@ -1693,7 +1743,7 @@ async function handleRequest(context) {
 
   // ----- 管理端 -----
   if (path.startsWith('/api/admin/')) {
-    const email = await currentUserEmail(request, env)
+    const email = await currentUserEmail(request, env, kv, storageHeader)
     if (!email) return json({ error: '请先登录' }, 401, storageHeader)
     if (!isAdmin(email, env)) return json({ error: '无管理权限' }, 403, storageHeader)
 

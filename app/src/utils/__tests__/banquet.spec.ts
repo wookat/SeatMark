@@ -212,6 +212,68 @@ describe('parseBanquetGuests', () => {
       expect(detectBanquetPasteLayout('张伟,李娜、王芳；赵强').mode).toBe('tokens')
     })
   })
+
+  describe('第 369 轮：空格分隔的「姓名 分组」两列', () => {
+    it('「张伟 男方亲友」×3 行（第二列重复）→ column：3 位宾客 2 个分组，不产生「男方亲友」宾客', () => {
+      const text = '张伟 男方亲友\n李娜 男方亲友\n王芳 同事'
+      const layout = detectBanquetPasteLayout(text)
+      expect(layout.mode).toBe('column')
+      expect(layout.signals).toContain('duplicateGroup')
+      const out = parseBanquetGuests(text)
+      expect(out.names).toEqual(['张伟', '李娜', '王芳'])
+      expect(out.names).not.toContain('男方亲友')
+      expect(out.duplicates).toEqual([])
+      expect(out.groups).toEqual({ 张伟: '男方亲友', 李娜: '男方亲友', 王芳: '同事' })
+      expect(new Set(Object.values(out.groups ?? {})).size).toBe(2)
+    })
+
+    it('全角空格 / 多个空格 / 桌名词也按空格两列识别', () => {
+      const out = parseBanquetGuests('张伟　主桌\n李娜   亲友桌\n王芳 同事桌')
+      expect(out.names).toEqual(['张伟', '李娜', '王芳'])
+      expect(out.groups).toEqual({ 张伟: '主桌', 李娜: '亲友桌', 王芳: '同事桌' })
+    })
+
+    it('「张伟 家人\\n李娜 同学」无重复无桌名词 → ambiguous（columnCount=2，弹解析预览）', () => {
+      expect(detectBanquetPasteLayout('张伟 家人\n李娜 同学')).toEqual({
+        mode: 'ambiguous',
+        signals: [],
+        columnCount: 2,
+      })
+      // 预览里选「按列分组」/「仅第一列」/「全部拆分」分别得到对应结果
+      expect(parseBanquetGuests('张伟 家人\n李娜 同学', 'column')).toMatchObject({
+        names: ['张伟', '李娜'],
+        groups: { 张伟: '家人', 李娜: '同学' },
+      })
+      expect(parseBanquetGuests('张伟 家人\n李娜 同学', 'nameOnly').names).toEqual(['张伟', '李娜'])
+      expect(parseBanquetGuests('张伟 家人\n李娜 同学', 'tokens').names).toEqual(['张伟', '家人', '李娜', '同学'])
+    })
+
+    it('西文全名「Alice Wang\\nBob Li」不按空格拆：仍是 2 位宾客、tokens', () => {
+      expect(detectBanquetPasteLayout('Alice Wang\nBob Li').mode).toBe('tokens')
+      expect(parseBanquetGuests('Alice Wang\nBob Li').names).toEqual(['Alice Wang', 'Bob Li'])
+      // 强制列模式下含拉丁字母的行也不按空格切
+      expect(parseBanquetGuests('Alice Wang\nBob Li', 'column').names).toEqual(['Alice Wang', 'Bob Li'])
+    })
+
+    it('单行「张伟 李娜」与三格行不进空格两列判定（保持 tokens）', () => {
+      expect(detectBanquetPasteLayout('张伟 李娜').mode).toBe('tokens')
+      expect(parseBanquetGuests('张伟 李娜').names).toEqual(['张伟', '李娜'])
+      expect(detectBanquetPasteLayout('张伟 李娜 王芳\n赵强 钱进 孙丽').mode).toBe('tokens')
+      expect(parseBanquetGuests('张伟 李娜 王芳\n赵强 钱进 孙丽').names).toHaveLength(6)
+    })
+
+    it('单列 110 行名单解析结果与改前一致（无分组、不弹预览）', () => {
+      const rows = buildDemoGuestNames(110)
+      expect(rows).toHaveLength(110)
+      const text = rows.join('\n')
+      expect(detectBanquetPasteLayout(text).mode).toBe('tokens')
+      const out = parseBanquetGuests(text)
+      expect(out.names).toEqual(rows)
+      expect(out.groups).toBeUndefined()
+      expect(out.duplicates).toEqual([])
+      expect(out.headerSkipped).toBe(false)
+    })
+  })
 })
 
 describe('parseBanquetGuestsFromTable', () => {

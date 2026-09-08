@@ -23,35 +23,76 @@ export interface DemoDataset {
 
 export type DemoGender = '男' | '女'
 
-/** 演示姓名池：[姓名, 按名字标注的性别]，性别列一律从这里取，不按行号奇偶推定 */
+/**
+ * 演示姓名池：[姓名, 按名字人工标注的性别]，性别列一律从这里取，不按行号奇偶推定。
+ * 全部为真实常见姓名（含双字名），前 24 个顺序与各演示数据集 / EN_NAMES 一一对应，不要重排。
+ */
 export const NAME_GENDERS: ReadonlyArray<readonly [name: string, gender: DemoGender]> = [
   ['张伟', '男'], ['王芳', '女'], ['李娜', '女'], ['刘洋', '男'], ['陈静', '女'], ['杨帆', '男'], ['赵磊', '男'], ['黄敏', '女'],
   ['周杰', '男'], ['吴霞', '女'], ['徐强', '男'], ['孙丽', '女'], ['马超', '男'], ['朱琳', '女'], ['胡军', '男'], ['郭颖', '女'],
   ['何平', '男'], ['高翔', '男'], ['林芳', '女'], ['罗斌', '男'], ['郑爽', '女'], ['梁波', '男'], ['谢宇', '男'], ['宋健', '男'],
+  ['唐瑶', '女'], ['许辉', '男'], ['韩雪', '女'], ['冯刚', '男'], ['曹阳', '男'], ['彭飞', '男'], ['邓婷', '女'], ['董倩', '女'],
+  ['沈莉', '女'], ['姚欣', '女'], ['崔燕', '女'], ['程浩', '男'], ['魏涛', '男'], ['蒋鹏', '男'], ['潘勇', '男'], ['范磊', '男'],
+  ['陆敏', '女'], ['石慧', '女'], ['贾玲', '女'], ['薛峰', '男'], ['雷鸣', '男'], ['汪洁', '女'], ['田甜', '女'], ['杜强', '男'],
+  ['王建国', '男'], ['李秀英', '女'], ['张建华', '男'], ['陈志强', '男'], ['杨丽华', '女'], ['赵晓红', '女'], ['周海燕', '女'], ['吴建平', '男'],
+  ['徐文娟', '女'], ['孙晓东', '男'], ['马丽萍', '女'], ['钟红梅', '女'], ['夏国强', '男'], ['余淑芬', '女'], ['方志明', '男'], ['江雪梅', '女'],
+  ['侯建军', '男'], ['袁红丽', '女'], ['郭志强', '男'], ['贺小芳', '女'],
 ]
 
 const NAMES: readonly string[] = NAME_GENDERS.map(([name]) => name)
-
-export function demoGenderOf(name: string): DemoGender | undefined {
-  return NAME_GENDERS.find(([n]) => n === name)?.[1]
-}
 
 /** 与 NAMES 逐一对应的拼音英文名（姓全大写 + 名首字母大写），供双语模板演示 */
 const EN_NAMES = [
   'ZHANG Wei', 'WANG Fang', 'LI Na', 'LIU Yang', 'CHEN Jing', 'YANG Fan', 'ZHAO Lei', 'HUANG Min',
   'ZHOU Jie', 'WU Xia', 'XU Qiang', 'SUN Li', 'MA Chao', 'ZHU Lin', 'HU Jun', 'GUO Ying',
   'HE Ping', 'GAO Xiang', 'LIN Fang', 'LUO Bin', 'ZHENG Shuang', 'LIANG Bo', 'XIE Yu', 'SONG Jian',
+  'TANG Yao', 'XU Hui', 'HAN Xue', 'FENG Gang', 'CAO Yang', 'PENG Fei', 'DENG Ting', 'DONG Qian',
+  'SHEN Li', 'YAO Xin', 'CUI Yan', 'CHENG Hao', 'WEI Tao', 'JIANG Peng', 'PAN Yong', 'FAN Lei',
+  'LU Min', 'SHI Hui', 'JIA Ling', 'XUE Feng', 'LEI Ming', 'WANG Jie', 'TIAN Tian', 'DU Qiang',
+  'WANG Jianguo', 'LI Xiuying', 'ZHANG Jianhua', 'CHEN Zhiqiang', 'YANG Lihua', 'ZHAO Xiaohong', 'ZHOU Haiyan', 'WU Jianping',
+  'XU Wenjuan', 'SUN Xiaodong', 'MA Liping', 'ZHONG Hongmei', 'XIA Guoqiang', 'YU Shufen', 'FANG Zhiming', 'JIANG Xuemei',
+  'HOU Jianjun', 'YUAN Hongli', 'GUO Zhiqiang', 'HE Xiaofang',
 ]
+
+const GENDER_BY_EN_NAME = new Map(EN_NAMES.map((en, i) => [en, NAME_GENDERS[i]![1]]))
+
+/** 英文演示名单的性别符号：男→M，女→F */
+export const DEMO_GENDER_EN: Record<DemoGender, 'M' | 'F'> = { 男: 'M', 女: 'F' }
+
+/** 演示性别按语言输出：zh 男/女，en M/F */
+export function demoGenderLabel(gender: DemoGender, locale: 'zh' | 'en' = 'zh'): string {
+  return locale === 'en' ? DEMO_GENDER_EN[gender] : gender
+}
+
+/**
+ * 名字用字的字级性别表（仅用于姓名池耗尽后的合成名）：合成名的性别按名字末字查表，
+ * 与 DEMO_GIVEN 的字集一一对应，不再按行号奇偶推定。
+ */
+export const GIVEN_CHAR_GENDER: Readonly<Record<string, DemoGender>> = {
+  伟: '男', 芳: '女', 娜: '女', 敏: '女', 静: '女', 丽: '女', 强: '男', 磊: '男', 军: '男', 洋: '男',
+  勇: '男', 艳: '女', 杰: '男', 娟: '女', 涛: '男', 明: '男', 超: '男', 霞: '女', 平: '男', 刚: '男',
+  桂: '女', 英: '女', 华: '男', 玉: '女', 兰: '女', 春: '女', 香: '女', 才: '男', 发: '男', 武: '男',
+  新: '男', 利: '男',
+}
+
+/**
+ * 演示姓名的性别：中文名 / 英文拼音名（含“ZHANG Wei 2”这类序号后缀）查标注池；
+ * 池外的合成中文名按末字查 GIVEN_CHAR_GENDER；都查不到返回 undefined。
+ */
+export function demoGenderOf(name: string): DemoGender | undefined {
+  const hit = NAME_GENDERS.find(([n]) => n === name)?.[1]
+  if (hit) return hit
+  const en = GENDER_BY_EN_NAME.get(name.replace(/ \d+$/, ''))
+  if (en) return en
+  if (!/^[\u4e00-\u9fff]{2,4}$/.test(name)) return undefined
+  return GIVEN_CHAR_GENDER[name[name.length - 1]!]
+}
 
 /**
  * 普通姓名池：内置模板 sampleData / 演示名单的姓名一律从这里取（常见姓 + 日常名），
  * 不用网文风 / 繁体姓名，避免模板预览像展示稿而不像用户自己的名单。
  */
-export const PLAIN_NAME_POOL: readonly string[] = [
-  ...NAMES,
-  '王建国', '李秀英', '张建华', '陈志强', '杨丽华', '赵晓红',
-  '周海燕', '吴建平', '徐文娟', '孙晓东', '马丽萍',
-]
+export const PLAIN_NAME_POOL: readonly string[] = [...NAMES]
 
 /** 网文风示例姓名禁名单（历史模板里出现过的，由 sampleNamesRealistic.spec 守门） */
 export const NOVEL_STYLE_NAMES: readonly string[] = [
@@ -68,7 +109,7 @@ const DEMO_GIVEN = '伟芳娜敏静丽强磊军洋勇艳杰娟涛明超霞平刚
 
 /**
  * 生成 count 个互不重复的演示姓名（座位表 / 宴会名单等演示数据共用）：
- * - zh：优先用 NAMES 池，不足时按「姓 + 双字名」组合补齐；
+ * - zh：优先用 NAMES 池（全部人工标注性别），耗尽后才按「姓 + 双字名」合成补齐（性别按末字查 GIVEN_CHAR_GENDER）；
  * - en：优先用 EN_NAMES 池，不足时追加序号后缀（如 'ZHANG Wei 2'）。
  */
 export function demoPersonNames(count: number, locale: 'zh' | 'en' = 'zh'): string[] {
