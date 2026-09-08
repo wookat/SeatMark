@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
+import { useNextStepBarHeight } from '@/composables/useNextStepBarHeight'
 import type { QuotaBadge } from '@/composables/useQuotaBadge'
 import { t as tr } from '@/i18n'
 
@@ -79,6 +80,10 @@ onBeforeUnmount(() => {
   if (typeof document !== 'undefined') document.documentElement.classList.remove(BAR_CLASS)
 })
 
+/** 操作条实际高度写入 --sm-nextstep-h：反馈气泡 / 页面底部留白按真实高度让位，不再假定 3rem */
+const barEl = ref<HTMLElement | null>(null)
+useNextStepBarHeight(barEl)
+
 function prefersReducedMotion() {
   return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
@@ -95,6 +100,7 @@ function go() {
 <template>
   <div
     v-if="visible"
+    ref="barEl"
     class="no-print fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white shadow-[0_-1px_3px_rgba(15,23,42,0.05)]"
     data-testid="next-step-bar"
     @focusin="barFocused = true"
@@ -102,21 +108,25 @@ function go() {
   >
     <div class="mx-auto flex h-12 w-full max-w-[1480px] items-center justify-between gap-3 px-4">
       <p class="min-w-0 truncate text-xs text-slate-500" data-testid="next-step-progress">{{ progress }}</p>
-      <button
-        type="button"
-        class="btn btn-primary btn-sm relative shrink-0"
-        :title="showQuotaBadge ? quotaBadgeTitle : undefined"
-        data-testid="next-step-action"
-        @click="go"
-      >
-        {{ label }}
-        <span
-          v-if="showQuotaBadge && quotaBadge"
-          class="ml-1 rounded-full px-1.5 py-px text-[11px] font-semibold"
-          :class="quotaBadge.cls"
-          data-testid="next-step-quota-badge"
-        >{{ quotaBadge.text }}</span>
-      </button>
+      <div class="flex shrink-0 items-center gap-2">
+        <!-- 次按钮位（如 <md 的「查看座位预览」），并入条内而不再独立悬浮 -->
+        <slot name="secondary" />
+        <button
+          type="button"
+          class="btn btn-primary btn-sm relative shrink-0"
+          :title="showQuotaBadge ? quotaBadgeTitle : undefined"
+          data-testid="next-step-action"
+          @click="go"
+        >
+          {{ label }}
+          <span
+            v-if="showQuotaBadge && quotaBadge"
+            class="ml-1 rounded-full px-1.5 py-px text-[11px] font-semibold"
+            :class="quotaBadge.cls"
+            data-testid="next-step-quota-badge"
+          >{{ quotaBadge.text }}</span>
+        </button>
+      </div>
     </div>
   </div>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
@@ -8,6 +8,7 @@ import { t } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { compareCellText, dedupeDataRows, downloadSampleExcel, parsePastedRoster } from '@/utils/excel'
+import { PASTE_MANUAL_PARSE_THRESHOLD, PASTE_PARSE_DEBOUNCE_MS } from '@/utils/importLimits'
 
 const workspace = useWorkspaceStore()
 const toast = useToastStore()
@@ -153,6 +154,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', onDocPointerDown)
   document.removeEventListener('keydown', onDocKeydown)
+  if (pasteTimer !== undefined) clearTimeout(pasteTimer)
 })
 
 function onFileChange(event: Event) {
@@ -183,11 +185,53 @@ const pasteHeaderOverride = ref<boolean | null>(null)
 const pasteDedupe = ref(true)
 const txtInput = ref<HTMLInputElement | null>(null)
 
-const pasteParsed = computed(() => {
-  const parsed = parsePastedRoster(pasteText.value, pasteHeaderOverride.value ?? undefined)
-  if (!pasteDedupe.value) return { ...parsed, removed: 0 }
-  const { rows, removed } = dedupeDataRows(parsed.rows, parsed.headers)
-  return { ...parsed, rows, removed }
+type PasteParsed = ReturnType<typeof parsePastedRoster> & { removed: number }
+const EMPTY_PARSED: PasteParsed = { headers: [], rows: [], headerDetected: false, removed: 0 }
+
+const pasteParsed = ref<PasteParsed>(EMPTY_PARSED)
+/** 解析报错（如超过导入行数上限）时的业务文案 */
+const pasteError = ref('')
+/** 当前 pasteParsed 是否已与文本同步；大文本下用户需点「解析」才同步 */
+const pasteStale = ref(false)
+const pasteNeedsManualParse = computed(() => pasteText.value.length > PASTE_MANUAL_PARSE_THRESHOLD)
+let pasteTimer: ReturnType<typeof setTimeout> | undefined
+
+function runPasteParse() {
+  if (pasteTimer !== undefined) {
+    clearTimeout(pasteTimer)
+    pasteTimer = undefined
+  }
+  pasteStale.value = false
+  try {
+    const parsed = parsePastedRoster(pasteText.value, pasteHeaderOverride.value ?? undefined)
+    pasteError.value = ''
+    if (!pasteDedupe.value) {
+      pasteParsed.value = { ...parsed, removed: 0 }
+      return
+    }
+    const { rows, removed } = dedupeDataRows(parsed.rows, parsed.headers)
+    pasteParsed.value = { ...parsed, rows, removed }
+  } catch (err) {
+    pasteParsed.value = EMPTY_PARSED
+    pasteError.value = err instanceof Error ? t(err.message) : t('名单解析失败')
+  }
+}
+
+watch([pasteText, pasteHeaderOverride, pasteDedupe], () => {
+  if (pasteTimer !== undefined) clearTimeout(pasteTimer)
+  if (!pasteText.value.trim()) {
+    pasteTimer = undefined
+    pasteParsed.value = EMPTY_PARSED
+    pasteError.value = ''
+    pasteStale.value = false
+    return
+  }
+  if (pasteNeedsManualParse.value) {
+    pasteTimer = undefined
+    pasteStale.value = true
+    return
+  }
+  pasteTimer = setTimeout(runPasteParse, PASTE_PARSE_DEBOUNCE_MS)
 })
 
 function onTxtChange(event: Event) {
@@ -215,7 +259,12 @@ function openPasteDialog() {
 }
 
 function confirmPaste() {
+  if (pasteStale.value || pasteTimer !== undefined) runPasteParse()
   const parsed = pasteParsed.value
+  if (pasteError.value) {
+    toast.warning(t('名单解析失败'), pasteError.value)
+    return
+  }
   if (!parsed.rows.length) {
     toast.warning(t('名单为空'), t('请粘贴名单内容，每行一条数据'))
     return
@@ -416,8 +465,28 @@ async function onDownloadSample() {
         :aria-label="t('粘贴名单内容')"
       ></textarea>
       <div
-        v-if="pasteText.trim()"
+        v-if="pasteText.trim() && (pasteNeedsManualParse || pasteError)"
+        class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]"
+        data-testid="paste-manual-parse"
+      >
+        <button
+          v-if="pasteNeedsManualParse"
+          type="button"
+          class="btn btn-secondary btn-sm"
+          data-testid="paste-parse-button"
+          @click="runPasteParse"
+        >
+          {{ t('解析名单') }}
+        </button>
+        <span v-if="pasteNeedsManualParse && pasteStale" class="text-slate-600">
+          {{ t('文本较长，已暂停自动解析，点「解析名单」查看识别结果') }}
+        </span>
+        <span v-if="pasteError" class="text-amber-600" data-testid="paste-error">{{ pasteError }}</span>
+      </div>
+      <div
+        v-if="pasteText.trim() && !pasteError && !pasteStale"
         class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600"
+        data-testid="paste-summary"
       >
         <span class="min-w-0">
           {{ t('识别到') }} <strong class="text-brand-600">{{ pasteParsed.rows.length }}</strong>
@@ -442,7 +511,7 @@ async function onDownloadSample() {
         <button
           type="button"
           class="btn btn-primary btn-md"
-          :disabled="!pasteParsed.rows.length"
+          :disabled="!pasteText.trim() || (!pasteStale && !pasteParsed.rows.length)"
           @click="confirmPaste"
         >
           {{ t('导入名单') }}

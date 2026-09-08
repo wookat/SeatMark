@@ -3,13 +3,13 @@ export const enTemplateDescriptions: Record<string, string> = {
   '2 列 × 5 行，照片核验区与分栏信息层级，附入场核对提示，适合人证比对。':
     '2 cols × 5 rows with a photo check area and layered info columns, plus an entry check note. Built for ID verification.',
   '3 列 × 7 行表格式信息卡，姓名 / 性别 / 班级 / 学号逐行自带标签名，核对一目了然。':
-    '3 cols × 7 rows table-style card: name, gender, class and student ID each on a labelled row for quick checking.',
+    '3 cols × 7 rows table-style card: name, gender, class and student ID each on a labeled row for quick checking.',
   '2 列 × 10 行横向信息条，姓名、班级、学号一行排开且都带标签名，适合课桌与档案袋。':
-    '2 cols × 10 rows info strip: name, class and student ID in one labelled line. Good for desks and file envelopes.',
+    '2 cols × 10 rows info strip: name, class and student ID in one labeled line. Good for desks and file envelopes.',
   '2 列 × 4 行，特大号座位数字与放大姓名，专为大教室远距离识别。':
     '2 cols × 4 rows with an extra-large seat number and enlarged name, designed for long-range reading in large rooms.',
   '2 列 × 5 行，居中大字姓名、座位号徽章与双语提示，适合签到与会议桌牌。':
-    '2 cols × 5 rows: centred large name, seat badge and bilingual note. Suits check-in and meeting table tents.',
+    '2 cols × 5 rows: centered large name, seat badge and bilingual note. Suits check-in and meeting table tents.',
   '1 列 × 2 行，A4 半页一枚的大桌牌，特大姓名远距清晰，适合讲座与大型会议。':
     '1 col × 2 rows, one half-A4 table tent per label with an extra-large name legible from afar. For lectures and large conferences.',
   '2 列 × 6 行（A5 纵向），小开本批量桌贴，与标准版同源的分栏排版。':
@@ -29,11 +29,11 @@ export const enTemplateDescriptions: Record<string, string> = {
   '1 列 × 2 行半页大牌，姓名特大字配单位题头，对折或插入桌牌座使用。':
     '1 col × 2 rows half-page tent: extra-large name with an organization header. Fold or slide into a holder.',
   '2 列 × 5 行，宾客姓名居中配桌号徽章，衬线字体典雅气质，宴会通用。':
-    '2 cols × 5 rows: centred guest name with a table badge in an elegant serif. Works for any banquet.',
+    '2 cols × 5 rows: centered guest name with a table badge in an elegant serif. Works for any banquet.',
   '2 列 × 5 行，墨色序号区醒目远视，右侧姓名岗位与场次，附候场提示。':
     '2 cols × 5 rows with a bold dark number block, name, position and session on the right, plus a waiting note.',
   '2 列 × 8 行，姓名大字配单位与分组，左侧色条区分批次，培训签到即贴即用。':
-    '2 cols × 8 rows: large name with organization and group, colour bar on the left for batches. Peel and stick at training check-in.',
+    '2 cols × 8 rows: large name with organization and group, color bar on the left for batches. Peel and stick at training check-in.',
   '1 列 × 2 行半页大牌，嘉宾姓名特大字配头衔与单位，讲座论坛主席台适用。':
     '1 col × 2 rows half-page tent: extra-large guest name with title and organization, for lecture and forum head tables.',
   '3 列 × 10 行小尺寸标签，品名加粗、编号与归属分列，图书角与物品归类通用。':
@@ -41,19 +41,19 @@ export const enTemplateDescriptions: Record<string, string> = {
   '1 列 × 3 行，房间号特大字配楼栋与成员名单，宿舍楼门牌批量制作。':
     '1 col × 3 rows: extra-large room number with building and member list, for batch dorm door signs.',
   '1 列 × 3 行，班级名特大字居中，配班主任与班训，教室门口统一标识。':
-    '1 col × 3 rows: centred extra-large class name with head teacher and motto for uniform classroom door signs.',
+    '1 col × 3 rows: centered extra-large class name with head teacher and motto for uniform classroom door signs.',
   '3 列 × 3 行竖版胸卡，角色色条醒目分类，照片核验与编号齐备，可穿绳佩戴。':
-    '3 cols × 3 rows portrait badge with role colour bars, photo and number. Wear on a lanyard.',
+    '3 cols × 3 rows portrait badge with role color bars, photo and number. Wear on a lanyard.',
   '2 列 × 8 行，学生姓名大字便于家长找座，配班级与欢迎语，家长会布场必备。':
     '2 cols × 8 rows: large student name so parents find their seat, with class and a welcome line. A parent-meeting staple.',
   '2 列 × 6 行，姓名分栏配语数英三科考场座位逐行标注，一贴管全场。':
     '2 cols × 6 rows: name column plus per-row rooms and seats for Chinese, Math and English — one label for all sessions.',
   '3 列 × 6 行，检录号大字居中，项目与组次一目了然，艺考体考检录处速查。':
-    '3 cols × 6 rows: centred large check-in number with event and heat, for arts and PE exam check-in desks.',
+    '3 cols × 6 rows: centered large check-in number with event and heat, for arts and PE exam check-in desks.',
   '3 列 × 7 行圆角卡片，超大姓名与暖色描边亲和友好，幼儿自己也能认出来。':
-    '3 cols × 7 rows rounded cards: huge name with a warm outline that even young children can recognise.',
+    '3 cols × 7 rows rounded cards: huge name with a warm outline that even young children can recognize.',
   '2 列 × 7 行，姓名大字配部门与工号，左侧色条统一视觉，办公区工位标识。':
-    '2 cols × 7 rows: large name with department and staff number, unified by a left colour bar. For office desks.',
+    '2 cols × 7 rows: large name with department and staff number, unified by a left color bar. For office desks.',
   '2 列 × 6 行大幅桌贴，座位号分栏配姓名与准考证号，附诚信应考提示，庄重规范。':
     '2 cols × 6 rows large desk label: seat column with name and candidate number plus an integrity note. Formal and standard.',
   '2 列 × 8 行，准考证号大字配深蓝座位号块，CET 题头，英语四六级考务专用。':
@@ -99,7 +99,7 @@ export const enTemplateDescriptions: Record<string, string> = {
   'A4 整页迎宾牌，新人姓名上下呼应配「&」字符与婚礼信息，放大打印或装框摆台。':
     'Full A4 welcome sign: couple names stacked around an "&" with wedding details. Enlarge or frame for display.',
   '3 列 × 6 行小卡片，品名居中配口味备注与粉色题头，婚礼甜品台茶歇台通用。':
-    '3 cols × 6 rows small cards: centred item with flavor note and pink header, for wedding dessert and coffee tables.',
+    '3 cols × 6 rows small cards: centered item with flavor note and pink header, for wedding dessert and coffee tables.',
   '半页一枚的大桌号牌，超大桌号配题词与桌名，对折即立或插入桌牌座，全场统一。':
     'Half-page table number card: huge number with motto and table name. Fold to stand or slide into a holder.',
   '1 列 × 3 行宽幅窗口牌，深蓝窗口号区配业务名称与排队提示，医院银行政务通用。':
@@ -109,7 +109,7 @@ export const enTemplateDescriptions: Record<string, string> = {
   '2 列 × 5 行，「已预订 RESERVED」大字醒目，宾客与时间人数分列，餐厅宴会通用。':
     '2 cols × 5 rows: bold "RESERVED" headline with guest, time and party columns for restaurants and banquets.',
   '3 列 × 10 行小标签，深灰题条配资产名称、编号与使用部门，行政盘点即贴即查。':
-    '3 cols × 10 rows small labels: dark grey bar with asset name, number and department for quick admin stocktakes.',
+    '3 cols × 10 rows small labels: dark gray bar with asset name, number and department for quick admin stocktakes.',
   '2 列 × 4 行，科目大字配考场与份数，含密封人签字行，试卷袋、材料袋封面专用。':
     '2 cols × 4 rows: large subject with room and copies, plus a sealer signature line for exam paper bags.',
   'A4 整页门贴，考场号特大字配准考证号区间与楼层指引，贴考场门口一眼可辨。':
@@ -133,7 +133,7 @@ export const enTemplateDescriptions: Record<string, string> = {
   '2 列 × 6 行，星期大字左置、值日岗位与姓名右列，贴班级值日角一周排齐。':
     '2 cols × 6 rows: large weekday on the left, duty and name on the right. Lines up a full week on the duty board.',
   '3 列 × 6 行，岗位名大字居中、姓名与职责小字，图书管理员/领操员等班级小岗位一次出齐。':
-    '3 cols × 6 rows: centred post name with small name and duties. Prints every class job (librarian, drill leader…) in one go.',
+    '3 cols × 6 rows: centered post name with small name and duties. Prints every class job (librarian, drill leader…) in one go.',
   '1 列 × 3 行宽幅门牌，办公室名大字、驻室教师名单与学科分行，全校办公室风格统一。':
     '1 col × 3 rows wide door sign: large office name with teacher list and subjects for uniform school offices.',
   '2 列 × 7 行，姓名大字配学科与年级徽章，办公室工位与教研活动通用。':
@@ -143,13 +143,13 @@ export const enTemplateDescriptions: Record<string, string> = {
   'A4 半页对折立于讲台，班级名特大字 + 班主任与班级口号，推门听课一眼识班。':
     'Half-A4 folded tent for the lectern: extra-large class name with head teacher and slogan for class observers.',
   '5 列 × 9 行小签，索书号三行居中、馆藏地小字，贴书脊下端，中小学馆与班级书库通用。':
-    '5 cols × 9 rows small labels: three-line centred call number with location, for book spines in school libraries.',
+    '5 cols × 9 rows small labels: three-line centered call number with location, for book spines in school libraries.',
   '3 列 × 7 行，座位号大字与楼层区域分列，配静音提示，图书馆与自习室排座通用。':
     '3 cols × 7 rows: large seat number with floor and area columns and a quiet note, for libraries and study halls.',
   '2 列 × 5 行横牌，架位号大字 + 分类区间与楼层，插入书架侧板导引槽快速找书。':
     '2 cols × 5 rows landscape sign: large shelf number with category range and floor. Slides into shelf-end guides.',
   '4 列 × 10 行小签，样品名加粗、编号/日期/经手人三栏带字段名，理化生实验室留样规范。':
-    '4 cols × 10 rows small labels: bold sample name with labelled code, date and handler columns for lab retention.',
+    '4 cols × 10 rows small labels: bold sample name with labeled code, date and handler columns for lab retention.',
   '2 列 × 6 行，台位号大字 + 实验小组成员与仪器责任人，分组实验课快速对台入座。':
     '2 cols × 6 rows: large bench number with group members and equipment owner for lab group seating.',
   '3 列 × 7 行，类别名大字配柜位号与管理提示条，酸碱/易燃分区一目了然，黑白打印仍高对比。':
@@ -169,19 +169,19 @@ export const enTemplateDescriptions: Record<string, string> = {
   '3 列 × 8 行，机位号反白大字 + 姓名与准考证号，英语听说机考、上机考试对号入位。':
     '3 cols × 8 rows: reversed large station number with name and candidate number for listening and computer exams.',
   '2 列 × 6 行，考位号与科目分列，组次与时段带字段名，理化生实验操作考试布场。':
-    '2 cols × 6 rows: seat number and subject columns with labelled heat and time slot for lab practical exams.',
+    '2 cols × 6 rows: seat number and subject columns with labeled heat and time slot for lab practical exams.',
   '2 列 × 8 行，候考序号大字 + 姓名与预约时段，口语面试、才艺展示按号候场。':
     '2 cols × 8 rows: large queue number with name and time slot for oral interviews and talent shows.',
   '3 列 × 3 行竖版证件，「监考」大字色条压顶，姓名、监考考场与场次分层，穿绳佩戴。':
-    '3 cols × 3 rows portrait pass: bold "Invigilator" colour bar on top, name, room and session layered. Lanyard-ready.',
+    '3 cols × 3 rows portrait pass: bold "Invigilator" color bar on top, name, room and session layered. Lanyard-ready.',
   '3 列 × 3 行竖版证件，与监考证同规格配深蓝识别色，姓名与巡查区域分层，考点证件成套。':
     '3 cols × 3 rows portrait pass matching the invigilator badge in navy, with name and patrol area. Completes the set.',
   '4 列 × 8 行，存放号超大字 + 考场号小字，成对裁切一贴物架一发考生，散场按号取物不混。':
     '4 cols × 8 rows: huge storage number with small room number. Cut in pairs — one for the rack, one for the candidate.',
   '2 列 × 7 行横签，科目场次加粗、封箱人/启封时间带字段名与签名线，考点保密室流转规范。':
-    '2 cols × 7 rows strips: bold subject and session with labelled sealer, opening time and signature line for secure rooms.',
+    '2 cols × 7 rows strips: bold subject and session with labeled sealer, opening time and signature line for secure rooms.',
   '3 列 × 7 行，机构名题头 + 座位号姓名分栏，培训机构全真模考布场自带品牌露出。':
-    '3 cols × 7 rows: institution header with seat and name columns. Brands your tutoring centre mock exams.',
+    '3 cols × 7 rows: institution header with seat and name columns. Brands your tutoring center mock exams.',
   '3 列 × 7 行圆角贴，床号圆形徽章 + 姓名大字，午睡室对床入位，暖橙描边亲切醒目。':
     '3 cols × 7 rows rounded stickers: round bed badge with large name and a warm orange outline for nap rooms.',
   '2 列 × 6 行，姓名与班级大字，配「一摸二看三问四查」固定流程行，晨检台逐人对卡登记。':
@@ -205,11 +205,11 @@ export const enTemplateDescriptions: Record<string, string> = {
   '1 列 × 2 行半页门牌，会场名大字 + 议题与时段，多分会场论坛贴门统一导览。':
     '1 col × 2 rows half-page door sign: large venue name with topic and time slot for multi-room forums.',
   '2 列 × 5 行，奖项名金色小字压顶、获奖者姓名大字居中，颁奖典礼后台备卡上台不乱序。':
-    '2 cols × 5 rows: small gold award name on top, centred large recipient name. Keeps ceremony cards in order.',
+    '2 cols × 5 rows: small gold award name on top, centered large recipient name. Keeps ceremony cards in order.',
   '2 列 × 5 行，双细线描边的礼宾版式，姓名衬线大字 + 敬语题头与席位号，适合贵宾接待。':
     '2 cols × 5 rows protocol layout with a double hairline frame: serif name, honorific header and seat number.',
   '2 列 × 6 行，「媒体」识别色块 + 媒体名称大字与记者姓名，发布会媒体区快速对位。':
-    '2 cols × 6 rows: "Media" colour block with large outlet name and reporter for quick press-area seating.',
+    '2 cols × 6 rows: "Media" color block with large outlet name and reporter for quick press-area seating.',
   '1 列 × 2 行半页对折，嘉宾姓名大字 + 所属议题与单位双行，圆桌研讨换场只换一张卡。':
     '1 col × 2 rows half-page fold: large guest name with topic and organization lines. Swap one card per session.',
   '2 列 × 4 行，展位号超大反白 + 参展商名称，展馆巡场与观众找展位都一眼锁定。':
@@ -218,7 +218,7 @@ export const enTemplateDescriptions: Record<string, string> = {
     '4 cols × 8 rows: huge number with small event and session text for draws and queue calling. Tear and use.',
   'A5 横向整页一枚，号码占满版面 + 姓名与组别上下压边，校运会与路跑赛别针佩戴。':
     'One per landscape A5: number fills the page with name and group at the edges. Pin on for sports days and races.',
-  '3 列 × 8 行圆角贴，「你好，我是」引导语 + 姓名大字与单位，撕下即贴衣襟，破冰社交利器。':
+  '3 列 × 8 行圆角贴，「你好，我是」引导语 + 姓名大字与单位，撕下即贴衣襟，方便破冰社交。':
     '3 cols × 8 rows rounded stickers: "Hello, I am" lead-in with large name and organization. Peel, stick, mingle.',
   '3 列 × 6 行立式小牌，餐品名大字 + 口味与过敏原提示，茶歇台逐品标注宾客安心取用。':
     '3 cols × 6 rows small standing cards: large dish name with flavor and allergen notes for buffet tables.',
@@ -243,7 +243,7 @@ export const enTemplateDescriptions: Record<string, string> = {
   '按 7.5 英寸电子墨水屏 800×480（5:3）比例排版，纯黑白高对比，每页 1 枚，一键导出精确 800×480 PNG 直接推送电子桌牌。':
     'Laid out at the 7.5" e-ink 800×480 (5:3) ratio in high-contrast black and white, one per page. Export exact 800×480 PNGs for e-paper tents.',
   '2 列 × 5 行，床号反白大字 + 姓名、主管医生/责任护士带字段名，护理等级色条醒目分级。':
-    '2 cols × 5 rows: reversed large bed number with name, labelled doctor and nurse, and a care-level colour bar.',
+    '2 cols × 5 rows: reversed large bed number with name, labeled doctor and nurse, and a care-level color bar.',
   '1 列 × 3 行宽幅，诊室号色块 + 科室与出诊医生职称，门诊换诊只换一张纸。':
     '1 col × 3 rows wide sign: room number block with department and doctor title. Swap one sheet per clinic change.',
   '3 列 × 7 行，药品分类大字 + 货位号与「先进先出」提示条，药房与诊所药柜规范分区。':
@@ -299,13 +299,13 @@ export const enTemplateDescriptions: Record<string, string> = {
   '1 列 × 2 行半页，摊位名大字 + 服务内容与负责人，社区市集、便民服务日快速布展。':
     '1 col × 2 rows half-page: large stall name with services and owner for community markets and service days.',
   '3 列 × 6 行，宠物名大字 + 品种/喂食要求与主人电话带字段名，宠物店寄养区逐笼交接清楚。':
-    '3 cols × 6 rows: large pet name with labelled breed, feeding and owner phone for clear kennel handovers.',
+    '3 cols × 6 rows: large pet name with labeled breed, feeding and owner phone for clear kennel handovers.',
   '4 列 × 8 行圆角牌，植物名大字 + 养护要点与认养人，校园认养角与办公室绿植管理。':
     '4 cols × 8 rows rounded tags: large plant name with care tips and adopter for campus and office plants.',
   '180×90 mm 平放桌牌，靛紫极光渐变色带上下呼应，名字居中大字，现代科技感会议首选。':
-    '180×90 mm flat tent with indigo aurora gradient bands top and bottom and a centred large name. A modern tech look.',
+    '180×90 mm flat tent with indigo aurora gradient bands top and bottom and a centered large name. A modern tech look.',
   '180×90 mm 桌牌，四角建筑感细线角饰 + 顶部双细线，克制的黑白灰设计，黑白打印同样干净。':
-    '180×90 mm tent with architectural hairline corners and a double top rule. Restrained greyscale that prints clean in mono.',
+    '180×90 mm tent with architectural hairline corners and a double top rule. Restrained grayscale that prints clean in mono.',
   '180×90 mm 桌牌，左右两侧低饱和三角几何底纹渐隐，信息区留白充足，适合科技论坛与行业峰会。':
     '180×90 mm tent with fading low-saturation triangle patterns on both sides and generous whitespace for tech forums.',
   '180×90 mm 桌牌，内外双线鎏金边框 + 菱形角饰，庄重典雅，政企年度会议与颁奖典礼皆宜。':
@@ -313,7 +313,7 @@ export const enTemplateDescriptions: Record<string, string> = {
   '96×62 mm 席卡 A4 一页 8 枚，底部三层青色波纹渐变叠浪，清爽学术气质，论坛研讨会席位标识。':
     '96×62 mm place card, 8 per A4, with three layered teal waves along the bottom. Fresh academic feel for forums.',
   '96×62 mm 贵宾席卡，浅灰云石脉络纹理铺底 + 炭金双线框，低调高级，酒会晚宴贵宾席位。':
-    '96×62 mm VIP card on a light grey marble texture with a charcoal-gold double frame. Understated luxury for galas.',
+    '96×62 mm VIP card on a light gray marble texture with a charcoal-gold double frame. Understated luxury for galas.',
   '180×90 mm 年会桌牌，四角金色星芒放射线与散点星光，白底金饰黑白打印不发闷，年会颁奖两相宜。':
     '180×90 mm annual party tent with gold starbursts and scattered sparkle. White and gold that prints well in mono.',
   '96×62 mm 年会席卡，左上角中国红绶带斜披 + 底部红金渐变线，喜庆而不俗，年会答谢宴通用。':
@@ -323,7 +323,7 @@ export const enTemplateDescriptions: Record<string, string> = {
   '90×55 mm 席位卡，杏金拱门线条 + 弦月弧与星点，极简法式浪漫，适合室内婚宴摆台。':
     '90×55 mm place card with apricot-gold arch lines, a crescent and stars. Minimal French romance for indoor weddings.',
   '96×96 mm 方形桌号牌 A4 一页 4 枚，金色交叠双环象征缔结，桌号特大字居中，宾客远处一眼认桌。':
-    '96×96 mm square table number, 4 per A4, with interlocking gold rings and a centred extra-large number.',
+    '96×96 mm square table number, 4 per A4, with interlocking gold rings and a centered extra-large number.',
   '90×55 mm 席位卡，四角绯粉水彩晕染渐隐 + 细金内框，柔和甜美，酒店婚宴席位卡百搭款。':
     '90×55 mm place card with fading blush watercolour corners and a thin gold frame. A versatile hotel wedding card.',
   'A4 竖向整页迎宾牌，顶部蕾丝扇形花边 + 中央纹章框，新人姓名与婚期居中，摆放于迎宾区易拉架。':
@@ -355,7 +355,7 @@ export const enTemplateDescriptions: Record<string, string> = {
   '2 列 × 4 行，宠物名大字 + 品种/主人电话/喂食要点三行信息，交接时逐项核对。':
     '2 cols × 4 rows: large pet name with breed, owner phone and feeding lines for error-free handovers.',
   '2 列 × 5 行，房间号色条 + 宝妈姓名、宝宝信息与责任护理师，温馨低饱和配色。':
-    '2 cols × 5 rows: room colour bar with mother\'s name, baby info and primary caregiver in soft muted tones.',
+    '2 cols × 5 rows: room color bar with mother\'s name, baby info and primary caregiver in soft muted tones.',
   '2 列 × 3 行大字车贴，教练车编号超大字 + 教练与学员批次，训练场一眼认车。':
     '2 cols × 3 rows large car sticker: huge car number with coach and student batch for the training ground.',
   'A4 一页 2 枚大牌，场次/镜次超大分栏 + 片名与导演摄影信息，片场打板即用。':
@@ -399,7 +399,7 @@ export const enTemplateDescriptions: Record<string, string> = {
   '90×55 mm 胸牌，藏青顶带 + 金线分隔，姓名大字与单位职务分层，别针挂绳皆宜。':
     '90×55 mm badge with a navy top band and gold divider, large name over organization and title. Pin or lanyard.',
   '140×90 mm 台签，深蓝底金色双线框，讲者姓名与议程角色反白居中，讲台庄重压场。':
-    '140×90 mm lectern card on deep blue with a double gold frame, speaker name and role reversed and centred.',
+    '140×90 mm lectern card on deep blue with a double gold frame, speaker name and role reversed and centered.',
   '90×55 mm 席位卡，朱红底鎏金双线与回纹角饰，宾客姓名金字，中式婚礼喜庆隆重。':
     '90×55 mm place card on vermilion with double gold rules and meander corners, guest name in gold.',
   '140×90 mm 桌号牌，桌号金色超大字配朱红底纹与对角祥云线，宴会厅远看即辨。':

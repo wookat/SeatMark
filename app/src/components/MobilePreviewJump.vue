@@ -15,6 +15,11 @@ const props = defineProps<{
    * 在视口上半部可见时不影响胶囊（与 avoid 的「整个视口可见即隐藏」不同）
    */
   avoidNearBottom?: HTMLElement | null
+  /**
+   * 行内模式：作为 NextStepBar 的次按钮渲染（不再固定悬浮、不做滚动/聚焦让位），
+   * 仍仅 <md 可见；目标切换（预览 ↔ 设置）逻辑与悬浮模式一致
+   */
+  inline?: boolean
 }>()
 
 /** avoidNearBottom 的判定条带：视口底部 25%（rootMargin 把顶部 75% 裁掉） */
@@ -142,11 +147,12 @@ onBeforeUnmount(() => {
 
 const hidden = computed(
   () =>
-    inputFocused.value ||
+    !props.inline &&
+    (inputFocused.value ||
     keyboardOpen.value ||
     collapsed.value ||
     avoidVisible.value ||
-    avoidNearBottomVisible.value,
+    avoidNearBottomVisible.value),
 )
 
 const label = computed(() => (previewVisible.value ? tr('回到设置 ↑') : tr('查看座位预览 ↓')))
@@ -164,9 +170,20 @@ function go() {
 
 <template>
   <button
-    v-if="preview"
+    v-if="preview && inline"
     type="button"
-    class="no-print fixed right-14 bottom-4 z-30 inline-flex min-h-11 items-center gap-1 rounded-full border border-slate-200 bg-white/95 px-4 text-xs font-semibold text-slate-700 shadow-pop backdrop-blur transition-[opacity,transform,color,border-color] duration-200 hover:border-brand-400 hover:text-brand-600 md:hidden [.has-next-step-bar_&]:bottom-[4.25rem] [.has-sticky-actions_&]:bottom-[4.25rem]"
+    class="btn btn-secondary btn-sm shrink-0 md:hidden"
+    data-testid="mobile-preview-jump-inline"
+    :data-state="previewVisible ? 'at-preview' : 'at-settings'"
+    @click="go"
+  >
+    {{ label }}
+  </button>
+  <!-- 悬浮模式：底部操作条在场时隐藏（预览入口已并入条内次按钮），否则跟随 --sm-nextstep-h 抬高 -->
+  <button
+    v-else-if="preview"
+    type="button"
+    class="no-print fixed right-14 bottom-[calc(var(--sm-nextstep-h,0px)_+_1rem)] z-30 inline-flex min-h-11 items-center gap-1 rounded-full border border-slate-200 bg-white/95 px-4 text-xs font-semibold text-slate-700 shadow-pop backdrop-blur transition-[opacity,transform,color,border-color] duration-200 hover:border-brand-400 hover:text-brand-600 md:hidden [.has-next-step-bar_&]:hidden [.has-sticky-actions_&]:bottom-[4.25rem]"
     :class="hidden ? 'pointer-events-none translate-y-2 opacity-0' : 'translate-y-0 opacity-100'"
     :aria-hidden="hidden ? 'true' : undefined"
     :tabindex="hidden ? -1 : undefined"

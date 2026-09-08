@@ -720,12 +720,12 @@ describe('buildGuestQuickReference / quickReferenceCsv', () => {
     expect(ref.index.find((e) => e.name === '陈静')?.tableName).toBe('待安排')
     expect(ref.tables.map((t) => t.tableName)).toEqual(['1号桌', '2号桌', '待安排'])
     expect(ref.tables[0]!.rows).toEqual([
-      { tableName: '1号桌', seatNo: '1', name: '张伟', groupName: '男方亲友' },
-      { tableName: '1号桌', seatNo: '2', name: '王芳', groupName: '男方亲友' },
+      { tableName: '1号桌', seatNo: '1', name: '张伟', groupName: '男方亲友', pinned: false },
+      { tableName: '1号桌', seatNo: '2', name: '王芳', groupName: '男方亲友', pinned: false },
     ])
     // 桌上残留的已删除 id 跳过，座次连续
     expect(ref.tables[1]!.rows).toEqual([
-      { tableName: '2号桌', seatNo: '1', name: '李娜', groupName: '同事' },
+      { tableName: '2号桌', seatNo: '1', name: '李娜', groupName: '同事', pinned: false },
     ])
     expect(ref.tables[2]!.rows.map((r) => [r.name, r.seatNo, r.groupName])).toEqual([
       ['陈静', '', ''],
@@ -753,7 +753,7 @@ describe('buildGuestQuickReference / quickReferenceCsv', () => {
     expect(empty).toEqual({ index: [], tables: [] })
   })
 
-  it('CSV 带 UTF-8 BOM、表头 桌名/座次/姓名/分组，每位宾客一行，特殊字符转义', () => {
+  it('CSV 带 UTF-8 BOM、表头 桌名/座次/姓名/分组/钉住，每位宾客一行，特殊字符转义', () => {
     const ref = buildGuestQuickReference(
       [...guests, { id: 'f', name: 'Wang, "Lily"', groupId: null }],
       tables,
@@ -762,10 +762,84 @@ describe('buildGuestQuickReference / quickReferenceCsv', () => {
     const csv = quickReferenceCsv(ref.tables)
     expect(csv.startsWith('\ufeff')).toBe(true)
     const lines = csv.replace(/^\ufeff/, '').trimEnd().split('\r\n')
-    expect(lines[0]).toBe('桌名,座次,姓名,分组')
+    expect(lines[0]).toBe('桌名,座次,姓名,分组,钉住')
     expect(lines).toHaveLength(1 + 6)
-    expect(lines[1]).toBe('1号桌,1,张伟,男方亲友')
-    expect(lines).toContain('待安排,,陈静,')
-    expect(lines).toContain('待安排,,"Wang, ""Lily""",')
+    expect(lines[1]).toBe('1号桌,1,张伟,男方亲友,')
+    expect(lines).toContain('待安排,,陈静,,')
+    expect(lines).toContain('待安排,,"Wang, ""Lily""",,')
+  })
+})
+
+describe('第 358 轮：钉住宾客（pinnedTableId）', () => {
+  it('3 名宾客钉在不同桌时自动分配保留其桌位且各桌不超容量', () => {
+    const tables = [table('A', 4), table('B', 4), table('C', 4)]
+    const guests: BanquetGuest[] = [
+      { ...guest('p1', 'x'), pinnedTableId: 'A' },
+      { ...guest('p2', 'y'), pinnedTableId: 'B' },
+      { ...guest('p3', null), pinnedTableId: 'C' },
+      guest('x1', 'x'),
+      guest('x2', 'x'),
+      guest('x3', 'x'),
+      guest('y1', 'y'),
+      guest('y2', 'y'),
+      guest('y3', 'y'),
+      guest('s1', null),
+      guest('s2', null),
+      guest('s3', null),
+    ]
+    for (const strategy of ['keep-groups', 'fill-tables'] as const) {
+      const out = autoAssignGuests(guests, tables, strategy)
+      expect(out.get('A')).toContain('p1')
+      expect(out.get('B')).toContain('p2')
+      expect(out.get('C')).toContain('p3')
+      for (const t of tables) expect(out.get(t.id)!.length).toBeLessThanOrEqual(t.seats)
+      const all = [...out.values()].flat()
+      expect(new Set(all).size).toBe(all.length)
+      expect(all).toHaveLength(12)
+    }
+  })
+
+  it('钉住宾客所在桌满员时同组其他成员溢出到备选桌', () => {
+    const tables = [table('A', 3), table('B', 6)]
+    const guests: BanquetGuest[] = [
+      { ...guest('pinA1', 'x'), pinnedTableId: 'A' },
+      { ...guest('pinA2', 'x'), pinnedTableId: 'A' },
+      { ...guest('pinA3', 'x'), pinnedTableId: 'A' },
+      guest('x4', 'x'),
+      guest('x5', 'x'),
+    ]
+    const out = autoAssignGuests(guests, tables)
+    expect(out.get('A')).toEqual(['pinA1', 'pinA2', 'pinA3'])
+    expect(out.get('B')!.sort()).toEqual(['x4', 'x5'])
+  })
+
+  it('钉到不存在的桌或锁定桌时按普通宾客处理；钉住宾客不受名单顺序影响', () => {
+    const locked = table('L', 2, { locked: true, guestIds: ['v1'] })
+    const tables = [locked, table('A', 4)]
+    const guests: BanquetGuest[] = [
+      guest('v1', null),
+      { ...guest('ghost', null), pinnedTableId: 'gone' },
+      { ...guest('toLocked', null), pinnedTableId: 'L' },
+      { ...guest('pinA', null), pinnedTableId: 'A' },
+    ]
+    const out = autoAssignGuests(guests, tables)
+    expect(out.get('L')).toEqual(['v1'])
+    expect(out.get('A')![0]).toBe('pinA')
+    expect(out.get('A')!.sort()).toEqual(['ghost', 'pinA', 'toLocked'])
+  })
+
+  it('按桌名单 CSV 钉住列：钉在本桌为「是」，其他为空', () => {
+    const guests: BanquetGuest[] = [
+      { id: 'a', name: '张伟', groupId: null, pinnedTableId: 'A' },
+      { id: 'b', name: '李娜', groupId: null, pinnedTableId: 'B' },
+      { id: 'c', name: '王芳', groupId: null },
+    ]
+    const tables = [table('A', 4, { guestIds: ['a', 'b', 'c'] })]
+    const ref = buildGuestQuickReference(guests, tables, [])
+    expect(ref.tables[0]!.rows.map((r) => r.pinned)).toEqual([true, false, false])
+    const lines = quickReferenceCsv(ref.tables).replace(/^\ufeff/, '').trimEnd().split('\r\n')
+    expect(lines[1]).toBe('A,1,张伟,,是')
+    expect(lines[2]).toBe('A,2,李娜,,')
+    expect(lines[3]).toBe('A,3,王芳,,')
   })
 })

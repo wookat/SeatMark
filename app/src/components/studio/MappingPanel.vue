@@ -5,7 +5,12 @@ import CheckboxField from '@/components/ui/CheckboxField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { t, useI18n } from '@/i18n'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { headerOptionLabel, isCompositeMapping, templateColumnsValid } from '@/utils/fieldTemplate'
+import {
+  headerOptionLabel,
+  isCompositeMapping,
+  templateColumns,
+  templateColumnsValid,
+} from '@/utils/fieldTemplate'
 
 const workspace = useWorkspaceStore()
 const { locale } = useI18n()
@@ -86,6 +91,27 @@ function saveComposite() {
 function cancelComposite() {
   compositeEditing.value = null
 }
+
+/** 未被任何字段（直接 / 组合映射）或照片匹配列引用的表头：这些列不会出现在成品中 */
+const unusedColumns = computed<string[]>(() => {
+  const headers = workspace.excel.headers
+  if (!headers.length) return []
+  const used = new Set<string>()
+  for (const value of Object.values(workspace.mapping)) {
+    if (!value) continue
+    if (isCompositeMapping(value, headers)) {
+      for (const column of templateColumns(value)) used.add(column)
+    } else {
+      used.add(value)
+    }
+  }
+  if (workspace.photoColumn) used.add(workspace.photoColumn)
+  return headers.filter((h) => !used.has(h))
+})
+
+const unusedColumnsText = computed(() =>
+  unusedColumns.value.join(locale.value === 'en' ? ', ' : '、'),
+)
 
 const photoColumnOptions = computed<SelectOption[]>(() => [
   { value: '', label: t('请选择 Excel 中的一列') },
@@ -197,6 +223,14 @@ function onPhotoFiles(event: Event) {
         </div>
       </div>
     </div>
+
+    <p
+      v-if="unusedColumns.length"
+      class="mt-2 text-[11px] leading-4 text-slate-400"
+      data-testid="mapping-unused-columns"
+    >
+      {{ t('未使用列：{columns}').replace('{columns}', unusedColumnsText) }}
+    </p>
 
     <div
       v-if="workspace.hasDataQualityRisk"

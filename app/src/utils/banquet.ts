@@ -17,6 +17,8 @@ export interface BanquetGuest {
   name: string
   /** 所属分组；null 表示未分组 */
   groupId: string | null
+  /** 钉住到某桌：自动分配 / 重新分配 / 整组移桌时保持在该桌并计入容量；缺省或 null 表示未钉住 */
+  pinnedTableId?: string | null
 }
 
 export type TableShape = 'round' | 'rect'
@@ -519,9 +521,19 @@ export function autoAssignGuests(
       tables.push(t)
     }
   }
-  const groupsSorted = groupGuestsForAssign(guests.filter((g) => !lockedGuestIds.has(g.id)))
   const free = new Map<string, number>(tables.map((t) => [t.id, t.seats]))
   const order = tables.map((t) => t.id)
+  // 钉住的宾客先落座到所钉桌（桌需存在且未锁定），占用该桌容量，不再参与分组分配
+  const pinnedGuestIds = new Set<string>()
+  for (const g of guests) {
+    if (lockedGuestIds.has(g.id) || !g.pinnedTableId || !free.has(g.pinnedTableId)) continue
+    pinnedGuestIds.add(g.id)
+    assigned.get(g.pinnedTableId)!.push(g.id)
+    free.set(g.pinnedTableId, free.get(g.pinnedTableId)! - 1)
+  }
+  const groupsSorted = groupGuestsForAssign(
+    guests.filter((g) => !lockedGuestIds.has(g.id) && !pinnedGuestIds.has(g.id)),
+  )
 
   const put = (tableId: string, members: BanquetGuest[]) => {
     assigned.get(tableId)!.push(...members.map((m) => m.id))
@@ -858,6 +870,8 @@ export interface TableRosterRow {
   seatNo: string
   name: string
   groupName: string
+  /** 宾客是否钉住在本桌（仅按桌名单 CSV 输出，速查表不显示） */
+  pinned: boolean
 }
 
 export interface TableRoster {
@@ -903,6 +917,7 @@ export function buildGuestQuickReference(
         seatNo: String(rows.length + 1),
         name: guest.name,
         groupName: (guest.groupId && groupName.get(guest.groupId)) || '',
+        pinned: guest.pinnedTableId === table.id,
       })
     }
     if (rows.length) rosters.push({ tableName: table.name, rows })
@@ -917,6 +932,7 @@ export function buildGuestQuickReference(
         seatNo: '',
         name: g.name,
         groupName: (g.groupId && groupName.get(g.groupId)) || '',
+        pinned: false,
       })),
     })
   }
@@ -932,13 +948,18 @@ function csvCell(value: string): string {
   return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
 }
 
-/** 按桌名单 CSV（UTF-8 BOM，列：桌名/座次/姓名/分组），Excel 双击即可正确显示中文 */
+/** 按桌名单 CSV（UTF-8 BOM，列：桌名/座次/姓名/分组/钉住），Excel 双击即可正确显示中文 */
 export function quickReferenceCsv(tables: TableRoster[]): string {
-  const header = [t('桌名'), t('座次'), t('姓名'), t('分组')]
+  const header = [t('桌名'), t('座次'), t('姓名'), t('分组'), t('钉住')]
+  const pinnedMark = t('是')
   const lines = [header.join(',')]
   for (const table of tables) {
     for (const row of table.rows) {
-      lines.push([row.tableName, row.seatNo, row.name, row.groupName].map(csvCell).join(','))
+      lines.push(
+        [row.tableName, row.seatNo, row.name, row.groupName, row.pinned ? pinnedMark : '']
+          .map(csvCell)
+          .join(','),
+      )
     }
   }
   return '\ufeff' + lines.join('\r\n') + '\r\n'

@@ -69,6 +69,11 @@
   }
 }
 
+/* 底部固定层留白：下一步操作条实际高度（--sm-nextstep-h，由 NextStepBar 写入）+ 反馈气泡高 3rem + 安全区 + 16px */
+@utility pb-fixed-layers {
+  padding-bottom: calc(var(--sm-nextstep-h, 0px) + 3rem + env(safe-area-inset-bottom, 0px) + 16px);
+}
+
 @layer components {
   .btn {
     @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded border border-transparent font-semibold transition-colors duration-150 select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 disabled:cursor-not-allowed disabled:opacity-50;

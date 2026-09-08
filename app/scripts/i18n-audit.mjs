@@ -42,7 +42,6 @@ export const SCAN_TARGETS = [
  */
 export const KNOWN_GAP_FILES = [
   'components/designer/TemplateDesigner.vue',
-  'components/designer/AiDesignDialog.vue',
   'components/designer/IconPickerDialog.vue',
 ]
 

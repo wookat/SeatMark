@@ -135,11 +135,12 @@ describe('第 357 轮：scheduleSentryInstall 推迟到 idle / 首个错误事�
   })
 
   it('requestIdleCallback 可用：idle 前不调 load，idle 后调用一次且后续 error 不重复', async () => {
+    vi.useFakeTimers()
     const target = makeTarget(true)
     const { app, router } = makeApp()
     const install = vi.fn<typeof actual.installSentry>(async () => true)
     const promise = actual.scheduleSentryInstall(app, router, { target, install })
-    await Promise.resolve()
+    vi.advanceTimersByTime(actual.SENTRY_POST_LOAD_DELAY_MS)
     expect(install).not.toHaveBeenCalled()
     expect(idleCallbacks).toHaveLength(1)
     expect(idleCallbacks[0]!.options?.timeout).toBe(actual.SENTRY_IDLE_TIMEOUT_MS)
@@ -156,12 +157,15 @@ describe('第 357 轮：scheduleSentryInstall 推迟到 idle / 首个错误事�
   })
 
   it('首个 error 事件立即触发 load（不等 idle），并取消 idle 回调；错误已在队列中不丢', async () => {
+    vi.useFakeTimers()
     const target = makeTarget(true)
     const { app, router } = makeApp()
     // 与 main.ts 一致：队列先于调度注册
     const queue = actual.createPreInitErrorQueue(target)
     const install = vi.fn<typeof actual.installSentry>(async () => true)
     const promise = actual.scheduleSentryInstall(app, router, { target, install, queue })
+    vi.advanceTimersByTime(actual.SENTRY_POST_LOAD_DELAY_MS)
+    expect(idleCallbacks).toHaveLength(1)
     expect(install).not.toHaveBeenCalled()
 
     const boom = new Error('boom')
@@ -187,13 +191,13 @@ describe('第 357 轮：scheduleSentryInstall 推迟到 idle / 首个错误事�
     expect(install).toHaveBeenCalledTimes(1)
   })
 
-  it('不支持 requestIdleCallback：setTimeout 3000ms 兜底，到时调用一次', async () => {
+  it('不支持 requestIdleCallback：load 后延迟 1500ms + setTimeout 3000ms 兜底，到时调用一次', async () => {
     vi.useFakeTimers()
     const target = makeTarget(false)
     const { app, router } = makeApp()
     const install = vi.fn<typeof actual.installSentry>(async () => true)
     const promise = actual.scheduleSentryInstall(app, router, { target, install })
-    vi.advanceTimersByTime(actual.SENTRY_IDLE_TIMEOUT_MS - 1)
+    vi.advanceTimersByTime(actual.SENTRY_POST_LOAD_DELAY_MS + actual.SENTRY_IDLE_TIMEOUT_MS - 1)
     expect(install).not.toHaveBeenCalled()
     vi.advanceTimersByTime(1)
     expect(install).toHaveBeenCalledTimes(1)
@@ -230,14 +234,18 @@ describe('第 357 轮：scheduleSentryInstall 推迟到 idle / 首个错误事�
     expect(queue.drain().map((p) => p.error)).toEqual([boom])
   })
 
-  it('文档尚未 load 完成：先等 window load 再 requestIdleCallback；期间 error 仍立即触发', () => {
+  it('文档尚未 load 完成：先等 window load，再延迟 1500ms 才 requestIdleCallback；期间 error 仍立即触发', () => {
+    vi.useFakeTimers()
     const target = makeTarget(true) as Window & { document: Document }
     Object.defineProperty(target, 'document', { value: { readyState: 'interactive' }, configurable: true })
     const { app, router } = makeApp()
     const install = vi.fn<typeof actual.installSentry>(async () => true)
     void actual.scheduleSentryInstall(app, router, { target, install })
+    vi.advanceTimersByTime(10_000)
     expect(idleCallbacks).toHaveLength(0)
     target.dispatchEvent(new Event('load'))
+    expect(idleCallbacks).toHaveLength(0)
+    vi.advanceTimersByTime(actual.SENTRY_POST_LOAD_DELAY_MS)
     expect(idleCallbacks).toHaveLength(1)
     expect(install).not.toHaveBeenCalled()
     idleCallbacks[0]!.cb({ didTimeout: false, timeRemaining: () => 50 })
@@ -252,16 +260,111 @@ describe('第 357 轮：scheduleSentryInstall 推迟到 idle / 首个错误事�
     target2.dispatchEvent(new ErrorEvent('error', { message: 'pre-load' }))
     expect(install2).toHaveBeenCalledTimes(1)
     target2.dispatchEvent(new Event('load'))
+    vi.advanceTimersByTime(10_000)
     expect(idleCallbacks).toHaveLength(0)
     expect(install2).toHaveBeenCalledTimes(1)
   })
 
-  it('文档已 load 完成（readyState complete）：直接 requestIdleCallback', () => {
+  it('文档已 load 完成（readyState complete）：不再等 load，延迟 1500ms 后 requestIdleCallback', () => {
+    vi.useFakeTimers()
     const target = makeTarget(true) as Window & { document: Document }
     Object.defineProperty(target, 'document', { value: { readyState: 'complete' }, configurable: true })
     const { app, router } = makeApp()
     const install = vi.fn<typeof actual.installSentry>(async () => true)
     void actual.scheduleSentryInstall(app, router, { target, install })
+    expect(idleCallbacks).toHaveLength(0)
+    vi.advanceTimersByTime(actual.SENTRY_POST_LOAD_DELAY_MS)
     expect(idleCallbacks).toHaveLength(1)
+  })
+})
+
+describe('第 358 轮：load 后再延迟 SENTRY_POST_LOAD_DELAY_MS=1500 才进 idle', () => {
+  type SentryUtil = typeof import('@/utils/sentry')
+  let actual: SentryUtil
+  let idleCallbacks: Array<{ cb: IdleRequestCallback; options?: IdleRequestOptions }>
+
+  function makeTarget(readyState: DocumentReadyState): Window {
+    const target = new EventTarget() as unknown as Window & {
+      requestIdleCallback?: Window['requestIdleCallback']
+      cancelIdleCallback?: Window['cancelIdleCallback']
+    }
+    target.requestIdleCallback = ((cb: IdleRequestCallback, options?: IdleRequestOptions) => {
+      idleCallbacks.push({ cb, options })
+      return idleCallbacks.length
+    }) as Window['requestIdleCallback']
+    target.cancelIdleCallback = (() => {}) as Window['cancelIdleCallback']
+    Object.defineProperty(target, 'document', { value: { readyState }, configurable: true })
+    return target
+  }
+
+  function makeApp() {
+    const app = createApp(defineComponent({ render: () => h('div') }))
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/', component: { template: '<div />' } }],
+    })
+    return { app, router }
+  }
+
+  beforeEach(async () => {
+    actual = await vi.importActual<SentryUtil>('@/utils/sentry')
+    idleCallbacks = []
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('常量导出为 1500，idle timeout 仍为 3000', () => {
+    expect(actual.SENTRY_POST_LOAD_DELAY_MS).toBe(1500)
+    expect(actual.SENTRY_IDLE_TIMEOUT_MS).toBe(3000)
+  })
+
+  it('load 后 1499ms 未进 idle 也未 install；1500ms 进入 idle 调度（timeout 3000），idle 回调后 install 一次', () => {
+    const target = makeTarget('interactive')
+    const { app, router } = makeApp()
+    const install = vi.fn<typeof actual.installSentry>(async () => true)
+    void actual.scheduleSentryInstall(app, router, { target, install })
+    target.dispatchEvent(new Event('load'))
+    vi.advanceTimersByTime(1499)
+    expect(idleCallbacks).toHaveLength(0)
+    expect(install).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(1)
+    expect(idleCallbacks).toHaveLength(1)
+    expect(idleCallbacks[0]!.options?.timeout).toBe(3000)
+    expect(install).not.toHaveBeenCalled()
+    idleCallbacks[0]!.cb({ didTimeout: false, timeRemaining: () => 50 })
+    expect(install).toHaveBeenCalledTimes(1)
+  })
+
+  it('延迟期间发生 error：立即 install 且只 install 一次，延迟到期后不再进 idle', () => {
+    const target = makeTarget('interactive')
+    const { app, router } = makeApp()
+    const queue = actual.createPreInitErrorQueue(target)
+    const install = vi.fn<typeof actual.installSentry>(async () => true)
+    void actual.scheduleSentryInstall(app, router, { target, install, queue })
+    target.dispatchEvent(new Event('load'))
+    vi.advanceTimersByTime(700)
+    const boom = new Error('mid-delay')
+    target.dispatchEvent(new ErrorEvent('error', { error: boom, message: 'mid-delay' }))
+    expect(install).toHaveBeenCalledTimes(1)
+    expect(queue.drain().map((p) => p.error)).toEqual([boom])
+    vi.advanceTimersByTime(10_000)
+    expect(idleCallbacks).toHaveLength(0)
+    target.dispatchEvent(new Event('unhandledrejection'))
+    expect(install).toHaveBeenCalledTimes(1)
+  })
+
+  it('挂载期已入队错误：不受 1500ms 延迟影响，调度时立即 install', () => {
+    const target = makeTarget('complete')
+    const { app, router } = makeApp()
+    const queue = actual.createPreInitErrorQueue(target)
+    target.dispatchEvent(new ErrorEvent('error', { error: new Error('mount'), message: 'mount' }))
+    const install = vi.fn<typeof actual.installSentry>(async () => true)
+    void actual.scheduleSentryInstall(app, router, { target, install, queue })
+    expect(install).toHaveBeenCalledTimes(1)
+    vi.advanceTimersByTime(10_000)
+    expect(idleCallbacks).toHaveLength(0)
+    expect(install).toHaveBeenCalledTimes(1)
   })
 })

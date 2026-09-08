@@ -11,6 +11,7 @@ import NumberField from '@/components/ui/NumberField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
 import { useIsMobile } from '@/composables/useMediaQuery'
+import { t, useI18n } from '@/i18n'
 import { useFontsStore } from '@/stores/fonts'
 import { useTemplateLibrary } from '@/stores/templateLibrary'
 import { useToastStore } from '@/stores/toast'
@@ -151,28 +152,30 @@ function onCanvasWheel(event: WheelEvent) {
 }
 
 // ---------- 下拉选项 ----------
-const TEXT_SOURCE_OPTIONS: SelectOption[] = [
-  { value: 'excel', label: 'Excel 数据列（每枚不同）' },
-  { value: 'fixed', label: '固定文本（每枚相同）' },
-]
+const { locale } = useI18n()
 
-const IMAGE_SOURCE_OPTIONS: SelectOption[] = [
-  { value: 'matched', label: '按匹配列照片（每枚不同）' },
-  { value: 'static', label: '固定图片 / Logo（每枚相同）' },
-]
+const TEXT_SOURCE_OPTIONS = computed<SelectOption[]>(() => [
+  { value: 'excel', label: t('Excel 数据列（每枚不同）') },
+  { value: 'fixed', label: t('固定文本（每枚相同）') },
+])
 
-const ALIGN_OPTIONS: SelectOption[] = [
-  { value: 'left', label: '左' },
-  { value: 'center', label: '居中' },
-  { value: 'right', label: '右' },
-  { value: 'justify', label: '分散对齐' },
-]
+const IMAGE_SOURCE_OPTIONS = computed<SelectOption[]>(() => [
+  { value: 'matched', label: t('按匹配列照片（每枚不同）') },
+  { value: 'static', label: t('固定图片 / Logo（每枚相同）') },
+])
 
-const VALIGN_OPTIONS: SelectOption[] = [
-  { value: 'top', label: '上' },
-  { value: 'middle', label: '居中' },
-  { value: 'bottom', label: '下' },
-]
+const ALIGN_OPTIONS = computed<SelectOption[]>(() => [
+  { value: 'left', label: t('左') },
+  { value: 'center', label: t('居中') },
+  { value: 'right', label: t('右') },
+  { value: 'justify', label: t('分散对齐') },
+])
+
+const VALIGN_OPTIONS = computed<SelectOption[]>(() => [
+  { value: 'top', label: t('上') },
+  { value: 'middle', label: t('居中') },
+  { value: 'bottom', label: t('下') },
+])
 
 const paperOptions = computed<SelectOption[]>(() => {
   const options: SelectOption[] = PAPER_PRESETS.map((p) => ({
@@ -1064,7 +1067,7 @@ function applyAiDesign(payload: { width: number; height: number; result: AiDesig
   selectedIds.value = draft.value.fields[0] ? [draft.value.fields[0].id] : []
   aiOpen.value = false
   zoomFit()
-  toast.success('AI 设计已生成', '已按新版式重排页面，可继续拖拽微调')
+  toast.success(t('AI 设计已生成'), t('已按新版式重排页面，可继续拖拽微调'))
 }
 
 // ---------- 表单辅助 ----------
@@ -1101,11 +1104,11 @@ function setPageNumber(
 // ---------- 保存 ----------
 function save(asNew: boolean) {
   if (!draft.value.name.trim()) {
-    toast.warning('模板名称不能为空', '请先给模板取一个便于区分的名字')
+    toast.warning(t('模板名称不能为空'), t('请先给模板取一个便于区分的名字'))
     return
   }
   if (!draft.value.fields.length) {
-    toast.warning('模板没有任何字段', '请至少添加一个文本或照片字段')
+    toast.warning(t('模板没有任何字段'), t('请至少添加一个文本或照片字段'))
     return
   }
   emit('save', cloneTemplate(draft.value), asNew)
@@ -1116,6 +1119,7 @@ function save(asNew: boolean) {
   <div class="no-print fixed inset-0 z-50 flex flex-col bg-slate-50">
     <header
       class="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 shadow-card sm:px-4"
+      data-testid="designer-header"
     >
       <div class="flex min-w-0 items-center gap-2 sm:gap-3">
         <!-- 移动端侧栏切换：字段列表 -->
@@ -1124,7 +1128,7 @@ function save(asNew: boolean) {
           type="button"
           class="btn btn-ghost btn-sm !px-2"
           :class="{ 'bg-slate-100 text-brand-600': mobilePanel === 'layers' }"
-          aria-label="字段列表"
+          :aria-label="t('字段列表')"
           @click="mobilePanel = mobilePanel === 'layers' ? null : 'layers'"
         >
           <svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -1137,33 +1141,33 @@ function save(asNew: boolean) {
           type="button"
           class="btn btn-ghost btn-sm !px-2"
           :class="{ 'bg-slate-100 text-brand-600': mobilePanel === 'props' }"
-          aria-label="属性面板"
+          :aria-label="t('属性面板')"
           @click="mobilePanel = mobilePanel === 'props' ? null : 'props'"
         >
           <svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9.5 2.5h4v4M13.5 2.5 8.5 7.5M6.5 13.5h-4v-4M2.5 13.5l5-5" />
           </svg>
         </button>
-        <span class="hidden text-sm font-bold text-slate-600 sm:inline">模板设计器</span>
+        <span class="hidden text-sm font-bold text-slate-600 sm:inline" data-testid="designer-title">{{ t('模板设计器') }}</span>
         <input
           v-model="draft.name"
           type="text"
           class="input-field w-32 font-semibold sm:w-56"
-          placeholder="模板名称"
+          :placeholder="t('模板名称')"
         />
       </div>
       <div class="flex items-center gap-1.5 sm:gap-2">
-        <button type="button" class="btn btn-ghost btn-sm sm:btn-md" @click="emit('close')">取消</button>
+        <button type="button" class="btn btn-ghost btn-sm sm:btn-md" @click="emit('close')">{{ t('取消') }}</button>
         <template v-if="isEditingCustom">
           <button type="button" class="btn btn-secondary btn-sm sm:btn-md" @click="save(true)">
-            另存
+            {{ t('另存') }}
           </button>
           <button type="button" class="btn btn-primary btn-sm sm:btn-md" @click="save(false)">
-            保存
+            {{ t('保存') }}
           </button>
         </template>
         <button v-else type="button" class="btn btn-primary btn-sm sm:btn-md" @click="save(true)">
-          保存
+          {{ t('保存') }}
         </button>
       </div>
     </header>
@@ -1171,10 +1175,11 @@ function save(asNew: boolean) {
     <!-- 工具栏 -->
     <div
       class="flex h-11 shrink-0 items-center gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3"
+      data-testid="designer-toolbar"
     >
       <div ref="addMenuRoot" class="relative shrink-0">
         <button type="button" class="btn btn-secondary btn-sm" @click="toggleAddMenu">
-          + 添加字段
+          {{ t('+ 添加字段') }}
           <svg
             class="size-3 transition-transform"
             :class="{ 'rotate-180': addMenuOpen }"
@@ -1196,7 +1201,7 @@ function save(asNew: boolean) {
           :style="{ left: `${addMenuPos.left}px`, top: `${addMenuPos.top}px` }"
         >
           <p class="px-2 pt-1 pb-0.5 text-[10px] font-bold tracking-wider text-slate-600">
-            常用考务字段
+            {{ t('常用考务字段') }}
           </p>
           <button
             v-for="preset in FIELD_PRESETS"
@@ -1213,7 +1218,7 @@ function save(asNew: boolean) {
             </span>
           </button>
           <p class="px-2 pt-2 pb-0.5 text-[10px] font-bold tracking-wider text-slate-600">
-            形状与图标
+            {{ t('形状与图标') }}
           </p>
           <button
             v-for="preset in SHAPE_PRESETS"
@@ -1234,7 +1239,7 @@ function save(asNew: boolean) {
             class="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50"
             @click="openIconPicker"
           >
-            矢量图标库…
+            {{ t('矢量图标库…') }}
             <span
               class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
             >
@@ -1242,14 +1247,14 @@ function save(asNew: boolean) {
             </span>
           </button>
           <p class="px-2 pt-2 pb-0.5 text-[10px] font-bold tracking-wider text-slate-600">
-            空白字段
+            {{ t('空白字段') }}
           </p>
           <button
             type="button"
             class="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50"
             @click="addField('text')"
           >
-            空白文本
+            {{ t('空白文本') }}
             <span
               class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
             >
@@ -1261,7 +1266,7 @@ function save(asNew: boolean) {
             class="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50"
             @click="addField('image')"
           >
-            空白照片
+            {{ t('空白照片') }}
             <span
               class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
             >
@@ -1278,8 +1283,8 @@ function save(asNew: boolean) {
         type="button"
         class="btn btn-ghost btn-sm shrink-0 !px-1.5"
         :disabled="!canUndo"
-        title="撤销（Ctrl+Z）"
-        aria-label="撤销"
+        :title="t('撤销（Ctrl+Z）')"
+        :aria-label="t('撤销')"
         @click="undo"
       >
         <svg
@@ -1299,8 +1304,8 @@ function save(asNew: boolean) {
         type="button"
         class="btn btn-ghost btn-sm shrink-0 !px-1.5"
         :disabled="!canRedo"
-        title="重做（Ctrl+Shift+Z / Ctrl+Y）"
-        aria-label="重做"
+        :title="t('重做（Ctrl+Shift+Z / Ctrl+Y）')"
+        :aria-label="t('重做')"
         @click="redo"
       >
         <svg
@@ -1323,8 +1328,8 @@ function save(asNew: boolean) {
         type="button"
         class="btn btn-ghost btn-sm shrink-0 !px-1.5"
         :disabled="!selectedIds.length"
-        title="复制选中字段（Ctrl+D）"
-        aria-label="复制选中字段"
+        :title="t('复制选中字段（Ctrl+D）')"
+        :aria-label="t('复制选中字段')"
         @click="duplicateSelected"
       >
         <svg
@@ -1344,8 +1349,8 @@ function save(asNew: boolean) {
         type="button"
         class="btn btn-ghost btn-sm shrink-0 !px-1.5"
         :disabled="!selectedIds.length"
-        title="删除选中字段（Delete）"
-        aria-label="删除选中字段"
+        :title="t('删除选中字段（Delete）')"
+        :aria-label="t('删除选中字段')"
         @click="removeSelected"
       >
         <svg
@@ -1369,8 +1374,8 @@ function save(asNew: boolean) {
         type="button"
         class="btn btn-ghost btn-sm shrink-0 !px-1.5"
         :disabled="!selectedIds.length"
-        :title="`${action.title}（多选时按选区对齐）`"
-        :aria-label="action.title"
+        :title="`${t(action.title)}${t('（多选时按选区对齐）')}`"
+        :aria-label="t(action.title)"
         @click="alignField(action.mode)"
       >
         <svg
@@ -1400,7 +1405,7 @@ function save(asNew: boolean) {
           <path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3z" />
           <path d="M18.5 14.5l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9.9-2.3z" />
         </svg>
-        AI 自动设计
+        {{ t('AI 自动设计') }}
       </button>
 
       <span class="mx-1.5 h-5 w-px shrink-0 bg-slate-200"></span>
@@ -1410,8 +1415,8 @@ function save(asNew: boolean) {
           type="button"
           class="btn btn-ghost btn-sm !px-1.5"
           :disabled="pxPerMm <= ZOOM_MIN"
-          title="缩小（Ctrl+-）"
-          aria-label="缩小"
+          :title="t('缩小（Ctrl+-）')"
+          :aria-label="t('缩小')"
           @click="zoomOut"
         >
           <svg
@@ -1428,7 +1433,7 @@ function save(asNew: boolean) {
         <button
           type="button"
           class="btn btn-ghost btn-sm w-14 !px-1 text-xs tabular-nums"
-          title="点击重置为 100%（实际打印大小）"
+          :title="t('点击重置为 100%（实际打印大小）')"
           @click="zoomReset"
         >
           {{ zoomPercent }}%
@@ -1437,8 +1442,8 @@ function save(asNew: boolean) {
           type="button"
           class="btn btn-ghost btn-sm !px-1.5"
           :disabled="pxPerMm >= ZOOM_MAX"
-          title="放大（Ctrl++）"
-          aria-label="放大"
+          :title="t('放大（Ctrl++）')"
+          :aria-label="t('放大')"
           @click="zoomIn"
         >
           <svg
@@ -1455,8 +1460,8 @@ function save(asNew: boolean) {
         <button
           type="button"
           class="btn btn-ghost btn-sm !px-1.5"
-          title="适应窗口（Ctrl+0，也可 Ctrl+滚轮缩放）"
-          aria-label="适应窗口"
+          :title="t('适应窗口（Ctrl+0，也可 Ctrl+滚轮缩放）')"
+          :aria-label="t('适应窗口')"
           @click="zoomFit"
         >
           <svg
@@ -1475,16 +1480,25 @@ function save(asNew: boolean) {
 
     </div>
 
+    <p
+      v-if="locale === 'en'"
+      class="shrink-0 border-b border-slate-200 bg-white px-3 py-1.5 text-xs leading-5 text-slate-500"
+      data-testid="designer-en-notice"
+    >
+      Some advanced designer panels are still in Chinese.
+    </p>
+
     <div class="relative flex min-h-0 flex-1">
       <!-- 字段列表（图层） -->
       <aside
         class="flex shrink-0 flex-col border-r border-slate-200 bg-white"
+        data-testid="designer-field-list"
         :class="isMobile ? 'absolute inset-y-0 left-0 z-30 w-64 max-w-[80vw] shadow-pop transition-transform' : 'w-56'"
         :style="isMobile ? { transform: mobilePanel === 'layers' ? 'translateX(0)' : 'translateX(-100%)' } : {}"
       >
         <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2.5">
-          <h3 class="text-xs font-bold text-slate-700">字段</h3>
-          <span class="text-[10px] font-semibold text-slate-600">{{ draft.fields.length }} 个</span>
+          <h3 class="text-xs font-bold text-slate-700">{{ t('字段') }}</h3>
+          <span class="text-[10px] font-semibold text-slate-600">{{ t('{n} 个').replace('{n}', String(draft.fields.length)) }}</span>
         </div>
         <div class="min-h-0 flex-1 overflow-y-auto p-2">
           <ul v-if="draft.fields.length" class="grid gap-1">
@@ -1503,14 +1517,14 @@ function save(asNew: boolean) {
                 <span
                   class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
                 >
-                  {{ field.type === 'image' ? '图' : '文' }}
+                  {{ field.type === 'image' ? t('图') : t('文') }}
                 </span>
                 <span class="truncate">{{ field.label || field.id }}</span>
               </span>
               <button
                 type="button"
                 class="shrink-0 cursor-pointer text-slate-300 hover:text-red-500"
-                aria-label="删除字段"
+                :aria-label="t('删除字段')"
                 @click.stop="removeField(field.id)"
               >
                 ✕
@@ -1521,11 +1535,11 @@ function save(asNew: boolean) {
             v-else
             class="m-1 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3 text-center text-[11px] leading-4 text-slate-600"
           >
-            还没有字段<br />点击工具栏「+ 添加字段」开始
+            {{ t('还没有字段') }}<br />{{ t('点击工具栏「+ 添加字段」开始') }}
           </p>
         </div>
         <p class="shrink-0 border-t border-slate-100 px-3 py-2 text-[10px] leading-4 text-slate-600">
-          点击选中 · Ctrl+点击多选 · Ctrl+A 全选 · Ctrl+D 复制 · Delete 删除
+          {{ t('点击选中 · Ctrl+点击多选 · Ctrl+A 全选 · Ctrl+D 复制 · Delete 删除') }}
         </p>
       </aside>
 
@@ -1613,69 +1627,69 @@ function save(asNew: boolean) {
         >
           {{
             selectedIds.length > 1
-              ? `已选中 ${selectedIds.length} 个字段：可在工具栏对齐、复制或删除，拖动任一字段整体移动`
-              : '在画布或左侧列表中选中一个字段后，在这里编辑它的内容与样式（Ctrl+点击可多选）'
+              ? t('已选中 {n} 个字段：可在工具栏对齐、复制或删除，拖动任一字段整体移动').replace('{n}', String(selectedIds.length))
+              : t('在画布或左侧列表中选中一个字段后，在这里编辑它的内容与样式（Ctrl+点击可多选）')
           }}
         </p>
         <div v-if="selectedField">
-          <h3 class="text-xs font-bold text-slate-700">
-            字段属性 · {{ selectedField.label || selectedField.id }}
+          <h3 class="text-xs font-bold text-slate-700" data-testid="designer-field-props-title">
+            {{ t('字段属性') }} · {{ selectedField.label || selectedField.id }}
           </h3>
 
           <div class="mt-2 grid grid-cols-2 gap-2">
             <div class="col-span-2">
-              <label class="field-label">显示名称</label>
-              <input v-model="selectedField.label" type="text" class="input-field" aria-label="显示名称" />
+              <label class="field-label">{{ t('显示名称') }}</label>
+              <input v-model="selectedField.label" type="text" class="input-field" :aria-label="t('显示名称')" />
             </div>
 
             <div v-if="selectedField.type === 'text'" class="col-span-2">
-              <label class="field-label">内容来源</label>
+              <label class="field-label">{{ t('内容来源') }}</label>
               <SelectField v-model="textSource" :options="TEXT_SOURCE_OPTIONS" />
             </div>
             <div
               v-if="selectedField.type === 'text' && textSource === 'fixed'"
               class="col-span-2"
             >
-              <label class="field-label">固定文本内容</label>
+              <label class="field-label">{{ t('固定文本内容') }}</label>
               <input
                 v-model="selectedField.fixedText"
                 type="text"
                 class="input-field"
-                aria-label="固定文本内容"
-                placeholder="如：请对号入座 / 学校名称"
+                :aria-label="t('固定文本内容')"
+                :placeholder="t('如：请对号入座 / 学校名称')"
               />
             </div>
             <div
               v-else-if="selectedField.type === 'text'"
               class="col-span-2"
             >
-              <label class="field-label">示例内容（仅预览用）</label>
-              <input v-model="selectedField.sample" type="text" class="input-field" aria-label="示例内容（仅预览用）" />
+              <label class="field-label">{{ t('示例内容（仅预览用）') }}</label>
+              <input v-model="selectedField.sample" type="text" class="input-field" :aria-label="t('示例内容（仅预览用）')" />
             </div>
 
             <div v-if="selectedField.type === 'text'" class="col-span-2">
-              <label class="field-label">标签名前缀（可选）</label>
+              <label class="field-label">{{ t('标签名前缀（可选）') }}</label>
               <input
                 v-model="captionModel"
                 type="text"
                 class="input-field"
-                aria-label="标签名前缀（可选）"
-                placeholder="如填“姓名”则渲染为：姓名 张三"
+                :aria-label="t('标签名前缀（可选）')"
+                :placeholder="t('如填“姓名”则渲染为：姓名 张三')"
               />
             </div>
 
             <div v-if="selectedField.type === 'image'" class="col-span-2">
-              <label class="field-label">图片来源</label>
+              <label class="field-label">{{ t('图片来源') }}</label>
               <SelectField v-model="imageSource" :options="IMAGE_SOURCE_OPTIONS" />
               <div v-if="imageSource === 'static'" class="mt-2 flex items-center gap-2">
                 <img
                   v-if="selectedField.imageSrc"
                   :src="selectedField.imageSrc"
                   class="size-10 border border-slate-200 bg-white object-contain"
-                  alt="已上传的图片素材预览"
+                  :alt="t('已上传的图片素材预览')"
                 />
                 <button type="button" class="btn btn-secondary btn-sm" @click="logoInput?.click()">
-                  上传图片
+                  {{ t('上传图片') }}
                 </button>
                 <button
                   v-if="selectedField.imageSrc"
@@ -1683,11 +1697,11 @@ function save(asNew: boolean) {
                   class="btn btn-ghost btn-sm"
                   @click="selectedField.imageSrc = ''"
                 >
-                  移除
+                  {{ t('移除') }}
                 </button>
               </div>
               <p v-else class="mt-1 text-[11px] leading-4 text-slate-600">
-                照片在工坊「字段映射 → 照片匹配」中按列批量上传
+                {{ t('照片在工坊「字段映射 → 照片匹配」中按列批量上传') }}
               </p>
               <input
                 ref="logoInput"
@@ -1701,7 +1715,7 @@ function save(asNew: boolean) {
             <p
               class="col-span-2 mt-1.5 flex items-center gap-2 text-[10px] font-bold tracking-wider text-slate-600"
             >
-              位置与尺寸
+              {{ t('位置与尺寸') }}
               <span class="h-px flex-1 bg-slate-100"></span>
             </p>
             <div>
@@ -1725,9 +1739,9 @@ function save(asNew: boolean) {
               />
             </div>
             <div>
-              <label class="field-label">宽 (mm)</label>
+              <label class="field-label">{{ t('宽 (mm)') }}</label>
               <NumberField
-                aria-label="宽 (mm)"
+                :aria-label="t('宽 (mm)')"
                 :model-value="selectedField.width"
                 :step="0.5"
                 :min="0"
@@ -1735,9 +1749,9 @@ function save(asNew: boolean) {
               />
             </div>
             <div>
-              <label class="field-label">高 (mm)</label>
+              <label class="field-label">{{ t('高 (mm)') }}</label>
               <NumberField
-                aria-label="高 (mm)"
+                :aria-label="t('高 (mm)')"
                 :model-value="selectedField.height"
                 :step="0.5"
                 :min="0"
@@ -1751,21 +1765,21 @@ function save(asNew: boolean) {
               <p
                 class="col-span-2 mt-1.5 flex items-center gap-2 text-[10px] font-bold tracking-wider text-slate-600"
               >
-                文字样式
+                {{ t('文字样式') }}
                 <span class="h-px flex-1 bg-slate-100"></span>
               </p>
               <div class="col-span-2">
-                <label class="field-label">中文字体（默认跟随模板）</label>
-                <FontPicker v-model="selectedField.fontFamily" lang="zh" default-label="跟随模板字体" />
+                <label class="field-label">{{ t('中文字体（默认跟随模板）') }}</label>
+                <FontPicker v-model="selectedField.fontFamily" lang="zh" :default-label="t('跟随模板字体')" />
               </div>
               <div class="col-span-2">
-                <label class="field-label">西文字体（英文/数字）</label>
-                <FontPicker v-model="selectedField.fontFamilyEn" lang="en" default-label="跟随模板字体" />
+                <label class="field-label">{{ t('西文字体（英文/数字）') }}</label>
+                <FontPicker v-model="selectedField.fontFamilyEn" lang="en" :default-label="t('跟随模板字体')" />
               </div>
               <div>
-                <label class="field-label">字号 (pt)</label>
+                <label class="field-label">{{ t('字号 (pt)') }}</label>
                 <NumberField
-                  aria-label="字号 (pt)"
+                  :aria-label="t('字号 (pt)')"
                   :model-value="selectedField.fontSize ?? 12"
                   :step="0.5"
                   :min="4"
@@ -1774,11 +1788,11 @@ function save(asNew: boolean) {
                 />
               </div>
               <div>
-                <label class="field-label">颜色</label>
+                <label class="field-label">{{ t('颜色') }}</label>
                 <ColorField v-model="selectedField.color" />
               </div>
               <div>
-                <label class="field-label">水平对齐</label>
+                <label class="field-label">{{ t('水平对齐') }}</label>
                 <SelectField
                   :model-value="selectedField.align ?? 'center'"
                   :options="ALIGN_OPTIONS"
@@ -1786,7 +1800,7 @@ function save(asNew: boolean) {
                 />
               </div>
               <div>
-                <label class="field-label">垂直对齐</label>
+                <label class="field-label">{{ t('垂直对齐') }}</label>
                 <SelectField
                   :model-value="selectedField.verticalAlign ?? 'middle'"
                   :options="VALIGN_OPTIONS"
@@ -1794,9 +1808,9 @@ function save(asNew: boolean) {
                 />
               </div>
               <div>
-                <label class="field-label">最多行数</label>
+                <label class="field-label">{{ t('最多行数') }}</label>
                 <NumberField
-                  aria-label="最多行数"
+                  :aria-label="t('最多行数')"
                   :model-value="selectedField.maxLines ?? 1"
                   :min="1"
                   :max="6"
@@ -1804,9 +1818,9 @@ function save(asNew: boolean) {
                 />
               </div>
               <div>
-                <label class="field-label">内边距 (mm)</label>
+                <label class="field-label">{{ t('内边距 (mm)') }}</label>
                 <NumberField
-                  aria-label="内边距 (mm)"
+                  :aria-label="t('内边距 (mm)')"
                   :model-value="selectedField.padding ?? 0.8"
                   :step="0.2"
                   :min="0"
@@ -1814,9 +1828,9 @@ function save(asNew: boolean) {
                 />
               </div>
               <div>
-                <label class="field-label">字距 (em)</label>
+                <label class="field-label">{{ t('字距 (em)') }}</label>
                 <NumberField
-                  aria-label="字距 (em)"
+                  :aria-label="t('字距 (em)')"
                   :model-value="selectedField.letterSpacing ?? 0"
                   :step="0.02"
                   :min="-0.2"
@@ -1828,12 +1842,12 @@ function save(asNew: boolean) {
             <div class="mt-2 flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600">
               <CheckboxField
                 :model-value="selectedField.fontWeight === 'bold'"
-                label="加粗"
+                :label="t('加粗')"
                 @update:model-value="selectedField.fontWeight = $event ? 'bold' : 'normal'"
               />
               <CheckboxField
                 :model-value="selectedField.emphasis === 'hero'"
-                label="特大强调（座位号）"
+                :label="t('特大强调（座位号）')"
                 @update:model-value="selectedField.emphasis = $event ? 'hero' : undefined"
               />
             </div>
@@ -1843,22 +1857,22 @@ function save(asNew: boolean) {
             <p
               class="col-span-2 mt-1.5 flex items-center gap-2 text-[10px] font-bold tracking-wider text-slate-600"
             >
-              外观
+              {{ t('外观') }}
               <span class="h-px flex-1 bg-slate-100"></span>
             </p>
             <div class="col-span-2 flex items-center gap-3 text-xs font-semibold text-slate-600">
-              <CheckboxField v-model="selectedField.border" label="显示边框" />
-              <CheckboxField v-model="hasBackground" label="填充背景" />
+              <CheckboxField v-model="selectedField.border" :label="t('显示边框')" />
+              <CheckboxField v-model="hasBackground" :label="t('填充背景')" />
             </div>
             <div v-if="hasBackground">
-              <label class="field-label">背景色</label>
+              <label class="field-label">{{ t('背景色') }}</label>
               <ColorField v-model="selectedField.background" fallback="#ffffff" />
             </div>
             <template v-if="selectedField.border">
               <div>
-                <label class="field-label">边框宽 (mm)</label>
+                <label class="field-label">{{ t('边框宽 (mm)') }}</label>
                 <NumberField
-                  aria-label="边框宽 (mm)"
+                  :aria-label="t('边框宽 (mm)')"
                   :model-value="selectedField.borderWidth ?? 0.2"
                   :step="0.05"
                   :min="0.05"
@@ -1867,14 +1881,14 @@ function save(asNew: boolean) {
                 />
               </div>
               <div>
-                <label class="field-label">边框色</label>
+                <label class="field-label">{{ t('边框色') }}</label>
                 <ColorField v-model="selectedField.borderColor" />
               </div>
             </template>
             <div>
-              <label class="field-label">圆角 (mm)</label>
+              <label class="field-label">{{ t('圆角 (mm)') }}</label>
               <NumberField
-                aria-label="圆角 (mm)"
+                :aria-label="t('圆角 (mm)')"
                 :model-value="selectedField.radius ?? 0"
                 :step="0.5"
                 :min="0"
@@ -1886,24 +1900,24 @@ function save(asNew: boolean) {
 
         <!-- 标签与页面 -->
         <div class="mt-4 border-t border-slate-100 pt-4">
-          <h3 class="text-xs font-bold text-slate-700">标签与页面</h3>
+          <h3 class="text-xs font-bold text-slate-700">{{ t('标签与页面') }}</h3>
           <div class="mt-2 grid grid-cols-2 gap-2">
             <div class="col-span-2">
-              <label class="field-label">纸张规格</label>
+              <label class="field-label">{{ t('纸张规格') }}</label>
               <SelectField v-model="paperId" :options="paperOptions" />
             </div>
             <div class="col-span-2">
-              <label class="field-label">模板中文字体</label>
-              <FontPicker v-model="draft.fontFamily" lang="zh" default-label="宋体（系统默认）" />
+              <label class="field-label">{{ t('模板中文字体') }}</label>
+              <FontPicker v-model="draft.fontFamily" lang="zh" :default-label="t('宋体（系统默认）')" />
             </div>
             <div class="col-span-2">
-              <label class="field-label">模板西文字体（英文/数字）</label>
-              <FontPicker v-model="draft.fontFamilyEn" lang="en" default-label="跟随中文字体" />
+              <label class="field-label">{{ t('模板西文字体（英文/数字）') }}</label>
+              <FontPicker v-model="draft.fontFamilyEn" lang="en" :default-label="t('跟随中文字体')" />
             </div>
             <div>
-              <label class="field-label">标签宽 (mm)</label>
+              <label class="field-label">{{ t('标签宽 (mm)') }}</label>
               <NumberField
-                aria-label="标签宽 (mm)"
+                :aria-label="t('标签宽 (mm)')"
                 :model-value="draft.label.width"
                 :min="10"
                 :max="420"
@@ -1911,9 +1925,9 @@ function save(asNew: boolean) {
               />
             </div>
             <div>
-              <label class="field-label">标签高 (mm)</label>
+              <label class="field-label">{{ t('标签高 (mm)') }}</label>
               <NumberField
-                aria-label="标签高 (mm)"
+                :aria-label="t('标签高 (mm)')"
                 :model-value="draft.label.height"
                 :min="10"
                 :max="420"
@@ -1921,9 +1935,9 @@ function save(asNew: boolean) {
               />
             </div>
             <div>
-              <label class="field-label">标签圆角 (mm)</label>
+              <label class="field-label">{{ t('标签圆角 (mm)') }}</label>
               <NumberField
-                aria-label="标签圆角 (mm)"
+                :aria-label="t('标签圆角 (mm)')"
                 :model-value="draft.label.radius ?? 0"
                 :step="0.5"
                 :min="0"
@@ -1932,11 +1946,11 @@ function save(asNew: boolean) {
               />
             </div>
             <div>
-              <label class="field-label">列 × 行</label>
+              <label class="field-label">{{ t('列 × 行') }}</label>
               <div class="flex items-center gap-1">
                 <NumberField
                   class="flex-1"
-                  aria-label="列数"
+                  :aria-label="t('列数')"
                   :model-value="draft.page.cols"
                   :min="1"
                   :max="12"
@@ -1945,7 +1959,7 @@ function save(asNew: boolean) {
                 <span class="text-slate-300">×</span>
                 <NumberField
                   class="flex-1"
-                  aria-label="行数"
+                  :aria-label="t('行数')"
                   :model-value="draft.page.rows"
                   :min="1"
                   :max="30"
@@ -1954,9 +1968,9 @@ function save(asNew: boolean) {
               </div>
             </div>
             <div>
-              <label class="field-label">横向间距 (mm)</label>
+              <label class="field-label">{{ t('横向间距 (mm)') }}</label>
               <NumberField
-                aria-label="横向间距 (mm)"
+                :aria-label="t('横向间距 (mm)')"
                 :model-value="draft.page.gapX"
                 :step="0.5"
                 :min="0"
@@ -1965,9 +1979,9 @@ function save(asNew: boolean) {
               />
             </div>
             <div>
-              <label class="field-label">纵向间距 (mm)</label>
+              <label class="field-label">{{ t('纵向间距 (mm)') }}</label>
               <NumberField
-                aria-label="纵向间距 (mm)"
+                :aria-label="t('纵向间距 (mm)')"
                 :model-value="draft.page.gapY"
                 :step="0.5"
                 :min="0"
@@ -1977,18 +1991,18 @@ function save(asNew: boolean) {
             </div>
           </div>
           <div class="mt-2 flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600">
-            <CheckboxField v-model="draft.showLabelBorder" label="标签边框" />
+            <CheckboxField v-model="draft.showLabelBorder" :label="t('标签边框')" />
             <button
               type="button"
               class="btn btn-ghost btn-sm"
               @click="centerLayout(draft)"
             >
-              阵列居中
+              {{ t('阵列居中') }}
             </button>
           </div>
           <div class="mt-2">
-            <label class="field-label">模板说明</label>
-            <input v-model="draft.description" type="text" class="input-field" aria-label="模板说明" />
+            <label class="field-label">{{ t('模板说明') }}</label>
+            <input v-model="draft.description" type="text" class="input-field" :aria-label="t('模板说明')" />
           </div>
         </div>
       </aside>

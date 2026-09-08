@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 
+import { t } from '@/i18n'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import type { AiDesignResult } from '@/utils/aiDesign'
 import { generateLabelDesign, loadAiConfig, parseFieldLines, saveAiConfig } from '@/utils/aiDesign'
@@ -19,8 +20,6 @@ const emit = defineEmits<{
   close: []
   apply: [payload: { width: number; height: number; result: AiDesignResult }]
 }>()
-
-const DEFAULT_FIELDS_TEXT = '座位号: 12\n姓名: 张三\n考场: 第1考场\n准考证号: 2026061001'
 
 const config = ref(loadAiConfig())
 const hasCustomConfig = computed(
@@ -48,7 +47,9 @@ watch(
     width.value = props.labelWidth
     height.value = props.labelHeight
     if (!fieldsText.value.trim()) {
-      fieldsText.value = props.prefill?.trim() ? props.prefill : DEFAULT_FIELDS_TEXT
+      fieldsText.value = props.prefill?.trim()
+        ? props.prefill
+        : t('座位号: 12\n姓名: 张三\n考场: 第1考场\n准考证号: 2026061001')
     }
   },
 )
@@ -59,11 +60,11 @@ async function generate() {
 
   const fields = parseFieldLines(fieldsText.value)
   if (!fields.length) {
-    errorMsg.value = '请至少填写一个字段，每行一条，格式「字段名: 示例值」'
+    errorMsg.value = t('请至少填写一个字段，每行一条，格式「字段名: 示例值」')
     return
   }
   if (config.value.provider === 'custom' && !hasCustomConfig.value) {
-    errorMsg.value = '请先填写 API 接口地址、密钥与模型名称，或切换回「免费通道」'
+    errorMsg.value = t('请先填写 API 接口地址、密钥与模型名称，或切换回「免费通道」')
     return
   }
   saveAiConfig({
@@ -89,7 +90,7 @@ async function generate() {
     emit('apply', { width: w, height: h, result })
   } catch (err) {
     if (!(err instanceof DOMException && err.name === 'AbortError')) {
-      errorMsg.value = err instanceof Error ? err.message : 'AI 生成失败，请稍后重试'
+      errorMsg.value = err instanceof Error ? err.message : t('AI 生成失败，请稍后重试')
     }
   } finally {
     generating.value = false
@@ -98,51 +99,47 @@ async function generate() {
 </script>
 
 <template>
-  <ModalDialog :open="open" title="AI 自动设计标签" size="lg" @close="emit('close')">
+  <ModalDialog :open="open" :title="t('AI 自动设计标签')" size="lg" @close="emit('close')">
     <div class="grid gap-4">
-      <p class="text-xs leading-5 text-slate-600">
-        填写字段与示例数据，AI 将在指定尺寸内完成一版标签排版，生成后可在画布上继续手动微调。
-        免费通道依赖公共模型服务，繁忙时可能失败；有自己的 API 密钥时推荐「自定义 API」更稳定。
+      <p class="text-xs leading-5 text-slate-600" data-testid="ai-design-intro">
+        {{ t('填写字段与示例数据，AI 将在指定尺寸内完成一版标签排版，生成后可在画布上继续手动微调。') }}
+        {{ t('免费通道依赖公共模型服务，繁忙时可能失败；有自己的 API 密钥时推荐「自定义 API」更稳定。') }}
       </p>
 
       <div>
-        <label class="field-label">字段与示例数据（每行一条「字段名: 示例值」，多个示例用 | 分隔）</label>
+        <label class="field-label">{{ t('字段与示例数据（每行一条「字段名: 示例值」，多个示例用 | 分隔）') }}</label>
         <textarea
           v-model="fieldsText"
           rows="6"
           class="input-field text-xs leading-5"
-          placeholder="座位号: 12 | 8
-姓名: 张三 | 欧阳娜娜
-考场: 第1考场
-准考证号: 2026061001
-照片:"
+          :placeholder="t('座位号: 12 | 8\n姓名: 张三 | 欧阳娜娜\n考场: 第1考场\n准考证号: 2026061001\n照片:')"
         ></textarea>
-        <p class="mt-1 text-[11px] text-slate-600">字段名含「照片 / 头像」会生成图片占位框</p>
+        <p class="mt-1 text-[11px] text-slate-600">{{ t('字段名含「照片 / 头像」会生成图片占位框') }}</p>
       </div>
 
       <div>
-        <label class="field-label">设计要求（可选）</label>
+        <label class="field-label">{{ t('设计要求（可选）') }}</label>
         <textarea
           v-model="requirements"
           rows="3"
           class="input-field text-xs leading-5"
-          placeholder="例如：正式考务风格，重点突出座位号；底部加一行「请对号入座」提示语；主色用深蓝。"
+          :placeholder="t('例如：正式考务风格，重点突出座位号；底部加一行「请对号入座」提示语；主色用深蓝。')"
         ></textarea>
       </div>
 
       <div class="grid grid-cols-2 gap-2">
         <div>
-          <label class="field-label">标签宽 (mm)</label>
+          <label class="field-label">{{ t('标签宽 (mm)') }}</label>
           <input v-model.number="width" type="number" min="10" max="420" class="input-field" />
         </div>
         <div>
-          <label class="field-label">标签高 (mm)</label>
+          <label class="field-label">{{ t('标签高 (mm)') }}</label>
           <input v-model.number="height" type="number" min="10" max="420" class="input-field" />
         </div>
       </div>
 
       <div>
-        <label class="field-label">生成通道</label>
+        <label class="field-label">{{ t('生成通道') }}</label>
         <div class="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1">
           <button
             type="button"
@@ -154,7 +151,7 @@ async function generate() {
             "
             @click="config.provider = 'free'"
           >
-            免费通道 · 繁忙时限量
+            {{ t('免费通道 · 繁忙时限量') }}
           </button>
           <button
             type="button"
@@ -166,19 +163,18 @@ async function generate() {
             "
             @click="config.provider = 'custom'"
           >
-            自定义 API
+            {{ t('自定义 API') }}
           </button>
         </div>
 
         <p v-if="config.provider === 'free'" class="mt-2 text-[11px] leading-4 text-slate-600">
-          使用站点内置免费通道自动生成：仅经站点同源代理，浏览器不直连任何第三方；
-          仅发送字段名与示例值，不上传完整名单。免费通道限量且不保证可用，
-          失败时请稍后重试，或切换「自定义 API」用自己的密钥更稳定。
+          {{ t('使用站点内置免费通道自动生成：仅经站点同源代理，浏览器不直连任何第三方；仅发送字段名与示例值，不上传完整名单。') }}
+          {{ t('免费通道限量且不保证可用，失败时请稍后重试，或切换「自定义 API」用自己的密钥更稳定。') }}
         </p>
 
         <div v-else class="mt-2 grid gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
           <div>
-            <label class="field-label">接口地址 Base URL</label>
+            <label class="field-label">{{ t('接口地址 Base URL') }}</label>
             <input
               v-model="config.baseUrl"
               type="text"
@@ -198,7 +194,7 @@ async function generate() {
               />
             </div>
             <div>
-              <label class="field-label">模型</label>
+              <label class="field-label">{{ t('模型') }}</label>
               <input
                 v-model="config.model"
                 type="text"
@@ -208,17 +204,15 @@ async function generate() {
             </div>
           </div>
           <p class="text-[11px] leading-4 text-slate-600">
-            兼容所有 OpenAI 格式接口（智谱 / DeepSeek / 通义 / Kimi / OpenRouter 等）；
-            密钥仅存于本机浏览器，不会上传到任何服务器。
+            {{ t('兼容所有 OpenAI 格式接口（智谱 / DeepSeek / 通义 / Kimi / OpenRouter 等）；密钥仅存于本机浏览器，不会上传到任何服务器。') }}
           </p>
           <p class="text-[11px] leading-4 text-slate-600">
-            免费接口推荐：智谱
+            {{ t('免费接口推荐：智谱') }}
             <code class="rounded bg-slate-100 px-1 text-slate-600">open.bigmodel.cn/api/paas/v4</code>
-            的 glm-4-flash 当前可免费调用（以智谱官方定价为准）；硅基流动
-            <code class="rounded bg-slate-100 px-1 text-slate-600">api.siliconflow.cn/v1</code>；
-            OpenRouter
+            {{ t('的 glm-4-flash 当前可免费调用（以智谱官方定价为准）；硅基流动') }}
+            <code class="rounded bg-slate-100 px-1 text-slate-600">api.siliconflow.cn/v1</code>{{ t('；OpenRouter') }}
             <code class="rounded bg-slate-100 px-1 text-slate-600">openrouter.ai/api/v1</code>
-            （模型名带 :free，每天 50 次）。
+            {{ t('（模型名带 :free，每天 50 次）。') }}
           </p>
         </div>
       </div>
@@ -232,7 +226,7 @@ async function generate() {
     </div>
 
     <template #actions>
-      <button type="button" class="btn btn-ghost btn-md" @click="emit('close')">取消</button>
+      <button type="button" class="btn btn-ghost btn-md" @click="emit('close')">{{ t('取消') }}</button>
       <button type="button" class="btn btn-primary btn-md" :disabled="generating" @click="generate">
         <svg
           v-if="generating"
@@ -258,7 +252,7 @@ async function generate() {
           <path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3z" />
           <path d="M18.5 14.5l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9.9-2.3z" />
         </svg>
-        {{ generating ? '正在生成…' : '生成设计' }}
+        {{ generating ? t('正在生成…') : t('生成设计') }}
       </button>
     </template>
   </ModalDialog>

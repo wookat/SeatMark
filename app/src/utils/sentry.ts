@@ -164,6 +164,8 @@ export async function installSentry(app: App, router: Router, deps: InstallSentr
 
 /** requestIdleCallback 最迟触发时限 / 不支持时的 setTimeout 兜底延迟（ms） */
 export const SENTRY_IDLE_TIMEOUT_MS = 3000
+/** window load 之后先等这么久再进 idle 调度（ms）：避开 load 紧跟的预渲染水合 / 预取窗口，不同首屏交互争主线程 */
+export const SENTRY_POST_LOAD_DELAY_MS = 1500
 
 export interface ScheduleSentryDeps extends InstallSentryDeps {
   /** 监听 error / idle 的窗口对象（默认 window） */
@@ -172,12 +174,14 @@ export interface ScheduleSentryDeps extends InstallSentryDeps {
   install?: typeof installSentry
   /** idle 时限 / 兜底延迟（默认 SENTRY_IDLE_TIMEOUT_MS） */
   idleTimeoutMs?: number
+  /** load 后进入 idle 调度前的固定延迟（默认 SENTRY_POST_LOAD_DELAY_MS） */
+  postLoadDelayMs?: number
 }
 
 /**
- * 把 installSentry 从「挂载后立即」推迟到「浏览器空闲」：等 window load（首屏资源都拿到）之后
- * requestIdleCallback（带 timeout 上限，不支持时 setTimeout 兜底），或首个 window error /
- * unhandledrejection 事件，二者先到者触发，且只触发一次；调度时队列里已有挂载期错误则立即触发。
+ * 把 installSentry 从「挂载后立即」推迟到「浏览器空闲」：等 window load（首屏资源都拿到）之后再固定延迟
+ * postLoadDelayMs，然后 requestIdleCallback（带 timeout 上限，不支持时 setTimeout 兜底），或首个 window error /
+ * unhandledrejection 事件，二者先到者触发，且只触发一次（错误不受延迟影响）；调度时队列里已有挂载期错误则立即触发。
  * 错误本身由（先于本函数注册的）预初始化队列缓存，init 后回放，不会丢失。
  */
 export function scheduleSentryInstall(
@@ -189,20 +193,23 @@ export function scheduleSentryInstall(
   const queue = deps.queue ?? createPreInitErrorQueue(target)
   const install = deps.install ?? installSentry
   const idleTimeoutMs = deps.idleTimeoutMs ?? SENTRY_IDLE_TIMEOUT_MS
+  const postLoadDelayMs = deps.postLoadDelayMs ?? SENTRY_POST_LOAD_DELAY_MS
   return new Promise<boolean>((resolve) => {
     let fired = false
     let idleHandle: number | undefined
     let timer: ReturnType<typeof setTimeout> | undefined
+    let delayTimer: ReturnType<typeof setTimeout> | undefined
     const fire = () => {
       if (fired) return
       fired = true
       target.removeEventListener('error', fire)
       target.removeEventListener('unhandledrejection', fire)
-      target.removeEventListener('load', scheduleIdle)
+      target.removeEventListener('load', afterLoad)
       if (idleHandle !== undefined && typeof target.cancelIdleCallback === 'function') {
         target.cancelIdleCallback(idleHandle)
       }
       if (timer !== undefined) clearTimeout(timer)
+      if (delayTimer !== undefined) clearTimeout(delayTimer)
       resolve(install(app, router, { queue, load: deps.load }))
     }
     function scheduleIdle() {
@@ -213,6 +220,10 @@ export function scheduleSentryInstall(
         timer = setTimeout(fire, idleTimeoutMs)
       }
     }
+    function afterLoad() {
+      if (fired) return
+      delayTimer = setTimeout(scheduleIdle, postLoadDelayMs)
+    }
     target.addEventListener('error', fire)
     target.addEventListener('unhandledrejection', fire)
     if (queue.size() > 0) {
@@ -221,9 +232,9 @@ export function scheduleSentryInstall(
     }
     const doc: Document | undefined = target.document
     if (doc && doc.readyState !== 'complete') {
-      target.addEventListener('load', scheduleIdle, { once: true })
+      target.addEventListener('load', afterLoad, { once: true })
     } else {
-      scheduleIdle()
+      afterLoad()
     }
   })
 }

@@ -234,7 +234,7 @@ const recommendedItems = computed(() => {
       <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
         {{ fill('{n} 款免费内置模板覆盖考场座签、考号贴、课桌姓名贴、会议桌牌、出入证、学生证、工作证等场景，全部以毫米为单位精确排版，点击任意模板查看详情，或直接开始生成。', { n: items.length }) }}
       </p>
-      <ZhOnlyNotice />
+      <ZhOnlyNotice variant="templates" />
     </div>
 
     <div

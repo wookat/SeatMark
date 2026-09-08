@@ -232,6 +232,8 @@ export function parsePastedRoster(text: string, firstRowHeader?: boolean): Paste
     )
     .filter((line) => line !== '')
   if (!lines.length) return { headers: [], rows: [], headerDetected: false }
+  // 与文件导入同一行数上限同一文案；在分列前拦截，避免超大文本先全量分列再报错
+  assertImportRowCount(lines.length)
 
   const splitter = lines.some((l) => l.includes('\t'))
     ? /\t/
@@ -240,7 +242,7 @@ export function parsePastedRoster(text: string, firstRowHeader?: boolean): Paste
       : /\s+/
   const table = lines.map((line) => line.split(splitter).map((cell) => cell.trim()))
 
-  const columnCount = Math.max(...table.map((row) => row.length))
+  const columnCount = table.reduce((max, row) => Math.max(max, row.length), 0)
   const headerDetected =
     firstRowHeader ?? table[0]!.some((cell) => HEADER_KEYWORDS.test(cell))
 
