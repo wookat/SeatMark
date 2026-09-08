@@ -1070,7 +1070,7 @@ const hintKey = ref<HintKey | null>(null)
         >
           <SelectField
             v-model="zoomMode"
-            class="w-24"
+            class="md:max-lg:w-24"
             size="sm"
             :options="ZOOM_OPTIONS"
             data-testid="preview-zoom-select-md"
