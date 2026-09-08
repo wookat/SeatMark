@@ -61,7 +61,7 @@ const HERO_EN_NAMES = [
 /** 英文站首屏演示行：英文姓名与英文考场名，其余字段与中文演示一致 */
 const heroRowsEn: DataRow[] = HERO_EN_NAMES.map((name, i) => ({
   姓名: name,
-  考场: `Room ${Math.floor(i / 12) + 1}`,
+  考场: `No. ${Math.floor(i / 12) + 1}`,
   座位号: String((i % 12) + 1).padStart(2, '0'),
   准考证号: String(2026061001 + i),
 }))
@@ -211,7 +211,7 @@ const FEATURES = computed(() => [
 const TRUST_STATS = computed(() => [
   { value: '100%', label: t('数据本地处理') },
   { value: locale.value === 'en' ? `${TEMPLATE_COUNT}` : `${TEMPLATE_COUNT} 款`, label: t('内置模板') },
-  { value: '0.1mm', label: t('排版精度') },
+  { value: '≤0.35mm', label: t('校准实测偏差') },
   { value: t('免费'), label: t('无需注册即用') },
 ])
 
@@ -700,17 +700,21 @@ const FAQS = computed(() => [
             <ul class="mt-4 space-y-2.5 text-xs leading-5 text-slate-600">
               <li class="flex gap-2">
                 <svg class="mt-0.5 size-3.5 flex-none text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7" /></svg>
-                <template v-if="locale === 'en'">Uploading a spreadsheet adds <strong>zero network requests</strong>: parsing runs in local JS</template>
-                <template v-else>上传 Excel 后网络面板<strong>零新增请求</strong>：解析由本地 JS 完成</template>
+                <span class="min-w-0">
+                  <template v-if="locale === 'en'">Uploading a spreadsheet adds <strong>zero network requests</strong>: parsing runs in local JS</template>
+                  <template v-else>上传 Excel 后网络面板<strong>零新增请求</strong>：解析由本地 JS 完成</template>
+                </span>
               </li>
               <li class="flex gap-2">
                 <svg class="mt-0.5 size-3.5 flex-none text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7" /></svg>
-                <template v-if="locale === 'en'">Photos and PDF rendering also stay in local memory — <strong>an already-open page keeps exporting if you go offline</strong></template>
-                <template v-else>照片、PDF 渲染同样在本地内存中进行，<strong>已打开的页面断网后仍可继续导出</strong></template>
+                <span class="min-w-0">
+                  <template v-if="locale === 'en'">Photos and PDF rendering also stay in local memory — <strong>an already-open page keeps exporting if you go offline</strong></template>
+                  <template v-else>照片、PDF 渲染同样在本地内存中进行，<strong>已打开的页面断网后仍可继续导出</strong></template>
+                </span>
               </li>
               <li class="flex gap-2">
                 <svg class="mt-0.5 size-3.5 flex-none text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7" /></svg>
-                {{ t('名单只暂存在本标签页，关闭即清除；座位表草稿留在本机浏览器，可在隐私页随时清除') }}
+                <span class="min-w-0">{{ t('名单只暂存在本标签页，关闭即清除；座位表草稿留在本机浏览器，可在隐私页随时清除') }}</span>
               </li>
             </ul>
           </div>
@@ -737,16 +741,18 @@ const FAQS = computed(() => [
             <ul class="mt-4 space-y-2.5 text-xs leading-5 text-slate-600">
               <li class="flex gap-2">
                 <svg class="mt-0.5 size-3.5 flex-none text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
-                <template v-if="locale === 'en'">Bulk merge requires uploading your list — the network panel shows the <strong>whole sheet POSTed out</strong></template>
-                <template v-else>批量套数据需把名单上传到服务器，网络面板可见<strong>整表 POST 出网</strong></template>
+                <span class="min-w-0">
+                  <template v-if="locale === 'en'">Bulk merge requires uploading your list — the network panel shows the <strong>whole sheet POSTed out</strong></template>
+                  <template v-else>批量套数据需把名单上传到服务器，网络面板可见<strong>整表 POST 出网</strong></template>
+                </span>
               </li>
               <li class="flex gap-2">
                 <svg class="mt-0.5 size-3.5 flex-none text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
-                {{ t('名单在对方服务器的留存时长、访问范围，用户无法自行验证') }}
+                <span class="min-w-0">{{ t('名单在对方服务器的留存时长、访问范围，用户无法自行验证') }}</span>
               </li>
               <li class="flex gap-2">
                 <svg class="mt-0.5 size-3.5 flex-none text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
-                {{ t('含身份证号 / 照片的考生名单出网，可能触碰学校与单位的合规红线') }}
+                <span class="min-w-0">{{ t('含身份证号 / 照片的考生名单出网，可能触碰学校与单位的合规红线') }}</span>
               </li>
             </ul>
           </div>

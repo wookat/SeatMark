@@ -570,7 +570,7 @@ export const defaultTemplates: LabelTemplate[] = [
     scenario: '人证核验 / 入场检查',
     accent: '#0f766e',
     builtin: true,
-    sampleData: { seatNo: '18', name: '余文昊', room: '考场-1', examId: '2025053011' },
+    sampleData: { seatNo: '18', name: '余文昊', room: '第1考场', examId: '2025053011' },
     fontFamily: FONT_FAMILY,
     fontFamilyEn: FONT_FAMILY_EN,
     label: {
@@ -667,7 +667,7 @@ export const defaultTemplates: LabelTemplate[] = [
         padding: 0.5,
         lineHeight: 1.1,
         maxLines: 1,
-        sample: '考场-1',
+        sample: '第1考场',
       },
       {
         id: 'examId',
@@ -985,7 +985,7 @@ export const defaultTemplates: LabelTemplate[] = [
     scenario: '大教室 / 远距离识别',
     accent: '#b45309',
     builtin: true,
-    sampleData: { seatNo: '25', name: '张吉程', room: '考场-1', examId: '2025053035' },
+    sampleData: { seatNo: '25', name: '张吉程', room: '第1考场', examId: '2025053035' },
     fontFamily: FONT_FAMILY,
     fontFamilyEn: FONT_FAMILY_EN,
     label: {
@@ -1082,7 +1082,7 @@ export const defaultTemplates: LabelTemplate[] = [
         padding: 0,
         lineHeight: 1.1,
         maxLines: 1,
-        sample: '考场-1',
+        sample: '第1考场',
       },
       {
         id: 'examId',

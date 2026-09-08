@@ -59,10 +59,10 @@ describe('parsePastedRoster', () => {
   })
 
   it('firstRowHeader 显式指定时覆盖关键词启发式', () => {
-    // 首行数据含「手机」子串会被误判为表头（r261 P4），手动指定 false 修正
+    // 单列首行含「手机」子串：r360 起单列仅首格恰为姓名类列名才当表头，自动判定不再误判；显式指定仍以用户为准
     const auto = parsePastedRoster('张伟手机甲\n张伟手机乙\n')
-    expect(auto.headerDetected).toBe(true)
-    expect(auto.rows).toHaveLength(1)
+    expect(auto.headerDetected).toBe(false)
+    expect(auto.rows).toHaveLength(2)
 
     const fixed = parsePastedRoster('张伟手机甲\n张伟手机乙\n', false)
     expect(fixed.headerDetected).toBe(false)
@@ -84,6 +84,60 @@ describe('parsePastedRoster', () => {
 
   it('空文本返回空结果', () => {
     expect(parsePastedRoster('  \n \n')).toEqual({ headers: [], rows: [], headerDetected: false })
+  })
+})
+
+describe('第 360 轮：表头判定只统计不含数字的单元格', () => {
+  const sample30 = Array.from({ length: 30 }, (_, i) => {
+    const n = String(i + 1).padStart(2, '0')
+    const room = i < 15 ? '考场01' : '考场02'
+    const seat = String((i % 15) + 1).padStart(2, '0')
+    return `学生${n}\t${room}\t座位${seat}\t宿舍${300 + i}`
+  }).join('\n')
+
+  it('首行「学生01\\t考场01\\t座位12\\t宿舍302」是数据：30 行进 30 行出，首人保留', () => {
+    const parsed = parsePastedRoster(sample30)
+    expect(parsed.headerDetected).toBe(false)
+    expect(parsed.rows).toHaveLength(30)
+    expect(parsed.headers).toEqual(['姓名', '列2', '列3', '列4'])
+    expect(parsed.rows[0]).toEqual({ 姓名: '学生01', 列2: '考场01', 列3: '座位01', 列4: '宿舍300' })
+  })
+
+  it('「姓名\\t考场\\t座位号」真表头仍识别', () => {
+    const parsed = parsePastedRoster('姓名\t考场\t座位号\n学生01\t考场01\t12\n')
+    expect(parsed.headerDetected).toBe(true)
+    expect(parsed.headers).toEqual(['姓名', '考场', '座位号'])
+    expect(parsed.rows).toEqual([{ 姓名: '学生01', 考场: '考场01', 座位号: '12' }])
+  })
+
+  it('「Name\\tRoom」英文表头仍识别', () => {
+    const parsed = parsePastedRoster('Name\tRoom\nTom\tRoom 1\n')
+    expect(parsed.headerDetected).toBe(true)
+    expect(parsed.headers).toEqual(['Name', 'Room'])
+    expect(parsed.rows).toEqual([{ Name: 'Tom', Room: 'Room 1' }])
+  })
+
+  it('多列首行只有带数字的关键词格（班级2 / 学号2021）不当表头；混有一格纯列名则当表头', () => {
+    expect(parsePastedRoster('张伟\t班级2\t学号2021\n王芳\t班级3\t学号2022\n').headerDetected).toBe(false)
+    expect(parsePastedRoster('姓名\t班级2\n张伟\t班级3\n').headerDetected).toBe(true)
+  })
+
+  it('单列仅首格恰为姓名 / 名字 / name 才当表头', () => {
+    for (const header of ['姓名', '名字', 'name', 'Name']) {
+      const parsed = parsePastedRoster(`${header}\n张伟\n`)
+      expect(parsed.headerDetected, header).toBe(true)
+      expect(parsed.rows.map((r) => r[header])).toEqual(['张伟'])
+    }
+    for (const first of ['学生姓名张伟', '考场01', 'Student1', '张伟手机']) {
+      const parsed = parsePastedRoster(`${first}\n王芳\n`)
+      expect(parsed.headerDetected, first).toBe(false)
+      expect(parsed.rows.map((r) => r['姓名'])).toEqual([first, '王芳'])
+    }
+  })
+
+  it('显式 firstRowHeader 仍覆盖启发式', () => {
+    expect(parsePastedRoster(sample30, true).rows).toHaveLength(29)
+    expect(parsePastedRoster('姓名\t考场\n张伟\t考场01\n', false).rows).toHaveLength(2)
   })
 })
 

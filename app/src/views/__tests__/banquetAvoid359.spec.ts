@@ -174,4 +174,28 @@ describe('第 359 轮 P3：BanquetView 「不同桌」排斥清单', () => {
     expect(wrapper.find('[data-testid="avoid-remove"]').text()).toBe('Delete')
     wrapper.unmount()
   })
+
+  it('r360：收起态显示一行说明文案，展开后由面板说明接管；aria-expanded 与 testid 不变', async () => {
+    seedState()
+    const wrapper = await mountView()
+    const toggle = wrapper.find('[data-testid="avoid-toggle"]')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    const hint = wrapper.find('[data-testid="avoid-collapsed-hint"]')
+    expect(hint.exists()).toBe(true)
+    expect(hint.text()).toBe('标记两位宾客不同桌，自动分配会避开')
+    expect(hint.classes()).toEqual(expect.arrayContaining(['text-xs', 'text-slate-500']))
+
+    await toggle.trigger('click')
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.find('[data-testid="avoid-collapsed-hint"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="avoid-panel"]').exists()).toBe(true)
+    wrapper.unmount()
+
+    await setLocale('en')
+    const en = await mountView()
+    const enHint = en.find('[data-testid="avoid-collapsed-hint"]')
+    expect(enHint.text()).toBe('Mark two guests to keep apart; auto-assign seats them separately')
+    expect(enHint.text()).not.toMatch(/[\u4e00-\u9fff]/)
+    en.unmount()
+  })
 })

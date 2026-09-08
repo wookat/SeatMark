@@ -66,6 +66,14 @@ const calibrationStore = useCalibrationStore()
 const pageWidthPx = computed(() => workspace.template.page.paperWidth * MM_TO_PX)
 const pageHeightPx = computed(() => workspace.template.page.paperHeight * MM_TO_PX)
 const currentPaperLabel = computed(() => paperLabel(workspace.template.page))
+/** <xl 工具栏只放一枚统计 chip：「24 个标签 · 3 页 · A4」 */
+const toolbarSummary = computed(() => {
+  const parts: string[] = []
+  if (workspace.excel.rows.length) parts.push(`${workspace.excel.rows.length} ${t('个标签')}`)
+  if (workspace.totalPages > 0) parts.push(`${workspace.totalPages} ${t('页')}`)
+  parts.push(currentPaperLabel.value)
+  return parts.join(' · ')
+})
 
 const { locale } = useI18n()
 /** en 界面下画布内容为中文设计稿时，标 lang="zh"（不改变渲染，仅语言标注） */
@@ -938,80 +946,88 @@ const hintKey = ref<HintKey | null>(null)
       class="no-print sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200/80 bg-white/95 px-3 py-2.5 shadow-card backdrop-blur sm:px-4"
       data-testid="preview-toolbar"
     >
-      <div class="flex items-center gap-1.5 text-xs">
-        <span
-          v-if="workspace.excel.rows.length"
-          class="rounded-full bg-brand-50 px-2.5 py-1 font-bold text-brand-700"
-        >
-          {{ workspace.excel.rows.length }} {{ t('个标签') }}
-        </span>
-        <span
-          v-if="workspace.totalPages > 0"
-          class="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-600"
-        >
-          {{ workspace.totalPages }} {{ t('页') }}
-        </span>
-        <span class="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-600">
-          {{ currentPaperLabel }}
-        </span>
-      </div>
-
-      <div v-if="workspace.totalPages > 0" class="flex items-center gap-1.5">
-        <button
-          type="button"
-          class="btn btn-secondary btn-sm !px-2 max-sm:min-h-9 max-sm:min-w-9"
-          :aria-label="t('上一页')"
-          :disabled="workspace.previewPage <= 1"
-          @click="workspace.previewPage--"
-        >
-          <svg
-            class="size-3.5"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+      <div class="flex min-w-0 flex-wrap items-center gap-2" data-testid="preview-toolbar-left">
+        <div class="flex items-center gap-1.5 text-xs">
+          <span
+            class="rounded-full bg-slate-100 px-2.5 py-1 font-bold whitespace-nowrap text-slate-600 xl:hidden"
+            data-testid="preview-toolbar-summary"
           >
-            <path d="m10 4-4 4 4 4" />
-          </svg>
-        </button>
-        <div class="flex items-center gap-1 text-xs text-slate-600">
-          <input
-            v-model="pageInput"
-            type="number"
-            min="1"
-            :max="workspace.totalPages"
-            :aria-label="t('跳转到页码')"
-            class="input-field w-14 text-center max-sm:min-h-9"
-            @change="jumpToPage"
-            @keyup.enter="jumpToPage"
-          />
-          <span>/ {{ workspace.totalPages }}</span>
+            {{ toolbarSummary }}
+          </span>
+          <span
+            v-if="workspace.excel.rows.length"
+            class="hidden rounded-full bg-brand-50 px-2.5 py-1 font-bold text-brand-700 xl:inline"
+          >
+            {{ workspace.excel.rows.length }} {{ t('个标签') }}
+          </span>
+          <span
+            v-if="workspace.totalPages > 0"
+            class="hidden rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-600 xl:inline"
+          >
+            {{ workspace.totalPages }} {{ t('页') }}
+          </span>
+          <span class="hidden rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-600 xl:inline">
+            {{ currentPaperLabel }}
+          </span>
         </div>
-        <button
-          type="button"
-          class="btn btn-secondary btn-sm !px-2 max-sm:min-h-9 max-sm:min-w-9"
-          :aria-label="t('下一页')"
-          :disabled="workspace.previewPage >= workspace.totalPages"
-          @click="workspace.previewPage++"
-        >
-          <svg
-            class="size-3.5"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+
+        <div v-if="workspace.totalPages > 0" class="flex items-center gap-1.5">
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm !px-2 max-sm:min-h-9 max-sm:min-w-9"
+            :aria-label="t('上一页')"
+            :disabled="workspace.previewPage <= 1"
+            @click="workspace.previewPage--"
           >
-            <path d="m6 4 4 4-4 4" />
-          </svg>
-        </button>
+            <svg
+              class="size-3.5"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m10 4-4 4 4 4" />
+            </svg>
+          </button>
+          <div class="flex items-center gap-1 text-xs text-slate-600">
+            <input
+              v-model="pageInput"
+              type="number"
+              min="1"
+              :max="workspace.totalPages"
+              :aria-label="t('跳转到页码')"
+              class="input-field w-14 text-center max-sm:min-h-9"
+              @change="jumpToPage"
+              @keyup.enter="jumpToPage"
+            />
+            <span>/ {{ workspace.totalPages }}</span>
+          </div>
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm !px-2 max-sm:min-h-9 max-sm:min-w-9"
+            :aria-label="t('下一页')"
+            :disabled="workspace.previewPage >= workspace.totalPages"
+            @click="workspace.previewPage++"
+          >
+            <svg
+              class="size-3.5"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m6 4 4 4-4 4" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <SelectField v-model="zoomMode" class="w-24" size="sm" :options="ZOOM_OPTIONS" />
+      <div class="ml-auto flex flex-wrap items-center gap-2">
+        <SelectField v-model="zoomMode" class="w-20 xl:w-24" size="sm" :options="ZOOM_OPTIONS" />
         <button
           type="button"
           class="btn btn-secondary btn-sm min-h-9 xl:hidden"
@@ -1132,6 +1148,7 @@ const hintKey = ref<HintKey | null>(null)
           type="button"
           class="btn btn-secondary btn-sm relative whitespace-nowrap max-sm:min-h-9"
           data-testid="export-pdf-button"
+          :aria-label="`${t('图片版 PDF')}${t('（推荐）')}`"
           :title="t('发给别人打印的 PDF（保留排版，文件较大）：逐页渲染为高清图片后合成，任何设备打开都一致；文字不可选中，如需矢量文字请用「打印 / 矢量 PDF」')"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="openExportChoice('pdf')"
@@ -1147,7 +1164,7 @@ const hintKey = ref<HintKey | null>(null)
           >
             <path d="M12 4v12m0 0 5-5m-5 5-5-5M4 20h16" />
           </svg>
-          {{ t('图片版 PDF') }}<span class="hidden md:inline">{{ t('（推荐）') }}</span>
+          <span class="md:hidden xl:inline">{{ t('图片版 PDF') }}</span><span class="hidden md:inline xl:hidden">PDF</span><span class="hidden md:inline md:max-xl:hidden">{{ t('（推荐）') }}</span>
           <span
             v-if="!sharePromptVisible"
             class="ml-1 rounded-full px-1.5 py-px text-[11px] font-semibold"
@@ -1159,6 +1176,8 @@ const hintKey = ref<HintKey | null>(null)
         <button
           type="button"
           class="btn btn-secondary btn-sm max-sm:min-h-9"
+          data-testid="export-png-button"
+          :aria-label="t('图片 PNG')"
           :title="t('发群/发朋友圈的图片（每张一图，多张打包 zip）：每一张标签单独成图；电子座签模板支持精确 800×480 像素输出')"
           :disabled="!workspace.excel.rows.length || workspace.loading.active"
           @click="openExportChoice('png')"
@@ -1176,7 +1195,7 @@ const hintKey = ref<HintKey | null>(null)
             <circle cx="8.5" cy="8.5" r="1.5" />
             <path d="m21 15-5-5L5 21" />
           </svg>
-          {{ t('图片 PNG') }}
+          <span class="md:hidden xl:inline">{{ t('图片 PNG') }}</span><span class="hidden md:inline xl:hidden">PNG</span>
         </button>
       </div>
     </div>

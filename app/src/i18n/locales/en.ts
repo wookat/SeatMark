@@ -249,7 +249,7 @@ export const en: Record<string, string> = {
   '按名单字段命名（如 张三-第1考场.png）': 'Name by list fields (e.g. Jane-Room1.png)',
   '按整页导出（每页纸张一张 PNG）': 'Per page (one PNG per sheet of paper)',
   '按标签逐张导出（每一张标签一张 PNG，推荐）': 'Per label (one PNG per label, recommended)',
-  '排版精度': 'Layout precision',
+  '校准实测偏差': 'Calibrated deviation',
   '排版顺序：': 'Layout order:',
   '推荐': 'Recommended',
   '推荐纸型：': 'Recommended paper:',
@@ -1959,6 +1959,10 @@ export const en: Record<string, string> = {
   '重名处理已切换，座位已按名单顺序重排': 'Duplicate-name handling changed; seats now follow the roster order',
   // ---- 第 359 轮 P2：/seating 按考场筛选 ----
   '已切换考场，座位已按名单顺序重排': 'Exam room switched; seats now follow the roster order',
+  // ---- 第 360 轮：/seating 按考场缓存排座 + 破坏性操作可撤销 ----
+  '已切换到 {room}，已恢复该场上次排座': 'Switched to {room}; restored its last seating arrangement',
+  '10 秒内可撤销，恢复原开关与手工座次': 'Undo within 10 seconds to restore the switch and manual seats',
+  '10 秒内可撤销，恢复刚才的手工座次': 'Undo within 10 seconds to restore the manual seating',
   '模板分类': 'Template categories',
   '查看更多分类': 'See more categories',
   '名单含考场列：选中后只排该考场的学生，导出文件名附考场号':
@@ -1968,6 +1972,7 @@ export const en: Record<string, string> = {
   '排斥冲突': 'Keep-apart conflicts',
   '对': 'pair(s)',
   '排斥冲突 {n} 对': '{n} keep-apart conflict(s)',
+  '标记两位宾客不同桌，自动分配会避开': 'Mark two guests to keep apart; auto-assign seats them separately',
   '标记两位宾客不同桌：自动分配会尽量避开（仅在没有其它可坐的桌时才同桌）；手动拖到一起会提醒但不阻止。清单只存在本机。':
     'Mark two guests to keep apart: auto-assign avoids seating them together (only shares a table when no other table fits); dragging them together warns but is allowed. Stored on this device only.',
   '宾客 A': 'Guest A',

@@ -277,11 +277,11 @@ export function templateHasCjk(template: LabelTemplate): boolean {
   return Object.values(template.sampleData ?? {}).some((v) => CJK_RE.test(v))
 }
 
-/** 示例值（sample / sampleData）本地化：考场编号→Room N，含中文的姓名/班级等→英文占位值，其余原样保留 */
+/** 示例值（sample / sampleData）本地化：考场编号→No. N（小注已是 ROOM，不再重复 Room），含中文的姓名/班级等→英文占位值，其余原样保留 */
 function localizeSample(fieldId: string, value: string): string {
   const trimmed = value.trim()
   const room = ROOM_SAMPLE_RE.exec(trimmed)
-  if (room) return `Room ${room[1] ?? room[2]}`
+  if (room) return `No. ${room[1] ?? room[2]}`
   const table = TABLE_SAMPLE_RE.exec(trimmed)
   if (table) return `Table ${table[1]}`
   const group = GROUP_SAMPLE_RE.exec(trimmed)

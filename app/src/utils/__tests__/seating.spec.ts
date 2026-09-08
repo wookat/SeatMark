@@ -253,6 +253,37 @@ describe('第 357 轮：单列「Student1…」序号名单首行不再被误判
   })
 })
 
+describe('第 360 轮：多列首行带数字的关键词格（考场01 / 座位12 / 宿舍302）不当表头', () => {
+  const sample30 = Array.from({ length: 30 }, (_, i) => {
+    const n = String(i + 1).padStart(2, '0')
+    const room = i < 15 ? '考场01' : '考场02'
+    const seat = String((i % 15) + 1).padStart(2, '0')
+    return `学生${n}\t${room}\t座位${seat}\t宿舍${300 + i}`
+  }).join('\n')
+
+  it('30 行无表头样本 → 30 人，首人「学生01」保留，headerSkipped 为空', () => {
+    const r = parseSeatingRosterDetailed(sample30)
+    expect(r.entries).toHaveLength(30)
+    expect(r.entries[0]!.name).toBe('学生01')
+    expect(r.entries[29]!.name).toBe('学生30')
+    expect(r.headerSkipped).toEqual([])
+    expect(r.columnMode).toBe(true)
+    expect(parseSeatingRoster(sample30)).toHaveLength(30)
+  })
+
+  it('无表头时不猜考场列：rooms 为空；加上「姓名\\t考场\\t座位\\t宿舍」表头后 rooms 含 考场01/02 且仍 30 人', () => {
+    expect(parseSeatingRosterDetailed(sample30).rooms).toEqual([])
+    const withHeader = parseSeatingRosterDetailed(`姓名\t考场\t座位\t宿舍\n${sample30}`)
+    expect(withHeader.entries).toHaveLength(30)
+    expect(withHeader.headerSkipped).toEqual(['姓名', '考场', '座位', '宿舍'])
+    expect(withHeader.rooms).toEqual([
+      { id: '考场01', count: 15 },
+      { id: '考场02', count: 15 },
+    ])
+    expect(withHeader.entries[0]).toEqual({ name: '学生01', room: '考场01' })
+  })
+})
+
 describe('第 348 轮：seatingRosterTextFromTable（Excel 文件 → 名单文本 → 座位名单）', () => {
   it('有表头（姓名/性别/学号）：表头保留，解析后取姓名与性别列、忽略学号列', () => {
     const headers = ['学号', '姓名', '性别']
