@@ -550,6 +550,7 @@ describe('安排统计与快照', () => {
       assigned: 2,
       unassigned: 1,
       emptyTables: 1,
+      avoidConflicts: 0,
     })
   })
 

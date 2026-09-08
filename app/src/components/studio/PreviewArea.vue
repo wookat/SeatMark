@@ -127,7 +127,7 @@ const ZOOM_OPTIONS = computed<SelectOption[]>(() => [
 const isSmallViewport =
   typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 639px)').matches
 const zoomMode = ref(isSmallViewport ? 'fitLabel' : 'fit')
-/** 小屏下把低频显示选项（裁切线/高亮缺失/裁切排序/对折双联/打印校准）收进「显示选项」，避免工具栏折成四行 */
+/** <xl（1280）把低频显示选项（裁切线/高亮缺失/裁切排序/对折双联/打印校准）收进「显示选项」，避免 640–1279 工具栏折成三四行 */
 const displayOptionsOpen = ref(false)
 const displayOptionsActiveCount = computed(() =>
   [
@@ -1007,7 +1007,8 @@ const hintKey = ref<HintKey | null>(null)
         <SelectField v-model="zoomMode" class="w-24" size="sm" :options="ZOOM_OPTIONS" />
         <button
           type="button"
-          class="btn btn-secondary btn-sm min-h-9 sm:hidden"
+          class="btn btn-secondary btn-sm min-h-9 xl:hidden"
+          data-testid="display-options-toggle"
           :aria-expanded="displayOptionsOpen"
           @click="displayOptionsOpen = !displayOptionsOpen"
         >
@@ -1029,7 +1030,7 @@ const hintKey = ref<HintKey | null>(null)
           </svg>
         </button>
         <div
-          class="w-full flex-wrap items-center gap-2 sm:contents"
+          class="w-full flex-wrap items-center gap-2 xl:contents"
           :class="displayOptionsOpen ? 'flex' : 'hidden'"
         >
         <CheckboxField

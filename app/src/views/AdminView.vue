@@ -73,6 +73,9 @@ const health = ref<Health | null>(null)
 const users = ref<AdminUser[]>([])
 const feedback = ref<FeedbackItem[]>([])
 const reservations = ref<Reservation[]>([])
+/** 存档键翻页到上限仍未翻完：列表只是「最近一批」，提示管理员 */
+const feedbackTruncated = ref(false)
+const reservationsTruncated = ref(false)
 
 const announcementText = ref('')
 const announcementEnabled = ref(false)
@@ -90,8 +93,8 @@ async function loadAll() {
       apiFetch<Overview>('/api/admin/overview'),
       apiFetch<Health>('/api/admin/health'),
       apiFetch<{ users: AdminUser[] }>('/api/admin/users'),
-      apiFetch<{ items: FeedbackItem[] }>('/api/admin/feedback'),
-      apiFetch<{ items: Reservation[] }>('/api/admin/reservations'),
+      apiFetch<{ items: FeedbackItem[]; truncated?: boolean }>('/api/admin/feedback'),
+      apiFetch<{ items: Reservation[]; truncated?: boolean }>('/api/admin/reservations'),
       apiFetch<{ announcement: { text: string; enabled: boolean } | null }>(
         '/api/admin/announcement',
       ),
@@ -100,7 +103,9 @@ async function loadAll() {
     health.value = he
     users.value = us.users
     feedback.value = fb.items
+    feedbackTruncated.value = fb.truncated === true
     reservations.value = rs.items
+    reservationsTruncated.value = rs.truncated === true
     if (an.announcement) {
       announcementText.value = an.announcement.text
       announcementEnabled.value = an.announcement.enabled
@@ -483,6 +488,9 @@ watch(
       <!-- 团队版意向名单 -->
       <section class="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-card">
         <h2 class="text-sm font-bold text-slate-900">团队版预订意向（{{ reservations.length }}）</h2>
+        <p v-if="reservationsTruncated" class="mt-1 text-xs text-amber-700" data-testid="admin-reservations-truncated">
+          存档过多，仅展示最近 {{ reservations.length }} 条；更早记录请到存储控制台查看。
+        </p>
         <div class="mt-3 overflow-x-auto">
           <table class="w-full min-w-[480px] text-left text-sm">
             <thead>
@@ -512,7 +520,10 @@ watch(
       <section class="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-card">
         <h2 class="text-sm font-bold text-slate-900">用户反馈（{{ feedback.length }}）</h2>
         <p class="mt-1 text-xs text-slate-600">
-          KV 存档的反馈列表；同时仍会实时推送到企业微信群（见 /api/feedback）。
+          KV 存档的反馈列表（保留 180 天）；同时仍会实时推送到企业微信群（见 /api/feedback）。
+        </p>
+        <p v-if="feedbackTruncated" class="mt-1 text-xs text-amber-700" data-testid="admin-feedback-truncated">
+          存档过多，仅展示最近 {{ feedback.length }} 条；更早记录请到存储控制台查看。
         </p>
         <ul class="mt-3 grid gap-3">
           <li v-for="(f, i) in feedback" :key="i" class="rounded border border-slate-100 bg-slate-50 p-3">

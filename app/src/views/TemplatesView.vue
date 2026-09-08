@@ -210,6 +210,11 @@ function updateChipsFade() {
   const overflow = el.scrollWidth - el.clientWidth
   chipsFadeVisible.value = overflow > 1 && el.scrollLeft < overflow - 1
 }
+function scrollChipsForward() {
+  const el = chipsEl.value
+  if (!el) return
+  el.scrollBy({ left: el.clientWidth * 0.6, behavior: 'smooth' })
+}
 watch(chipsEl, updateChipsFade, { flush: 'post' })
 onMounted(() => window.addEventListener('resize', updateChipsFade))
 onBeforeUnmount(() => window.removeEventListener('resize', updateChipsFade))
@@ -247,6 +252,8 @@ const recommendedItems = computed(() => {
           <div
             ref="chipsEl"
             class="scrollbar-none flex snap-x snap-mandatory gap-1.5 overflow-x-auto"
+            role="tablist"
+            :aria-label="t('模板分类')"
             data-testid="templates-category-chips"
             @scroll.passive="updateChipsFade"
           >
@@ -254,6 +261,9 @@ const recommendedItems = computed(() => {
               v-for="opt in categoryOptions"
               :key="opt.id"
               type="button"
+              role="tab"
+              :aria-selected="activeCategory === opt.id"
+              :aria-pressed="activeCategory === opt.id"
               class="shrink-0 cursor-pointer snap-start rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap transition-colors duration-150"
               :class="
                 activeCategory === opt.id
@@ -270,10 +280,21 @@ const recommendedItems = computed(() => {
           </div>
           <div
             v-show="chipsFadeVisible"
-            class="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent"
-            aria-hidden="true"
+            class="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-gradient-to-l from-white via-white/80 to-transparent"
             data-testid="templates-chips-fade"
-          ></div>
+          >
+            <button
+              type="button"
+              class="pointer-events-auto flex size-6 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors duration-150 hover:border-brand-300 hover:text-brand-600"
+              :aria-label="t('查看更多分类')"
+              data-testid="templates-chips-more"
+              @click="scrollChipsForward"
+            >
+              <svg class="size-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 4 4 4-4 4" />
+              </svg>
+            </button>
+          </div>
         </div>
         <button
           type="button"

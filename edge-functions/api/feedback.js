@@ -29,6 +29,11 @@ import { SEATMARK_REV } from './_rev.js'
 const FEEDBACK_IP_DAILY_LIMIT = 10
 /** 日限计数键按日期分桶，48h 后自动清除（Blob/内存由 _storage.js 包装值实现） */
 const DAILY_KEY_TTL_SECONDS = 48 * 3600
+/**
+ * 反馈存档保留 180 天：只供管理端回看，实时推送已另走 webhook；
+ * 到期自动清除，避免 fb: 前缀无限堆积（Blob/内存由 _storage.js 包装值实现，KV 原生支持）。
+ */
+export const FEEDBACK_ARCHIVE_TTL_SECONDS = 180 * 24 * 3600
 /** 页面路径存档与 webhook 推送共用的截断上限 */
 const PAGE_MAX_CHARS = 200
 export const FEEDBACK_MAX_BODY_BYTES = 32 * 1024
@@ -111,6 +116,7 @@ async function handleRequest(context) {
         page,
         createdAt: new Date().toISOString(),
       }),
+      { expirationTtl: FEEDBACK_ARCHIVE_TTL_SECONDS },
     )
   } catch (e) {
     archived = false

@@ -70,7 +70,7 @@ describe('第 352 轮：TemplatesView 分类 chips 渐隐遮罩', () => {
     const fade = wrapper.get(FADE)
     expect(fadeShown(wrapper)).toBe(true)
     expect(fade.classes()).toEqual(
-      expect.arrayContaining(['pointer-events-none', 'absolute', 'right-0', 'w-8', 'bg-gradient-to-l', 'from-white']),
+      expect.arrayContaining(['pointer-events-none', 'absolute', 'right-0', 'w-10', 'bg-gradient-to-l', 'from-white']),
     )
     expect(fade.element.parentElement).toBe(chips.element.parentElement)
     expect(fade.element.parentElement!.classList.contains('relative')).toBe(true)

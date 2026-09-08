@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore JS 模块无类型声明
-import { onRequest, FEEDBACK_MAX_BODY_BYTES } from '../../../edge-functions/api/feedback.js'
+import { onRequest, FEEDBACK_ARCHIVE_TTL_SECONDS, FEEDBACK_MAX_BODY_BYTES } from '../../../edge-functions/api/feedback.js'
 
 interface Env {
   FEEDBACK_WEBHOOK?: string
@@ -136,6 +136,30 @@ describe('feedback.js 存储与 webhook', () => {
     expect(keys.some((k) => k.startsWith('rl:fb:'))).toBe(true)
     expect(keys.some((k) => k.startsWith('fb:'))).toBe(true)
     expect(keys.join('\n')).not.toContain('203.0.113.9')
+  })
+
+  it('第 359 轮：反馈存档带 180 天 expirationTtl（Blob/内存后端由 _storage.js 包装值生效）', async () => {
+    expect(FEEDBACK_ARCHIVE_TTL_SECONDS).toBe(180 * 24 * 3600)
+    const puts: Array<{ key: string; ttl?: number }> = []
+    const kv = {
+      async get() {
+        return null
+      },
+      async put(key: string, _value: string, options?: { expirationTtl?: number }) {
+        puts.push({ key, ttl: options?.expirationTtl })
+      },
+      async delete() {},
+      async list() {
+        return { keys: [], complete: true, cursor: '' }
+      },
+    }
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { response } = await send(post(JSON.stringify({ type: 'bug', content: '单测：存档 TTL' })), {
+      seatmark_kv: kv,
+    })
+    expect(response.status).toBe(200)
+    const archive = puts.find((p) => p.key.startsWith('fb:'))
+    expect(archive?.ttl).toBe(FEEDBACK_ARCHIVE_TTL_SECONDS)
   })
 })
 

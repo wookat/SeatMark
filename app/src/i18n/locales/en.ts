@@ -1949,4 +1949,39 @@ export const en: Record<string, string> = {
   '座位号: 12\n姓名: 张三\n考场: 第1考场\n准考证号: 2026061001':
     'Seat no.: 12\nName: Zhang San\nRoom: Room 1\nAdmission no.: 2026061001',
   '考场号': 'Room no.',
+  // ---- 第 359 轮 P1：/seating 名单修改保留手工座位 ----
+  '名单已更新，已保留 {kept} 人的手工座位': 'Roster updated — kept the manual seats of {kept} students',
+  '新增 {n} 人，已排到末尾空位': '{n} added to the empty seats at the end',
+  '移除 {n} 人，原座位留空': '{n} removed; their seats are left empty',
+  '名单已整体更换，座位已按名单顺序重排': 'Roster replaced entirely; seats now follow the roster order',
+  '重名处理已切换，座位已按名单顺序重排': 'Duplicate-name handling changed; seats now follow the roster order',
+  // ---- 第 359 轮 P2：/seating 按考场筛选 ----
+  '已切换考场，座位已按名单顺序重排': 'Exam room switched; seats now follow the roster order',
+  '模板分类': 'Template categories',
+  '查看更多分类': 'See more categories',
+  '名单含考场列：选中后只排该考场的学生，导出文件名附考场号':
+    'Your roster has an exam-room column: pick one to seat only that room; the export file name includes the room',
+  // r359 P3：/banquet 「不同桌」排斥清单
+  '不同桌': 'Keep apart',
+  '排斥冲突': 'Keep-apart conflicts',
+  '对': 'pair(s)',
+  '排斥冲突 {n} 对': '{n} keep-apart conflict(s)',
+  '标记两位宾客不同桌：自动分配会尽量避开（仅在没有其它可坐的桌时才同桌）；手动拖到一起会提醒但不阻止。清单只存在本机。':
+    'Mark two guests to keep apart: auto-assign avoids seating them together (only shares a table when no other table fits); dragging them together warns but is allowed. Stored on this device only.',
+  '宾客 A': 'Guest A',
+  '宾客 B': 'Guest B',
+  '选择宾客': 'Choose a guest',
+  '添加': 'Add',
+  '名单至少需要两位宾客': 'Add at least two guests first',
+  '同桌中': 'same table',
+  '删除排斥：{a} 与 {b}': 'Remove keep-apart: {a} and {b}',
+  '请选择两位宾客': 'Choose two guests',
+  '请选择两位不同的宾客': 'Choose two different guests',
+  '这对排斥已在清单中': 'This pair is already on the list',
+  '已添加不同桌：{a} 与 {b}': 'Keep apart added: {a} and {b}',
+  '自动分配会尽量避开；已分配的座位不会自动变动': 'Auto-assign will avoid them; existing seats are not changed automatically',
+  '{a} 与 {b} 已标为不同桌': '{a} and {b} are marked to keep apart',
+  '已按你的拖拽落座；如需避开请再拖到其它桌': 'Seated as dragged; drag to another table to keep them apart',
+  '这些「不同桌」的宾客目前坐在同一桌，可继续导出或返回拖拽调整。':
+    'These keep-apart guests currently share a table. You can export anyway or go back and drag them apart.',
 }
