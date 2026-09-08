@@ -91,6 +91,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'classBrand',
         'courseSchedule',
         'parentTent',
+        'studentTent',
         'dutyRoster',
         'classPostCard',
         'podiumCard',

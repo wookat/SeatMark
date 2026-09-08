@@ -82,6 +82,8 @@ export const enTemplateDescriptions: Record<string, string> = {
     '4 cols × 12 rows mini labels, 48 per sheet: bold name with small class text for cups, towels and cup racks.',
   '3 列 × 3 行竖版卡片，幼儿姓名与接送人、联系电话分层，塑封打孔即可挂用。':
     '3 cols × 3 rows portrait card: child name, guardian and phone in layers. Laminate, punch and hang.',
+  'A4 整页三折成三角立牌，学生姓名特大字配班级，正反两面同读，底座向内折即可自立于课桌。':
+    'Full A4 sheet folded in three into a triangular stand-up tent: extra-large student name with class, readable from both sides; fold the base inward and it stands on the desk.',
   'A4 横向整页，沿中线对折成 V 型立于桌面，姓名特大字配单位，免桌牌座。':
     'Full landscape A4, folded in half into a tent: extra-large name with organization, no holder needed.',
   '2 列 × 5 行横版胸卡，展会题头色条配姓名、单位与身份徽章，装横式卡套佩戴。':

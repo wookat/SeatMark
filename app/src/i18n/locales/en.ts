@@ -259,6 +259,8 @@ export const en: Record<string, string> = {
     'Print / vector PDF: opens the browser print dialog. Choose "Save as PDF" as the printer to get a vector PDF with selectable text, or print directly.',
   '打印校准': 'Print calibration',
   '打开可视化设计器': 'Open visual designer',
+  '插入 Logo': 'Insert logo',
+  '在当前模板上添加校徽 / 公司 Logo，图片仅保存在本机模板里': 'Add a school crest or company logo to this template; the image stays in your local template only',
   '在电脑上打开浏览器开发者工具（F12 → Network）就能自己验证：在 SeatMark 上传 Excel、生成、导出全程，没有任何一个携带名单数据的网络请求':
     'On a desktop browser, open dev tools (F12 → Network) to verify it yourself: throughout uploading, generating and exporting in SeatMark, not a single network request carries your list data',
   '拖拽调整字段位置与大小，按毫米设置尺寸，自定义模板可保存复用。':
@@ -1152,6 +1154,7 @@ export const en: Record<string, string> = {
   '红金系·婚礼席位卡': 'Red & gold · wedding place card',
   '红金系·迎宾牌': 'Red & gold · welcome sign',
   'V 型折叠桌牌': 'V-fold table tent',
+  '学生三角桌牌': 'Student triangular desk tent',
   '书法比赛席签': 'Calligraphy contest seat card',
   '会议大桌牌': 'Large conference table card',
   '会议桌牌·几何底纹': 'Conference table card · Geometric',
