@@ -66,6 +66,10 @@ export function devForcedExportFailure(pageIndex: number): Error | null {
 /** 单页渲染看门狗默认超时：移动端慢 CPU 下渲染一页 A4@2x 通常 <10s，30s 视为挂起 */
 export const DEFAULT_PAGE_TIMEOUT_MS = 30_000
 
+/** 导出依赖（html2canvas / jspdf）按需加载的超时：弱网下分包不落定时不再无限停留 */
+export const MODULE_LOAD_TIMEOUT_MS = 20_000
+export const MODULE_LOAD_TIMEOUT_MESSAGE = '导出组件加载超时，请检查网络后重试'
+
 /** 给 Promise 加看门狗超时：超时以指定文案 reject，防止 html2canvas 无限挂起 */
 export function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -873,10 +877,11 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<Bl
   const { pageCount } = options
   if (!pageCount) throw new Error('没有可导出的页面')
 
-  const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
-    import('jspdf'),
-    import('html2canvas-pro'),
-  ])
+  const [{ jsPDF }, { default: html2canvas }] = await withTimeout(
+    Promise.all([import('jspdf'), import('html2canvas-pro')]),
+    MODULE_LOAD_TIMEOUT_MS,
+    MODULE_LOAD_TIMEOUT_MESSAGE,
+  )
 
   const scale = options.scale ?? defaultRasterScale(pageCount)
   const imageFormat = options.imageFormat ?? defaultImageFormat(pageCount)

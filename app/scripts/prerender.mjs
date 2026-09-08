@@ -115,7 +115,31 @@ function applyHead(html, seo) {
     .map((data) => `<script type="application/ld+json" data-route-jsonld>${safeJsonLd(data)}</script>`)
     .join('\n    ')
   const headExtras = [hreflangTags, jsonLdTags].filter(Boolean).join('\n    ')
-  return out.replace('</head>', `    ${headExtras}\n  </head>`)
+  out = out.replace('</head>', `    ${headExtras}\n  </head>`)
+  assertHead(out, seo, { url, title, description })
+  return out
+}
+
+/**
+ * 构建期断言：正则替换只在模板标签形态匹配时才生效，模板一旦改动就会静默产出错误 SEO 头；
+ * 这里逐项校验替换结果，任一缺失即让 build 失败并指出路径与字段。
+ */
+function assertHead(out, seo, { url, title, description }) {
+  const lang = seo.lang === 'en' ? 'en' : 'zh-CN'
+  const required = [
+    ['title', `<title>${title}</title>`],
+    ['description', `<meta name="description" content="${description}" />`],
+    ['canonical', `<link rel="canonical" href="${url}" />`],
+    ['og:url', `<meta property="og:url" content="${url}" />`],
+    ['og:title', `<meta property="og:title" content="${title}" />`],
+    ['og:description', `<meta property="og:description" content="${description}" />`],
+    ['html lang', `<html lang="${lang}"`],
+  ]
+  for (const [name, needle] of required) {
+    if (!out.includes(needle)) {
+      throw new Error(`prerender head assertion failed: ${seo.path} missing ${name}`)
+    }
+  }
 }
 
 /** 将挂载点内容（含启动骨架）整体替换为预渲染正文 */

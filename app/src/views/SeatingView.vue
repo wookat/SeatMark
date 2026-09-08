@@ -1307,7 +1307,7 @@ function toDeskLabels() {
               </svg>
               {{ exporting ? tr('导出中…') : tr('导出 PNG') }}
               <span
-                class="ml-1 rounded-full px-1.5 py-px text-[11px] font-semibold"
+                class="ml-1 whitespace-nowrap rounded-full px-1.5 py-px text-[11px] font-semibold"
                 :class="exportBadge.cls"
                 data-testid="export-quota-badge"
               >{{ exportBadge.text }}</span>

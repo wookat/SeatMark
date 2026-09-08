@@ -122,7 +122,9 @@ describe('第 346 轮：PricingView 原价独立一行', () => {
     }
     const proHints = cards[1]!.findAll('[data-testid="pricing-maintenance-hint"]')
     expect(proHints).toHaveLength(1)
-    expect(proHints[0]!.text()).toBe(AUTH_MAINTENANCE_HINT)
+    // 第 367 轮：专业版卡内不再重复页顶整句，改为指向页顶的短句
+    expect(proHints[0]!.text()).toBe('注册领取试用暂不可用，见页顶说明')
+    expect(wrapper.text().split(AUTH_MAINTENANCE_HINT).length - 1).toBe(2)
     wrapper.unmount()
   })
 

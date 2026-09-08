@@ -121,7 +121,7 @@ function go() {
           {{ label }}
           <span
             v-if="showQuotaBadge && quotaBadge"
-            class="ml-1 rounded-full px-1.5 py-px text-[11px] font-semibold"
+            class="ml-1 whitespace-nowrap rounded-full px-1.5 py-px text-[11px] font-semibold"
             :class="quotaBadge.cls"
             data-testid="next-step-quota-badge"
           >{{ quotaBadge.text }}</span>

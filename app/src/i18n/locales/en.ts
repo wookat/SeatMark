@@ -124,7 +124,8 @@ export const en: Record<string, string> = {
   '仅展示前 5 条': 'showing first 5 only',
   '仅本次使用': 'Use once',
   '今日 0 次': '0 left today',
-  '今日剩余 {n} 次': '{n} left today',
+  '无水印 今日剩余 {n} 次': '{n} watermark-free left today',
+  '打印、带水印导出、CSV、速查表 PDF 均不限次': 'Printing, watermarked export, CSV and cheat-sheet PDF are unlimited',
   '今日已用完，分享链接每被点开 1 次即得 1 次，或明日 0 点恢复':
     'Used up today. Each click on your share link earns 1 more, or it resets at midnight.',
   '今日已用完，登录后每天 3 次，还可分享送次数':
@@ -203,6 +204,9 @@ export const en: Record<string, string> = {
   '对方分享了模板': 'Someone shared a template with you',
   '导入 JSON': 'Import JSON',
   '导入名单': 'Import list',
+  '导入并覆盖当前名单': 'Import and replace current list',
+  '首行「{cells}」看起来像列名，未识别为表头，如是请勾选上方「首行是表头」':
+    'The first row “{cells}” looks like column names but was not recognized as a header; if it is, tick “First row is header” above',
   '导入数据': 'Import data',
   '导出 JSON': 'Export JSON',
   '导出图片版 PDF（推荐）': 'Export image PDF (recommended)',
@@ -413,6 +417,7 @@ export const en: Record<string, string> = {
     'Pick a template, upload your spreadsheet roster, and export a batch of seating labels, door signs or badges. No sign-up; the roster is parsed only in your browser.',
   '选择适合你的模板': 'Pick the right template',
   '重新上传': 'Re-upload',
+  '重新粘贴': 'Paste again',
   '阵列居中（自动均分边距）': 'Center grid (auto-balance margins)',
   '除了考场座签还能生成什么？': 'What else can I generate besides seating labels?',
   '隐私政策': 'Privacy Policy',
@@ -546,6 +551,7 @@ export const en: Record<string, string> = {
   '带水印导出与打印不限次；无水印导出按未登录配额计算。':
     'Watermarked export and printing are unlimited; watermark-free export follows the signed-out quota.',
   '返回工坊': 'Back to Studio',
+  '注册领取试用暂不可用，见页顶说明': 'Trial sign-up is temporarily unavailable; see the note at the top of the page',
   '登录/注册暂不可用（服务维护中）；带水印导出与打印不限次，恢复后可领取试用。':
     'Sign-in/sign-up is temporarily unavailable (maintenance); watermarked export and printing stay unlimited, claim the trial once restored.',
   '登录/注册暂不可用（服务维护中）。不登录也能正常制作、带水印导出与打印，不限次数。':
@@ -1378,6 +1384,8 @@ export const en: Record<string, string> = {
   '去设置映射': 'Set up mapping',
   '关闭未匹配字段提示': 'Dismiss unmatched-fields notice',
   '正在准备页面...': 'Preparing pages...',
+  '仍在准备（加载导出组件与字体）…可点「取消」后重试': 'Still preparing (loading export components and fonts)… you can Cancel and retry',
+  '导出组件加载超时，请检查网络后重试': 'Export components timed out while loading; check your network and retry',
   '正在渲染第 {i}/{n} 页...': 'Rendering page {i}/{n}...',
   '已完成 {done}/{total} 页，正在写入 PDF...': '{done}/{total} pages done, writing PDF...',
   '已完成 {done}/{total} 页，正在生成 PDF...': '{done}/{total} pages done, generating PDF...',

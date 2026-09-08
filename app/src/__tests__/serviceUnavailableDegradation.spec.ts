@@ -17,9 +17,9 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import { AUTH_MAINTENANCE_HINT } from '@/utils/maintenanceCopy'
 import PricingView from '@/views/PricingView.vue'
 
-/** 第 364 轮：定价页三处与配额弹窗统一为同一句短文案 */
+/** 第 364 轮：定价页顶栏 / FAQ 与配额弹窗统一为同一句短文案；第 367 轮：专业版卡内改为指向页顶的短句，不再重复整句 */
 const NEUTRAL = AUTH_MAINTENANCE_HINT
-const PRICING_CARD_HINT = AUTH_MAINTENANCE_HINT
+const PRICING_CARD_HINT = '注册领取试用暂不可用，见页顶说明'
 /** 导出弹窗：维护说明挂在「无水印导出」选项内，不再在弹窗底部重复 */
 const EXPORT_HINT = '登录暂不可用（服务维护中），暂无法登录领取更多次数；下方带水印导出与打印不受影响'
 
