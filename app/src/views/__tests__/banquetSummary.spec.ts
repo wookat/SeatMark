@@ -5,7 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
 import { useToastStore } from '@/stores/toast'
-import { BANQUET_STATE_KEY, type BanquetTable } from '@/utils/banquet'
+import { BANQUET_STATE_KEY, estimateCapacity, type BanquetGuest, type BanquetTable } from '@/utils/banquet'
 import BanquetView from '@/views/BanquetView.vue'
 
 class ResizeObserverStub {
@@ -333,7 +333,7 @@ describe('第 347 轮：拆分/空桌收尾动作', () => {
     expect(groupA.find('[data-testid="move-group-gA"]').exists()).toBe(false)
     const disabled = groupA.find('[data-testid="move-group-gA-disabled"]')
     expect(disabled.exists()).toBe(true)
-    expect(disabled.text()).toContain('无桌可整组容纳')
+    expect(disabled.text()).toContain('这组 3 人没有一桌能坐下整组，已拆到 2 桌')
     expect(disabled.attributes('title')).toContain('没有一桌剩余座位够整组坐下')
 
     // 大家族 5 人：没有容纳 5 人的桌（最大 4 座）→ 也禁用
@@ -425,5 +425,113 @@ describe('第 350 轮：桌面端画布列吸顶', () => {
     // 画布容器仍在右列内，MobilePreviewJump / 缩放按钮引用不受影响
     expect(col.find('[data-testid="canvas-fit-toggle"]').exists()).toBe(true)
     wrapper.unmount()
+  })
+})
+
+describe('第 366 轮：estimateCapacity 纯函数（与摘要栏同一份 guests / tables）', () => {
+  function guestsOf(n: number, prefix = 'g'): BanquetGuest[] {
+    return Array.from({ length: n }, (_, i) => ({ id: `${prefix}${i}`, name: `宾客${i}`, groupId: null }))
+  }
+
+  it('充足：48 人、8 桌×10 座 → 按每桌坐满至少 5 桌、预计空 3 桌', () => {
+    const tables = Array.from({ length: 8 }, (_, i) => table(`t${i}`, `${i + 1}号桌`, 10, []))
+    expect(estimateCapacity(guestsOf(48), tables)).toMatchObject({
+      status: 'enough',
+      guests: 48,
+      tables: 8,
+      seats: 80,
+      capacity: 80,
+      shortage: 0,
+      minTables: 5,
+      expectedEmptyTables: 3,
+      lockedTables: 0,
+    })
+  })
+
+  it('不足：30 人、3 桌×8 座 → 还差 6 个座位', () => {
+    const tables = Array.from({ length: 3 }, (_, i) => table(`t${i}`, `${i + 1}号桌`, 8, []))
+    expect(estimateCapacity(guestsOf(30), tables)).toMatchObject({
+      status: 'short',
+      seats: 24,
+      capacity: 24,
+      shortage: 6,
+      minTables: 0,
+      expectedEmptyTables: 0,
+    })
+  })
+
+  it('空表：无名单 → no-guests；有名单无桌 → no-tables', () => {
+    expect(estimateCapacity([], [table('t0', '1号桌', 10, [])]).status).toBe('no-guests')
+    expect(estimateCapacity(guestsOf(5), []).status).toBe('no-tables')
+    expect(estimateCapacity([], []).status).toBe('no-guests')
+  })
+
+  it('含锁定桌：锁定桌空位不计入容量、已就座人数计入；最少桌数 = 锁定桌 + 剩余人按未锁定桌均座向上取整', () => {
+    const guests = guestsOf(25)
+    const locked: BanquetTable = { ...table('L', '主桌', 10, ['g0', 'g1', 'g2', 'g3']), locked: true }
+    const open = Array.from({ length: 3 }, (_, i) => table(`t${i}`, `${i + 1}号桌`, 10, []))
+    // 容量 = 30（未锁定）+ 4（锁定桌已坐）= 34 ≥ 25；剩余 21 人 / 均 10 座 → 3 桌；最少 1 + 3 = 4 桌，空 0
+    expect(estimateCapacity(guests, [locked, ...open])).toMatchObject({
+      status: 'enough',
+      seats: 40,
+      capacity: 34,
+      lockedTables: 1,
+      minTables: 4,
+      expectedEmptyTables: 0,
+    })
+    // 锁定桌空着 6 座不可用：35 人时容量 34 → 差 1
+    expect(estimateCapacity(guestsOf(35), [locked, ...open])).toMatchObject({ status: 'short', shortage: 1 })
+  })
+})
+
+describe('第 366 轮：第 3 步「一键自动分配」上方容量预估文案', () => {
+  it('48 人、8 桌×10 座：显示「至少需要 5 桌 … 预计空 3 桌」，且在自动分配按钮之前', async () => {
+    const guests = Array.from({ length: 48 }, (_, i) => ({ id: `g${i}`, name: `宾客${i}`, groupId: null }))
+    const tables = Array.from({ length: 8 }, (_, i) => table(`t${i + 1}`, `${i + 1}号桌`, 10, []))
+    localStorage.setItem(
+      BANQUET_STATE_KEY,
+      JSON.stringify({ title: '测试', pasteText: '', guests, groups: [], tables, markers: [], paper: 'a4', orientation: 'landscape', exportColors: false }),
+    )
+    const wrapper = await mountView()
+    const estimate = wrapper.find('[data-testid="capacity-estimate"]')
+    expect(estimate.exists()).toBe(true)
+    expect(estimate.attributes('data-status')).toBe('enough')
+    expect(estimate.text()).toContain('48 位宾客 · 8 桌 80 座')
+    expect(estimate.text()).toContain('至少需要 5 桌')
+    expect(estimate.text()).toContain('预计空 3 桌')
+    const section = estimate.element.parentElement!
+    const btn = wrapper.find('[data-testid="auto-assign"]').element
+    expect(section.compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(estimate.element.compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    // 自动分配后摘要栏口径：无分组 → 48 人坐满 5 桌、空 3 桌，与预估不矛盾
+    await wrapper.find('[data-testid="auto-assign"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[data-banquet-summary]').text()).toContain('空桌 3')
+    wrapper.unmount()
+  })
+
+  it('座位不足时显示缺口并提示加桌；无名单时提示先完成第 1 步', async () => {
+    const guests = Array.from({ length: 30 }, (_, i) => ({ id: `g${i}`, name: `宾客${i}`, groupId: null }))
+    const tables = Array.from({ length: 3 }, (_, i) => table(`t${i + 1}`, `${i + 1}号桌`, 8, []))
+    localStorage.setItem(
+      BANQUET_STATE_KEY,
+      JSON.stringify({ title: '测试', pasteText: '', guests, groups: [], tables, markers: [], paper: 'a4', orientation: 'landscape', exportColors: false }),
+    )
+    const wrapper = await mountView()
+    const estimate = wrapper.find('[data-testid="capacity-estimate"]')
+    expect(estimate.attributes('data-status')).toBe('short')
+    expect(estimate.text()).toContain('30 位宾客 · 3 桌 24 座，还差 6 个座位，请加桌或提高每桌座位数')
+    wrapper.unmount()
+
+    localStorage.setItem(
+      BANQUET_STATE_KEY,
+      JSON.stringify({ title: '测试', pasteText: '', guests: [], groups: [], tables, markers: [], paper: 'a4', orientation: 'landscape', exportColors: false }),
+    )
+    const empty = await mountView()
+    const est2 = empty.find('[data-testid="capacity-estimate"]')
+    expect(est2.attributes('data-status')).toBe('no-guests')
+    expect(est2.text()).toContain('请先在第 1 步导入宾客名单')
+    empty.unmount()
   })
 })

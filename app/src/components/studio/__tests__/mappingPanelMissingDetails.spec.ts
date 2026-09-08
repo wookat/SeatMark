@@ -7,9 +7,10 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import MappingPanel from '@/components/studio/MappingPanel.vue'
-import { setLocale } from '@/i18n'
+import { setLocale, t } from '@/i18n'
 import { createAppRouter } from '@/router'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { missingDetailText } from '@/utils/missingDetail'
 
 function seedMissing() {
   const ws = useWorkspaceStore()
@@ -67,6 +68,17 @@ describe('第 347 轮：MappingPanel 空字段清单', () => {
     const rows = details.findAll('[data-testid="missing-detail-row"]').map((r) => r.text())
     expect(rows).toEqual(['Row 2: Name empty', 'Row 3: Exam room empty', 'Row 4: Name, Exam room empty'])
     expect(details.text()).not.toMatch(/[\u4e00-\u9fff]/)
+    wrapper.unmount()
+  })
+
+  it('第 366 轮：明细口径来自共享 missingDetailText，行内文案与 store 明细（含姓名）一致', async () => {
+    const ws = seedMissing()
+    const wrapper = mountPanel()
+    await wrapper.vm.$nextTick()
+    const rows = wrapper.get('[data-testid="missing-details"]').findAll('[data-testid="missing-detail-row"]').map((r) => r.text())
+    expect(rows).toEqual(ws.dataQuality.missingDetails.map((d) => missingDetailText(d, 'zh', t)))
+    // 姓名列非空的行带 name，姓名为空的行不带
+    expect(ws.dataQuality.missingDetails.map((d) => d.name ?? null)).toEqual([null, '丙', null])
     wrapper.unmount()
   })
 

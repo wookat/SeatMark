@@ -1514,16 +1514,16 @@ describe("feedback.js 观测头 X-SeatMark-Rev", () => {
   });
 });
 
-describe("第 354 轮（第 364 轮递增）：三条边缘函数统一 X-SeatMark-Rev = r364 与公告短缓存", () => {
-  it("_rev.js 导出 r364", () => {
-    expect(SEATMARK_REV).toBe("r364");
+describe("第 354 轮（第 366 轮递增）：三条边缘函数统一 X-SeatMark-Rev = r366 与公告短缓存", () => {
+  it("_rev.js 导出 r366", () => {
+    expect(SEATMARK_REV).toBe("r366");
   });
 
-  it("/api/announcement GET 带 r364 与 Cache-Control 短缓存", async () => {
+  it("/api/announcement GET 带 r366 与 Cache-Control 短缓存", async () => {
     const { response, data } = await call("GET", "https://www.seatmark.cn/api/announcement");
     expect(response.status).toBe(200);
     expect(data.authService).toBe("ok");
-    expect(response.headers.get("X-SeatMark-Rev")).toBe("r364");
+    expect(response.headers.get("X-SeatMark-Rev")).toBe("r366");
     expect(ANNOUNCEMENT_CACHE_CONTROL).toBe(
       "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
     );
@@ -1533,10 +1533,10 @@ describe("第 354 轮（第 364 轮递增）：三条边缘函数统一 X-SeatMa
   it("其余 JSON 响应保持 no-store（不受公告缓存影响）", async () => {
     const { response } = await call("GET", "https://www.seatmark.cn/api/auth/me");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
-    expect(response.headers.get("X-SeatMark-Rev")).toBe("r364");
+    expect(response.headers.get("X-SeatMark-Rev")).toBe("r366");
   });
 
-  it("/api/feedback 405 / 200 响应均带 r364", async () => {
+  it("/api/feedback 405 / 200 响应均带 r366", async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore JS 模块无类型声明
     const { onRequest: onFeedback } = await import("../../../edge-functions/api/feedback.js");
@@ -1545,7 +1545,7 @@ describe("第 354 轮（第 364 轮递增）：三条边缘函数统一 X-SeatMa
       env: withTestEnv({}),
     });
     expect(get.status).toBe(405);
-    expect(get.headers.get("X-SeatMark-Rev")).toBe("r364");
+    expect(get.headers.get("X-SeatMark-Rev")).toBe("r366");
     const ok: Response = await onFeedback({
       request: new Request("http://localhost:5173/api/feedback", {
         method: "POST",
@@ -1555,10 +1555,10 @@ describe("第 354 轮（第 364 轮递增）：三条边缘函数统一 X-SeatMa
       env: withTestEnv({}),
     });
     expect(ok.status).toBe(200);
-    expect(ok.headers.get("X-SeatMark-Rev")).toBe("r364");
+    expect(ok.headers.get("X-SeatMark-Rev")).toBe("r366");
   });
 
-  it("/api/ai-design 405 / 413 / 200 响应均带 r364", async () => {
+  it("/api/ai-design 405 / 413 / 200 响应均带 r366", async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore JS 模块无类型声明
     const { onRequest: onAi, AI_MAX_BODY_BYTES } = await import("../../../edge-functions/api/ai-design.js");
@@ -1587,19 +1587,19 @@ describe("第 354 轮（第 364 轮递增）：三条边缘函数统一 X-SeatMa
         env,
       });
       expect(notAllowed.status).toBe(405);
-      expect(notAllowed.headers.get("X-SeatMark-Rev")).toBe("r364");
+      expect(notAllowed.headers.get("X-SeatMark-Rev")).toBe("r366");
       const tooLarge: Response = await onAi({
         request: post("{}", { "Content-Length": String(AI_MAX_BODY_BYTES + 1) }),
         env,
       });
       expect(tooLarge.status).toBe(413);
-      expect(tooLarge.headers.get("X-SeatMark-Rev")).toBe("r364");
+      expect(tooLarge.headers.get("X-SeatMark-Rev")).toBe("r366");
       const ok: Response = await onAi({
         request: post(JSON.stringify({ messages: [{ role: "user", content: "hi" }] })),
         env,
       });
       expect(ok.status).toBe(200);
-      expect(ok.headers.get("X-SeatMark-Rev")).toBe("r364");
+      expect(ok.headers.get("X-SeatMark-Rev")).toBe("r366");
     } finally {
       globalThis.fetch = originalFetch;
     }

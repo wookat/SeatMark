@@ -11,16 +11,11 @@ import {
   templateColumns,
   templateColumnsValid,
 } from '@/utils/fieldTemplate'
+import { missingDetailText } from '@/utils/missingDetail'
 
 const workspace = useWorkspaceStore()
 const { locale } = useI18n()
 
-/** 「第 X 行：姓名、桌号 为空」——行号与导入预览序号一致（数据行 1 起，不含表头） */
-function missingDetailText(item: { rowIndex: number; fields: string[] }): string {
-  const en = locale.value === 'en'
-  const fields = item.fields.map((f) => t(f)).join(en ? ', ' : '、')
-  return `${t('第 {n} 行').replace('{n}', String(item.rowIndex))}${en ? ': ' : '：'}${fields} ${t('为空')}`
-}
 const photoInput = ref<HTMLInputElement | null>(null)
 
 /** 下拉中「自定义组合」选项的哨兵值（不会与真实表头冲突） */
@@ -232,6 +227,14 @@ function onPhotoFiles(event: Event) {
       {{ t('未使用列：{columns}').replace('{columns}', unusedColumnsText) }}
     </p>
 
+    <p
+      v-if="workspace.rosterPersistFailed"
+      class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600"
+      data-testid="roster-persist-notice"
+    >
+      {{ t('名单较大，仅保存在当前页面内存；刷新或跳转后需重新导入（数据仍不会离开浏览器）') }}
+    </p>
+
     <div
       v-if="workspace.hasDataQualityRisk"
       class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800"
@@ -249,7 +252,7 @@ function onPhotoFiles(event: Event) {
                 :key="item.rowIndex"
                 data-testid="missing-detail-row"
               >
-                {{ missingDetailText(item) }}
+                {{ missingDetailText(item, locale, t) }}
               </li>
               <li v-if="workspace.dataQuality.missingMore" class="font-sans opacity-85">
                 {{ t('另有 {n} 行').replace('{n}', String(workspace.dataQuality.missingMore)) }}

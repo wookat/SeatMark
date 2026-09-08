@@ -21,7 +21,7 @@ export const guidesRound2: Guide[] = [
     quickStart: {
       label: '一键载入「高考考场桌贴」+ 演示名单',
       to: '/studio?template=gaokaoDesk&demo=1',
-      note: '先看合规版式效果，再换成自己的考生名单；免费、无需注册，名单不出浏览器',
+      note: '先看合规版式效果，再换成自己的考生名单；免费使用，名单不出浏览器',
     },
     howTo: {
       name: '批量生成符合规范的中高考考场桌贴',
@@ -347,7 +347,7 @@ export const guidesRound2: Guide[] = [
     quickStart: {
       label: '一键载入「班级门牌」+ 演示数据',
       to: '/studio?template=classDoor&demo=1',
-      note: '先看成品效果，再换成班级或学生名单；免费、无需注册，名单只在浏览器本地处理',
+      note: '先看成品效果，再换成班级或学生名单；免费使用，名单只在浏览器本地处理',
     },
     howTo: {
       name: '一周做完开学季班级物料',
@@ -427,7 +427,7 @@ export const guidesRound2: Guide[] = [
     quickStart: {
       label: '一键载入「毕业典礼席卡」+ 演示数据',
       to: '/studio?template=gradSeat&demo=1',
-      note: '先看成品效果，再换成班级或学生名单；免费、无需注册，名单只在浏览器本地处理',
+      note: '先看成品效果，再换成班级或学生名单；免费使用，名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -501,7 +501,7 @@ export const guidesRound2: Guide[] = [
     quickStart: {
       label: '一键载入「班牌」+ 演示数据',
       to: '/studio?template=classBrand&demo=1',
-      note: '先看成品效果，再换成班级或学生名单；免费、无需注册，名单只在浏览器本地处理',
+      note: '先看成品效果，再换成班级或学生名单；免费使用，名单只在浏览器本地处理',
     },
     howTo: {
       name: '批量制作运动会号码牌',
@@ -913,7 +913,7 @@ export const guidesRound2: Guide[] = [
     quickStart: {
       label: '一键载入「照片核验版」+ 演示数据',
       to: '/studio?template=withPhoto&demo=1',
-      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费使用，名单不出浏览器',
     },
     howTo: {
       name: '批量照片命名整理四步法',
@@ -1147,7 +1147,7 @@ export const guidesRound2: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费、无需注册，名单不出浏览器',
+      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费使用，名单不出浏览器',
     },
     faqs: [
       {

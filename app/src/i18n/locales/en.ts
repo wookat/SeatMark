@@ -131,8 +131,8 @@ export const en: Record<string, string> = {
     'Used up today. Sign in for 3 per day, plus bonus exports from sharing.',
   '从 Excel/WPS 直接复制区域粘贴（自动分列），或粘贴微信、文档里整理的名单（每行一条，多列可用逗号、顿号或空格分隔），也可直接上传 .txt 文本名单。数据不出浏览器。':
     'Copy-paste a range straight from Excel (auto-split into columns), paste a list from chat or a document (one entry per line, columns separated by commas or spaces), or upload a .txt list. Data never leaves the browser.',
-  '从名单解析到裁切线，每一步都按真实考务与会务交付流程设计':
-    'From list parsing to cut lines, every step is designed around real event and exam delivery workflows',
+  '名单解析、字段映射、裁切线与出血、批量导出——按考场与会场实际打印需求逐项打磨':
+    'List parsing, field mapping, cut lines and bleed, batch export — each tuned to how exam rooms and venues actually print',
   '从座签、桌贴、桌牌、门贴、证卡模板开始，也可自定义':
     'Start from seating label, desk label, table tent, door sign or badge templates — or customize',
   '从空白新建模板': 'New blank template',
@@ -376,6 +376,8 @@ export const en: Record<string, string> = {
   '行存在已映射字段为空': 'rows have empty mapped fields',
   '查看具体行': 'show rows',
   '第 {n} 行': 'Row {n}',
+  '例：': 'e.g. ',
+  '等 {n} 行': '({n} rows in total)',
   '为空': 'empty',
   '另有 {n} 行': '{n} more rows',
   '行号与「导入数据」预览中的序号一致（不含表头行）；空字段在成品中将留空，不会自动补全。':
@@ -576,7 +578,15 @@ export const en: Record<string, string> = {
   '没有一桌剩余座位够整组坐下': 'No table has enough free seats for the whole group',
   '指定整组到某桌…': 'Move whole group to…',
   '剩余': 'free',
-  '无桌可整组容纳': 'No table fits the whole group',
+  '这组 {n} 人没有一桌能坐下整组，已拆到 {m} 桌': 'No single table can seat all {n} in this group — split across {m} tables',
+  '名单较大，仅保存在当前页面内存；刷新或跳转后需重新导入（数据仍不会离开浏览器）':
+    'This list is large, so it is kept only in this page\'s memory; re-import it after a refresh or navigation (data still never leaves the browser).',
+  '请先在第 1 步导入宾客名单，再分配座位。': 'Import the guest list in step 1 before assigning seats.',
+  '请先在第 2 步添加餐桌，再分配座位。': 'Add tables in step 2 before assigning seats.',
+  '{n} 位宾客 · {k} 桌 {s} 座': '{n} guests · {k} tables, {s} seats',
+  '，还差 {d} 个座位，请加桌或提高每桌座位数': ' — {d} seats short; add tables or raise seats per table',
+  '；按每桌坐满至少需要 {m} 桌，分配后预计空 {e} 桌': '; filling every table needs at least {m} tables, leaving about {e} empty',
+  '（同组同桌策略实际空桌数以分配后摘要为准）': ' (with keep-groups, see the summary after assigning for the actual count)',
   '该桌剩余座位不够': 'Not enough free seats at that table',
   '请选择剩余座位 ≥ 组人数的桌': 'Choose a table with free seats ≥ group size',
   '已将 {group} 整组移到 {table}': 'Moved all of {group} to {table}',

@@ -11,7 +11,8 @@
  *   未配置时跳过推送（console.warn），反馈仍正常存档并返回成功
  * - ALERT_WEBHOOK     可选，存档失败时的告警 webhook；同样仅从环境变量读取
  *
- * 失败语义：存档失败 console.error + 告警；webhook 推送失败用 ctx.waitUntil 延迟 2s 重试一次；
+ * 失败语义：存档失败 console.error + 告警；webhook 推送失败（网络异常 / 超时 / 非 2xx 响应）用 ctx.waitUntil
+ * 延迟 2s 重试一次，重试仍失败只记日志不再重试；delivered 只在首次推送拿到 2xx 时置 true；
  * 存档与推送都失败时返回 503，不再假成功。
  *
  * 存储：与主 API 同源的三级后备（KV → Blob → 内存，见 _storage.js）。
@@ -152,13 +153,18 @@ async function handleRequest(context) {
       ? { msgtype: 'text', text: { content: text } }
       : { msg_type: 'text', content: { text } }
 
-    const push = () =>
-      fetch(webhook, {
+    const push = async () => {
+      const res = await fetch(webhook, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(8000),
       })
+      if (!res || !res.ok) {
+        throw new Error(`webhook responded ${res ? res.status : 'without response'}`)
+      }
+      return res
+    }
     try {
       await push()
       delivered = true
@@ -174,6 +180,7 @@ async function handleRequest(context) {
   return json({ ok: true }, 200, revHeader)
 }
 
+/** 延迟后重试一次；task 自身按 response.ok 判定成败（非 2xx 抛错），重试失败只记日志 */
 function retryLater(task, delayMs) {
   return new Promise((resolve) => setTimeout(resolve, delayMs))
     .then(() => task())
