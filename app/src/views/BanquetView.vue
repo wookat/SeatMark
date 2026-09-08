@@ -2765,8 +2765,8 @@ function toPlaceCards() {
       :quota-badge="exportBadge"
       :quota-badge-title="exportBadgeTitle"
     >
-      <template #secondary>
-        <MobilePreviewJump :preview="canvasContainer" :settings="rosterSection" inline />
+      <template #secondary="{ compact }">
+        <MobilePreviewJump :compact="compact" :preview="canvasContainer" :settings="rosterSection" inline />
       </template>
     </NextStepBar>
     <MobilePreviewJump :preview="canvasContainer" :settings="rosterSection" :avoid="pasteInput" />

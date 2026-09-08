@@ -25,11 +25,20 @@ const props = withDefaults(
   { progress: '', quotaBadge: null, quotaBadgeTitle: '' },
 )
 
+defineSlots<{
+  /** 次按钮位；compact 为 true 时操作条空间不足，插槽内容应改用短文案 */
+  secondary?: (props: { compact: boolean }) => unknown
+}>()
+
 const showQuotaBadge = computed(() => props.step === 'export' && !!props.quotaBadge)
 const isNarrow = useIsNarrow()
 
-/** 窄屏上完整角标仍超出视口时（如英文长文案）退到紧凑文案，按真实渲染宽度判定而不依赖语言 */
+/**
+ * 窄屏上完整角标放不下时（如英文长文案）退到紧凑文案，并通过 secondary 作用域插槽让次按钮同步用短文案；
+ * 按真实渲染宽度判定而不依赖语言：主按钮越出操作条右缘，或次按钮已被截断（scrollWidth > clientWidth）
+ */
 const actionEl = ref<HTMLElement | null>(null)
+const groupEl = ref<HTMLElement | null>(null)
 const compactBadge = ref(false)
 const badgeText = computed(() =>
   compactBadge.value ? (props.quotaBadge?.compactText ?? props.quotaBadge?.text) : props.quotaBadge?.text,
@@ -45,7 +54,10 @@ async function measureBadgeFit() {
   const el = actionEl.value
   if (!el || typeof window === 'undefined') return
   const limit = (barEl.value?.getBoundingClientRect().right || window.innerWidth) - 16
-  if (el.getBoundingClientRect().right > limit) compactBadge.value = true
+  const truncated = Array.from(groupEl.value?.children ?? []).some(
+    (child) => child !== el && child.scrollWidth > child.clientWidth + 1,
+  )
+  if (truncated || el.getBoundingClientRect().right > limit) compactBadge.value = true
 }
 
 const label = computed(() => {
@@ -145,9 +157,9 @@ function go() {
   >
     <div class="mx-auto flex h-12 w-full max-w-[1480px] items-center justify-between gap-3 px-4">
       <p class="min-w-0 shrink-[100] truncate text-xs text-slate-500" data-testid="next-step-progress">{{ progress }}</p>
-      <div class="flex min-w-0 items-center gap-2">
-        <!-- 次按钮位（如 <md 的「查看座位预览」），并入条内而不再独立悬浮；空间不足时次按钮收缩截断，主按钮不收缩 -->
-        <slot name="secondary" />
+      <div ref="groupEl" class="flex min-w-0 items-center gap-2">
+        <!-- 次按钮位（如 <md 的「查看座位预览」），并入条内而不再独立悬浮；空间不足时次按钮先换短文案再截断，主按钮不收缩 -->
+        <slot name="secondary" :compact="compactBadge" />
         <button
           ref="actionEl"
           type="button"

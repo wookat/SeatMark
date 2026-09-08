@@ -1589,8 +1589,8 @@ function toDeskLabels() {
       :quota-badge="exportBadge"
       :quota-badge-title="exportBadgeTitle"
     >
-      <template #secondary>
-        <MobilePreviewJump :preview="previewContainer" :settings="basicSection" inline />
+      <template #secondary="{ compact }">
+        <MobilePreviewJump :compact="compact" :preview="previewContainer" :settings="basicSection" inline />
       </template>
     </NextStepBar>
     <MobilePreviewJump

@@ -20,6 +20,8 @@ const props = defineProps<{
    * 仍仅 <md 可见；目标切换（预览 ↔ 设置）逻辑与悬浮模式一致
    */
   inline?: boolean
+  /** 行内模式下操作条空间不足时改用短文案（「预览 ↓」/「设置 ↑」） */
+  compact?: boolean
 }>()
 
 /** avoidNearBottom 的判定条带：视口底部 25%（rootMargin 把顶部 75% 裁掉） */
@@ -155,7 +157,10 @@ const hidden = computed(
     avoidNearBottomVisible.value),
 )
 
-const label = computed(() => (previewVisible.value ? tr('回到设置 ↑') : tr('查看座位预览 ↓')))
+const label = computed(() => {
+  if (props.inline && props.compact) return previewVisible.value ? tr('设置 ↑') : tr('预览 ↓')
+  return previewVisible.value ? tr('回到设置 ↑') : tr('查看座位预览 ↓')
+})
 
 function prefersReducedMotion() {
   return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches

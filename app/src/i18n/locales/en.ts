@@ -812,6 +812,8 @@ export const en: Record<string, string> = {
   '触屏：先点一个座位再点另一个即可互换（拖拽仅支持鼠标）': 'Touch: tap one seat, then another to swap (drag needs a mouse)',
   '查看座位预览 ↓': 'View seating preview ↓',
   '回到设置 ↑': 'Back to settings ↑',
+  '预览 ↓': 'Preview ↓',
+  '设置 ↑': 'Settings ↑',
   '适配屏宽': 'Fit width',
   '开始免费试用': 'Start free trial',
   '当前未登录：今日本设备剩余': 'Not signed in: remaining on this device today',
