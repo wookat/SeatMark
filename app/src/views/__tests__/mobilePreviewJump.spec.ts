@@ -237,8 +237,8 @@ describe('第 349 轮：390 宽下浮动胶囊让位', () => {
     expect(fab.find('button').classes()).toContain(
       '[.has-sticky-actions_&]:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]',
     )
-    expect(fab.find('button').classes()).toContain('max-md:size-10')
-    expect(fab.find('button').classes()).toContain('max-md:right-3')
+    expect(fab.find('button').classes()).toContain('tablet-down:size-10')
+    expect(fab.find('button').classes()).toContain('tablet-down:right-3')
     fab.unmount()
     wrapper.unmount()
   })
@@ -331,8 +331,8 @@ describe('第 357 轮：反馈 FAB 与底部固定层对画布 / 过道按钮避
     await fab.vm.$nextTick()
     expect(btn.attributes('data-input-focused')).toBe('true')
     expect(btn.attributes('data-collapsed')).toBe('true')
-    expect(btn.classes()).toContain('max-md:opacity-0')
-    expect(btn.classes()).toContain('max-md:pointer-events-none')
+    expect(btn.classes()).toContain('tablet-down:opacity-0')
+    expect(btn.classes()).toContain('tablet-down:pointer-events-none')
     textarea.blur()
     document.dispatchEvent(new FocusEvent('focusout'))
     await fab.vm.$nextTick()
