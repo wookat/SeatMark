@@ -36,6 +36,7 @@ import {
   seatingExportFileName,
   seatingRosterTextFromTable,
   shuffleEntries,
+  summarizeGenderMix,
   type Seat,
   type SeatingDuplicatePolicy,
   type SeatingEntry,
@@ -436,11 +437,31 @@ function randomizeAll() {
   toast.success(tr('已完全随机排座'), tr('再点一次可重新打乱'))
 }
 
+function genderMixMessage(list: readonly SeatingEntry[]): string {
+  const s = summarizeGenderMix(list)
+  const parts: string[] = []
+  let head = tr('男 {b} / 女 {g}').replace('{b}', String(s.boys)).replace('{g}', String(s.girls))
+  if (s.unknown) {
+    head += tr('，未识别性别 {n} 位排末尾').replace('{n}', String(s.unknown))
+  }
+  parts.push(head)
+  if (s.surplus) {
+    const more = s.boys > s.girls ? tr('男多 {n} 位') : tr('女多 {n} 位')
+    parts.push(
+      `${more.replace('{n}', String(s.surplus))}${tr('，末尾 {n} 座同性相邻').replace('{n}', String(s.surplus))}`,
+    )
+  } else {
+    parts.push(tr('相邻座位已男女交替'))
+  }
+  return parts.join(tr('；'))
+}
+
 function randomizeMixed() {
   if (!hasGender.value) return
-  arranged.value = interleaveByGender(parsedEntries.value.filter((e) => e.name))
+  const list = interleaveByGender(parsedEntries.value.filter((e) => e.name))
+  arranged.value = list
   selectedSeat.value = null
-  toast.success(tr('已按男女混排'), tr('相邻座位尽量男女交替'))
+  toast.success(tr('已按男女混排'), genderMixMessage(list))
 }
 
 function restoreOrder() {
@@ -1026,7 +1047,10 @@ function toDeskLabels() {
         </section>
 
         <section ref="arrangeSection" class="panel-card scroll-mt-4 outline-none">
-          <h2 class="section-title"><span class="step-chip">3</span>{{ tr('随机排座') }}</h2>
+          <h2 class="section-title">
+            <span class="step-chip">3</span>{{ tr('随机排座') }}
+            <span class="ml-1 text-xs font-normal text-slate-500">{{ tr('（可选）') }}</span>
+          </h2>
           <div class="mt-3 flex flex-wrap gap-2">
             <button type="button" class="btn btn-secondary btn-sm" @click="randomizeAll">
               <svg
@@ -1074,6 +1098,7 @@ function toDeskLabels() {
           </div>
           <p class="mt-2 text-xs leading-5 text-slate-600">
             {{ tr('男女混排需名单包含性别列（每行「姓名 性别」）。预览中可点选两个座位互换，桌面鼠标还可直接按住座位拖拽交换；触屏设备请用点选方式。点击（桌面也可拖拽）行首「排」把手可整排交换。') }}
+            {{ tr('人数不均、座位数不整齐或有过道时，尾部与过道两侧可能出现同性相邻，可点选互换微调。') }}
           </p>
         </section>
 

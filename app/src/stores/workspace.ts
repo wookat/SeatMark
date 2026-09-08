@@ -161,36 +161,48 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   // 名单会话内持久化（防抖）：经 URL / 落地页整页跳转进 /studio 时不丢已导入名单；
   // 仅存本页签的 sessionStorage，关闭页签即清除，符合「数据不出浏览器」承诺
   let rosterTimer: number | undefined
+  function persistRoster() {
+    try {
+      if (!excel.rows.length) {
+        sessionStorage.removeItem(WORKSPACE_ROSTER_KEY)
+        return
+      }
+      sessionStorage.setItem(
+        WORKSPACE_ROSTER_KEY,
+        JSON.stringify({
+          fileName: excel.fileName,
+          sheetName: excel.sheetName,
+          headers: excel.headers,
+          rows: excel.rows,
+          mapping,
+          isDemoData: isDemoData.value,
+          hadPhotos: photos.value.size > 0,
+          photoColumn: photoColumn.value,
+        }),
+      )
+    } catch {
+      /* 名单过大超出配额 / 隐私模式：静默跳过，仅影响整页跳转后的恢复 */
+    }
+  }
+  function schedulePersistRoster() {
+    window.clearTimeout(rosterTimer)
+    rosterTimer = window.setTimeout(persistRoster, 400)
+  }
+  // rows / headers 只做整体替换（applyExcel / clearData），照片只影响 hadPhotos 布尔，
+  // 故按引用与标量监听即可，不对数千行名单与照片 Map 做深度遍历
   watch(
-    [() => excel.rows, () => excel.headers, mapping, isDemoData, photos, photoColumn],
-    () => {
-      window.clearTimeout(rosterTimer)
-      rosterTimer = window.setTimeout(() => {
-        try {
-          if (!excel.rows.length) {
-            sessionStorage.removeItem(WORKSPACE_ROSTER_KEY)
-            return
-          }
-          sessionStorage.setItem(
-            WORKSPACE_ROSTER_KEY,
-            JSON.stringify({
-              fileName: excel.fileName,
-              sheetName: excel.sheetName,
-              headers: excel.headers,
-              rows: excel.rows,
-              mapping,
-              isDemoData: isDemoData.value,
-              hadPhotos: photos.value.size > 0,
-              photoColumn: photoColumn.value,
-            }),
-          )
-        } catch {
-          /* 名单过大超出配额 / 隐私模式：静默跳过，仅影响整页跳转后的恢复 */
-        }
-      }, 400)
-    },
-    { deep: true },
+    [
+      () => excel.rows,
+      () => excel.headers,
+      () => excel.fileName,
+      () => excel.sheetName,
+      () => isDemoData.value,
+      () => photos.value.size > 0,
+      photoColumn,
+    ],
+    schedulePersistRoster,
   )
+  watch(mapping, schedulePersistRoster, { deep: true })
 
   // ---------- 单张覆写（Edit One） ----------
   /** 数据行 -> 字段 id -> 覆写文本；以行对象为键，筛选/排序不影响对应关系 */

@@ -1344,10 +1344,14 @@ function toPlaceCards() {
           <textarea
             ref="pasteInput"
             v-model="pasteText"
-            rows="5"
-            class="input-field mt-2 h-auto min-h-24 resize-y py-2 leading-6"
-            :placeholder="`${tr('每行一位宾客姓名，粘贴后点「添加到名单」')}\n${tr('张伟')}\t${tr('男方亲友')}\n${tr('第二列可填分组，自动归组；支持从 Excel 直接复制「姓名、分组」两列')}`"
+            rows="6"
+            class="input-field mt-2 h-auto min-h-28 resize-y py-2 leading-6"
+            :placeholder="tr('每行一位宾客姓名，粘贴后点「添加到名单」')"
+            aria-describedby="banquet-paste-help"
           ></textarea>
+          <p id="banquet-paste-help" class="mt-1.5 text-xs leading-5 text-slate-600">
+            {{ tr('第二列可填分组，自动归组；支持从 Excel 直接复制「姓名、分组」两列') }}{{ tr('，如：') }}<code class="rounded bg-slate-100 px-1 text-slate-700">{{ tr('张伟') }} {{ tr('男方亲友') }}</code>
+          </p>
           <div class="mt-2 flex flex-wrap gap-2">
             <button type="button" class="btn btn-primary btn-sm" @click="importPasted">
               {{ tr('添加到名单（自动去重）') }}
