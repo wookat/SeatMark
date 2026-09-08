@@ -52,7 +52,7 @@ describe('PreviewArea md–lg 工具栏收敛到 2 行（r361）', () => {
     expect(panel.element.firstElementChild).toBe(row.element)
 
     const zoomMd = row.get('[data-testid="preview-zoom-select-md"]')
-    expect(zoomMd.classes()).toContain('w-20')
+    expect(zoomMd.classes()).toContain('w-24')
     expect(zoomMd.classes()).not.toContain('xl:w-24')
     expect(row.get('[data-testid="display-options-md-summary"]').text()).toBe(
       wrapper.get('[data-testid="preview-toolbar-summary"]').text(),

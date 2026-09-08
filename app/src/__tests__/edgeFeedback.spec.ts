@@ -1,15 +1,16 @@
 /**
  * edge-functions/api/feedback.js：请求体上限（413）、非 JSON（400）、正常提交（200）、
- * 以及存储降级 memory 时的行为（反馈无持久化承诺：存档静默走内存，仍返回 200）。
+ * 以及存储降级 memory 时的行为（第 361 轮起归入 fail-closed：不写内存假存档，仅 webhook 投递成功才 200，否则 503）。
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore JS 模块无类型声明
-import { onRequest, FEEDBACK_ARCHIVE_TTL_SECONDS, FEEDBACK_MAX_BODY_BYTES } from '../../../edge-functions/api/feedback.js'
+import { onRequest, FEEDBACK_ARCHIVE_TTL_SECONDS, FEEDBACK_MAX_BODY_BYTES, FEEDBACK_UNAVAILABLE_MESSAGE } from '../../../edge-functions/api/feedback.js'
 
 interface Env {
   FEEDBACK_WEBHOOK?: string
+  SEATMARK_ALLOW_MEMORY_STORAGE?: string
   seatmark_kv?: unknown
 }
 
@@ -79,7 +80,7 @@ describe('feedback.js 请求体上限', () => {
       page: '/privacy',
     })
     expect(new TextEncoder().encode(body).length).toBeLessThan(1024)
-    const { response, data } = await send(post(body))
+    const { response, data } = await send(post(body), { SEATMARK_ALLOW_MEMORY_STORAGE: '1' })
     expect(response.status).toBe(200)
     expect(data).toEqual({ ok: true })
     expect(fetchMock).not.toHaveBeenCalled()
@@ -94,18 +95,32 @@ describe('feedback.js 请求体上限', () => {
 })
 
 describe('feedback.js 存储与 webhook', () => {
-  it('存储降级 memory 且未配置 webhook：不发起任何 fetch，仍返回 200（行为不变）', async () => {
+  it('存储降级 memory 且未配置 webhook：不发起任何 fetch，不写内存假存档，返回 503（fail closed）', async () => {
     const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }))
     globalThis.fetch = fetchMock as unknown as typeof fetch
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(() => {})
     const { response, data } = await send(
       post(JSON.stringify({ type: 'suggestion', content: '单测：memory 降级' })),
       {},
     )
+    expect(response.status).toBe(503)
+    expect(data).toEqual({ ok: false, error: FEEDBACK_UNAVAILABLE_MESSAGE })
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('webhook not configured'))
+  })
+
+  it('存储降级 memory 但 SEATMARK_ALLOW_MEMORY_STORAGE=1（本地开发）：沿用内存存档，返回 200', async () => {
+    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { response, data } = await send(
+      post(JSON.stringify({ type: 'suggestion', content: '单测：memory 放行' })),
+      { SEATMARK_ALLOW_MEMORY_STORAGE: '1' },
+    )
     expect(response.status).toBe(200)
     expect(data).toEqual({ ok: true })
     expect(fetchMock).not.toHaveBeenCalled()
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('webhook not configured'))
   })
 
   it('限频键用哈希后的客户端 IP，KV 中不落明文 IP', async () => {

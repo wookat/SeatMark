@@ -34,12 +34,12 @@ afterEach(() => {
 })
 
 describe('feedback.js webhook 仅读 env.FEEDBACK_WEBHOOK', () => {
-  it('env 未配置 webhook 时不发起 fetch，反馈仍返回成功', async () => {
+  it('env 未配置 webhook 时不发起 fetch，反馈仍返回成功（存储放行 memory 存档）', async () => {
     const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }))
     globalThis.fetch = fetchMock as unknown as typeof fetch
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    const env: Env = {}
+    const env: Env = { SEATMARK_ALLOW_MEMORY_STORAGE: '1' }
     const response: Response = await feedbackRequest({
       request: postJson('https://www.seatmark.cn/api/feedback', {
         type: 'suggestion',
