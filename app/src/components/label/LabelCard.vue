@@ -183,7 +183,7 @@ const watermarkLayout = computed<{ text: string; style: CSSProperties }>(() => {
   // 字号约为标签宽度的 3.2%，下限 2mm（黑白打印可读），上限 3.2mm——签名式水印刻意小
   const size = Math.min(Math.max(Math.min(width, height * 2.4) * 0.032, 2), 3.2)
   const bandHeight = size * 1.4
-  const inset = Math.max(0.6, size * 0.3)
+  const inset = Math.max(1.0, size * 0.3 + 0.4)
   // 字段外扩一小圈避让间隙：水印紧贴字段也会显得视觉重叠
   const clearance = Math.max(0.6, size * 0.25)
   const fieldRects: Rect[] = props.template.fields.map((f) => ({

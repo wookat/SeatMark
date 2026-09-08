@@ -182,6 +182,103 @@ describe('NextStepBar', () => {
     clientW.mockRestore()
   })
 
+  describe('第 370 轮：窄屏下不限步骤测量，进度文案保留最小宽度', () => {
+    const narrowMatchMedia = () =>
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn((query: string) => ({
+          matches: query === '(max-width: 639px)',
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        })),
+      )
+    const secondarySlot = {
+      secondary: `<template #secondary="{ compact }"><button data-testid="secondary-stub" :data-compact="compact ? 'true' : 'false'">{{ compact ? 'Preview ↓' : 'View seating preview ↓' }}</button></template>`,
+    }
+
+    it.each<NextStep>(['arrange', 'import'])('%s 步骤（无角标）窄屏次按钮被截断 → compact=true，次按钮切短文案', async (step) => {
+      narrowMatchMedia()
+      const target = document.createElement('section')
+      const scrollW = vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockImplementation(function (this: HTMLElement) {
+        return this.dataset.testid === 'secondary-stub' ? 150 : 0
+      })
+      const clientW = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
+        return this.dataset.testid === 'secondary-stub' ? 26 : 0
+      })
+      const wrapper = mount(NextStepBar, {
+        props: { step, arrangeLabel: 'Random seating', progress: '2 loaded (0 seated)', target },
+        slots: secondarySlot,
+      })
+      await wrapper.vm.$nextTick()
+      await wrapper.vm.$nextTick()
+      const stub = wrapper.find('[data-testid="secondary-stub"]')
+      expect(stub.attributes('data-compact')).toBe('true')
+      expect(stub.text()).toBe('Preview ↓')
+      expect(wrapper.find('[data-testid="next-step-quota-badge"]').exists()).toBe(false)
+      wrapper.unmount()
+      scrollW.mockRestore()
+      clientW.mockRestore()
+    })
+
+    it('arrange 步骤窄屏进度文案 clientWidth < 56px（被挤到只剩「(」）→ compact=true', async () => {
+      narrowMatchMedia()
+      const target = document.createElement('section')
+      const clientW = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
+        return this.dataset.testid === 'next-step-progress' ? 4 : 0
+      })
+      const wrapper = mount(NextStepBar, {
+        props: { step: 'arrange', arrangeLabel: 'Random seating', progress: '2 loaded (0 seated)', target },
+        slots: secondarySlot,
+      })
+      await wrapper.vm.$nextTick()
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('[data-testid="secondary-stub"]').attributes('data-compact')).toBe('true')
+      wrapper.unmount()
+      clientW.mockRestore()
+    })
+
+    it('窄屏一切放得下（进度 ≥ 56px、次按钮未截断、主按钮未越界）→ compact=false；宽屏即使被截断也不 compact', async () => {
+      narrowMatchMedia()
+      const target = document.createElement('section')
+      const clientW = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
+        return this.dataset.testid === 'next-step-progress' ? 120 : 0
+      })
+      const fitting = mount(NextStepBar, {
+        props: { step: 'arrange', arrangeLabel: '随机排座', progress: '12 人 / 48 座', target },
+        slots: secondarySlot,
+      })
+      await fitting.vm.$nextTick()
+      await fitting.vm.$nextTick()
+      expect(fitting.find('[data-testid="secondary-stub"]').attributes('data-compact')).toBe('false')
+      fitting.unmount()
+      clientW.mockRestore()
+
+      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+      const scrollW = vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(150)
+      const clientW2 = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(26)
+      const wide = mount(NextStepBar, {
+        props: { step: 'arrange', arrangeLabel: '随机排座', progress: '12 人 / 48 座', target },
+        slots: secondarySlot,
+      })
+      await wide.vm.$nextTick()
+      await wide.vm.$nextTick()
+      expect(wide.find('[data-testid="secondary-stub"]').attributes('data-compact')).toBe('false')
+      wide.unmount()
+      scrollW.mockRestore()
+      clientW2.mockRestore()
+    })
+
+    it('进度元素保留 min-w-[3.5rem]（56px）且仍 truncate，最差情况可读一部分而非完全消失', () => {
+      const target = document.createElement('section')
+      const wrapper = mountBar({ step: 'arrange', arrangeLabel: '随机排座', progress: '12 人 / 48 座', target })
+      const progress = wrapper.find('[data-testid="next-step-progress"]')
+      expect(progress.classes()).toContain('min-w-[3.5rem]')
+      expect(progress.classes()).toContain('truncate')
+      expect(progress.classes()).not.toContain('min-w-0')
+      wrapper.unmount()
+    })
+  })
+
   it('无目标区块时不渲染', () => {
     const wrapper = mountBar({ step: 'import', arrangeLabel: '随机排座', target: null })
     expect(wrapper.find('[data-testid="next-step-bar"]').exists()).toBe(false)

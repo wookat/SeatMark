@@ -545,7 +545,7 @@ function onElementPointerUp() {
 const assignStrategy = ref<AssignStrategy>('keep-groups')
 const STRATEGY_OPTIONS = computed<SelectOption[]>(() => [
   { value: 'keep-groups', label: tr('尽量不拆组（默认）'), hint: tr('同组尽量同桌，可能留空位') },
-  { value: 'fill-tables', label: tr('优先坐满'), hint: tr('按桌顺序依次坐满，空桌最少') },
+  { value: 'fill-tables', label: tr('优先坐满'), hint: tr('按桌顺序依次坐满，空桌最少；可能把同组拆到不同桌') },
 ])
 
 function autoAssign() {
@@ -2121,7 +2121,7 @@ function toPlaceCards() {
             data-testid="reassign-fill-tables"
             @click="reassignWith('fill-tables')"
           >
-            {{ tr('换用「优先坐满」重新分配') }}
+            {{ tr('换用「优先坐满」重新分配（减少空桌，允许拆分同组）') }}
           </button>
           <span v-if="summary.emptyTables" class="text-slate-500">
             {{ tr('空桌可删除，也可保留备用（临时加人时直接落座）') }}

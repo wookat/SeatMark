@@ -171,6 +171,31 @@ describe('LabelCard', () => {
     expect(wrapper.find('.label-watermark').text()).toBe('seatmark.cn')
   })
 
+  it('第 370 轮：水印底边内缩 inset = max(1.0, size*0.3 + 0.4)，与底边框线留出间隙；顶边退让分支同用该 inset', () => {
+    const topMm = (style: string | undefined) => Number(/top: ([\d.]+)mm/.exec(style ?? '')?.[1])
+    // 180×128 大标签：size 封顶 3.2mm → inset = 0.96 + 0.4 = 1.36mm，bandHeight = 4.48mm → top = 128 - 1.36 - 4.48
+    const bottomFree = cloneTemplate(standard)
+    bottomFree.label.width = 180
+    bottomFree.label.height = 128
+    bottomFree.fields = [{ id: 'name', label: '姓名', type: 'text', x: 10, y: 10, width: 160, height: 40 }]
+    const bottom = mount(LabelCard, { props: { template: bottomFree, texts: { name: '测试' }, watermark: true } })
+    expect(topMm(bottom.find('.label-watermark').attributes('style'))).toBeCloseTo(122.16, 6)
+
+    // 底边被字段占满时退到顶边：top = inset = 1.36mm
+    const topFree = cloneTemplate(bottomFree)
+    topFree.fields = [{ id: 'name', label: '姓名', type: 'text', x: 10, y: 80, width: 160, height: 47 }]
+    const top = mount(LabelCard, { props: { template: topFree, texts: { name: '测试' }, watermark: true } })
+    expect(topMm(top.find('.label-watermark').attributes('style'))).toBeCloseTo(1.36, 6)
+
+    // 小标签：size 触底 2mm → inset = max(1.0, 0.6 + 0.4) = 1.0mm
+    const small = cloneTemplate(standard)
+    small.label.width = 40
+    small.label.height = 20
+    small.fields = [{ id: 'name', label: '姓名', type: 'text', x: 2, y: 8, width: 36, height: 10 }]
+    const smallWrapper = mount(LabelCard, { props: { template: small, texts: { name: '测试' }, watermark: true } })
+    expect(topMm(smallWrapper.find('.label-watermark').attributes('style'))).toBeCloseTo(1.0, 6)
+  })
+
   it('watermark 关闭时不渲染水印', () => {
     const wrapper = mount(LabelCard, {
       props: { template: standard, texts: { seatNo: '1', name: 'n', room: 'r', examId: 'e' } },

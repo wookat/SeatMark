@@ -670,7 +670,7 @@ const FAQS = computed(() => [
           <p class="section-eyebrow">Privacy Proof</p>
           <h2 class="section-heading">{{ t('实测网络面板：名单零上传') }}</h2>
           <p class="section-sub">
-            {{ t('打开浏览器开发者工具（F12 → Network）就能自己验证：在 SeatMark 上传 Excel、生成、导出全程，没有任何一个携带名单数据的网络请求') }}
+            {{ t('在电脑上打开浏览器开发者工具（F12 → Network）就能自己验证：在 SeatMark 上传 Excel、生成、导出全程，没有任何一个携带名单数据的网络请求') }}
           </p>
         </div>
         <div class="mt-8 grid gap-4 md:grid-cols-2">

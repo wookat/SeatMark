@@ -34,18 +34,21 @@ const showQuotaBadge = computed(() => props.step === 'export' && !!props.quotaBa
 const isNarrow = useIsNarrow()
 
 /**
- * 窄屏上完整角标放不下时（如英文长文案）退到紧凑文案，并通过 secondary 作用域插槽让次按钮同步用短文案；
- * 按真实渲染宽度判定而不依赖语言：主按钮越出操作条右缘，或次按钮已被截断（scrollWidth > clientWidth）
+ * 窄屏上操作条放不下时退到紧凑模式：角标改短文案，并通过 secondary 作用域插槽让次按钮同步用短文案；
+ * 不限步骤、按真实渲染宽度判定而不依赖语言：主按钮越出操作条右缘，或次按钮已被截断（scrollWidth > clientWidth），
+ * 或进度文案被挤到无法辨认（clientWidth < PROGRESS_MIN_PX）
  */
+const PROGRESS_MIN_PX = 56
 const actionEl = ref<HTMLElement | null>(null)
 const groupEl = ref<HTMLElement | null>(null)
+const progressEl = ref<HTMLElement | null>(null)
 const compactBadge = ref(false)
 const badgeText = computed(() =>
   compactBadge.value ? (props.quotaBadge?.compactText ?? props.quotaBadge?.text) : props.quotaBadge?.text,
 )
 
 async function measureBadgeFit() {
-  if (!isNarrow.value || !showQuotaBadge.value) {
+  if (!isNarrow.value) {
     compactBadge.value = false
     return
   }
@@ -57,7 +60,10 @@ async function measureBadgeFit() {
   const truncated = Array.from(groupEl.value?.children ?? []).some(
     (child) => child !== el && child.scrollWidth > child.clientWidth + 1,
   )
-  if (truncated || el.getBoundingClientRect().right > limit) compactBadge.value = true
+  const progress = progressEl.value
+  const progressSqueezed =
+    !!progress && !!props.progress && progress.clientWidth > 0 && progress.clientWidth < PROGRESS_MIN_PX
+  if (truncated || progressSqueezed || el.getBoundingClientRect().right > limit) compactBadge.value = true
 }
 
 const label = computed(() => {
@@ -122,7 +128,7 @@ const barEl = ref<HTMLElement | null>(null)
 useNextStepBarHeight(barEl)
 
 watch(
-  () => [visible.value, isNarrow.value, showQuotaBadge.value, props.quotaBadge?.text, label.value] as const,
+  () => [visible.value, isNarrow.value, showQuotaBadge.value, props.quotaBadge?.text, label.value, props.progress] as const,
   () => void measureBadgeFit(),
   { flush: 'post' },
 )
@@ -156,7 +162,7 @@ function go() {
     @focusout="barFocused = false"
   >
     <div class="mx-auto flex h-12 w-full max-w-[1480px] items-center justify-between gap-3 px-4">
-      <p class="min-w-0 truncate text-xs text-slate-500" data-testid="next-step-progress">{{ progress }}</p>
+      <p ref="progressEl" class="min-w-[3.5rem] truncate text-xs text-slate-500" data-testid="next-step-progress">{{ progress }}</p>
       <!-- 进度文本先让位；按钮组仅在自身超过整条宽度时才被限宽、次按钮截断 -->
       <div ref="groupEl" class="flex min-w-0 max-w-full shrink-0 items-center gap-2">
         <!-- 次按钮位（如 <md 的「查看座位预览」），并入条内而不再独立悬浮；空间不足时次按钮先换短文案再截断，主按钮不收缩 -->
