@@ -325,7 +325,7 @@ export const enTemplateDescriptions: Record<string, string> = {
   '96×96 mm 方形桌号牌 A4 一页 4 枚，金色交叠双环象征缔结，桌号特大字居中，宾客远处一眼认桌。':
     '96×96 mm square table number, 4 per A4, with interlocking gold rings and a centered extra-large number.',
   '90×55 mm 席位卡，四角绯粉水彩晕染渐隐 + 细金内框，柔和甜美，酒店婚宴席位卡百搭款。':
-    '90×55 mm place card with fading blush watercolour corners and a thin gold frame. A versatile hotel wedding card.',
+    '90×55 mm place card with fading blush watercolor corners and a thin gold frame. A versatile hotel wedding card.',
   'A4 竖向整页迎宾牌，顶部蕾丝扇形花边 + 中央纹章框，新人姓名与婚期居中，摆放于迎宾区易拉架。':
     'Full portrait A4 welcome sign with a lace scallop border and central crest frame around the names and date.',
   '90×55 mm 席位卡，顶部金色雨点渐次垂落如流苏，简洁不抢戏，与香槟色系婚礼布置天然相配。':
@@ -335,7 +335,7 @@ export const enTemplateDescriptions: Record<string, string> = {
   '96×62 mm 席卡，墨蓝色内框配兰草笔触角饰，端庄含蓄，中式喜宴与商务宴请均不违和。':
     '96×62 mm card with an ink-blue frame and orchid brushstroke corners. Dignified for Chinese and business banquets.',
   '90×55 mm 席位卡 A4 一页 10 枚，腮红粉水彩晕染 + 鎏金细枝角饰，适合宴会厅婚礼。':
-    '90×55 mm place card, 10 per A4, with blush watercolour and fine gold branch corners. Made for ballroom weddings.',
+    '90×55 mm place card, 10 per A4, with blush watercolor and fine gold branch corners. Made for ballroom weddings.',
   '180×70 mm 宽幅窗口牌，藏蓝底金色扭索纹样条 + 衬线窗口号大字，庄重可信的政务服务窗口气质。':
     '180×70 mm wide window sign: navy ground with a gold guilloche band and large serif window number. Formal and trustworthy.',
   '64×38 mm 姓名贴 A4 一页 21 枚，奶油马卡龙撞色圆角云朵与小太阳，软萌治愈的幼儿园开学装备。':

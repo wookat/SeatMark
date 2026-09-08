@@ -100,6 +100,7 @@ const BRITISH_SPELLINGS = [
   /\bcentre\b/i,
   /\bcolours?\b/i,
   /\bcolour(ed|ing|ful)\b/i,
+  /\b\w+colours?\b/i,
   /\blabelled\b/i,
   /\blabelling\b/i,
   /\borganis(e|ed|es|ing|ation|ations)\b/i,
@@ -138,10 +139,10 @@ describe('第 358 轮：英文词典禁用英式拼写', () => {
   })
 
   it('禁词表本身能识别典型英式拼写', () => {
-    for (const word of ['centred', 'colour', 'labelled', 'organisation', 'recognised']) {
+    for (const word of ['centred', 'colour', 'watercolour', 'labelled', 'organisation', 'recognised']) {
       expect(BRITISH_SPELLINGS.some((re) => re.test(word)), word).toBe(true)
     }
-    for (const word of ['centered', 'color', 'labeled', 'organization', 'recognized']) {
+    for (const word of ['centered', 'color', 'watercolor', 'labeled', 'organization', 'recognized']) {
       expect(BRITISH_SPELLINGS.some((re) => re.test(word)), word).toBe(false)
     }
   })
