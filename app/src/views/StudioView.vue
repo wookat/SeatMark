@@ -94,9 +94,11 @@ function toastPaperFitLow(paperName: string, level: keyof typeof FIT_LEVEL_LABEL
 
 const designerOpen = ref(false)
 const designerTemplate = ref<LabelTemplate | null>(null)
+const designerStartAction = ref<'logo' | undefined>(undefined)
 
-function openDesigner(template: LabelTemplate | null) {
+function openDesigner(template: LabelTemplate | null, startAction?: 'logo') {
   designerTemplate.value = template ? cloneTemplate(template) : createBlankTemplate()
+  designerStartAction.value = startAction
   designerOpen.value = true
 }
 
@@ -367,6 +369,7 @@ onMounted(() => {
     <TemplateDesigner
       v-if="designerOpen && designerTemplate"
       :initial="designerTemplate"
+      :start-action="designerStartAction"
       @close="designerOpen = false"
       @save="onDesignerSave"
     />

@@ -63,6 +63,8 @@ export const TEMPLATE_FIXED_TEXT_EN: Record<string, string> = {
   '接 送 卡': 'PICKUP CARD',
   '实验用样 · 请勿触碰': 'Lab sample · Do not touch',
   '沿此线对折 · 成 V 型立于桌面': 'Fold along this line',
+  '底座 · 沿两条折线向内折，立成三角形': 'Base · Fold inward along both lines to form a triangle',
+  '粘贴边 · 涂胶后与顶边内侧贴合': 'Glue tab · Apply glue and attach to the inside of the top edge',
   '日期：____________': 'Date: ____________',
   '保持安静 · 离座请带走随身物品': 'Keep quiet · Take your belongings when leaving',
   '先进先出 · 近效期先用': 'First in, first out · Use nearest expiry first',

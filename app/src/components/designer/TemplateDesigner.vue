@@ -27,7 +27,11 @@ import { uid } from '@/utils/id'
 import { centerLayout, clamp, cloneTemplate, fitToPaper, layoutOverflow, MM_TO_PX } from '@/utils/layout'
 import { matchPaperPreset, PAPER_PRESETS, paperLabel } from '@/utils/paper'
 
-const props = defineProps<{ initial: LabelTemplate }>()
+const props = defineProps<{
+  initial: LabelTemplate
+  /** 打开即执行的快捷动作：'logo' = 添加固定图片字段并直接弹出文件选择 */
+  startAction?: 'logo'
+}>()
 const emit = defineEmits<{
   close: []
   save: [template: LabelTemplate, asNew: boolean]
@@ -657,6 +661,7 @@ function onDocPointerDown(event: PointerEvent) {
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
   document.addEventListener('pointerdown', onDocPointerDown)
+  if (props.startAction === 'logo') startInsertLogo()
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
@@ -938,6 +943,15 @@ function addPreset(preset: FieldPreset) {
   draft.value.fields.push(field)
   selectOnly(id)
   addMenuOpen.value = false
+}
+
+/** 「插入 Logo」快捷入口：加一枚固定图片字段并直接打开文件选择（用户手势窗口内） */
+function startInsertLogo() {
+  const preset = FIELD_PRESETS.find((p) => p.key === 'logo')
+  if (!preset) return
+  addPreset(preset)
+  if (isMobile.value) mobilePanel.value = 'props'
+  void nextTick(() => logoInput.value?.click())
 }
 
 // ---------- 字段管理 ----------

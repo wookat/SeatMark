@@ -27,7 +27,7 @@ import { tFitReason } from '@/utils/paperFitI18n'
 import { centerLayout, clamp, fitToPaper, layoutOverflow, round1 } from '@/utils/layout'
 import { matchPaperPreset, PAPER_PRESETS, paperLabel } from '@/utils/paper'
 
-const emit = defineEmits<{ openDesigner: [template: LabelTemplate] }>()
+const emit = defineEmits<{ openDesigner: [template: LabelTemplate, startAction?: 'logo'] }>()
 
 const workspace = useWorkspaceStore()
 const library = useTemplateLibrary()
@@ -198,13 +198,23 @@ function onCenterLayout() {
   <section class="panel-card">
     <div class="panel-head">
       <h2 class="section-title"><span class="step-chip">4</span>{{ t('页面与版式') }}</h2>
-      <button
-        type="button"
-        class="btn btn-secondary btn-sm"
-        @click="emit('openDesigner', workspace.template)"
-      >
-        {{ t('打开可视化设计器') }}
-      </button>
+      <div class="flex flex-wrap items-center justify-end gap-1.5">
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm"
+          :title="t('在当前模板上添加校徽 / 公司 Logo，图片仅保存在本机模板里')"
+          @click="emit('openDesigner', workspace.template, 'logo')"
+        >
+          {{ t('插入 Logo') }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm"
+          @click="emit('openDesigner', workspace.template)"
+        >
+          {{ t('打开可视化设计器') }}
+        </button>
+      </div>
     </div>
 
     <div class="grid grid-cols-2 gap-2.5">
