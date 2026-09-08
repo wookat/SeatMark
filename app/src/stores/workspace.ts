@@ -20,6 +20,7 @@ import { demoExcelFor, localizeDemoExcel } from '@/data/demoDatasets'
 import { currentLocale, t as tr } from '@/i18n'
 import { compareCellText, parseExcelFile } from '@/utils/excel'
 import { stackSortRows } from '@/utils/cutSort'
+import { summarizeDuplicateRows, type DuplicateRowsSummary } from '@/utils/duplicateRows'
 import { chunkRows, cloneTemplate, labelsPerPage } from '@/utils/layout'
 import { loadPhotoFiles } from '@/utils/photos'
 
@@ -451,6 +452,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return result
   })
 
+  /** 完全重复的名单行（所有已映射字段文本全同）：导出前纯提示，不阻断也不改数据 */
+  const duplicateRows = computed<DuplicateRowsSummary>(() => {
+    const mappedTextFields = mappableFields.value.filter((f) => mapping[f.id])
+    if (!mappedTextFields.length) return { groups: 0, rows: 0, example: null }
+    return summarizeDuplicateRows(excel.rows, (row) =>
+      mappedTextFields.map((f) => fieldText(row, f.id)),
+    )
+  })
+
   const hasDataQualityRisk = computed(
     () =>
       dataQuality.value.missingRows > 0 ||
@@ -803,6 +813,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     unmappedFields,
     mappingSummary,
     dataQuality,
+    duplicateRows,
     hasDataQualityRisk,
     photoStats,
     setLoading,

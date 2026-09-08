@@ -283,7 +283,7 @@ const FAQS = computed(() => [
             <template v-else>
               <span class="block">把 Excel 名单粘进来 → 先看预览 → 导出可打印的座签页。</span>
               <span class="block">需要准备：一份带表头（姓名、考场、座位号等）的名单，以及一台 A4 打印机。</span>
-              <span class="block">最后得到：考场座签、桌牌席卡、门贴证卡等 {{ TEMPLATE_COUNT }} 款模板的打印页，排版精确到毫米，全程浏览器本地处理。</span>
+              <span class="block">最后得到：考场座签、桌牌席卡、门贴证卡等 {{ TEMPLATE_COUNT }} 款模板的打印页，尺寸按毫米设定，打印后与模板标注一致，全程浏览器本地处理。</span>
             </template>
           </p>
           <div class="mt-7 flex flex-wrap gap-3">

@@ -65,7 +65,7 @@ const PLANS = computed<Plan[]>(() => [
     tagline: t('考务与会务重度用户'),
     features: [
       ...(auth.serviceUnavailable
-        ? [t('账号服务维护中，带水印导出不限次')]
+        ? []
         : [
             t('新用户注册即送 7 天专业版试用'),
             t('邀请好友注册，双方各送 7 天，可累计叠加'),
@@ -162,12 +162,16 @@ async function submitReserve() {
       </p>
     </div>
 
-    <div class="mt-10 grid gap-5 md:grid-cols-3">
+    <div class="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
       <div
-        v-for="plan in PLANS"
+        v-for="(plan, planIndex) in PLANS"
         :key="plan.name"
+        data-testid="pricing-plan-card"
         class="relative flex flex-col rounded-lg border bg-white p-6 pt-7 shadow-card"
-        :class="plan.highlight ? 'border-brand-400 ring-2 ring-brand-500/20' : 'border-slate-200'"
+        :class="[
+          plan.highlight ? 'border-brand-400 ring-2 ring-brand-500/20' : 'border-slate-200',
+          planIndex === 2 ? 'md:col-span-2 md:mx-auto md:w-[calc(50%-0.625rem)] lg:col-span-1 lg:mx-0 lg:w-auto' : '',
+        ]"
       >
         <span
           v-if="plan.badge"
@@ -223,7 +227,7 @@ async function submitReserve() {
           class="mt-3 text-xs leading-5 text-slate-500"
           data-testid="pricing-maintenance-hint"
         >
-          {{ t('账号服务维护中，恢复后可领取') }}
+          {{ t('账号服务维护中，带水印导出不限次；恢复后可领取') }}
         </p>
 
         <RouterLink

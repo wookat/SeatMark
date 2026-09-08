@@ -154,3 +154,53 @@ describe('BanquetView 张贴版导出开关', () => {
     wrapper.unmount()
   })
 })
+
+describe('第 363 轮：导出检查弹窗「本次导出」摘要行', () => {
+  async function openIssuesDialog(wrapper: Awaited<ReturnType<typeof mountBanquet>>) {
+    const demoBtn = wrapper.findAll('button').find((b) => b.text().includes('用演示名单'))
+    expect(demoBtn).toBeTruthy()
+    await demoBtn!.trigger('click')
+    await wrapper.find('[data-testid="auto-assign"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    await wrapper.find('[data-testid="banquet-export-png"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    const summary = wrapper.find('[data-testid="banquet-export-summary"]')
+    expect(summary.exists()).toBe(true)
+    return summary
+  }
+
+  it('48 人自动分配后：摘要含「张贴版」「已安排 48/48」「空桌 2」「6/8」与水印状态，且位于问题区块之上', async () => {
+    const wrapper = await mountBanquet()
+    const summary = await openIssuesDialog(wrapper)
+    const text = summary.text()
+    expect(text).toContain('本次导出')
+    expect(text).toContain('张贴版')
+    expect(text).toContain('已安排 48/48')
+    expect(text).toContain('空桌 2')
+    expect(text).toContain('6/8')
+    expect(text).toContain('带底边细线水印')
+    // 与状态条数字同源
+    const bar = wrapper.text()
+    expect(bar).toContain('空桌 2')
+    const dialog = wrapper.find('[role="dialog"]').html()
+    expect(dialog.indexOf('banquet-export-summary')).toBeLessThan(dialog.indexOf('删除空桌后导出'))
+    // 主按钮文案：删除空桌后导出 / 跳过空桌，继续导出
+    const labels = wrapper.findAll('[data-testid="modal-actions"] button').map((b) => b.text())
+    expect(labels).toContain('删除空桌后导出')
+    expect(labels).toContain('跳过空桌，继续导出')
+    wrapper.unmount()
+  })
+
+  it('关闭张贴版：摘要写「紧凑版」，主按钮为「保留空桌，继续导出」', async () => {
+    const wrapper = await mountBanquet()
+    await wrapper
+      .find<HTMLInputElement>('[data-testid="poster-layout-toggle"] input[type="checkbox"]')
+      .setValue(false)
+    const summary = await openIssuesDialog(wrapper)
+    expect(summary.text()).toContain('紧凑版')
+    expect(summary.text()).not.toContain('张贴版')
+    const labels = wrapper.findAll('[data-testid="modal-actions"] button').map((b) => b.text())
+    expect(labels).toContain('保留空桌，继续导出')
+    wrapper.unmount()
+  })
+})

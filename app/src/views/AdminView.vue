@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 
-import { useAuthStore } from '@/stores/auth'
+import { isServiceUnavailableError, useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { apiFetch, ApiError } from '@/utils/api'
 
@@ -68,6 +68,8 @@ const toast = useToastStore()
 
 const loading = ref(true)
 const forbidden = ref(false)
+/** 账号服务不可用（503 / auth_secret_missing）：整页 gate，内部错误码只进控制台 */
+const serviceUnavailable = ref(false)
 const overview = ref<Overview | null>(null)
 const health = ref<Health | null>(null)
 const users = ref<AdminUser[]>([])
@@ -88,6 +90,7 @@ const maxGrowth = computed(() =>
 async function loadAll() {
   loading.value = true
   forbidden.value = false
+  serviceUnavailable.value = false
   try {
     const [ov, he, us, fb, rs, an] = await Promise.all([
       apiFetch<Overview>('/api/admin/overview'),
@@ -114,6 +117,9 @@ async function loadAll() {
   } catch (err) {
     if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
       forbidden.value = true
+    } else if (isServiceUnavailableError(err)) {
+      serviceUnavailable.value = true
+      console.warn('[admin] account service unavailable', err instanceof ApiError ? err.data : err)
     } else {
       toast.danger('加载失败', err instanceof ApiError ? err.message : '请稍后再试')
     }
@@ -277,6 +283,19 @@ watch(
         请使用管理员白名单邮箱登录后访问（白名单由 ADMIN_EMAILS 环境变量配置）。
       </p>
       <RouterLink to="/account" class="btn btn-primary btn-sm mt-4">去登录</RouterLink>
+    </div>
+
+    <div
+      v-else-if="serviceUnavailable"
+      data-testid="admin-service-unavailable"
+      class="mt-10 rounded-lg border border-slate-200 bg-white p-8 text-center"
+    >
+      <p class="text-sm font-semibold text-slate-900">账号服务暂不可用</p>
+      <p class="mt-2 text-sm text-slate-600">管理后台依赖账号服务，请稍后再试。</p>
+      <div class="mt-4 flex flex-wrap justify-center gap-2">
+        <RouterLink to="/" class="btn btn-secondary btn-sm">返回首页</RouterLink>
+        <RouterLink to="/account" class="btn btn-primary btn-sm">账号页</RouterLink>
+      </div>
     </div>
 
     <template v-else-if="overview">

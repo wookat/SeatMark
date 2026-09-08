@@ -1107,6 +1107,23 @@ function startExport(format: 'png' | 'pdf') {
   exportChoiceOpen.value = true
 }
 
+/**
+ * 导出检查弹窗顶部「本次导出」一行：版式 · 已安排 X/Y · 空桌 N · 有宾客的桌/总桌数 · 水印状态。
+ * 数据源与摘要栏 / 自动分配 toast 同为 summary（summarizeBanquet），不另起口径。
+ */
+const exportSummaryLine = computed(() => {
+  const s = summary.value
+  const totalTables = tables.value.length
+  const parts = [
+    posterLayout.value ? tr('张贴版') : tr('紧凑版'),
+    `${tr('已安排')} ${s.assigned}/${s.total}`,
+    `${tr('空桌')} ${s.emptyTables}`,
+    `${tr('有宾客的桌')} ${totalTables - s.emptyTables}/${totalTables}`,
+    quota.remaining > 0 ? tr('无水印（消耗 1 次额度）或带底边细线水印') : tr('带底边细线水印'),
+  ]
+  return parts.join(' · ')
+})
+
 /** 检查结果里除空桌外没有其他问题：此时「继续导出」只是保留空桌 */
 const onlyEmptyTableIssues = computed(() => {
   const found = issues.value
@@ -2191,6 +2208,12 @@ function toPlaceCards() {
     <!-- 导出前检查弹窗 -->
     <ModalDialog :open="issuesOpen" :title="tr('导出前检查发现问题')" size="md" @close="issuesOpen = false">
       <div v-if="issues" class="flex flex-col gap-3 text-sm text-slate-700">
+        <p
+          data-testid="banquet-export-summary"
+          class="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs leading-5 text-slate-700"
+        >
+          <span class="font-semibold text-slate-800">{{ tr('本次导出') }}</span>{{ tr('：') }}{{ exportSummaryLine }}
+        </p>
         <div v-if="issues.unassigned.length">
           <p class="font-bold text-amber-700">
             {{ tr('未安排的宾客') }}{{ tr('（') }}{{ issues.unassigned.length }}{{ tr('）') }}
