@@ -61,6 +61,45 @@ describe('NextStepBar', () => {
     expect(mountBar({ step: 'export', arrangeLabel: '随机排座', target }).find('[data-testid="next-step-quota-badge"]').exists()).toBe(false)
   })
 
+  it('第 367 轮：窄屏（<640px）且带额度角标时主按钮收短为「下一步：导出」，无角标或宽屏保持完整文案', async () => {
+    const target = document.createElement('section')
+    const badge = { text: '无水印 今日剩余 1 次', cls: 'bg-emerald-100 text-emerald-700' }
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: query === '(max-width: 639px)',
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    )
+    const narrowWithBadge = mount(NextStepBar, {
+      props: { step: 'export', arrangeLabel: '随机排座', target, quotaBadge: badge },
+    })
+    await narrowWithBadge.vm.$nextTick()
+    const action = narrowWithBadge.find('[data-testid="next-step-action"]')
+    expect(action.text()).toBe('下一步：导出 无水印 今日剩余 1 次')
+    expect(action.find('[data-testid="next-step-quota-badge"]').classes()).toContain('whitespace-nowrap')
+
+    const narrowNoBadge = mountBar({ step: 'export', arrangeLabel: '随机排座', target })
+    await narrowNoBadge.vm.$nextTick()
+    expect(narrowNoBadge.find('[data-testid="next-step-action"]').text()).toBe('下一步：检查并导出')
+
+    await setLocale('en')
+    const narrowEn = mount(NextStepBar, {
+      props: { step: 'export', arrangeLabel: 'Random seating', target, quotaBadge: { ...badge, text: '1 watermark-free left today' } },
+    })
+    await narrowEn.vm.$nextTick()
+    expect(narrowEn.find('[data-testid="next-step-action"]').text()).toContain('Next: export')
+    expect(narrowEn.find('[data-testid="next-step-action"]').text()).not.toContain('check & export')
+
+    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false }))
+    const wideWithBadge = mount(NextStepBar, {
+      props: { step: 'export', arrangeLabel: 'Random seating', target, quotaBadge: badge },
+    })
+    await wideWithBadge.vm.$nextTick()
+    expect(wideWithBadge.find('[data-testid="next-step-action"]').text()).toContain('Next: check & export')
+  })
+
   it('无目标区块时不渲染', () => {
     const wrapper = mountBar({ step: 'import', arrangeLabel: '随机排座', target: null })
     expect(wrapper.find('[data-testid="next-step-bar"]').exists()).toBe(false)
