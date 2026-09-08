@@ -125,6 +125,7 @@ export const en: Record<string, string> = {
   '仅本次使用': 'Use once',
   '今日 0 次': '0 left today',
   '无水印 今日剩余 {n} 次': '{n} watermark-free left today',
+  '无水印 剩 {n} 次': '{n} watermark-free',
   '打印、带水印导出、CSV、速查表 PDF 均不限次': 'Printing, watermarked export, CSV and cheat-sheet PDF are unlimited',
   '今日已用完，分享链接每被点开 1 次即得 1 次，或明日 0 点恢复':
     'Used up today. Each click on your share link earns 1 more, or it resets at midnight.',

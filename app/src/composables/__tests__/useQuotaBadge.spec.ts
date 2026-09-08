@@ -13,6 +13,7 @@ describe('useQuotaBadge', () => {
     const { badge, title } = useQuotaBadge(quota, auth, t)
     expect(badge.value).toEqual({
       text: '无水印 今日剩余 1 次',
+      compactText: '无水印 剩 1 次',
       cls: 'bg-emerald-100 text-emerald-700',
     })
     expect(title.value).toContain('打印、带水印导出、CSV、速查表 PDF 均不限次')

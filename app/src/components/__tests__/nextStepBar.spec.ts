@@ -100,6 +100,54 @@ describe('NextStepBar', () => {
     expect(wideWithBadge.find('[data-testid="next-step-action"]').text()).toContain('Next: check & export')
   })
 
+  it('第 367 轮：窄屏上完整角标仍超出操作条右缘时退到 compactText（按真实渲染宽度判定），能放下时保持完整文案', async () => {
+    const target = document.createElement('section')
+    const badge = {
+      text: '1 watermark-free left today',
+      compactText: '1 watermark-free',
+      cls: 'bg-emerald-100 text-emerald-700',
+    }
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: query === '(max-width: 639px)',
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    )
+    const rect = (right: number) => ({ left: 0, top: 0, right, bottom: 48, width: right, height: 48, x: 0, y: 0, toJSON: () => ({}) })
+    const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      if (this.dataset.testid === 'next-step-bar') return rect(390) as DOMRect
+      if (this.dataset.testid === 'next-step-action') return rect(507) as DOMRect
+      return rect(0) as DOMRect
+    })
+    const overflowing = mount(NextStepBar, {
+      props: { step: 'export', arrangeLabel: 'Random seating', target, quotaBadge: badge },
+    })
+    await overflowing.vm.$nextTick()
+    await overflowing.vm.$nextTick()
+    const badgeEl = overflowing.find('[data-testid="next-step-quota-badge"]')
+    expect(badgeEl.text()).toBe('1 watermark-free')
+    expect(badgeEl.attributes('data-compact')).toBe('true')
+    overflowing.unmount()
+
+    spy.mockImplementation(function (this: HTMLElement) {
+      if (this.dataset.testid === 'next-step-bar') return rect(390) as DOMRect
+      if (this.dataset.testid === 'next-step-action') return rect(356) as DOMRect
+      return rect(0) as DOMRect
+    })
+    const fitting = mount(NextStepBar, {
+      props: { step: 'export', arrangeLabel: 'Random seating', target, quotaBadge: badge },
+    })
+    await fitting.vm.$nextTick()
+    await fitting.vm.$nextTick()
+    const fittingBadge = fitting.find('[data-testid="next-step-quota-badge"]')
+    expect(fittingBadge.text()).toBe('1 watermark-free left today')
+    expect(fittingBadge.attributes('data-compact')).toBeUndefined()
+    fitting.unmount()
+    spy.mockRestore()
+  })
+
   it('无目标区块时不渲染', () => {
     const wrapper = mountBar({ step: 'import', arrangeLabel: '随机排座', target: null })
     expect(wrapper.find('[data-testid="next-step-bar"]').exists()).toBe(false)
