@@ -1,3 +1,44 @@
+# 第 366 轮（2026-09-08）：生产复测（#406 七项实施 + #407 768px 补丁；主包 **index-DBqbKCXu.js** → 补丁后 **index-DIpAD17i.js**，`X-SeatMark-Rev: r366`）——**#406 首测 6/7 PASS、第 3 项 768px FAIL；#407 部署后第 3 项复测 PASS**
+
+**环境**：生产 https://www.seatmark.cn ，匿名（不注册、不登录、不发信、不提交预订表单），全新浏览器上下文 + 屏蔽 service worker/缓存，CDP 驱动 + 录屏。证据级别：本节全部为 **报告转述**（测试代理执行，负责人核对了截图与 `/api/feedback`、`/api/quota` 的响应头/主包哈希 curl 输出，后者为直接实证）。改动前主包 index-CnGGpRTi.js（r364）。
+
+## T1 反馈 API（edge_changed）—— PASS
+- 仅提交 **1 条**匿名反馈 `POST /api/feedback`：`{"type":"other","content":"第366轮 匿名测试反馈（无联系方式，可忽略）","page":"/","contact":""}` → **HTTP 200** `{"ok":true}`，`X-SeatMark-Rev: r366`，`X-SeatMark-Storage: blob`，未重复提交（`round366-evidence/01-api-response.png`）。
+- `HEAD /api/quota` → 503（既有 `AUTH_SECRET` 未配置维护态，非回归），`X-SeatMark-Rev: r366`。
+
+## T2 /banquet 容量预估 —— PASS
+- 演示名单 48 人，分配前 `capacity-estimate`：**8 桌 80 座 · 至少需要 5 桌 · 预计空 3 桌**（附同组同桌口径说明）；一键分配后 48 人全部就座、0 未排、**空 2 桌**，与说明不矛盾（`02-banquet-before.png` / `02-banquet-after.png`）。
+- 三个 16 人组均显示「这组 16 人没有一桌能坐下整组，已拆到 2 桌」；/en/banquet 预估行无中文（`02-banquet-english.png`）。
+
+## T3 ≤768px 浮动反馈按钮让位 —— #406 FAIL → #407 PASS
+- #406（`max-md:` = `<768px`）：390px 四条路由（/en/vs、/en/seating、/guides、/banquet）滚动后 `opacity:0; pointer-events:none`、回顶恢复 PASS；**768px 四条路由均未收起**，/en/seating 按钮压住名单 textarea 右缘（`03-en-seating-768-scroll.png`）；1280 常驻 PASS。
+- #407（`tablet-down:` = `@media(max-width:768px)`）部署后（主包 index-DIpAD17i.js）：768px 四条路由滚动后收起、回顶恢复 PASS，/en/seating 原被遮坐标 hit-test 命中 textarea（`03b-en-seating-768-scroll.png`、`03b-en-vs-768-h600-scroll.png`、`03b-guides-768-scroll.png`、`03b-banquet-768-scroll.png`）；390 仍收起、**769px 与 1280 常驻**（`03b-en-seating-769-scroll.png`、`03b-en-seating-1280-scroll.png`）。
+
+## T4 文案收窄 —— PASS
+- 首页含「名单解析、字段映射、裁切线与出血、批量导出」、不含「每一步都按…」；/en 首页含 "List parsing, field mapping, cut lines and bleed, batch export"（`04-home-zh.png` / `04-home-en.png`）。
+- /guides/exam-seat-label-batch-print 首段以「考前一天下午」开场、无「耗掉半天」；/guides/hotel-wedding-place-card-setup 首段以「婚礼前一晚在酒店对桌」开场（`04-exam-guide.png` / `04-hotel-guide.png`）。
+
+## T5 /studio?demo=1 持久化提示与导出缺失示例 —— PASS
+- 26 行演示数据，`roster-persist-notice` 未出现。
+- 映射区缺失明细：第 25 行 座位号、考场；第 26 行 准考证号。PNG 导出弹窗：「2 行字段为空，成品中将留空」+「例：第 25 行 唐瑶 · 座位号、考场为空 等 2 行」，行号/姓名与演示数据一致；「去查看」关弹窗并回到展开的映射明细（`05-mapping-details.png` / `05-export-example.png` / `05-go-mapping.png`）。
+
+## T6 /pricing 维护提示聚合 + /en 窄屏字标 —— PASS
+- 390 与 1280：`pricing-maintenance-hint` **恰 2 个**（套餐卡 1 + FAQ 标题下 1，非逐条 FAQ）（`06-pricing-390-plan.png` / `06-pricing-390-faq.png` / `06-pricing-1280-faq.png`）。
+- /en 390px 顶栏字标可见 **SeatMark**（`06-en-brand-390.png`）。
+
+## T7 横向溢出 —— PASS
+- 11 条路由 × 390/768/1280 均 `scrollWidth <= innerWidth`（`07-*.png`）。
+
+## 控制台
+- /pricing 反复访问出现 4 条 `/api/auth/me` 503 资源加载错误（维护态既有），**无未捕获页面错误**。
+
+## 收尾
+- 未注册、未登录、未发信、未提交预订、反馈仅 1 条；两个浏览器上下文 localStorage / sessionStorage / IndexedDB / CacheStorage / service worker / cookie / 存储用量全部为 0（`08-storage-cleared.png`、`03b-storage-cleared.png`）。
+- 录屏：/home/ubuntu/screencasts/round366-production/round366-production-edited.mp4（首测）、/home/ubuntu/screencasts/round366b-feedback-retest/round366b-feedback-retest-edited.mp4（768px 复测）。
+- 截图目录：`docs/test-plans/round366-evidence/`（仓库内保留本节引用的关键截图）。
+
+---
+
 # 第 328 轮（2026-08-22）：生产轻量复测（#341 /en/pricing 定价 FAQ 六条英文化；主包 **index-DN3c42Hg.js** 已核验部署）——**全部判据 PASS，第 327 轮既有观察闭环**
 
 **环境**：生产 https://www.seatmark.cn ，匿名（不登录、不注册、不发信、不提交表单），UI 录屏 + CDP pageerror 采集。计划 test-plan-round328.md。前置：curl 证实生产 HTML 引用 assets/index-DN3c42Hg.js；源码 en.ts L451–462 已含六条 FAQ q/a 译文。
