@@ -950,7 +950,7 @@ const hintKey = ref<HintKey | null>(null)
       <div class="flex min-w-0 flex-wrap items-center gap-2 md:max-xl:contents" data-testid="preview-toolbar-left">
         <div class="flex items-center gap-1.5 text-xs">
           <span
-            class="rounded-full bg-slate-100 px-2.5 py-1 font-bold whitespace-nowrap text-slate-600 xl:hidden"
+            class="rounded-full bg-slate-100 px-2.5 py-1 font-bold whitespace-nowrap text-slate-600 md:max-lg:hidden xl:hidden"
             data-testid="preview-toolbar-summary"
           >
             {{ toolbarSummary }}
@@ -1028,7 +1028,13 @@ const hintKey = ref<HintKey | null>(null)
       </div>
 
       <div class="ml-auto flex flex-wrap items-center gap-2 md:max-xl:contents">
-        <SelectField v-model="zoomMode" class="w-20 xl:w-24" size="sm" :options="ZOOM_OPTIONS" />
+        <SelectField
+          v-model="zoomMode"
+          class="w-20 md:max-lg:hidden xl:w-24"
+          size="sm"
+          :options="ZOOM_OPTIONS"
+          data-testid="preview-zoom-select"
+        />
         <button
           type="button"
           class="btn btn-secondary btn-sm min-h-9 xl:hidden"
@@ -1056,7 +1062,26 @@ const hintKey = ref<HintKey | null>(null)
         <div
           class="w-full flex-wrap items-center gap-2 xl:contents"
           :class="displayOptionsOpen ? 'flex' : 'hidden'"
+          data-testid="display-options-panel"
         >
+        <div
+          class="hidden w-full items-center gap-2 text-xs md:max-lg:flex"
+          data-testid="display-options-md-row"
+        >
+          <SelectField
+            v-model="zoomMode"
+            class="w-20"
+            size="sm"
+            :options="ZOOM_OPTIONS"
+            data-testid="preview-zoom-select-md"
+          />
+          <span
+            class="rounded-full bg-slate-100 px-2.5 py-1 font-bold whitespace-nowrap text-slate-600"
+            data-testid="display-options-md-summary"
+          >
+            {{ toolbarSummary }}
+          </span>
+        </div>
         <CheckboxField
           v-model="workspace.showCutLines"
           class="text-xs font-semibold text-slate-600"

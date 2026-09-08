@@ -3,17 +3,21 @@
  * 直接调用 onRequest（内存 KV 降级），覆盖本轮新增的
  * devCode 环境限制与 /api/admin/health 健康检查。
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore JS 模块无类型声明
-import { ANNOUNCEMENT_CACHE_CONTROL, RESERVE_ARCHIVE_TTL_SECONDS, getSecret, mapConcurrent, onRequest } from "../../../edge-functions/api/[[default]].js";
+import { ANNOUNCEMENT_CACHE_CONTROL, MEMORY_UNSAFE_ROUTES, RESERVE_ARCHIVE_TTL_SECONDS, getSecret, mapConcurrent, onRequest } from "../../../edge-functions/api/[[default]].js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore JS 模块无类型声明
 import { SEATMARK_REV } from "../../../edge-functions/api/_rev.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore JS 模块无类型声明
-import { listAllKeys, unwrapTtl } from "../../../edge-functions/api/_storage.js";
+import { getStorage, listAllKeys, unwrapTtl } from "../../../edge-functions/api/_storage.js";
+
+const EDGE_DEFAULT_PATH = resolve(process.cwd(), "../edge-functions/api/[[default]].js");
 
 interface Env {
   AUTH_SECRET?: string;
@@ -529,15 +533,16 @@ describe("/api/auth/register 与 /api/auth/login 密码登录", () => {
     await call("POST", "http://localhost:5173/api/auth/verify", {
       body: { email: "legacy@example.com", code: codeData.devCode },
     });
-    // 未设密码时直接登录提示先注册
-    const { response: earlyRes } = await call(
+    // 未设密码时直接登录：与密码错误同为 401 通用文案（不泄露账号状态）
+    const { response: earlyRes, data: earlyData } = await call(
       "POST",
       "https://www.seatmark.cn/api/auth/login",
       {
         body: { email: "legacy@example.com", password: PASSWORD },
       },
     );
-    expect(earlyRes.status).toBe(409);
+    expect(earlyRes.status).toBe(401);
+    expect(earlyData.error).toBe("邮箱或密码不正确");
     // 注册补设密码
     const { response: regRes } = await call(
       "POST",
@@ -1509,16 +1514,16 @@ describe("feedback.js 观测头 X-SeatMark-Rev", () => {
   });
 });
 
-describe("第 354 轮（第 359 轮递增）：三条边缘函数统一 X-SeatMark-Rev = r359 与公告短缓存", () => {
-  it("_rev.js 导出 r359", () => {
-    expect(SEATMARK_REV).toBe("r359");
+describe("第 354 轮（第 361 轮递增）：三条边缘函数统一 X-SeatMark-Rev = r361 与公告短缓存", () => {
+  it("_rev.js 导出 r361", () => {
+    expect(SEATMARK_REV).toBe("r361");
   });
 
-  it("/api/announcement GET 带 r359 与 Cache-Control 短缓存", async () => {
+  it("/api/announcement GET 带 r361 与 Cache-Control 短缓存", async () => {
     const { response, data } = await call("GET", "https://www.seatmark.cn/api/announcement");
     expect(response.status).toBe(200);
     expect(data.authService).toBe("ok");
-    expect(response.headers.get("X-SeatMark-Rev")).toBe("r359");
+    expect(response.headers.get("X-SeatMark-Rev")).toBe("r361");
     expect(ANNOUNCEMENT_CACHE_CONTROL).toBe(
       "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
     );
@@ -1528,10 +1533,10 @@ describe("第 354 轮（第 359 轮递增）：三条边缘函数统一 X-SeatMa
   it("其余 JSON 响应保持 no-store（不受公告缓存影响）", async () => {
     const { response } = await call("GET", "https://www.seatmark.cn/api/auth/me");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
-    expect(response.headers.get("X-SeatMark-Rev")).toBe("r359");
+    expect(response.headers.get("X-SeatMark-Rev")).toBe("r361");
   });
 
-  it("/api/feedback 405 / 200 响应均带 r359", async () => {
+  it("/api/feedback 405 / 200 响应均带 r361", async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore JS 模块无类型声明
     const { onRequest: onFeedback } = await import("../../../edge-functions/api/feedback.js");
@@ -1540,7 +1545,7 @@ describe("第 354 轮（第 359 轮递增）：三条边缘函数统一 X-SeatMa
       env: withTestEnv({}),
     });
     expect(get.status).toBe(405);
-    expect(get.headers.get("X-SeatMark-Rev")).toBe("r359");
+    expect(get.headers.get("X-SeatMark-Rev")).toBe("r361");
     const ok: Response = await onFeedback({
       request: new Request("http://localhost:5173/api/feedback", {
         method: "POST",
@@ -1550,10 +1555,10 @@ describe("第 354 轮（第 359 轮递增）：三条边缘函数统一 X-SeatMa
       env: withTestEnv({}),
     });
     expect(ok.status).toBe(200);
-    expect(ok.headers.get("X-SeatMark-Rev")).toBe("r359");
+    expect(ok.headers.get("X-SeatMark-Rev")).toBe("r361");
   });
 
-  it("/api/ai-design 405 / 413 / 200 响应均带 r359", async () => {
+  it("/api/ai-design 405 / 413 / 200 响应均带 r361", async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore JS 模块无类型声明
     const { onRequest: onAi, AI_MAX_BODY_BYTES } = await import("../../../edge-functions/api/ai-design.js");
@@ -1582,19 +1587,19 @@ describe("第 354 轮（第 359 轮递增）：三条边缘函数统一 X-SeatMa
         env,
       });
       expect(notAllowed.status).toBe(405);
-      expect(notAllowed.headers.get("X-SeatMark-Rev")).toBe("r359");
+      expect(notAllowed.headers.get("X-SeatMark-Rev")).toBe("r361");
       const tooLarge: Response = await onAi({
         request: post("{}", { "Content-Length": String(AI_MAX_BODY_BYTES + 1) }),
         env,
       });
       expect(tooLarge.status).toBe(413);
-      expect(tooLarge.headers.get("X-SeatMark-Rev")).toBe("r359");
+      expect(tooLarge.headers.get("X-SeatMark-Rev")).toBe("r361");
       const ok: Response = await onAi({
         request: post(JSON.stringify({ messages: [{ role: "user", content: "hi" }] })),
         env,
       });
       expect(ok.status).toBe(200);
-      expect(ok.headers.get("X-SeatMark-Rev")).toBe("r359");
+      expect(ok.headers.get("X-SeatMark-Rev")).toBe("r361");
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -2341,5 +2346,414 @@ describe("第 359 轮：存档保留期 + 管理端列表取「最新」而非�
       const { response } = await call("GET", `https://www.seatmark.cn${path}`, { env });
       expect(response.status).toBe(401);
     }
+  });
+});
+
+describe("第 361 轮：/api/redeem 两段式核销「死码窗口」修复", () => {
+  async function devCookie(env: Env, email: string) {
+    const { data: codeData } = await call("POST", "http://localhost:5173/api/auth/code", {
+      body: { email },
+      env,
+    });
+    const { response: verifyRes } = await call("POST", "http://localhost:5173/api/auth/verify", {
+      body: { email, code: codeData.devCode },
+      env,
+    });
+    expect(verifyRes.status).toBe(200);
+    return (verifyRes.headers.get("Set-Cookie") || "").split(";")[0];
+  }
+
+  async function setup(tag: string) {
+    const blob = createMockBlobStore();
+    const adminEmail = `${tag}-admin@example.com`;
+    const env: Env = { AUTH_SECRET: "test-secret", ADMIN_EMAILS: adminEmail, seatmark_blob: blob };
+    const adminCk = await devCookie(env, adminEmail);
+    const { response: gen, data: genData } = await call("POST", "https://www.seatmark.cn/api/admin/codes", {
+      env,
+      cookie: adminCk,
+      body: { days: 30, count: 1, note: tag },
+    });
+    expect(gen.status).toBe(200);
+    const code = (genData.codes as string[])[0];
+    const recordKey = [...blob.data.keys()].find((k) => k.startsWith("redeem:"))!;
+    return { blob, env, code, recordKey };
+  }
+
+  function readRecord(blob: ReturnType<typeof createMockBlobStore>, key: string) {
+    return JSON.parse(blob.data.get(key)!) as { usedBy: string | null; usedAt: string | null; days: number };
+  }
+
+  it("(a) 发放落库 putUser 抛错 → 503 兑换未完成，记录回滚 usedBy=null；同用户重试成功且 pro 只发一次", async () => {
+    const { blob, env, code, recordKey } = await setup("dead-a");
+    const email = "dead-a-user@example.com";
+    const cookie = await devCookie(env, email);
+    const before = JSON.parse(blob.data.get(`user:${email}`)!) as { proUntil?: string };
+    const baseUntil = Date.parse(before.proUntil || "") || 0;
+
+    let failUserWrites = true;
+    const rawSet = blob.set.bind(blob);
+    blob.set = async (key, value) => {
+      if (failUserWrites && key === `user:${email}`) throw new Error("blob write failed");
+      return rawSet(key, value);
+    };
+
+    const first = await call("POST", "https://www.seatmark.cn/api/redeem", { env, cookie, body: { code } });
+    expect(first.response.status).toBe(503);
+    expect(first.data.error).toBe("兑换未完成，请稍后重试");
+    expect(readRecord(blob, recordKey).usedBy).toBeNull();
+    expect(readRecord(blob, recordKey).usedAt).toBeNull();
+    // 用户会员未被发放
+    const afterFail = JSON.parse(blob.data.get(`user:${email}`)!) as { proUntil?: string };
+    expect(Date.parse(afterFail.proUntil || "") || 0).toBe(baseUntil);
+
+    failUserWrites = false;
+    const retry = await call("POST", "https://www.seatmark.cn/api/redeem", { env, cookie, body: { code } });
+    expect(retry.response.status).toBe(200);
+    expect(retry.data.ok).toBe(true);
+    expect(retry.data.already).toBeUndefined();
+    expect(retry.data.days).toBe(30);
+    expect(readRecord(blob, recordKey).usedBy).toBe(email);
+    const granted = JSON.parse(blob.data.get(`user:${email}`)!) as { proUntil: string };
+    const grantedUntil = Date.parse(granted.proUntil);
+    // 只叠加一次 30 天（允许秒级误差）
+    expect(Math.abs(grantedUntil - Math.max(baseUntil, Date.now()) - 30 * 86400000)).toBeLessThan(5000);
+
+    // 第三次：幂等 already:true，会员不再叠加
+    const again = await call("POST", "https://www.seatmark.cn/api/redeem", { env, cookie, body: { code } });
+    expect(again.response.status).toBe(200);
+    expect(again.data.already).toBe(true);
+    const still = JSON.parse(blob.data.get(`user:${email}`)!) as { proUntil: string };
+    expect(Date.parse(still.proUntil)).toBe(grantedUntil);
+  });
+
+  it("(b) confirm 回读被他人占用 → 409 已被使用，且不覆盖他人记录、不发放", async () => {
+    const { blob, env, code, recordKey } = await setup("dead-b");
+    const email = "dead-b-user@example.com";
+    const other = "dead-b-other@example.com";
+    const cookie = await devCookie(env, email);
+    const before = JSON.parse(blob.data.get(`user:${email}`)!) as { proUntil?: string };
+
+    // 模拟并发写-写重叠：本人认领写入后，他人的认领在回读前后到（覆盖为 other）
+    const rawSet = blob.set.bind(blob);
+    blob.set = async (key, value) => {
+      await rawSet(key, value);
+      if (key === recordKey && (JSON.parse(value) as { usedBy: string | null }).usedBy === email) {
+        const rec = JSON.parse(value) as Record<string, unknown>;
+        await rawSet(key, JSON.stringify({ ...rec, usedBy: other, usedAt: new Date().toISOString() }));
+      }
+    };
+
+    const res = await call("POST", "https://www.seatmark.cn/api/redeem", { env, cookie, body: { code } });
+    expect(res.response.status).toBe(409);
+    expect(res.data.error).toBe("兑换码已被使用");
+    expect(readRecord(blob, recordKey).usedBy).toBe(other);
+    const after = JSON.parse(blob.data.get(`user:${email}`)!) as { proUntil?: string };
+    expect(after.proUntil).toBe(before.proUntil);
+  });
+
+  it("(c) confirm 回读为空/损坏 → 503 并回滚认领，不按「已被使用」误报", async () => {
+    const { blob, env, code, recordKey } = await setup("dead-c");
+    const email = "dead-c-user@example.com";
+    const cookie = await devCookie(env, email);
+
+    let corruptOnce = true;
+    const rawGet = blob.get.bind(blob);
+    blob.get = async (key, options) => {
+      const raw = await rawGet(key, options);
+      if (corruptOnce && key === recordKey && raw && (JSON.parse(raw) as { usedBy: string | null }).usedBy === email) {
+        corruptOnce = false;
+        return "{not-json";
+      }
+      return raw;
+    };
+
+    const res = await call("POST", "https://www.seatmark.cn/api/redeem", { env, cookie, body: { code } });
+    expect(res.response.status).toBe(503);
+    expect(res.data.error).toBe("兑换未完成，请稍后重试");
+    expect(readRecord(blob, recordKey).usedBy).toBeNull();
+
+    const retry = await call("POST", "https://www.seatmark.cn/api/redeem", { env, cookie, body: { code } });
+    expect(retry.response.status).toBe(200);
+    expect(retry.data.days).toBe(30);
+  });
+});
+
+describe("第 361 轮：/api/quota/consume 幂等键先写、日用量后写", () => {
+  async function memberCookie(env: Env, email: string) {
+    const { data: codeData } = await call("POST", "http://localhost:5173/api/auth/code", {
+      body: { email },
+      env,
+    });
+    const { response: verifyRes } = await call("POST", "http://localhost:5173/api/auth/verify", {
+      body: { email, code: codeData.devCode },
+      env,
+    });
+    expect(verifyRes.status).toBe(200);
+    return (verifyRes.headers.get("Set-Cookie") || "").split(";")[0];
+  }
+
+  it("源码顺序：幂等键 put 出现在日用量 put 之前", () => {
+    const src = readFileSync(EDGE_DEFAULT_PATH, "utf-8");
+    const idemIdx = src.indexOf("if (idempotencyKey) await kv.put(idempotencyKey, '1', dailyTtl)");
+    const usageIdx = src.indexOf("await kv.put(`usage:${email}:${status.date}`, String(used), dailyTtl)");
+    expect(idemIdx).toBeGreaterThan(0);
+    expect(usageIdx).toBeGreaterThan(idemIdx);
+  });
+
+  it("幂等键写成功、日用量写失败（第二次 put 抛错）→ 重试同 exportId 返回 already:true，used 不再 +1", async () => {
+    const blob = createMockBlobStore();
+    const email = "idem-order@example.com";
+    const env: Env = { AUTH_SECRET: "test-secret", seatmark_blob: blob };
+    const cookie = await memberCookie(env, email);
+    const exportId = "0f1e2d3c-4b5a-4697-8877-665544332211";
+
+    let failCounterOnce = true;
+    const rawSet = blob.set.bind(blob);
+    blob.set = async (key, value) => {
+      if (failCounterOnce && key.startsWith(`usage:${email}:`) && !key.includes(":id:")) {
+        failCounterOnce = false;
+        throw new Error("blob write failed");
+      }
+      return rawSet(key, value);
+    };
+
+    const first = await call("POST", "https://www.seatmark.cn/api/quota/consume", {
+      env,
+      cookie,
+      body: { exportId },
+    });
+    expect(first.response.status).toBe(500);
+    // 幂等键已落、计数未落
+    expect([...blob.data.keys()].some((k) => k.startsWith(`usage:${email}:`) && k.endsWith(`:id:${exportId}`))).toBe(true);
+    expect([...blob.data.keys()].some((k) => k.startsWith(`usage:${email}:`) && !k.includes(":id:"))).toBe(false);
+
+    const retry = await call("POST", "https://www.seatmark.cn/api/quota/consume", {
+      env,
+      cookie,
+      body: { exportId },
+    });
+    expect(retry.response.status).toBe(200);
+    expect(retry.data.already).toBe(true);
+    expect(retry.data.used).toBe(0);
+    expect([...blob.data.keys()].some((k) => k.startsWith(`usage:${email}:`) && !k.includes(":id:"))).toBe(false);
+
+    // 新的 exportId 正常计数为 1（少扣一次偏向用户，不会多扣）
+    const next = await call("POST", "https://www.seatmark.cn/api/quota/consume", {
+      env,
+      cookie,
+      body: { exportId: "aaaaaaaa-0000-4000-8000-000000000009" },
+    });
+    expect(next.response.status).toBe(200);
+    expect(next.data.used).toBe(1);
+  });
+});
+
+describe("第 361 轮：写路由清单守卫（MEMORY_UNSAFE_ROUTES 登记完整）", () => {
+  /** 仅清 cookie、无任何存储写入的只读豁免 */
+  const READ_ONLY_EXEMPT = ["/api/auth/logout"];
+
+  it("[[default]].js 中全部 path+method 写路由都在 MEMORY_UNSAFE_ROUTES 或豁免名单", () => {
+    const src = readFileSync(EDGE_DEFAULT_PATH, "utf-8");
+    const routes = [...src.matchAll(/path === '(\/api\/[^']+)' && method === '(POST|PUT|PATCH|DELETE)'/g)].map(
+      (m) => [m[1], m[2]] as [string, string],
+    );
+    expect(routes.length).toBeGreaterThanOrEqual(14);
+    const registry = MEMORY_UNSAFE_ROUTES as Record<string, string[]>;
+    for (const [path, method] of routes) {
+      const registered = Array.isArray(registry[path]) && registry[path].includes(method);
+      expect(registered || READ_ONLY_EXEMPT.includes(path), `${method} ${path} 未登记 MEMORY_UNSAFE_ROUTES`).toBe(true);
+    }
+  });
+
+  it("嵌套形式 `if (method === 'PUT')` 所属路径也已登记", () => {
+    const src = readFileSync(EDGE_DEFAULT_PATH, "utf-8");
+    const registry = MEMORY_UNSAFE_ROUTES as Record<string, string[]>;
+    const nested = [...src.matchAll(/^\s*if \(method === '(PUT|POST|PATCH|DELETE)'\) \{/gm)];
+    expect(nested.length).toBeGreaterThan(0);
+    for (const m of nested) {
+      const head = src.slice(0, m.index);
+      const owner = [...head.matchAll(/path === '(\/api\/[^']+)'/g)].pop();
+      expect(owner, "嵌套方法分支前应有 path 判断").toBeTruthy();
+      const path = owner![1];
+      expect(registry[path]?.includes(m[1]), `${m[1]} ${path} 未登记 MEMORY_UNSAFE_ROUTES`).toBe(true);
+    }
+  });
+
+  it("豁免名单中的路由确实不写存储（/api/auth/logout 仅清 cookie）", async () => {
+    const { kv } = await getStorage({});
+    const before = (await kv.list({ prefix: "", limit: 10000 })).keys.length;
+    const { response } = await call("POST", "https://www.seatmark.cn/api/auth/logout", {
+      env: { SEATMARK_ALLOW_MEMORY_STORAGE: "", AUTH_SECRET: "test-secret" },
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Set-Cookie")).toContain("sm_session=");
+    const after = (await kv.list({ prefix: "", limit: 10000 })).keys.length;
+    expect(after).toBe(before);
+  });
+});
+
+describe("第 361 轮：/api/feedback 存档归入 memory fail-closed 口径", () => {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore JS 模块无类型声明
+  const feedbackModule = () => import("../../../edge-functions/api/feedback.js");
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  async function post(env: Record<string, string>) {
+    const { onRequest: onFeedback } = await feedbackModule();
+    const response: Response = await onFeedback({
+      request: new Request("https://www.seatmark.cn/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "suggestion", content: "memory fail closed" }),
+      }),
+      env,
+    });
+    return { response, data: (await response.json()) as Record<string, unknown> };
+  }
+
+  async function fbKeyCount() {
+    const { kv } = await getStorage({});
+    return (await kv.list({ prefix: "fb:", limit: 10000 })).keys.length;
+  }
+
+  it("memory 且未放行、无 FEEDBACK_WEBHOOK → 503 且不写内存假存档", async () => {
+    const before = await fbKeyCount();
+    const { response, data } = await post({ SEATMARK_ALLOW_MEMORY_STORAGE: "" });
+    expect(response.status).toBe(503);
+    expect(data.error).toBe("反馈服务暂时不可用，请稍后再试");
+    expect(response.headers.get("X-SeatMark-Storage")).toBe("memory");
+    expect(await fbKeyCount()).toBe(before);
+  });
+
+  it("memory 且未放行、配 FEEDBACK_WEBHOOK 投递成功 → 200，仍不写内存假存档，并发存档告警", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string | URL | Request) => {
+        calls.push(String(url));
+        return new Response("{}", { status: 200 });
+      }),
+    );
+    const before = await fbKeyCount();
+    const { response, data } = await post({
+      SEATMARK_ALLOW_MEMORY_STORAGE: "",
+      FEEDBACK_WEBHOOK: "https://open.feishu.cn/open-apis/bot/v2/hook/test-only",
+      ALERT_WEBHOOK: "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test-only",
+    });
+    expect(response.status).toBe(200);
+    expect(data.ok).toBe(true);
+    expect(await fbKeyCount()).toBe(before);
+    // 等待 waitUntil 回退路径的告警 fetch 完成
+    await new Promise((r) => setTimeout(r, 20));
+    expect(calls.some((u) => u.startsWith("https://open.feishu.cn/"))).toBe(true);
+    expect(calls.some((u) => u.startsWith("https://qyapi.weixin.qq.com/"))).toBe(true);
+  });
+
+  it("memory 且未放行、webhook 投递失败 → 503", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("network down");
+      }),
+    );
+    const { response } = await post({
+      SEATMARK_ALLOW_MEMORY_STORAGE: "",
+      FEEDBACK_WEBHOOK: "https://open.feishu.cn/open-apis/bot/v2/hook/test-only",
+    });
+    expect(response.status).toBe(503);
+  });
+
+  it("显式放行（本地联调）与 Blob/KV 正常路径不受影响：无 webhook 也 200 并存档", async () => {
+    const allowed = await post({ SEATMARK_ALLOW_MEMORY_STORAGE: "1" });
+    expect(allowed.response.status).toBe(200);
+
+    const blob = createMockBlobStore();
+    const { onRequest: onFeedback } = await feedbackModule();
+    const response: Response = await onFeedback({
+      request: new Request("https://www.seatmark.cn/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "bug", content: "blob path" }),
+      }),
+      env: { SEATMARK_ALLOW_MEMORY_STORAGE: "", seatmark_blob: blob },
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("X-SeatMark-Storage")).toBe("blob");
+    expect([...blob.data.keys()].some((k) => k.startsWith("fb:"))).toBe(true);
+  });
+});
+
+describe("第 361 轮：登录侧枚举抹平（无密码账号 → 401 通用文案）", () => {
+  const PASSWORD = "super-secret-1";
+
+  async function timed<T>(fn: () => Promise<T>) {
+    const t0 = performance.now();
+    const result = await fn();
+    return { result, ms: performance.now() - t0 };
+  }
+
+  it("无密码账号登录 401「邮箱或密码不正确」，且计入失败计数；耗时与错误密码同量级", async () => {
+    const blob = createMockBlobStore();
+    const env: Env = { AUTH_SECRET: "test-secret", seatmark_blob: blob };
+    const legacy = "enum-legacy@example.com";
+    const normal = "enum-normal@example.com";
+    // devCode 通道建无密码账号
+    const { data: codeData } = await call("POST", "http://localhost:5173/api/auth/code", { body: { email: legacy }, env });
+    await call("POST", "http://localhost:5173/api/auth/verify", { body: { email: legacy, code: codeData.devCode }, env });
+    expect(JSON.parse(blob.data.get(`user:${legacy}`)!)).not.toHaveProperty("passwordHash");
+    await call("POST", "https://www.seatmark.cn/api/auth/register", { body: { email: normal, password: PASSWORD }, env });
+
+    // 预热一次 PBKDF2，避免首个 WebCrypto 调用的冷启动扰动
+    await call("POST", "https://www.seatmark.cn/api/auth/login", { body: { email: normal, password: "warm-up-wrong" }, env });
+
+    const legacyRun = await timed(() =>
+      call("POST", "https://www.seatmark.cn/api/auth/login", { body: { email: legacy, password: PASSWORD }, env }),
+    );
+    expect(legacyRun.result.response.status).toBe(401);
+    expect(legacyRun.result.data.error).toBe("邮箱或密码不正确");
+    const failRaw = blob.data.get(`pwfail:${legacy}`);
+    expect(failRaw).toBeTruthy();
+    const { value } = unwrapTtl(failRaw) as { value: string };
+    expect((JSON.parse(value) as { count: number }).count).toBe(1);
+
+    const wrongRun = await timed(() =>
+      call("POST", "https://www.seatmark.cn/api/auth/login", { body: { email: normal, password: "wrong-password" }, env }),
+    );
+    expect(wrongRun.result.response.status).toBe(401);
+    expect(wrongRun.result.data.error).toBe("邮箱或密码不正确");
+
+    const nobodyRun = await timed(() =>
+      call("POST", "https://www.seatmark.cn/api/auth/login", { body: { email: "enum-nobody@example.com", password: PASSWORD }, env }),
+    );
+    expect(nobodyRun.result.response.status).toBe(401);
+    expect(nobodyRun.result.data.error).toBe("邮箱或密码不正确");
+    expect(blob.data.has("pwfail:enum-nobody@example.com")).toBe(false);
+
+    // 宽松量级断言：三条 401 路径都含一次 PBKDF2，彼此在 4 倍以内
+    const ratio = (a: number, b: number) => Math.max(a, b) / Math.max(1, Math.min(a, b));
+    expect(ratio(legacyRun.ms, wrongRun.ms)).toBeLessThan(4);
+    expect(ratio(nobodyRun.ms, wrongRun.ms)).toBeLessThan(4);
+  });
+
+  it("正常密码登录与 10 次失败锁定不回归；无密码账号连续失败同样锁定", async () => {
+    const blob = createMockBlobStore();
+    const env: Env = { AUTH_SECRET: "test-secret", seatmark_blob: blob };
+    const legacy = "enum-lock@example.com";
+    const { data: codeData } = await call("POST", "http://localhost:5173/api/auth/code", { body: { email: legacy }, env });
+    await call("POST", "http://localhost:5173/api/auth/verify", { body: { email: legacy, code: codeData.devCode }, env });
+    for (let i = 0; i < 10; i++) {
+      const { response } = await call("POST", "https://www.seatmark.cn/api/auth/login", { body: { email: legacy, password: PASSWORD }, env });
+      expect(response.status).toBe(401);
+    }
+    const locked = await call("POST", "https://www.seatmark.cn/api/auth/login", { body: { email: legacy, password: PASSWORD }, env });
+    expect(locked.response.status).toBe(429);
+
+    const normal = "enum-ok@example.com";
+    await call("POST", "https://www.seatmark.cn/api/auth/register", { body: { email: normal, password: PASSWORD }, env });
+    const ok = await call("POST", "https://www.seatmark.cn/api/auth/login", { body: { email: normal, password: PASSWORD }, env });
+    expect(ok.response.status).toBe(200);
   });
 });

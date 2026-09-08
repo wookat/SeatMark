@@ -15,6 +15,8 @@
  * 存档与推送都失败时返回 503，不再假成功。
  *
  * 存储：与主 API 同源的三级后备（KV → Blob → 内存，见 _storage.js）。
+ * 降级到内存时存档跨 isolate 不可见且不持久，按 fail closed 口径视为未存档（不写内存假存档），
+ * 此时仅 webhook 投递成功才返回 200（SEATMARK_ALLOW_MEMORY_STORAGE=1 本地联调时仍存内存）。
  * 反馈存档到 fb: 前缀供管理端 /api/admin/feedback 查看；限频计数用 rl:fb: 前缀。
  *
  * 防护：请求体 > 32KB → 413（先看 Content-Length，再看实际字节数，不先 JSON.parse 超大体）。
@@ -103,25 +105,31 @@ async function handleRequest(context) {
     // 限频失败不阻塞提交
   }
 
-  // 存档（供管理端查看）
-  let archived = true
-  try {
-    const id = `${Date.now()}-${randomToken36(6)}`
-    await kv.put(
-      `fb:${id}`,
-      JSON.stringify({
-        type,
-        content,
-        contact,
-        page,
-        createdAt: new Date().toISOString(),
-      }),
-      { expirationTtl: FEEDBACK_ARCHIVE_TTL_SECONDS },
-    )
-  } catch (e) {
-    archived = false
-    console.error('[seatmark-feedback] archive failed', e instanceof Error ? e.message : String(e))
-    waitUntil(sendArchiveAlert(env, storage, e))
+  // 存档（供管理端查看）；内存降级且未显式放行时视为存档不可用
+  const memoryUnsafe = storage === 'memory' && !(env && env.SEATMARK_ALLOW_MEMORY_STORAGE === '1')
+  let archived = false
+  if (memoryUnsafe) {
+    console.error('[seatmark-feedback] storage degraded to memory, archive skipped')
+    waitUntil(sendArchiveAlert(env, storage, new Error('storage degraded to memory')))
+  } else {
+    try {
+      const id = `${Date.now()}-${randomToken36(6)}`
+      await kv.put(
+        `fb:${id}`,
+        JSON.stringify({
+          type,
+          content,
+          contact,
+          page,
+          createdAt: new Date().toISOString(),
+        }),
+        { expirationTtl: FEEDBACK_ARCHIVE_TTL_SECONDS },
+      )
+      archived = true
+    } catch (e) {
+      console.error('[seatmark-feedback] archive failed', e instanceof Error ? e.message : String(e))
+      waitUntil(sendArchiveAlert(env, storage, e))
+    }
   }
 
   let delivered = false
