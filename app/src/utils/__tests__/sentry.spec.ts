@@ -103,6 +103,36 @@ describe('scrubEvent / scrubBreadcrumb', () => {
     expect(out.spans![0]!.description).toBe('/templates?cat=exam')
   })
 
+  it('第 329 轮：span.data / 面包屑 / 异常消息里的 data: URL（用户 Logo base64）上报前被抹掉', () => {
+    const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+    const out = scrubEvent({
+      type: 'transaction',
+      transaction: '/studio',
+      message: `img failed ${png}`,
+      exception: { values: [{ type: 'Error', value: `cannot load ${png}` }] },
+      breadcrumbs: [{ category: 'ui.click', data: { target: `IMG[src=${png}]` } }],
+      spans: [
+        {
+          op: 'ui.long-animation-frame',
+          description: `IMG[src=${png}]`,
+          data: {
+            'browser.script.invoker': `IMG[src=${png}]`,
+            'code.filepath': 'https://www.seatmark.cn/assets/html2canvas-pro.js',
+            'browser.script.invoker_type': 'event-listener',
+          },
+        },
+      ],
+    } as unknown as SentryEvent)
+    const serialized = JSON.stringify(out)
+    expect(serialized).not.toContain('iVBORw0KGgo')
+    expect(serialized).not.toContain('base64,')
+    expect(out.spans![0]!.data!['browser.script.invoker']).toBe('IMG[src=data:[redacted]]')
+    expect(out.spans![0]!.data!['code.filepath']).toBe('https://www.seatmark.cn/assets/html2canvas-pro.js')
+    expect(out.breadcrumbs![0]!.data).toEqual({ target: 'IMG[src=data:[redacted]]' })
+    expect(out.message).toBe('img failed data:[redacted]')
+    expect(out.exception!.values![0]!.value).toBe('cannot load data:[redacted]')
+  })
+
   it('无可清洗字段的事件原样返回，不新增字段；异常消息文本不动', () => {
     const ev: SentryEvent = { event_id: 'x', message: 'hello' }
     expect(scrubEvent(ev)).toEqual({ event_id: 'x', message: 'hello' })

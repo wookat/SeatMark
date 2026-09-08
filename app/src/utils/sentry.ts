@@ -56,6 +56,25 @@ export function createPreInitErrorQueue(target: Window, max = 20): PreInitErrorQ
   }
 }
 
+const DATA_URL_RE = /data:[a-z0-9.+/-]*(?:;[a-z0-9=.+-]*)*,[^\s"'\])>]*/gi
+
+/**
+ * 内嵌 data: URL（用户上传的 Logo / 照片 base64）一律替换为占位符。
+ * Sentry 的长动画帧脚本归因会把 `IMG[src=data:image/png;base64,…]` 这类 invoker 原样放进 span.data，
+ * 不清洗就等于把用户图片发到了第三方。
+ */
+export function redactDataUrls(value: string): string {
+  return value.replace(DATA_URL_RE, 'data:[redacted]')
+}
+
+function redactDataUrlsIn(record: Record<string, unknown> | undefined): void {
+  if (!record) return
+  for (const key of Object.keys(record)) {
+    const v = record[key]
+    if (typeof v === 'string' && v.includes('data:')) record[key] = redactDataUrls(v)
+  }
+}
+
 /** 形如「路径?查询」的字符串才清洗，避免把异常消息里的普通文本误改 */
 function scrubIfPath(value: unknown): unknown {
   if (typeof value !== 'string' || !value.includes('?')) return value
@@ -70,6 +89,7 @@ export function scrubBreadcrumb<T extends Breadcrumb>(breadcrumb: T): T {
         data[key] = telemetryPath(data[key])
       }
     }
+    redactDataUrlsIn(data)
   }
   return breadcrumb
 }
@@ -91,7 +111,11 @@ export function scrubEvent<T extends SentryEvent>(event: T): T {
       event.tags[key] = scrubIfPath(event.tags[key]) as typeof event.tags[string]
     }
   }
+  if (typeof event.message === 'string' && event.message.includes('data:')) {
+    event.message = redactDataUrls(event.message)
+  }
   for (const exception of event.exception?.values ?? []) {
+    if (exception.value?.includes('data:')) exception.value = redactDataUrls(exception.value)
     for (const frame of exception.stacktrace?.frames ?? []) {
       if (frame.filename) frame.filename = telemetryPath(frame.filename)
       if (frame.abs_path) frame.abs_path = telemetryPath(frame.abs_path)
@@ -102,8 +126,9 @@ export function scrubEvent<T extends SentryEvent>(event: T): T {
   }
   for (const span of event.spans ?? []) {
     if (span.description) {
-      span.description = telemetryPath(span.description)
+      span.description = redactDataUrls(telemetryPath(span.description))
     }
+    redactDataUrlsIn(span.data)
   }
   return event
 }
