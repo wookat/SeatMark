@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { guides } from '@/data/guides'
+import { footerGuideLinks } from '@/data/guideLinks'
 import { localePath, t, useI18n } from '@/i18n'
 
 const { locale } = useI18n()
 
-/** 404 页推荐入口：热门教程前 3 篇，避免流量直接流失（教程仅有中文正文，英文壳下不展示） */
-const recommendedGuides = guides.slice(0, 3)
+/** 404 页推荐入口：精选教程前 3 篇（轻量清单，不把教程正文打进本页）；教程仅有中文正文，英文壳下不展示 */
+const recommendedGuides = footerGuideLinks.slice(0, 3)
 </script>
 
 <template>
@@ -47,13 +47,13 @@ const recommendedGuides = guides.slice(0, 3)
       <div class="mt-4 grid gap-3 sm:grid-cols-3">
         <RouterLink
           v-for="rec in recommendedGuides"
-          :key="rec.slug"
-          :to="`/guides/${rec.slug}`"
+          :key="rec.to"
+          :to="rec.to"
           class="group rounded-lg border border-slate-200 bg-white p-4 transition-colors hover:border-brand-300"
         >
           <p class="text-[11px] font-bold text-brand-600">{{ rec.category }}</p>
           <h3 class="mt-1 line-clamp-2 text-xs leading-5 font-bold text-slate-700 group-hover:text-brand-600">
-            {{ rec.title }}
+            {{ rec.label }}
           </h3>
         </RouterLink>
       </div>

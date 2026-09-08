@@ -47,8 +47,16 @@ const heroTemplate = computed(() => localizeTemplateForLocale(standardTemplate, 
 
 /** 首屏 CTA 下方的场景入口：教室排座 / 宴会排桌 */
 const heroSceneLinks = computed(() => [
-  { to: localePath('/seating'), label: t('班主任排座位') },
-  { to: localePath('/banquet'), label: t('婚礼/宴会排桌') },
+  {
+    to: localePath('/seating'),
+    label: t('导入名单并排座'),
+    aria: `${t('班主任排座位')}：${t('导入名单并排座')}`,
+  },
+  {
+    to: localePath('/banquet'),
+    label: t('导入宾客并自动分桌'),
+    aria: `${t('婚礼/宴会排桌')}：${t('导入宾客并自动分桌')}`,
+  },
 ])
 
 const HERO_EN_NAMES = [
@@ -261,7 +269,7 @@ const FAQS = computed(() => [
             >
               <path d="M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3z" />
             </svg>
-            {{ t('免费 · 不用注册 · 名单只在你的浏览器里解析') }}
+            {{ t('免费 · 不用注册 · 无需安装') }}
           </p>
           <h1
             class="mt-4 text-3xl leading-tight font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl"
@@ -278,12 +286,12 @@ const FAQS = computed(() => [
           <p class="mt-4 max-w-lg text-base leading-7 text-slate-600" data-testid="hero-steps">
             <template v-if="locale === 'en'">
               <span class="block">Upload Excel or paste a name list → preview → export print-ready pages.</span>
-              <span class="block">{{ TEMPLATE_COUNT }} templates · all in your browser.</span>
+              <span class="block">{{ TEMPLATE_COUNT }} templates · Your list never leaves this device — everything stays in your browser.</span>
             </template>
             <template v-else>
               <span class="block">把 Excel 名单粘进来 → 先看预览 → 导出可打印的座签页。</span>
               <span class="block">需要准备：一份带表头（姓名、考场、座位号等）的名单，以及一台 A4 打印机。</span>
-              <span class="block">最后得到：考场座签、桌牌席卡、门贴证卡等 {{ TEMPLATE_COUNT }} 款模板的打印页，尺寸按毫米设定，打印后与模板标注一致，全程浏览器本地处理。</span>
+              <span class="block">最后得到：考场座签、桌牌席卡、门贴证卡等 {{ TEMPLATE_COUNT }} 款模板的打印页，尺寸按毫米设定，打印后与模板标注一致。名单不会上传，数据只留在这台设备的浏览器里。</span>
             </template>
           </p>
           <div class="mt-7 flex flex-wrap gap-3">
@@ -316,6 +324,7 @@ const FAQS = computed(() => [
               v-for="scene in heroSceneLinks"
               :key="scene.to"
               :to="scene.to"
+              :aria-label="scene.aria"
               class="group inline-flex items-center gap-1 text-slate-600 transition-colors hover:text-brand-700"
             >
               {{ scene.label }}
@@ -818,7 +827,7 @@ const FAQS = computed(() => [
         <div class="relative">
           <h2 class="text-xl font-bold text-white sm:text-2xl">{{ t('开始生成你的标签') }}</h2>
           <p class="mt-1.5 text-sm text-brand-100">
-            {{ t('选择模板、上传 Excel 名单，导出一批座签、门贴或证卡。不用注册，名单只在本机浏览器解析。') }}
+            {{ t('选择模板、上传 Excel 名单，导出一批座签、门贴或证卡。不用注册，免费开始。') }}
           </p>
         </div>
         <RouterLink

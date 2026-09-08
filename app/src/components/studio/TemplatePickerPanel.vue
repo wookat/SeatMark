@@ -10,6 +10,7 @@ import { t as tr, useI18n } from '@/i18n'
 import { TEMPLATE_SUBCATEGORIES, subcategoryOf } from '@/data/templateTaxonomy'
 import { useAuthStore } from '@/stores/auth'
 import { useTemplateLibrary, isValidTemplate } from '@/stores/templateLibrary'
+import { sanitizeTemplateForImport } from '@/utils/templateValidate'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { LabelTemplate, TemplateCategory } from '@/types/template'
@@ -285,9 +286,10 @@ function onImportFile(event: Event) {
         toast.danger(tr('模板文件无效'), tr('文件缺少 label、page 或 fields 字段'))
         return
       }
-      parsed.id = uid('custom')
-      parsed.name = parsed.name || tr('导入的模板')
-      const saved = library.saveAsCustom(parsed)
+      const clean = sanitizeTemplateForImport(parsed)
+      clean.id = uid('custom')
+      clean.name = clean.name || tr('导入的模板')
+      const saved = library.saveAsCustom(clean)
       workspace.selectTemplate(saved, { silent: true })
       if (library.lastPersistOk) toast.success(tr('模板导入成功'), saved.name)
     } catch {

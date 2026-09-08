@@ -348,7 +348,7 @@ onMounted(() => {
           data-testid="mapping-placeholder"
         >
           <h2 class="section-title text-slate-500">
-            <span class="step-chip bg-slate-300">3</span>{{ t('字段映射') }}
+            <span class="step-chip bg-slate-200 text-slate-500">3</span>{{ t('字段映射') }}
             <span class="text-xs font-normal text-slate-500">· {{ t('导入名单后出现') }}</span>
           </h2>
         </section>
@@ -387,7 +387,7 @@ onMounted(() => {
         {{ sharedTemplate?.fields.length }} {{ t('个字段') }}）。
       </p>
       <p class="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
-        {{ t('SeatMark 座签是免费的在线批量制签工具：上传 Excel 名单即可批量生成座位标签 / 桌牌席卡，排版精确到毫米。选「保存并应用」即可一键开始，名单数据全程只在你的浏览器本地处理。') }}
+        {{ t('SeatMark 座签是免费的在线批量制签工具：上传 Excel 名单即可批量生成座位标签 / 桌牌席卡，排版精确到毫米。选「保存并应用」即可一键开始。名单不会上传，数据只留在这台设备的浏览器里。') }}
       </p>
       <p class="mt-2 text-xs text-slate-600">
         {{ t('模板完全由链接本身携带，没有经过任何服务器。') }}

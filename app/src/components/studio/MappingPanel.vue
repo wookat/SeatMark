@@ -258,7 +258,7 @@ function onPhotoFiles(event: Event) {
 
     <p
       v-if="unusedColumns.length"
-      class="mt-2 text-[11px] leading-4 text-slate-400"
+      class="mt-2 text-[11px] leading-4 text-slate-500"
       data-testid="mapping-unused-columns"
     >
       {{ t('未使用列：{columns}').replace('{columns}', unusedColumnsText) }}

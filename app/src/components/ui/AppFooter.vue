@@ -92,7 +92,8 @@ const GROUPS = computed(() => [
             <li v-for="link in group.links" :key="link.label">
               <RouterLink
                 :to="link.to"
-                class="line-clamp-1 text-xs text-slate-600 transition-colors hover:text-brand-600"
+                :title="t(link.label)"
+                class="line-clamp-2 text-xs text-slate-600 transition-colors hover:text-brand-600"
               >
                 {{ t(link.label) }}
               </RouterLink>

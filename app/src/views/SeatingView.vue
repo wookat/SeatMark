@@ -1047,7 +1047,7 @@ function toDeskLabels() {
         {{ tr('教室座位表打印') }}
       </h1>
       <p class="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-        {{ tr('粘贴名单、设置行列与过道，支持随机排座（男女混排）、点选或拖拽换位、整排交换与双视角切换，生成 A4 教室平面座位表直接打印张贴。数据全程在浏览器本地处理。') }}
+        {{ tr('粘贴名单、设置行列与过道，支持随机排座（男女混排）、点选或拖拽换位、整排交换与双视角切换，生成 A4 教室平面座位表直接打印张贴。名单不会上传，数据只留在这台设备的浏览器里。') }}
       </p>
       <p class="mt-2 text-xs text-slate-500">
         {{ tr('要排婚宴、年会圆桌？用') }}
@@ -1751,7 +1751,7 @@ function toDeskLabels() {
   border-radius: 1.2mm;
   font-size: 3mm;
   font-weight: 700;
-  color: #94a3b8;
+  color: #64748b;
   background: #f8fafc;
   cursor: grab;
   transition:
@@ -1860,7 +1860,7 @@ function toDeskLabels() {
   margin-top: 2mm;
   text-align: center;
   font-size: 2.8mm;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 /* 未排座名单：页脚上方一行，深一档色标出超员事实，超长时自动换行 */

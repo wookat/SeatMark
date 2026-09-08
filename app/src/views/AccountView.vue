@@ -5,6 +5,7 @@ import { localePath, t } from '@/i18n'
 import { isServiceUnavailableError, useAuthStore } from '@/stores/auth'
 import { QUOTA_ANON_DAILY, QUOTA_USER_DAILY, useQuotaStore } from '@/stores/quota'
 import { isValidTemplate, useTemplateLibrary } from '@/stores/templateLibrary'
+import { sanitizeTemplateForImport } from '@/utils/templateValidate'
 import { useToastStore } from '@/stores/toast'
 import { apiFetch, ApiError, isValidEmail } from '@/utils/api'
 import type { LabelTemplate } from '@/types/template'
@@ -224,7 +225,9 @@ async function onRestoreFromCloud() {
   restoring.value = true
   try {
     const data = await apiFetch<{ templates: unknown[] }>('/api/account/templates')
-    const templates = data.templates.filter(isValidTemplate) as LabelTemplate[]
+    const templates = (data.templates.filter(isValidTemplate) as LabelTemplate[]).map(
+      sanitizeTemplateForImport,
+    )
     const added = library.importTemplates(templates)
     if (library.lastPersistOk)
       toast.success(t('云端模板已找回'), `${templates.length} ${t('个云端模板，新增')} ${added}`)
