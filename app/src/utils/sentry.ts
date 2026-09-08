@@ -56,7 +56,10 @@ export function createPreInitErrorQueue(target: Window, max = 20): PreInitErrorQ
   }
 }
 
-const DATA_URL_RE = /data:[a-z0-9.+/-]*(?:;[a-z0-9=.+-]*)*,[^\s"'\])>]*/gi
+// payload 只在空白 / 引号 / `]` 处结束：percent-encoded 的 svg+xml data URL 会带未编码的 `(` `)` `>`，不能当终止符
+const DATA_URL_RE = /data:[a-z0-9.+/-]*(?:;[a-z0-9=.+-]*)*,[^\s"'\]]*/gi
+/** 抹除后仍带 data: 的值不应这么长，超长直接截断兜底 */
+const DATA_VALUE_MAX = 1024
 
 /**
  * 内嵌 data: URL（用户上传的 Logo / 照片 base64）一律替换为占位符。
@@ -64,7 +67,8 @@ const DATA_URL_RE = /data:[a-z0-9.+/-]*(?:;[a-z0-9=.+-]*)*,[^\s"'\])>]*/gi
  * 不清洗就等于把用户图片发到了第三方。
  */
 export function redactDataUrls(value: string): string {
-  return value.replace(DATA_URL_RE, 'data:[redacted]')
+  const out = value.replace(DATA_URL_RE, 'data:[redacted]')
+  return out.length > DATA_VALUE_MAX ? `${out.slice(0, DATA_VALUE_MAX)}…[truncated]` : out
 }
 
 function redactDataUrlsIn(record: Record<string, unknown> | undefined): void {
