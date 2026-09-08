@@ -338,6 +338,9 @@ async function onDownloadSample() {
           <strong class="text-brand-600">{{ t('点击选择') }}</strong> {{ t('或拖拽 Excel 到此处') }}
         </p>
         <p class="text-xs text-slate-600">{{ t('第一行默认作为表头，支持 .xlsx / .xls / .csv；不确定格式可先下载样例 Excel') }}</p>
+        <p class="text-xs text-slate-500" data-testid="import-privacy-note">
+          {{ t('名单不会上传，数据只留在这台设备的浏览器里') }}
+        </p>
       </div>
       <div class="mt-3 grid grid-cols-2 gap-2">
         <button
