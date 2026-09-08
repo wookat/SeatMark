@@ -2,8 +2,9 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { findFontByStack, fontStackOf, WEB_FONTS, type FontLang, type WebFont } from '@/data/fonts'
-import { t } from '@/i18n'
+import { t, useI18n } from '@/i18n'
 import { useFontsStore } from '@/stores/fonts'
+import { fontDisplayName } from '@/utils/templateLocale'
 
 const props = withDefaults(
   defineProps<{
@@ -23,6 +24,17 @@ const props = withDefaults(
 const emit = defineEmits<{ 'update:modelValue': [value: string | undefined] }>()
 
 const fonts = useFontsStore()
+const { locale } = useI18n()
+
+/** en 下中文字体名显示英文别名（不改字体栈） */
+function displayName(font: WebFont): string {
+  return fontDisplayName(font.name, locale.value)
+}
+
+/** 别名与原名不同时，列表副行展示原名（标 lang="zh"） */
+function aliasApplied(font: WebFont): boolean {
+  return displayName(font) !== font.name
+}
 
 const open = ref(false)
 const query = ref('')
@@ -32,7 +44,7 @@ const currentFont = computed(() => findFontByStack(props.modelValue))
 const defaultLabelText = computed(() => (props.defaultLabel ? t(props.defaultLabel) : t('宋体（系统默认）')))
 const currentLabel = computed(() => {
   if (!props.modelValue) return defaultLabelText.value
-  return currentFont.value?.name ?? t('自定义字体')
+  return currentFont.value ? displayName(currentFont.value) : t('自定义字体')
 })
 
 function matches(font: WebFont): boolean {
@@ -40,6 +52,7 @@ function matches(font: WebFont): boolean {
   if (!q) return true
   return (
     font.name.toLowerCase().includes(q) ||
+    displayName(font).toLowerCase().includes(q) ||
     font.family.toLowerCase().includes(q) ||
     font.category.toLowerCase().includes(q)
   )
@@ -171,9 +184,17 @@ onBeforeUnmount(() => {
                   class="block truncate text-sm text-slate-800"
                   :style="{ fontFamily: fontStackOf(font) }"
                 >
+                  {{ displayName(font) }}
+                </span>
+                <span
+                  v-if="aliasApplied(font)"
+                  lang="zh"
+                  class="block truncate text-[10px] text-slate-600"
+                  :style="{ fontFamily: fontStackOf(font) }"
+                >
                   {{ font.name }}
                 </span>
-                <span class="block truncate text-[10px] text-slate-600">
+                <span v-else class="block truncate text-[10px] text-slate-600">
                   {{ font.lang === 'zh' ? font.family : font.preview }}
                 </span>
               </span>

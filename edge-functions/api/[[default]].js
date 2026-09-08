@@ -53,7 +53,7 @@
  * 云端模板（tpl:）体积大，Blob 可用时优先存 Blob，读取兼容 KV 存量数据。
  */
 
-import { getStorage, probeBlob } from './_storage.js'
+import { getStorage, listAllKeys, probeBlob } from './_storage.js'
 import { withSecurityHeaders } from './_security.js'
 import { json, clientIp, clientIpSource, sha256Hex } from './_http.js'
 import { randomId, randomInt, randomDigits, randomToken, randomToken36 } from './_random.js'
@@ -112,6 +112,33 @@ const codeTtl = { expirationTtl: CODE_KEY_TTL_SECONDS }
 /** 模板分享短码 30 天后自动清除，避免 KV 里无限堆积历史模板负载 */
 const TPLSHARE_TTL_SECONDS = 30 * 24 * 3600
 const tplshareTtl = { expirationTtl: TPLSHARE_TTL_SECONDS }
+/** 团队版预订意向存档保留 365 天（销售跟进窗口），到期自动清除，避免 reserve: 前缀无限堆积 */
+export const RESERVE_ARCHIVE_TTL_SECONDS = 365 * 24 * 3600
+const reserveTtl = { expirationTtl: RESERVE_ARCHIVE_TTL_SECONDS }
+/**
+ * 管理端存档列表只看「最新 N 条」：键名以时间戳开头，字典序即时间序，需用 listAllKeys 翻到尾再取末尾；
+ * 翻页到 maxPages 上限仍未完时响应附 truncated: true，管理端据此提示「仅展示最近 N 条」。
+ */
+const ADMIN_FEEDBACK_LATEST = 100
+const ADMIN_RESERVATIONS_LATEST = 200
+const ADMIN_LIST_PAGING = { pageLimit: 256, maxPages: 20 }
+
+/** 读取前缀下最新 latest 条存档（新→旧），损坏记录跳过；truncated 见 listAllKeys */
+async function readLatestArchive(kv, prefix, latest) {
+  const { keys, truncated } = await listAllKeys(kv, prefix, ADMIN_LIST_PAGING)
+  const raws = await mapConcurrent(keys.slice(-latest), 8, (name) => kv.get(name))
+  const items = []
+  for (const raw of raws) {
+    if (!raw) continue
+    try {
+      items.push(JSON.parse(raw))
+    } catch {
+      // 跳过损坏记录
+    }
+  }
+  items.reverse()
+  return { items, truncated }
+}
 
 /** readBody 预检超限：由 onRequest 统一转为 413，避免每个路由自行判断 */
 class BodyTooLargeError extends Error {
@@ -1589,6 +1616,7 @@ async function handleRequest(context) {
     await kv.put(
       `reserve:${id}`,
       JSON.stringify({ email, teamSize, note, createdAt: new Date().toISOString() }),
+      reserveTtl,
     )
     return json({ ok: true }, 200, storageHeader)
   }
@@ -1733,37 +1761,13 @@ async function handleRequest(context) {
     }
 
     if (path === '/api/admin/feedback' && method === 'GET') {
-      const page = await kv.list({ prefix: 'fb:', limit: 200 })
-      const items = []
-      for (const k of page.keys.slice(-100)) {
-        const raw = await kv.get(k.name)
-        if (raw) {
-          try {
-            items.push(JSON.parse(raw))
-          } catch {
-            // 跳过损坏记录
-          }
-        }
-      }
-      items.reverse()
-      return json({ items }, 200, storageHeader)
+      const { items, truncated } = await readLatestArchive(kv, 'fb:', ADMIN_FEEDBACK_LATEST)
+      return json({ items, truncated }, 200, storageHeader)
     }
 
     if (path === '/api/admin/reservations' && method === 'GET') {
-      const page = await kv.list({ prefix: 'reserve:', limit: 256 })
-      const items = []
-      for (const k of page.keys) {
-        const raw = await kv.get(k.name)
-        if (raw) {
-          try {
-            items.push(JSON.parse(raw))
-          } catch {
-            // 跳过损坏记录
-          }
-        }
-      }
-      items.reverse()
-      return json({ items }, 200, storageHeader)
+      const { items, truncated } = await readLatestArchive(kv, 'reserve:', ADMIN_RESERVATIONS_LATEST)
+      return json({ items, truncated }, 200, storageHeader)
     }
 
     // 兑换码批量生成（供卡网售卖）：明文仅在本次响应返回一次，服务端只存哈希与末 4 位掩码

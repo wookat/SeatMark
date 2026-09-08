@@ -172,6 +172,28 @@ export async function getStorage(env) {
   return { kv: memoryKv(), storage: 'memory', blobStore: null }
 }
 
+/**
+ * 按 cursor 翻页列出前缀下的全部键名（字典序），直到尾页或达到 maxPages 上限。
+ * 时间戳前缀的存档键（fb:/reserve:）字典序即时间序，单页 list 只能看到最旧一批；
+ * 管理端取「最新 N 条」需先翻到尾。truncated=true 表示到上限仍未翻完（末尾可能不是最新）。
+ */
+export async function listAllKeys(kv, prefix, { pageLimit = 256, maxPages = 20 } = {}) {
+  const keys = []
+  let cursor = ''
+  let truncated = false
+  for (let i = 0; ; i++) {
+    if (i >= maxPages) {
+      truncated = true
+      break
+    }
+    const page = await kv.list({ prefix, limit: pageLimit, cursor })
+    for (const k of page.keys || []) keys.push(k.name)
+    if (page.complete || !page.cursor || !(page.keys || []).length) break
+    cursor = page.cursor
+  }
+  return { keys, truncated }
+}
+
 /** Blob 可用性探测（健康检查用）：写→强一致读→删 */
 export async function probeBlob(blobStore) {
   if (!blobStore) return false

@@ -453,9 +453,42 @@ export function buildVenuePreset(preset: VenuePresetId): BanquetTable[] {
  */
 export type AssignStrategy = 'keep-groups' | 'fill-tables'
 
+/** 「A 与 B 不同桌」：两位宾客 id，无序 */
+export type AvoidPair = [string, string]
+
 export interface AutoAssignOptions {
   /** 默认 true：锁定桌保持原样，其已就座宾客不进待分配集合 */
   respectLocked?: boolean
+  /** 软约束：挑桌时先跳过已含排斥对象的桌，只在没有其它可容纳桌时才落座 */
+  avoidPairs?: AvoidPair[]
+}
+
+/** guestId → 其排斥对象 id 集合（忽略自排斥与空 id） */
+export function avoidMap(pairs: readonly AvoidPair[] | undefined): Map<string, Set<string>> {
+  const map = new Map<string, Set<string>>()
+  for (const [a, b] of pairs ?? []) {
+    if (!a || !b || a === b) continue
+    if (!map.has(a)) map.set(a, new Set())
+    if (!map.has(b)) map.set(b, new Set())
+    map.get(a)!.add(b)
+    map.get(b)!.add(a)
+  }
+  return map
+}
+
+/** 去重后的排斥对（无序，去掉自排斥与不在名单中的 id） */
+export function normalizeAvoidPairs(pairs: readonly AvoidPair[], guests: readonly BanquetGuest[]): AvoidPair[] {
+  const known = new Set(guests.map((g) => g.id))
+  const seen = new Set<string>()
+  const out: AvoidPair[] = []
+  for (const [a, b] of pairs) {
+    if (!a || !b || a === b || !known.has(a) || !known.has(b)) continue
+    const key = a < b ? `${a}\u0000${b}` : `${b}\u0000${a}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push([a, b])
+  }
+  return out
 }
 
 /** 命中搜索的宾客及所在桌（tableId 为 null = 未安排） */
@@ -495,6 +528,32 @@ function groupGuestsForAssign(guests: BanquetGuest[]): Array<[string, BanquetGue
 }
 
 /**
+ * 有排斥对时，散客（未分组）桶内互斥的后者拆成独立单元追加到最后，
+ * 保证单元内部无冲突；已分组的宾客仍整组同桌（组内排斥只报冲突，不拆组）。
+ */
+function splitAvoidUnits(
+  units: Array<[string, BanquetGuest[]]>,
+  avoid: Map<string, Set<string>>,
+): Array<[string, BanquetGuest[]]> {
+  const out: Array<[string, BanquetGuest[]]> = []
+  const extras: Array<[string, BanquetGuest[]]> = []
+  for (const [key, members] of units) {
+    if (key !== '') {
+      out.push([key, members])
+      continue
+    }
+    const kept: BanquetGuest[] = []
+    for (const m of members) {
+      const foes = avoid.get(m.id)
+      if (foes && kept.some((k) => foes.has(k.id))) extras.push(['', [m]])
+      else kept.push(m)
+    }
+    if (kept.length) out.push(['', kept])
+  }
+  return [...out, ...extras]
+}
+
+/**
  * 一键自动分配：
  * 1. 按分组聚合宾客（未分组的排最后），组内保持名单顺序；
  * 2. keep-groups：大组优先；每组先找「剩余座位刚好放得下整组」的最小桌（best-fit），
@@ -509,6 +568,7 @@ export function autoAssignGuests(
   opts: AutoAssignOptions = {},
 ): Map<string, string[]> {
   const respectLocked = opts.respectLocked ?? true
+  const avoid = avoidMap(opts.avoidPairs)
   const assigned = new Map<string, string[]>()
   const lockedGuestIds = new Set<string>()
   const tables: BanquetTable[] = []
@@ -531,13 +591,34 @@ export function autoAssignGuests(
     assigned.get(g.pinnedTableId)!.push(g.id)
     free.set(g.pinnedTableId, free.get(g.pinnedTableId)! - 1)
   }
-  const groupsSorted = groupGuestsForAssign(
+  const grouped = groupGuestsForAssign(
     guests.filter((g) => !lockedGuestIds.has(g.id) && !pinnedGuestIds.has(g.id)),
   )
+  const groupsSorted = avoid.size ? splitAvoidUnits(grouped, avoid) : grouped
 
   const put = (tableId: string, members: BanquetGuest[]) => {
     assigned.get(tableId)!.push(...members.map((m) => m.id))
     free.set(tableId, free.get(tableId)! - members.length)
+  }
+  /** 该桌上（含锁定/钉住/已分配）是否已有 members 中任一人的排斥对象 */
+  const conflicts = (tableId: string, members: readonly BanquetGuest[]): boolean => {
+    if (!avoid.size) return false
+    const seated = assigned.get(tableId)!
+    if (!seated.length) return false
+    for (const m of members) {
+      const foes = avoid.get(m.id)
+      if (foes && seated.some((id) => foes.has(id))) return true
+    }
+    return false
+  }
+  /** 先在无冲突的桌中挑，挑不到再退回全部桌（软约束） */
+  const pick = (members: readonly BanquetGuest[], choose: (ids: readonly string[]) => string | null): string | null => {
+    if (avoid.size) {
+      const clean = order.filter((id) => !conflicts(id, members))
+      const hit = choose(clean)
+      if (hit) return hit
+    }
+    return choose(order)
   }
 
   if (strategy === 'fill-tables') {
@@ -550,6 +631,20 @@ export function autoAssignGuests(
         if (f <= 0) {
           cursor++
           continue
+        }
+        // 排斥：与当前桌冲突的成员先换到后面的无冲突桌；没有就照常坐下
+        if (avoid.size) {
+          const clash = rest.filter((m) => conflicts(id, [m]))
+          if (clash.length) {
+            const alt = order.slice(cursor + 1).find((tid) => free.get(tid)! > 0 && !conflicts(tid, clash))
+            if (alt) {
+              const take = Math.min(free.get(alt)!, clash.length)
+              const moved = clash.slice(0, take)
+              put(alt, moved)
+              rest = rest.filter((m) => !moved.includes(m))
+              continue
+            }
+          }
         }
         const take = Math.min(f, rest.length)
         put(id, rest.slice(0, take))
@@ -564,22 +659,29 @@ export function autoAssignGuests(
     let rest = [...members]
     while (rest.length) {
       // best-fit：能整组放下的桌里剩余座位最少的一张
-      let best: string | null = null
-      for (const id of order) {
-        const f = free.get(id)!
-        if (f >= rest.length && (best === null || f < free.get(best)!)) best = id
-      }
+      const need = rest.length
+      const best = pick(rest, (ids) => {
+        let hit: string | null = null
+        for (const id of ids) {
+          const f = free.get(id)!
+          if (f >= need && (hit === null || f < free.get(hit)!)) hit = id
+        }
+        return hit
+      })
       if (best) {
         put(best, rest)
         rest = []
         break
       }
       // 放不下整组：填进剩余座位最多的桌，剩下的继续
-      let widest: string | null = null
-      for (const id of order) {
-        const f = free.get(id)!
-        if (f > 0 && (widest === null || f > free.get(widest)!)) widest = id
-      }
+      const widest = pick(rest, (ids) => {
+        let hit: string | null = null
+        for (const id of ids) {
+          const f = free.get(id)!
+          if (f > 0 && (hit === null || f > free.get(hit)!)) hit = id
+        }
+        return hit
+      })
       if (!widest) break // 所有桌已满，剩余宾客保持未安排
       const take = Math.min(free.get(widest)!, rest.length)
       put(widest, rest.slice(0, take))
@@ -587,6 +689,23 @@ export function autoAssignGuests(
     }
   }
   return assigned
+}
+
+/** 已坐在同一桌的排斥对（按 pairs 顺序，tableId 为所在桌） */
+export function findAvoidConflicts(
+  pairs: readonly AvoidPair[] | undefined,
+  tables: readonly BanquetTable[],
+): Array<{ a: string; b: string; tableId: string }> {
+  if (!pairs?.length) return []
+  const tableOf = new Map<string, string>()
+  for (const t of tables) for (const id of t.guestIds) tableOf.set(id, t.id)
+  const out: Array<{ a: string; b: string; tableId: string }> = []
+  for (const [a, b] of pairs) {
+    if (!a || !b || a === b) continue
+    const ta = tableOf.get(a)
+    if (ta && ta === tableOf.get(b)) out.push({ a, b, tableId: ta })
+  }
+  return out
 }
 
 // ---------- 重叠检测 ----------
@@ -649,9 +768,15 @@ export interface BanquetIssues {
   overCapacity: string[]
   /** 名单中同名但被当作不同人的姓名 */
   duplicateNames: string[]
+  /** 「不同桌」排斥对却坐在同一桌（a/b 为 guestId） */
+  avoidConflicts: Array<{ a: string; b: string; tableId: string }>
 }
 
-export function validateBanquet(guests: BanquetGuest[], tables: BanquetTable[]): BanquetIssues {
+export function validateBanquet(
+  guests: BanquetGuest[],
+  tables: BanquetTable[],
+  avoidPairs: readonly AvoidPair[] = [],
+): BanquetIssues {
   const seated = new Set<string>()
   for (const t of tables) for (const id of t.guestIds) seated.add(id)
   const tableName = new Map(tables.map((t) => [t.id, t.name]))
@@ -661,6 +786,7 @@ export function validateBanquet(guests: BanquetGuest[], tables: BanquetTable[]):
     overlaps: findOverlaps(tables).map(([a, b]) => [tableName.get(a)!, tableName.get(b)!]),
     overCapacity: tables.filter((t) => t.guestIds.length > t.seats).map((t) => t.name),
     duplicateNames: findDuplicateGuestNames(guests),
+    avoidConflicts: findAvoidConflicts(avoidPairs, tables),
   }
 }
 
@@ -669,12 +795,15 @@ export interface AssignmentSummary {
   assigned: number
   unassigned: number
   emptyTables: number
+  /** 「不同桌」排斥对中坐在同一桌的对数（仅 >0 时展示） */
+  avoidConflicts: number
 }
 
 /** 已安排人数只统计仍在名单中的宾客（桌上残留的已删除 id 不计） */
 export function summarizeAssignments(
   guests: BanquetGuest[],
   tables: BanquetTable[],
+  avoidPairs: readonly AvoidPair[] = [],
 ): AssignmentSummary {
   const known = new Set(guests.map((g) => g.id))
   const seated = new Set<string>()
@@ -683,6 +812,7 @@ export function summarizeAssignments(
     assigned: seated.size,
     unassigned: guests.length - seated.size,
     emptyTables: tables.filter((t) => !t.guestIds.length).length,
+    avoidConflicts: findAvoidConflicts(avoidPairs, tables).length,
   }
 }
 

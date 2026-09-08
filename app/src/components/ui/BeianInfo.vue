@@ -14,6 +14,7 @@ const policeUrl = POLICE_BEIAN_CODE
       target="_blank"
       rel="noopener noreferrer"
       class="transition-colors hover:text-slate-600"
+      lang="zh"
     >
       {{ ICP_BEIAN }}
     </a>
@@ -23,6 +24,7 @@ const policeUrl = POLICE_BEIAN_CODE
       target="_blank"
       rel="noopener noreferrer"
       class="inline-flex items-center gap-1 transition-colors hover:text-slate-600"
+      lang="zh"
     >
       <svg
         class="size-3.5"

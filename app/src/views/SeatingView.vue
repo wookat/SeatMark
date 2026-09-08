@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch, watchEffect } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 
 import MobilePreviewJump from '@/components/MobilePreviewJump.vue'
@@ -30,6 +30,7 @@ import {
   findSeatsByName,
   interleaveByGender,
   parseSeatingRosterDetailed,
+  reconcileArranged,
   SEATING_HANDOFF_KEY,
   seatingExportFileName,
   seatingRosterTextFromTable,
@@ -66,6 +67,8 @@ interface SeatingPersistedState {
   namesText: string
   arranged: SeatingEntry[] | null
   duplicatePolicy?: SeatingDuplicatePolicy
+  /** 名单含考场列时选中的考场号；空 = 全部 */
+  roomFilter?: string
 }
 
 function loadPersistedState(): SeatingPersistedState | null {
@@ -106,7 +109,31 @@ const duplicatePolicy = computed<SeatingDuplicatePolicy>(() =>
 const dedupedRoster = computed(() =>
   dedupeSeatingEntries(parsedRoster.value.entries, duplicatePolicy.value),
 )
-const parsedEntries = computed<SeatingEntry[]>(() => dedupedRoster.value.entries)
+/** 名单含「考场」列时可按考场筛选；仅在 ≥ 2 个考场时展示下拉，无考场列时 UI 与现状一致 */
+const roomFilter = ref(typeof persisted?.roomFilter === 'string' ? persisted.roomFilter : '')
+const rooms = computed(() => parsedRoster.value.rooms)
+const roomFilterVisible = computed(() => rooms.value.length >= 2)
+/** 生效的考场筛选：名单中已没有该考场（或不再需要筛选）时回到全部 */
+const activeRoom = computed(() =>
+  roomFilterVisible.value && rooms.value.some((r) => r.id === roomFilter.value) ? roomFilter.value : '',
+)
+const ROOM_ALL = ''
+const roomOptions = computed<SelectOption[]>(() => [
+  {
+    value: ROOM_ALL,
+    label: `${tr('全部')} ${parsedRoster.value.entries.length} ${personUnit.value}`,
+  },
+  ...rooms.value.map((r) => ({
+    value: r.id,
+    label: `${tr('考场')} ${r.id}`,
+    hint: `${r.count} ${personUnit.value}`,
+  })),
+])
+const parsedEntries = computed<SeatingEntry[]>(() => {
+  const list = dedupedRoster.value.entries
+  const room = activeRoom.value
+  return room ? list.filter((e) => e.room === room) : list
+})
 const duplicateNames = computed(() => dedupedRoster.value.duplicates)
 const duplicateHint = computed(() => {
   const list = duplicateNames.value
@@ -182,14 +209,81 @@ function onRosterFileChange(event: Event) {
   return rosterFile.onFileChange(event)
 }
 
-/** 手工排座结果（随机 / 拖拽后生效）；名单文本变化时失效还原 */
+/**
+ * 手工排座结果（随机 / 拖拽后生效）。名单文本变化时不再静默清空，而是按姓名对齐：
+ * 仍在名单中的人保位，删掉的人移除，新人追加到末尾，并用 toast 明示；整份替换（无人保留）才还原为名单顺序。
+ * 切换重名策略 / 考场筛选仍还原为名单顺序，但同样 toast 明示。
+ */
 const arranged = ref<SeatingEntry[] | null>(persisted?.arranged ?? null)
-watch([namesText, keepDuplicates], () => {
+/** 逐字输入时只提示一次：以连续编辑开始前的座次为基线，停顿后汇总净变化 */
+const RECONCILE_TOAST_DELAY_MS = 600
+let reconcileBase: SeatingEntry[] | null = null
+let reconcileToastTimer: ReturnType<typeof setTimeout> | undefined
+
+function flushReconcileToast() {
+  if (reconcileToastTimer !== undefined) {
+    clearTimeout(reconcileToastTimer)
+    reconcileToastTimer = undefined
+  }
+  const base = reconcileBase
+  reconcileBase = null
+  if (!base || !arranged.value) return
+  const { kept, added, removed } = reconcileArranged(base, parsedEntries.value)
+  if (!added && !removed) return
+  const details: string[] = []
+  if (added) details.push(tr('新增 {n} 人，已排到末尾空位').replace('{n}', String(added)))
+  if (removed) details.push(tr('移除 {n} 人，原座位留空').replace('{n}', String(removed)))
+  toast.info(
+    tr('名单已更新，已保留 {kept} 人的手工座位').replace('{kept}', String(kept)),
+    details.join(tr('；')),
+  )
+}
+
+watch(namesText, () => {
+  if (!arranged.value) return
+  const result = reconcileArranged(arranged.value, parsedEntries.value)
+  if (result.kept === 0) {
+    arranged.value = null
+    reconcileBase = null
+    if (reconcileToastTimer !== undefined) {
+      clearTimeout(reconcileToastTimer)
+      reconcileToastTimer = undefined
+    }
+    toast.info(tr('名单已整体更换，座位已按名单顺序重排'))
+    return
+  }
+  if (!reconcileBase) reconcileBase = arranged.value
+  arranged.value = result.entries
+  if (reconcileToastTimer !== undefined) clearTimeout(reconcileToastTimer)
+  reconcileToastTimer = setTimeout(flushReconcileToast, RECONCILE_TOAST_DELAY_MS)
+})
+onBeforeUnmount(() => {
+  if (reconcileToastTimer !== undefined) clearTimeout(reconcileToastTimer)
+})
+watch(keepDuplicates, () => {
+  if (!arranged.value) return
   arranged.value = null
+  toast.info(tr('重名处理已切换，座位已按名单顺序重排'))
+})
+/** 考场号输入框由筛选自动带入的值；用户手填过（与自动值不同）则不覆盖 */
+let roomNoAutoValue = ''
+watch(activeRoom, (room, prev) => {
+  if (room === prev) return
+  if (room && (roomNo.value.trim() === '' || roomNo.value === roomNoAutoValue)) {
+    roomNo.value = room
+    roomNoAutoValue = room
+  } else if (!room && roomNo.value === roomNoAutoValue && roomNoAutoValue) {
+    roomNo.value = ''
+    roomNoAutoValue = ''
+  }
+  if (!arranged.value) return
+  arranged.value = null
+  selectedSeat.value = null
+  toast.info(tr('已切换考场，座位已按名单顺序重排'))
 })
 
 watch(
-  [title, roomNo, rows, cols, podium, fillOrder, aisles, namesText, arranged, keepDuplicates],
+  [title, roomNo, rows, cols, podium, fillOrder, aisles, namesText, arranged, keepDuplicates, roomFilter],
   () => {
     try {
       const state: SeatingPersistedState = {
@@ -203,6 +297,7 @@ watch(
         namesText: namesText.value,
         arranged: arranged.value,
         duplicatePolicy: duplicatePolicy.value,
+        roomFilter: roomFilter.value,
       }
       localStorage.setItem(SEATING_STATE_KEY, JSON.stringify(state))
     } catch {
@@ -596,11 +691,17 @@ async function runPngExport() {
       pageHeight: SHEET_H,
       // 座位表整页满版（网格撑满宽度 + 底部页脚）：右侧/下部无墨迹即为丢样式的坏图
       fullPageInk: true,
-      fileName: seatingExportFileName(title.value, viewMode.value, {
-        fallback: tr('教室座位表'),
-        teacher: tr('教师视角'),
-        student: tr('学生视角'),
-      }),
+      fileName: seatingExportFileName(
+        title.value,
+        viewMode.value,
+        {
+          fallback: tr('教室座位表'),
+          teacher: tr('教师视角'),
+          student: tr('学生视角'),
+          room: tr('考场'),
+        },
+        activeRoom.value,
+      ),
     })
     if (!withWatermark.value) await quota.tryConsume()
     toast.success(
@@ -800,6 +901,18 @@ function toDeskLabels() {
           <p v-if="rosterHints.length" class="mt-1 text-xs leading-5 text-slate-500" data-testid="roster-hints">
             <span v-for="hint in rosterHints" :key="hint" class="mr-2 inline-block">{{ hint }}</span>
           </p>
+          <div v-if="roomFilterVisible" class="mt-2" data-testid="seating-room-filter">
+            <label class="field-label">{{ tr('考场') }}</label>
+            <SelectField
+              :model-value="activeRoom"
+              :options="roomOptions"
+              size="sm"
+              @update:model-value="roomFilter = $event"
+            />
+            <p class="mt-1 text-xs leading-5 text-slate-500">
+              {{ tr('名单含考场列：选中后只排该考场的学生，导出文件名附考场号') }}
+            </p>
+          </div>
           <div
             v-if="duplicateHint"
             class="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"

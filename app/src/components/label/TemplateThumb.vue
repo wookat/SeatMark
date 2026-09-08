@@ -10,6 +10,8 @@ const props = defineProps<{
   template: LabelTemplate
   /** 进入视口附近才渲染标签内容（长列表页用，降低一次性挂载成本） */
   defer?: boolean
+  /** 外层语言标注：en 界面下模板仍含中文示例值时传 'zh' */
+  lang?: 'zh'
 }>()
 
 const container = ref<HTMLElement | null>(null)
@@ -64,7 +66,7 @@ onBeforeUnmount(() => {
 <template>
   <!-- 灰色衬底边框放在外层：内层盒子无边框，aspect-ratio 高度与缩放后的标签
        完全一致，避免标签自身的底部边框被裁掉 -->
-  <div aria-hidden="true" class="w-full border border-slate-200 bg-slate-100">
+  <div aria-hidden="true" class="w-full border border-slate-200 bg-slate-100" :lang="lang">
     <div
       ref="container"
       class="relative w-full overflow-hidden"

@@ -23,6 +23,9 @@ import {
   assignGroupToGuests,
   autoAssignGuests,
   type AssignStrategy,
+  type AvoidPair,
+  findAvoidConflicts,
+  normalizeAvoidPairs,
   searchGuests,
   type GuestSearchHit,
   BANQUET_STATE_KEY,
@@ -89,6 +92,8 @@ interface BanquetPersistedState {
   orientation: 'landscape' | 'portrait'
   exportColors: boolean
   posterLayout?: boolean
+  /** 「A 与 B 不同桌」排斥对（guestId），仅浏览器本地 */
+  avoidPairs?: AvoidPair[]
 }
 
 function loadPersistedState(): BanquetPersistedState | null {
@@ -117,9 +122,19 @@ const orientation = ref<'landscape' | 'portrait'>(persisted?.orientation ?? 'lan
 const exportColors = ref(persisted?.exportColors ?? false)
 /** 张贴版（远距可读）：导出时把非空桌重排为网格铺满页面、姓名字号自适应；关闭则按屏幕场地图原样输出（紧凑版） */
 const posterLayout = ref(persisted?.posterLayout ?? true)
+const avoidPairs = ref<AvoidPair[]>(
+  Array.isArray(persisted?.avoidPairs)
+    ? normalizeAvoidPairs(
+        persisted.avoidPairs.filter(
+          (p): p is AvoidPair => Array.isArray(p) && typeof p[0] === 'string' && typeof p[1] === 'string',
+        ),
+        persisted.guests ?? [],
+      )
+    : [],
+)
 
 watch(
-  [title, pasteText, guests, groups, tables, markers, paper, orientation, exportColors, posterLayout],
+  [title, pasteText, guests, groups, tables, markers, paper, orientation, exportColors, posterLayout, avoidPairs],
   () => {
     try {
       const state: BanquetPersistedState = {
@@ -133,6 +148,7 @@ watch(
         orientation: orientation.value,
         exportColors: exportColors.value,
         posterLayout: posterLayout.value,
+        avoidPairs: avoidPairs.value,
       }
       localStorage.setItem(BANQUET_STATE_KEY, JSON.stringify(state))
     } catch {
@@ -322,7 +338,7 @@ function loadDemoGuests(count = 48) {
 }
 
 /** 常驻状态条：已安排 / 未安排 / 空桌（与导出前检查、未安排列表同一口径） */
-const assignmentSummary = computed(() => summarizeAssignments(guests.value, tables.value))
+const assignmentSummary = computed(() => summarizeAssignments(guests.value, tables.value, avoidPairs.value))
 
 // ---------- 底部「下一步」操作条（只做导航，不碰数据） ----------
 const rosterSection = ref<HTMLElement | null>(null)
@@ -538,7 +554,10 @@ function autoAssign() {
     toast.warning(tr('还没有餐桌'), tr('请先在第 2 步选择场地预设或添加餐桌'))
     return
   }
-  const result = autoAssignGuests(guests.value, tables.value, assignStrategy.value, { respectLocked: true })
+  const result = autoAssignGuests(guests.value, tables.value, assignStrategy.value, {
+    respectLocked: true,
+    avoidPairs: avoidPairs.value,
+  })
   for (const t of tables.value) {
     t.guestIds = result.get(t.id) ?? []
   }
@@ -549,7 +568,10 @@ function autoAssign() {
   const pinnedNote = pinnedGuests.value.length
     ? ` · ${tr('钉住')} ${pinnedGuests.value.length}${tr('（保持原桌）')}`
     : ''
-  const detail = `${tr('已安排')} ${s.assigned}/${s.total} · ${tr('空桌')} ${s.emptyTables} · ${tr('拆分分组')} ${s.splitGroups} · ${tr('未安排')} ${s.unassigned}${lockedNote}${pinnedNote}`
+  const avoidNote = assignmentSummary.value.avoidConflicts
+    ? ` · ${tr('排斥冲突')} ${assignmentSummary.value.avoidConflicts} ${tr('对')}`
+    : ''
+  const detail = `${tr('已安排')} ${s.assigned}/${s.total} · ${tr('空桌')} ${s.emptyTables} · ${tr('拆分分组')} ${s.splitGroups} · ${tr('未安排')} ${s.unassigned}${lockedNote}${pinnedNote}${avoidNote}`
   if (s.splitGroups) splitDetailsOpen.value = true
   if (s.unassigned) {
     toast.warning(
@@ -592,6 +614,63 @@ function togglePin(guestId: string, tableId: string) {
   if (!guest) return
   guest.pinnedTableId = guest.pinnedTableId === tableId ? null : tableId
 }
+
+// ---------- 「不同桌」排斥清单（仅浏览器本地，软约束） ----------
+const avoidOpen = ref(avoidPairs.value.length > 0)
+const avoidA = ref('')
+const avoidB = ref('')
+const avoidGuestOptions = computed<SelectOption[]>(() =>
+  guests.value.map((g) => ({
+    value: g.id,
+    label: g.name,
+    hint: g.groupId ? (groupById.value.get(g.groupId)?.name ?? '') : '',
+  })),
+)
+const avoidBOptions = computed(() => avoidGuestOptions.value.filter((o) => o.value !== avoidA.value))
+/** 排斥对里的宾客被删除时同步清理 */
+watch(
+  () => guests.value.map((g) => g.id).join('\n'),
+  () => {
+    const next = normalizeAvoidPairs(avoidPairs.value, guests.value)
+    if (next.length !== avoidPairs.value.length) avoidPairs.value = next
+  },
+)
+function avoidPairKey(pair: AvoidPair): string {
+  return pair[0] < pair[1] ? `${pair[0]}|${pair[1]}` : `${pair[1]}|${pair[0]}`
+}
+function guestNameById(id: string): string {
+  return guestById.value.get(id)?.name ?? '?'
+}
+function addAvoidPair() {
+  const a = avoidA.value
+  const b = avoidB.value
+  if (!a || !b) {
+    toast.warning(tr('请选择两位宾客'))
+    return
+  }
+  if (a === b) {
+    toast.warning(tr('请选择两位不同的宾客'))
+    return
+  }
+  const next = normalizeAvoidPairs([...avoidPairs.value, [a, b]], guests.value)
+  if (next.length === avoidPairs.value.length) {
+    toast.info(tr('这对排斥已在清单中'))
+    return
+  }
+  avoidPairs.value = next
+  avoidA.value = ''
+  avoidB.value = ''
+  toast.success(
+    tr('已添加不同桌：{a} 与 {b}').replace('{a}', guestNameById(a)).replace('{b}', guestNameById(b)),
+    tr('自动分配会尽量避开；已分配的座位不会自动变动'),
+  )
+}
+function removeAvoidPair(index: number) {
+  avoidPairs.value = avoidPairs.value.filter((_, i) => i !== index)
+}
+/** 排斥对坐到同一桌（当前安排） */
+const avoidConflictList = computed(() => findAvoidConflicts(avoidPairs.value, tables.value))
+const avoidConflictKeys = computed(() => new Set(avoidConflictList.value.map((c) => avoidPairKey([c.a, c.b]))))
 
 /** 整组移桌时可移动的成员：钉住在其他桌的成员保持原桌不动 */
 function movableGroupMembers(groupId: string, tableId: string): string[] {
@@ -921,6 +1000,15 @@ function moveGuestToTable(guestId: string, tableId: string) {
   if (target.guestIds.length > target.seats) {
     toast.warning(`「${target.name}」${tr('已超员')}`, `${target.guestIds.length} / ${target.seats}`)
   }
+  // 「不同桌」软约束：手动拖到排斥对象所在桌只提醒，不阻止
+  const foes = findAvoidConflicts(avoidPairs.value, [target]).filter((c) => c.a === guestId || c.b === guestId)
+  if (foes.length && guest) {
+    const others = foes.map((c) => guestNameById(c.a === guestId ? c.b : c.a)).join(tr('、'))
+    toast.warning(
+      tr('{a} 与 {b} 已标为不同桌').replace('{a}', guest.name).replace('{b}', others),
+      tr('已按你的拖拽落座；如需避开请再拖到其它桌'),
+    )
+  }
 }
 
 function moveGuestToPool(guestId: string) {
@@ -1003,14 +1091,15 @@ const pendingFormat = ref<'png' | 'pdf'>('png')
 
 function startExport(format: 'png' | 'pdf') {
   pendingFormat.value = format
-  const found = validateBanquet(guests.value, tables.value)
+  const found = validateBanquet(guests.value, tables.value, avoidPairs.value)
   issues.value = found
   if (
     found.unassigned.length ||
     found.emptyTables.length ||
     found.overlaps.length ||
     found.overCapacity.length ||
-    found.duplicateNames.length
+    found.duplicateNames.length ||
+    found.avoidConflicts.length
   ) {
     issuesOpen.value = true
     return
@@ -1026,7 +1115,8 @@ const onlyEmptyTableIssues = computed(() => {
     found.emptyTables.length > 0 &&
     !found.unassigned.length &&
     !found.overlaps.length &&
-    !found.overCapacity.length
+    !found.overCapacity.length &&
+    !found.avoidConflicts.length
   )
 })
 
@@ -1040,7 +1130,7 @@ function removeEmptyTablesAndExport() {
   const kept = removeEmptyTables(tables.value)
   if (selectedId.value && !kept.some((t) => t.id === selectedId.value)) selectedId.value = null
   tables.value = kept
-  issues.value = validateBanquet(guests.value, kept)
+  issues.value = validateBanquet(guests.value, kept, avoidPairs.value)
   confirmIssuesAndExport()
 }
 
@@ -1543,6 +1633,68 @@ function toPlaceCards() {
               tr('已钉住 {n} 人').replace('{n}', String(pinnedGuests.length))
             }}</span>
           </p>
+          <div class="mt-2 rounded-lg border border-slate-200" data-testid="avoid-section">
+            <button
+              type="button"
+              class="flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-2 text-left text-xs font-semibold text-slate-700"
+              :aria-expanded="avoidOpen"
+              data-testid="avoid-toggle"
+              @click="avoidOpen = !avoidOpen"
+            >
+              <span>
+                {{ tr('不同桌') }}
+                <span v-if="avoidPairs.length" class="ml-1 rounded-full bg-slate-100 px-1.5 text-[11px] text-slate-600" data-testid="avoid-count">{{ avoidPairs.length }}</span>
+                <span v-if="assignmentSummary.avoidConflicts" class="ml-1 rounded-full bg-amber-100 px-1.5 text-[11px] text-amber-800" data-testid="avoid-conflict-count">
+                  {{ tr('排斥冲突 {n} 对').replace('{n}', String(assignmentSummary.avoidConflicts)) }}
+                </span>
+              </span>
+              <svg class="size-3 shrink-0 transition-transform" :class="{ 'rotate-180': avoidOpen }" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m4 6 4 4 4-4" />
+              </svg>
+            </button>
+            <div v-if="avoidOpen" class="border-t border-slate-100 px-3 pb-3" data-testid="avoid-panel">
+              <p class="mt-2 text-xs leading-5 text-slate-600">
+                {{ tr('标记两位宾客不同桌：自动分配会尽量避开（仅在没有其它可坐的桌时才同桌）；手动拖到一起会提醒但不阻止。清单只存在本机。') }}
+              </p>
+              <div v-if="guests.length >= 2" class="mt-2 flex flex-wrap items-end gap-2">
+                <div class="min-w-[7rem] flex-1">
+                  <p class="field-label">{{ tr('宾客 A') }}</p>
+                  <SelectField v-model="avoidA" size="sm" :options="avoidGuestOptions" :placeholder="tr('选择宾客')" data-testid="avoid-select-a" />
+                </div>
+                <div class="min-w-[7rem] flex-1">
+                  <p class="field-label">{{ tr('宾客 B') }}</p>
+                  <SelectField v-model="avoidB" size="sm" :options="avoidBOptions" :placeholder="tr('选择宾客')" data-testid="avoid-select-b" />
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" data-testid="avoid-add" @click="addAvoidPair">
+                  {{ tr('添加') }}
+                </button>
+              </div>
+              <p v-else class="mt-2 text-xs text-slate-600">{{ tr('名单至少需要两位宾客') }}</p>
+              <ul v-if="avoidPairs.length" class="mt-2 grid gap-1" data-testid="avoid-list">
+                <li
+                  v-for="(pair, i) in avoidPairs"
+                  :key="avoidPairKey(pair)"
+                  class="flex items-center justify-between gap-2 rounded bg-slate-50 px-2 py-1 text-xs"
+                  :class="avoidConflictKeys.has(avoidPairKey(pair)) ? 'text-amber-800' : 'text-slate-700'"
+                  data-testid="avoid-item"
+                >
+                  <span class="truncate">
+                    {{ guestNameById(pair[0]) }} <span aria-hidden="true">✕</span> {{ guestNameById(pair[1]) }}
+                    <span v-if="avoidConflictKeys.has(avoidPairKey(pair))" class="ml-1 font-semibold">{{ tr('同桌中') }}</span>
+                  </span>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm shrink-0"
+                    :aria-label="tr('删除排斥：{a} 与 {b}').replace('{a}', guestNameById(pair[0])).replace('{b}', guestNameById(pair[1]))"
+                    data-testid="avoid-remove"
+                    @click="removeAvoidPair(i)"
+                  >
+                    {{ tr('删除') }}
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
         </section>
 
         <!-- 第 4 步：检查与导出 -->
@@ -2060,6 +2212,14 @@ function toPlaceCards() {
           <p class="font-bold text-red-600">{{ tr('位置重叠的餐桌') }}</p>
           <p class="mt-0.5 text-xs leading-5 text-slate-600">
             {{ issues.overlaps.map(([a, b]) => `${a} ↔ ${b}`).join(tr('；')) }}
+          </p>
+        </div>
+        <div v-if="issues.avoidConflicts.length" data-testid="issues-avoid-conflicts">
+          <p class="font-bold text-amber-700">
+            {{ tr('排斥冲突') }}{{ tr('（') }}{{ issues.avoidConflicts.length }}{{ tr('）') }}
+          </p>
+          <p class="mt-0.5 text-xs leading-5 text-slate-600">
+            {{ issues.avoidConflicts.map((c) => `${guestNameById(c.a)} ✕ ${guestNameById(c.b)}`).join(tr('；')) }}{{ tr('。') }}{{ tr('这些「不同桌」的宾客目前坐在同一桌，可继续导出或返回拖拽调整。') }}
           </p>
         </div>
         <div v-if="issues.duplicateNames.length">

@@ -10,7 +10,7 @@ import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { useElementSize } from '@/composables/useElementSize'
 import { useQuotaBadge } from '@/composables/useQuotaBadge'
 import { STUDIO_TOOLBAR_BOTTOM_VAR } from '@/composables/useStickyActions'
-import { t } from '@/i18n'
+import { t, useI18n } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useCalibrationStore } from '@/stores/calibration'
 import { QUOTA_USER_DAILY, useQuotaStore } from '@/stores/quota'
@@ -54,6 +54,7 @@ import {
   type LabelExportItem,
 } from '@/utils/pngExport'
 import { templateColumnsValid } from '@/utils/fieldTemplate'
+import { templateHasCjk } from '@/utils/templateLocale'
 import { buildUnmappedNotice } from '@/utils/unmappedNotice'
 
 const workspace = useWorkspaceStore()
@@ -65,6 +66,12 @@ const calibrationStore = useCalibrationStore()
 const pageWidthPx = computed(() => workspace.template.page.paperWidth * MM_TO_PX)
 const pageHeightPx = computed(() => workspace.template.page.paperHeight * MM_TO_PX)
 const currentPaperLabel = computed(() => paperLabel(workspace.template.page))
+
+const { locale } = useI18n()
+/** en 界面下画布内容为中文设计稿时，标 lang="zh"（不改变渲染，仅语言标注） */
+const previewLang = computed(() =>
+  locale.value === 'en' && templateHasCjk(workspace.renderTemplate) ? 'zh' : undefined,
+)
 
 /** 浏览器打印的 @page 尺寸跟随模板纸张；校准补偿同步注入打印样式 */
 watchEffect(() => {
@@ -127,7 +134,7 @@ const ZOOM_OPTIONS = computed<SelectOption[]>(() => [
 const isSmallViewport =
   typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 639px)').matches
 const zoomMode = ref(isSmallViewport ? 'fitLabel' : 'fit')
-/** 小屏下把低频显示选项（裁切线/高亮缺失/裁切排序/对折双联/打印校准）收进「显示选项」，避免工具栏折成四行 */
+/** <xl（1280）把低频显示选项（裁切线/高亮缺失/裁切排序/对折双联/打印校准）收进「显示选项」，避免 640–1279 工具栏折成三四行 */
 const displayOptionsOpen = ref(false)
 const displayOptionsActiveCount = computed(() =>
   [
@@ -1007,7 +1014,8 @@ const hintKey = ref<HintKey | null>(null)
         <SelectField v-model="zoomMode" class="w-24" size="sm" :options="ZOOM_OPTIONS" />
         <button
           type="button"
-          class="btn btn-secondary btn-sm min-h-9 sm:hidden"
+          class="btn btn-secondary btn-sm min-h-9 xl:hidden"
+          data-testid="display-options-toggle"
           :aria-expanded="displayOptionsOpen"
           @click="displayOptionsOpen = !displayOptionsOpen"
         >
@@ -1029,7 +1037,7 @@ const hintKey = ref<HintKey | null>(null)
           </svg>
         </button>
         <div
-          class="w-full flex-wrap items-center gap-2 sm:contents"
+          class="w-full flex-wrap items-center gap-2 xl:contents"
           :class="displayOptionsOpen ? 'flex' : 'hidden'"
         >
         <CheckboxField
@@ -1323,7 +1331,11 @@ const hintKey = ref<HintKey | null>(null)
           class="relative origin-top-left"
           :style="{ width: `${pageWidthPx * scale}px`, height: `${pageHeightPx * scale}px` }"
         >
-          <div class="absolute top-0 left-0 origin-top-left" :style="{ transform: `scale(${scale})` }">
+          <div
+            class="absolute top-0 left-0 origin-top-left"
+            :style="{ transform: `scale(${scale})` }"
+            :lang="previewLang"
+          >
             <LabelSheet
               :key="workspace.rareFontTick"
               :template="workspace.renderTemplate"

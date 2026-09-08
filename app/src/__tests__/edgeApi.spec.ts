@@ -7,13 +7,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore JS 模块无类型声明
-import { ANNOUNCEMENT_CACHE_CONTROL, getSecret, mapConcurrent, onRequest } from "../../../edge-functions/api/[[default]].js";
+import { ANNOUNCEMENT_CACHE_CONTROL, RESERVE_ARCHIVE_TTL_SECONDS, getSecret, mapConcurrent, onRequest } from "../../../edge-functions/api/[[default]].js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore JS 模块无类型声明
 import { SEATMARK_REV } from "../../../edge-functions/api/_rev.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore JS 模块无类型声明
-import { unwrapTtl } from "../../../edge-functions/api/_storage.js";
+import { listAllKeys, unwrapTtl } from "../../../edge-functions/api/_storage.js";
 
 interface Env {
   AUTH_SECRET?: string;
@@ -1509,16 +1509,16 @@ describe("feedback.js 观测头 X-SeatMark-Rev", () => {
   });
 });
 
-describe("第 354 轮（第 358 轮递增）：三条边缘函数统一 X-SeatMark-Rev = r358 与公告短缓存", () => {
-  it("_rev.js 导出 r358", () => {
-    expect(SEATMARK_REV).toBe("r358");
+describe("第 354 轮（第 359 轮递增）：三条边缘函数统一 X-SeatMark-Rev = r359 与公告短缓存", () => {
+  it("_rev.js 导出 r359", () => {
+    expect(SEATMARK_REV).toBe("r359");
   });
 
-  it("/api/announcement GET 带 r358 与 Cache-Control 短缓存", async () => {
+  it("/api/announcement GET 带 r359 与 Cache-Control 短缓存", async () => {
     const { response, data } = await call("GET", "https://www.seatmark.cn/api/announcement");
     expect(response.status).toBe(200);
     expect(data.authService).toBe("ok");
-    expect(response.headers.get("X-SeatMark-Rev")).toBe("r358");
+    expect(response.headers.get("X-SeatMark-Rev")).toBe("r359");
     expect(ANNOUNCEMENT_CACHE_CONTROL).toBe(
       "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
     );
@@ -1528,10 +1528,10 @@ describe("第 354 轮（第 358 轮递增）：三条边缘函数统一 X-SeatMa
   it("其余 JSON 响应保持 no-store（不受公告缓存影响）", async () => {
     const { response } = await call("GET", "https://www.seatmark.cn/api/auth/me");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
-    expect(response.headers.get("X-SeatMark-Rev")).toBe("r358");
+    expect(response.headers.get("X-SeatMark-Rev")).toBe("r359");
   });
 
-  it("/api/feedback 405 / 200 响应均带 r358", async () => {
+  it("/api/feedback 405 / 200 响应均带 r359", async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore JS 模块无类型声明
     const { onRequest: onFeedback } = await import("../../../edge-functions/api/feedback.js");
@@ -1540,7 +1540,7 @@ describe("第 354 轮（第 358 轮递增）：三条边缘函数统一 X-SeatMa
       env: withTestEnv({}),
     });
     expect(get.status).toBe(405);
-    expect(get.headers.get("X-SeatMark-Rev")).toBe("r358");
+    expect(get.headers.get("X-SeatMark-Rev")).toBe("r359");
     const ok: Response = await onFeedback({
       request: new Request("http://localhost:5173/api/feedback", {
         method: "POST",
@@ -1550,10 +1550,10 @@ describe("第 354 轮（第 358 轮递增）：三条边缘函数统一 X-SeatMa
       env: withTestEnv({}),
     });
     expect(ok.status).toBe(200);
-    expect(ok.headers.get("X-SeatMark-Rev")).toBe("r358");
+    expect(ok.headers.get("X-SeatMark-Rev")).toBe("r359");
   });
 
-  it("/api/ai-design 405 / 413 / 200 响应均带 r358", async () => {
+  it("/api/ai-design 405 / 413 / 200 响应均带 r359", async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore JS 模块无类型声明
     const { onRequest: onAi, AI_MAX_BODY_BYTES } = await import("../../../edge-functions/api/ai-design.js");
@@ -1582,19 +1582,19 @@ describe("第 354 轮（第 358 轮递增）：三条边缘函数统一 X-SeatMa
         env,
       });
       expect(notAllowed.status).toBe(405);
-      expect(notAllowed.headers.get("X-SeatMark-Rev")).toBe("r358");
+      expect(notAllowed.headers.get("X-SeatMark-Rev")).toBe("r359");
       const tooLarge: Response = await onAi({
         request: post("{}", { "Content-Length": String(AI_MAX_BODY_BYTES + 1) }),
         env,
       });
       expect(tooLarge.status).toBe(413);
-      expect(tooLarge.headers.get("X-SeatMark-Rev")).toBe("r358");
+      expect(tooLarge.headers.get("X-SeatMark-Rev")).toBe("r359");
       const ok: Response = await onAi({
         request: post(JSON.stringify({ messages: [{ role: "user", content: "hi" }] })),
         env,
       });
       expect(ok.status).toBe(200);
-      expect(ok.headers.get("X-SeatMark-Rev")).toBe("r358");
+      expect(ok.headers.get("X-SeatMark-Rev")).toBe("r359");
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -2222,5 +2222,124 @@ describe("第 357 轮：/api/share/tpl 短码 30 天过期", () => {
     const { response, data } = await call("GET", "http://localhost:5173/api/share/tpl?code=0123456789");
     expect(response.status).toBe(404);
     expect(data.code).toBe("tplshare_not_found");
+  });
+});
+
+describe("第 359 轮：存档保留期 + 管理端列表取「最新」而非「最旧」", () => {
+  /** 带 list 翻页的内存 KV：pageLimit 由调用方给定，记录 put 的 TTL */
+  function pagedKv() {
+    const store = new Map<string, string>();
+    const puts: Array<{ key: string; ttl?: number }> = [];
+    let listCalls = 0;
+    const kv = {
+      async get(k: string) {
+        return store.get(k) ?? null;
+      },
+      async put(k: string, v: string, options?: { expirationTtl?: number }) {
+        store.set(k, v);
+        puts.push({ key: k, ttl: options?.expirationTtl });
+      },
+      async delete(k: string) {
+        store.delete(k);
+      },
+      async list({ prefix = "", limit = 256, cursor = "" } = {}) {
+        listCalls += 1;
+        const keys = [...store.keys()].filter((k) => k.startsWith(prefix)).sort();
+        const start = cursor ? keys.indexOf(cursor) + 1 : 0;
+        const page = keys.slice(start, start + limit);
+        return {
+          keys: page.map((name) => ({ name })),
+          complete: start + limit >= keys.length,
+          cursor: page.length ? page[page.length - 1] : "",
+        };
+      },
+    };
+    return { store, puts, kv, listCalls: () => listCalls };
+  }
+
+  async function adminCookie(env: Env, adminEmail: string) {
+    const { data: codeData } = await call("POST", "http://localhost:5173/api/auth/code", {
+      body: { email: adminEmail },
+      env,
+    });
+    const { response: verifyRes } = await call("POST", "http://localhost:5173/api/auth/verify", {
+      body: { email: adminEmail, code: codeData.devCode },
+      env,
+    });
+    return (verifyRes.headers.get("Set-Cookie") || "").split(";")[0];
+  }
+
+  it("listAllKeys 按 cursor 翻到尾；到 maxPages 上限时 truncated=true", async () => {
+    const { store, kv } = pagedKv();
+    for (let i = 0; i < 700; i++) store.set(`fb:${String(1_700_000_000_000 + i)}-x`, "{}");
+    const all = await listAllKeys(kv, "fb:", { pageLimit: 256, maxPages: 20 });
+    expect(all.keys).toHaveLength(700);
+    expect(all.truncated).toBe(false);
+    expect(all.keys[699]).toBe(`fb:${String(1_700_000_000_000 + 699)}-x`);
+    const capped = await listAllKeys(kv, "fb:", { pageLimit: 256, maxPages: 2 });
+    expect(capped.keys).toHaveLength(512);
+    expect(capped.truncated).toBe(true);
+    expect(await listAllKeys(kv, "none:", { pageLimit: 256, maxPages: 20 })).toEqual({ keys: [], truncated: false });
+  });
+
+  it("写入 300 条反馈后 /api/admin/feedback 返回最新 100 条、首条为最新、truncated=false", async () => {
+    const { store, kv } = pagedKv();
+    const base = 1_700_000_000_000;
+    for (let i = 0; i < 300; i++) {
+      store.set(
+        `fb:${String(base + i)}-${String(i).padStart(4, "0")}`,
+        JSON.stringify({ type: "other", content: `fb-${i}`, createdAt: new Date(base + i).toISOString() }),
+      );
+    }
+    const adminEmail = "zz-admin@example.com";
+    const env = { AUTH_SECRET: "test-secret", ADMIN_EMAILS: adminEmail, seatmark_kv: kv } as unknown as Env;
+    const cookie = await adminCookie(env, adminEmail);
+    const { response, data } = await call("GET", "https://www.seatmark.cn/api/admin/feedback", { env, cookie });
+    expect(response.status).toBe(200);
+    const items = data.items as Array<{ content: string }>;
+    expect(items).toHaveLength(100);
+    expect(items[0]!.content).toBe("fb-299");
+    expect(items[99]!.content).toBe("fb-200");
+    expect(data.truncated).toBe(false);
+    expect(response.headers.get("X-SeatMark-Rev")).toBe(SEATMARK_REV);
+  });
+
+  it("写入 300 条预订后 /api/admin/reservations 返回最新 200 条并倒序；写入带 365 天 TTL", async () => {
+    const { store, puts, kv } = pagedKv();
+    const base = 1_700_000_000_000;
+    for (let i = 0; i < 300; i++) {
+      store.set(
+        `reserve:${String(base + i)}-${String(i).padStart(4, "0")}`,
+        JSON.stringify({ email: `t${i}@example.com`, teamSize: "10", note: "", createdAt: new Date(base + i).toISOString() }),
+      );
+    }
+    const adminEmail = "zz-admin@example.com";
+    const env = { AUTH_SECRET: "test-secret", ADMIN_EMAILS: adminEmail, seatmark_kv: kv } as unknown as Env;
+    const cookie = await adminCookie(env, adminEmail);
+    const { response, data } = await call("GET", "https://www.seatmark.cn/api/admin/reservations", { env, cookie });
+    expect(response.status).toBe(200);
+    const items = data.items as Array<{ email: string }>;
+    expect(items).toHaveLength(200);
+    expect(items[0]!.email).toBe("t299@example.com");
+    expect(items[199]!.email).toBe("t100@example.com");
+    expect(data.truncated).toBe(false);
+
+    const { response: reserveRes } = await call("POST", "http://localhost:5173/api/team/reserve", {
+      body: { email: "team-ttl@example.com", teamSize: "10" },
+      env,
+    });
+    expect(reserveRes.status).toBe(200);
+    expect(RESERVE_ARCHIVE_TTL_SECONDS).toBe(365 * 24 * 3600);
+    const archive = puts.find((p) => p.key.startsWith("reserve:"));
+    expect(archive?.ttl).toBe(RESERVE_ARCHIVE_TTL_SECONDS);
+  });
+
+  it("匿名访问 /api/admin/feedback、/api/admin/reservations 仍为 401", async () => {
+    const { kv } = pagedKv();
+    const env = { AUTH_SECRET: "test-secret", ADMIN_EMAILS: "zz-admin@example.com", seatmark_kv: kv } as unknown as Env;
+    for (const path of ["/api/admin/feedback", "/api/admin/reservations"]) {
+      const { response } = await call("GET", `https://www.seatmark.cn${path}`, { env });
+      expect(response.status).toBe(401);
+    }
   });
 });

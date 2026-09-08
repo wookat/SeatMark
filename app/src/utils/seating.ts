@@ -8,6 +8,8 @@ export type SeatingGender = '男' | '女'
 export interface SeatingEntry {
   name: string
   gender?: SeatingGender
+  /** 名单「考场」列的值（列模式识别到考场列时才有），用于按考场筛选 */
+  room?: string
 }
 
 const GENDER_TOKENS: Record<string, SeatingGender> = {
@@ -44,6 +46,8 @@ function parseRosterLine(line: string, out: SeatingEntry[]) {
  */
 const NAME_HEADER = /姓名|名字$|^(?:student[ _-]?)?name$|^students?$/i
 const GENDER_HEADER = /性别|^gender$|^sex$/i
+/** 列模式下的考场列表头（仅在识别到表头行时生效，无表头不猜测） */
+const ROOM_HEADER = /考场|考场号|试室|^room$|^exam ?room$/i
 /** 首行命中这些关键词时视为表头（Excel 复制常见列名） */
 const ROSTER_HEADER = /姓名|名字|性别|学号|班级|座位|序号|^name$|^students?$|^gender$|^sex$|^no\.?$|^id$/i
 /** 无表头时，列内任一值带数字或班级词则视为学号/班级类附属列 */
@@ -59,6 +63,13 @@ export interface ParsedSeatingRoster {
   genderColumn: boolean
   /** 是否走了列模式（Excel 多列粘贴） */
   columnMode: boolean
+  /** 识别到考场列时按出现顺序去重的考场号及人数；无考场列为空数组 */
+  rooms: SeatingRoomCount[]
+}
+
+export interface SeatingRoomCount {
+  id: string
+  count: number
 }
 
 /**
@@ -75,6 +86,7 @@ export function parseSeatingRosterDetailed(text: string): ParsedSeatingRoster {
     ignoredColumns: [],
     genderColumn: false,
     columnMode: false,
+    rooms: [],
   }
   const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '')
   if (!lines.length) return plain
@@ -113,7 +125,12 @@ export function parseSeatingRosterDetailed(text: string): ParsedSeatingRoster {
     if (byHeader >= 0) genderIdx = byHeader
   }
 
-  const extraIdx = headers.map((_, i) => i).filter((i) => i !== nameIdx && i !== genderIdx)
+  const roomIdx = headerDetected
+    ? headers.findIndex((h, i) => i !== nameIdx && i !== genderIdx && ROOM_HEADER.test(h))
+    : -1
+  const extraIdx = headers
+    .map((_, i) => i)
+    .filter((i) => i !== nameIdx && i !== genderIdx && i !== roomIdx)
   // 无表头且所有附属列都像姓名（无数字/班级词）：视为从 Excel 复制的多列姓名网格，全部展开
   const nameGrid =
     !headerDetected &&
@@ -127,7 +144,9 @@ export function parseSeatingRosterDetailed(text: string): ParsedSeatingRoster {
     ignoredColumns: nameGrid ? [] : extraIdx.map((i) => headers[i]!),
     genderColumn: genderIdx >= 0,
     columnMode: true,
+    rooms: [],
   }
+  const roomCounts = new Map<string, number>()
   for (const row of rows) {
     const cells = headers.map((h) => String(row[h] ?? '').trim())
     const filled = cells.filter((c) => c !== '')
@@ -144,8 +163,16 @@ export function parseSeatingRosterDetailed(text: string): ParsedSeatingRoster {
     const name = cells[nameIdx] ?? ''
     if (!name) continue
     const gender = genderIdx >= 0 ? GENDER_TOKENS[(cells[genderIdx] ?? '').toLowerCase()] : undefined
-    out.entries.push(gender ? { name, gender } : { name })
+    const room = roomIdx >= 0 ? (cells[roomIdx] ?? '') : ''
+    const entry: SeatingEntry = { name }
+    if (gender) entry.gender = gender
+    if (room) {
+      entry.room = room
+      roomCounts.set(room, (roomCounts.get(room) ?? 0) + 1)
+    }
+    out.entries.push(entry)
   }
+  out.rooms = [...roomCounts].map(([id, count]) => ({ id, count }))
   return out
 }
 
@@ -238,6 +265,92 @@ export function dedupeSeatingEntries(
     out.push({ ...e, name: `${e.name}${duplicateSuffix(n)}` })
   }
   return { entries: out, duplicates }
+}
+
+export interface ReconciledArrangement {
+  /** 对齐后的座次：仍在名单中的人保持原位，删掉的人留空位，新人追加到末尾 */
+  entries: SeatingEntry[]
+  /** 保住手工座位的人数 */
+  kept: number
+  /** 新增（追加到末尾）的人数 */
+  added: number
+  /** 名单里已删掉、从座位移除的人数 */
+  removed: number
+}
+
+const DUPLICATE_SUFFIX_RE = /(?:[\u2460-\u2473]|\((\d+)\))$/
+
+/**
+ * 重名对齐锚点：「姓名 + 同名第几位」。带 ①②/(n) 后缀的条目按后缀取序号，
+ * 不带后缀的按在列表中的出现次序取序号（同名者去重合并后只有第 1 位）。
+ */
+function reconcileKeys(list: readonly SeatingEntry[]): (string | null)[] {
+  const seq = new Map<string, number>()
+  const used = new Set<string>()
+  return list.map((e) => {
+    if (!e.name) return null
+    const m = DUPLICATE_SUFFIX_RE.exec(e.name)
+    const base = m ? e.name.slice(0, -m[0].length) : e.name
+    let idx: number
+    if (m) idx = m[1] ? Number(m[1]) : e.name.codePointAt(e.name.length - 1)! - 0x245f
+    else {
+      idx = (seq.get(base) ?? 0) + 1
+      seq.set(base, idx)
+    }
+    let key = `${base}\u0000${idx}`
+    while (used.has(key)) key = `${base}\u0000${++idx}`
+    used.add(key)
+    return key
+  })
+}
+
+/**
+ * 名单修改后对齐已有的手工座次（随机 / 拖拽结果），不再整份丢弃：
+ * 以「姓名(+同名序号)」为锚点对齐，仍在名单中的人保持 arranged 中的位置
+ * （条目取 next 中的新值，性别、考场等随名单更新），名单里删掉的人原位留空
+ * （其他人的座位号不变），新增的人按名单顺序追加到末尾；末尾多余的空位先裁掉，
+ * 避免新人落到座位数之外。
+ */
+export function reconcileArranged(
+  arranged: readonly SeatingEntry[],
+  next: readonly SeatingEntry[],
+): ReconciledArrangement {
+  const nextKeys = reconcileKeys(next)
+  const pending = new Map<string, SeatingEntry>()
+  next.forEach((e, i) => {
+    const key = nextKeys[i]
+    if (key && !pending.has(key)) pending.set(key, e)
+  })
+  const entries: SeatingEntry[] = []
+  let kept = 0
+  let removed = 0
+  const arrangedKeys = reconcileKeys(arranged)
+  arranged.forEach((_e, i) => {
+    const key = arrangedKeys[i]
+    if (!key) {
+      entries.push({ name: '' })
+      return
+    }
+    const match = pending.get(key)
+    if (match) {
+      pending.delete(key)
+      entries.push(match)
+      kept++
+    } else {
+      entries.push({ name: '' })
+      removed++
+    }
+  })
+  while (entries.length && !entries[entries.length - 1]!.name) entries.pop()
+  let added = 0
+  next.forEach((e, i) => {
+    const key = nextKeys[i]
+    if (!key || pending.get(key) !== e) return
+    pending.delete(key)
+    entries.push(e)
+    added++
+  })
+  return { entries, kept, added, removed }
 }
 
 /** Fisher–Yates 洗牌（返回新数组，不改原数组） */
@@ -358,14 +471,20 @@ export function buildDisplayGrid(
   })
 }
 
-/** 导出 PNG 的文件名（不含扩展名）：标题清洗非法字符 + 视角后缀，空标题回退默认名 */
+/**
+ * 导出 PNG 的文件名（不含扩展名）：标题清洗非法字符 + 视角后缀，空标题回退默认名；
+ * 按考场筛选时在标题后附「-考场X」（labels.room 为「考场」前缀）。
+ */
 export function seatingExportFileName(
   title: string,
   viewMode: SeatingViewMode,
-  labels: { fallback: string; teacher: string; student: string },
+  labels: { fallback: string; teacher: string; student: string; room?: string },
+  room = '',
 ): string {
   const base = sanitizeFileNamePart(title) || labels.fallback
-  return `${base}-${viewMode === 'student' ? labels.student : labels.teacher}`
+  const roomPart = sanitizeFileNamePart(room)
+  const roomSuffix = roomPart ? `-${labels.room ?? ''}${roomPart}` : ''
+  return `${base}${roomSuffix}-${viewMode === 'student' ? labels.student : labels.teacher}`
 }
 
 /**

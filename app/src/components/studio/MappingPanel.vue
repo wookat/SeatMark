@@ -241,7 +241,7 @@ function onPhotoFiles(event: Event) {
         <li v-if="workspace.dataQuality.missingRows">
           <details class="inline" data-testid="missing-details">
             <summary class="inline cursor-pointer underline decoration-dotted underline-offset-2">
-              {{ workspace.dataQuality.missingRows }} {{ t('行存在已映射字段为空') }}（{{ t('查看具体行') }}）
+              {{ workspace.dataQuality.missingRows }} {{ t('行存在已映射字段为空') }}{{ t('（') }}{{ t('查看具体行') }}{{ t('）') }}
             </summary>
             <ul class="mt-1 ml-3 list-inside list-[circle] space-y-0.5 font-mono text-[11px]">
               <li
