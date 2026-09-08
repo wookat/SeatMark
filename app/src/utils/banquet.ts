@@ -1100,25 +1100,31 @@ export interface QuickRefBlock {
 
 /**
  * 把流式排版的速查表切成 A4 逐页截图的起点（px）：
- * 贪心装页，块跨越页底时整块推到下一页开头，不在行中间切开；
- * 单块高于一页时按页高硬切；页数只到最后一个内容块为止，不产出空白尾页。
+ * 每页在页高范围内取最靠下、且没有任何块横跨的切线（块可来自并排多列，如双栏按桌表格），
+ * 不在行中间切开；找不到这样的切线（单块高于一页）时按页高硬切；
+ * 页数只到最后一个内容块为止，不产出空白尾页。
  */
 export function paginateQuickRefBlocks(
   blocks: readonly QuickRefBlock[],
   pageHeight: number,
 ): number[] {
   if (pageHeight <= 0) return [0]
-  const sorted = [...blocks]
-    .filter((b) => b.bottom > b.top)
-    .sort((a, b) => a.top - b.top || a.bottom - b.bottom)
+  const valid = blocks.filter((b) => b.bottom > b.top)
+  const contentBottom = valid.reduce((max, b) => Math.max(max, b.bottom), 0)
+  const edges = [...new Set(valid.flatMap((b) => [b.top, b.bottom]))].sort((a, b) => a - b)
+  const straddled = (y: number) => valid.some((b) => b.top < y && y < b.bottom)
   const starts = [0]
   let pageStart = 0
-  for (const block of sorted) {
-    if (block.top < pageStart) continue
-    while (block.bottom > pageStart + pageHeight) {
-      pageStart = block.top > pageStart ? block.top : pageStart + pageHeight
-      starts.push(pageStart)
+  while (contentBottom > pageStart + pageHeight) {
+    const limit = pageStart + pageHeight
+    let cut = -1
+    for (const y of edges) {
+      if (y <= pageStart) continue
+      if (y > limit) break
+      if (!straddled(y)) cut = y
     }
+    pageStart = cut > pageStart ? cut : limit
+    starts.push(pageStart)
   }
   return starts
 }
