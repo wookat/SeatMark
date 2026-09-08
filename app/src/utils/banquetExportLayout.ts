@@ -10,6 +10,8 @@ export const POSTER_PX_PER_MM = (96 * 3.125) / 25.4
 
 /** 姓名字号下限：A4 横版 3508px 宽下 ≥ 60px（约 5.1mm，打印字高约 5mm） */
 export const POSTER_MIN_NAME_FONT_MM = 60 / POSTER_PX_PER_MM
+/** 硬下限：当按上面的下限排不下所有姓名时，宁可缩小到此（约 9pt）也不裁掉姓名 */
+export const POSTER_HARD_MIN_NAME_FONT_MM = 3.2
 /** 姓名字号上限：避免 1-2 桌时字大到失衡 */
 export const POSTER_MAX_NAME_FONT_MM = 14
 
@@ -21,12 +23,32 @@ export const POSTER_BLOCK_PADDING_MM = 3
 export const CHIP_PAD_X_MM = 1.2
 /** 姓名胶囊之间的间距 */
 export const CHIP_GAP_MM = 1.2
-/** 姓名胶囊行高倍率（含上下内边距与边框） */
+/** 姓名胶囊行高倍率（含上下内边距，不含边框） */
 export const CHIP_LINE_HEIGHT = 1.55
+/** 姓名胶囊边框宽（单侧，与 BanquetView .banquet-poster-guest 一致），上下两侧计入行高 */
+export const CHIP_BORDER_MM = 0.4
 /** 桌名字号相对姓名字号的倍率 */
 export const TABLE_NAME_RATIO = 1.25
 /** 中文姓名按 3 字估宽；字符宽近似等于字号 */
 const NAME_CHARS_ESTIMATE = 3
+/** 姓名估宽的上限（以中文字宽为单位），超长姓名由胶囊自身截断而非无限压缩字号 */
+export const NAME_WIDTH_UNITS_MAX = 9
+
+/**
+ * 姓名的估算宽度（以「1 个中文字宽 = 1 单位」计）。拉丁字母窄于中文，但粗体大写字母仍接近 0.8 字宽，
+ * 用于英文名单（如 "ZHANG Wei"）时避免按字数低估胶囊宽度、导致导出时胶囊换行溢出桌块。
+ */
+export function nameWidthUnits(name: string): number {
+  let units = 0
+  for (const ch of name.trim()) {
+    if (ch === ' ') units += 0.35
+    else if (/[A-Z]/.test(ch)) units += 0.8
+    else if (/[a-z0-9]/.test(ch)) units += 0.65
+    else if (/[\u0000-\u00ff]/.test(ch)) units += 0.5
+    else units += 1
+  }
+  return units
+}
 
 /** 按已用桌数决定网格列数：≤3 桌 1-3 列、4-6 桌 3 列、7-12 桌 4 列、13-20 桌 5 列、21-30 桌 6 列，再多按近似正方形扩列 */
 export function posterColumns(tableCount: number): number {
@@ -44,7 +66,7 @@ export interface PosterLayoutInput {
   tableCount: number
   /** 各桌人数最大值 */
   maxGuests: number
-  /** 最长姓名字数（用于估算胶囊宽度，默认 3） */
+  /** 最宽姓名的估算宽度（中文字宽单位，见 nameWidthUnits；默认 3） */
   maxNameChars?: number
   /** 页面安全区宽（mm） */
   safeWidth: number
@@ -69,7 +91,7 @@ export interface PosterLayout {
 
 /** 单个姓名胶囊估算宽度（mm） */
 export function chipWidthMm(nameFontMm: number, nameChars: number): number {
-  return nameFontMm * nameChars + CHIP_PAD_X_MM * 2
+  return nameFontMm * nameChars + (CHIP_PAD_X_MM + CHIP_BORDER_MM) * 2
 }
 
 /**
@@ -90,10 +112,13 @@ export function fitNameFont(
   for (let c = 1; c <= guests; c++) {
     const lines = Math.ceil(guests / c)
     // 宽度约束：c 个胶囊 + (c-1) 个间距 ≤ innerW
-    const byWidth = (innerW - CHIP_GAP_MM * (c - 1) - CHIP_PAD_X_MM * 2 * c) / (c * nameChars)
+    const byWidth =
+      (innerW - CHIP_GAP_MM * (c - 1) - (CHIP_PAD_X_MM + CHIP_BORDER_MM) * 2 * c) / (c * nameChars)
     // 高度约束：桌名行（TABLE_NAME_RATIO × 1.3 行高 + 下方留白）+ lines 行胶囊 + 行间距 ≤ innerH
     const titleUnits = TABLE_NAME_RATIO * 1.3 + 0.4
-    const byHeight = (innerH - CHIP_GAP_MM * (lines - 1)) / (titleUnits + lines * CHIP_LINE_HEIGHT)
+    const byHeight =
+      (innerH - CHIP_GAP_MM * (lines - 1) - CHIP_BORDER_MM * 2 * lines) /
+      (titleUnits + lines * CHIP_LINE_HEIGHT)
     const f = Math.min(byWidth, byHeight)
     if (f > best.fontMm) best = { fontMm: f, chipsPerRow: c }
   }
@@ -119,11 +144,14 @@ export function computePosterLayout(input: PosterLayoutInput): PosterLayout {
   const blockHeight = (input.safeHeight - POSTER_GAP_MM * (rows - 1)) / rows
   const nameChars = Math.max(2, input.maxNameChars ?? NAME_CHARS_ESTIMATE)
   const fit = fitNameFont(blockWidth, blockHeight, input.maxGuests, nameChars)
+  // 优先保证所有姓名都能排进桌块：只有在抬到可读下限后仍能放下时才抬高，否则按实际可容纳的字号（不低于硬下限）
   const nameFontMm = Math.min(
     POSTER_MAX_NAME_FONT_MM,
-    Math.max(POSTER_MIN_NAME_FONT_MM, fit.fontMm),
+    fit.fontMm >= POSTER_MIN_NAME_FONT_MM
+      ? fit.fontMm
+      : Math.max(POSTER_HARD_MIN_NAME_FONT_MM, fit.fontMm),
   )
-  // 字号被下限抬高后按实际字号重算每行胶囊数，避免胶囊横向溢出
+  // 按实际字号重算每行胶囊数，避免胶囊横向溢出
   const innerW = blockWidth - POSTER_BLOCK_PADDING_MM * 2
   const chipsPerRow = Math.max(
     1,

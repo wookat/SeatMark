@@ -64,7 +64,12 @@ import {
   type QuickRefBlock,
   type VenuePresetId,
 } from '@/utils/banquet'
-import { POSTER_GAP_MM, computePosterLayout } from '@/utils/banquetExportLayout'
+import {
+  NAME_WIDTH_UNITS_MAX,
+  POSTER_GAP_MM,
+  computePosterLayout,
+  nameWidthUnits,
+} from '@/utils/banquetExportLayout'
 import { uid } from '@/utils/id'
 import { fitScale, MM_TO_PX } from '@/utils/layout'
 import { listJoin } from '@/utils/listJoin'
@@ -1082,14 +1087,14 @@ const posterLayoutMetrics = computed(() => {
   const list = posterTables.value
   const maxGuests = list.reduce((m, t) => Math.max(m, tableGuests(t).length), 0)
   const maxNameChars = list.reduce(
-    (m, t) => tableGuests(t).reduce((mm, g) => Math.max(mm, Array.from(g.name.trim()).length), m),
+    (m, t) => tableGuests(t).reduce((mm, g) => Math.max(mm, nameWidthUnits(g.name)), m),
     0,
   )
   const legendH = exportColors.value && groups.value.length ? POSTER_LEGEND_H : 0
   return computePosterLayout({
     tableCount: list.length,
     maxGuests,
-    maxNameChars: Math.min(Math.max(maxNameChars, 2), 6),
+    maxNameChars: Math.min(Math.max(maxNameChars, 2), NAME_WIDTH_UNITS_MAX),
     safeWidth: pageSize.value.width - PAGE_MARGIN * 2,
     safeHeight: pageSize.value.height - PAGE_MARGIN * 2 - PAGE_TITLE_H - legendH,
   })
