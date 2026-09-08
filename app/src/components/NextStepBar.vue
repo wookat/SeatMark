@@ -156,8 +156,9 @@ function go() {
     @focusout="barFocused = false"
   >
     <div class="mx-auto flex h-12 w-full max-w-[1480px] items-center justify-between gap-3 px-4">
-      <p class="min-w-0 shrink-[100] truncate text-xs text-slate-500" data-testid="next-step-progress">{{ progress }}</p>
-      <div ref="groupEl" class="flex min-w-0 items-center gap-2">
+      <p class="min-w-0 truncate text-xs text-slate-500" data-testid="next-step-progress">{{ progress }}</p>
+      <!-- 进度文本先让位；按钮组仅在自身超过整条宽度时才被限宽、次按钮截断 -->
+      <div ref="groupEl" class="flex min-w-0 max-w-full shrink-0 items-center gap-2">
         <!-- 次按钮位（如 <md 的「查看座位预览」），并入条内而不再独立悬浮；空间不足时次按钮先换短文案再截断，主按钮不收缩 -->
         <slot name="secondary" :compact="compactBadge" />
         <button
