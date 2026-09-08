@@ -528,8 +528,9 @@ function groupGuestsForAssign(guests: BanquetGuest[]): Array<[string, BanquetGue
 }
 
 /**
- * 有排斥对时，散客（未分组）桶内互斥的后者拆成独立单元追加到最后，
- * 保证单元内部无冲突；已分组的宾客仍整组同桌（组内排斥只报冲突，不拆组）。
+ * 有排斥对时，同一单元（分组 / 散客桶）内互斥的后者拆成独立单元追加到最后，
+ * 保证单元内部无冲突：「不同桌」是用户逐对明确的意向，优先于同组同桌；
+ * 组内其余成员仍整组同桌，被拆出者保留组名。
  */
 function splitAvoidUnits(
   units: Array<[string, BanquetGuest[]]>,
@@ -538,17 +539,13 @@ function splitAvoidUnits(
   const out: Array<[string, BanquetGuest[]]> = []
   const extras: Array<[string, BanquetGuest[]]> = []
   for (const [key, members] of units) {
-    if (key !== '') {
-      out.push([key, members])
-      continue
-    }
     const kept: BanquetGuest[] = []
     for (const m of members) {
       const foes = avoid.get(m.id)
-      if (foes && kept.some((k) => foes.has(k.id))) extras.push(['', [m]])
+      if (foes && kept.some((k) => foes.has(k.id))) extras.push([key, [m]])
       else kept.push(m)
     }
-    if (kept.length) out.push(['', kept])
+    if (kept.length) out.push([key, kept])
   }
   return [...out, ...extras]
 }

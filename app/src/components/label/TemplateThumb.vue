@@ -3,16 +3,26 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import LabelCard from '@/components/label/LabelCard.vue'
 import { useElementSize } from '@/composables/useElementSize'
+import { useI18n } from '@/i18n'
 import type { LabelTemplate } from '@/types/template'
 import { MM_TO_PX } from '@/utils/layout'
+import { localizeTemplateForLocale, templateHasCjk } from '@/utils/templateLocale'
 
 const props = defineProps<{
   template: LabelTemplate
   /** 进入视口附近才渲染标签内容（长列表页用，降低一次性挂载成本） */
   defer?: boolean
-  /** 外层语言标注：en 界面下模板仍含中文示例值时传 'zh' */
-  lang?: 'zh'
 }>()
+
+const { locale } = useI18n()
+
+/** 缩略图按当前 locale 本地化固定文案/示例；zh 下原样返回 */
+const localized = computed(() => localizeTemplateForLocale(props.template, locale.value))
+
+/** en 下仍含中文示例值（人名/口号等不宜逐条翻译）时外层标 lang="zh" */
+const lang = computed(() =>
+  locale.value === 'en' && templateHasCjk(localized.value) ? 'zh' : undefined,
+)
 
 const container = ref<HTMLElement | null>(null)
 const { width, height } = useElementSize(container)
@@ -78,7 +88,7 @@ onBeforeUnmount(() => {
         :style="cardStyle"
         data-testid="template-thumb-card"
       >
-        <LabelCard :template="template" sample-mode />
+        <LabelCard :template="localized" sample-mode />
       </div>
       <div
         v-else
