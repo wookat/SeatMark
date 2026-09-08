@@ -110,7 +110,7 @@ export const guidesRound3: Guide[] = [
     howTo: {
       name: '3 分钟自查在线工具是否上传你的名单',
       steps: [
-        { name: '打开网络面板', text: '在工具页面按 F12（或右键 → 检查），切到 Network / 网络标签，勾选「保留日志」。' },
+        { name: '打开网络面板', text: '在工具页面按 F12（电脑端；或右键 → 检查），切到 Network / 网络标签，勾选「保留日志」。' },
         { name: '清空请求记录', text: '点击面板左上角的清除按钮，把页面加载产生的静态资源请求清掉，便于观察。' },
         { name: '上传名单并操作', text: '上传 Excel 名单、生成预览、导出 PDF，全程盯着网络面板的新增请求。' },
         { name: '检查请求内容', text: '若出现 POST / 上传类请求，点开看 Payload：包含姓名、身份证号等名单内容即说明数据已出网。' },
@@ -151,7 +151,7 @@ export const guidesRound3: Guide[] = [
 <h2>3 分钟自查任何在线工具</h2>
 <p>方法完全通用，建议每次把真实名单交给新工具前都做一遍：</p>
 <ul>
-<li><strong>第 1 步</strong>：打开工具页面，按 F12 → Network，勾选「Preserve log / 保留日志」，点垃圾桶图标清空记录；</li>
+<li><strong>第 1 步</strong>：打开工具页面，按 F12（电脑端）→ Network，勾选「Preserve log / 保留日志」，点垃圾桶图标清空记录；</li>
 <li><strong>第 2 步</strong>：上传名单文件，观察是否出现新请求。看到 POST / PUT 请求就点开 Payload 检查内容；</li>
 <li><strong>第 3 步</strong>：继续完成生成、导出操作，确认全程没有携带名单内容的请求；</li>
 <li><strong>第 4 步（可选但最有说服力）</strong>：断开 Wi-Fi 后重复操作，能正常出结果的才是真正的本地处理。</li>

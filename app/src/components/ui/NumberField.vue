@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import { t } from '@/i18n'
 
 // 透传 aria-label 等无障碍属性到真正的 input，而不是外层容器
@@ -9,11 +11,20 @@ const props = withDefaults(
     step?: number
     min?: number
     max?: number
+    /** 仅影响显示：模型值按此小数位四舍五入后展示（如 3.857 → 3.86），模型值本身不变 */
+    precision?: number
   }>(),
-  { step: 1, min: undefined, max: undefined },
+  { step: 1, min: undefined, max: undefined, precision: 2 },
 )
 
 const model = defineModel<number>({ default: 0 })
+
+const displayValue = computed(() => {
+  const value = model.value ?? 0
+  if (!Number.isFinite(value)) return value
+  const factor = 10 ** props.precision
+  return Math.round(value * factor) / factor
+})
 
 function clampValue(value: number): number {
   let out = value
@@ -51,7 +62,7 @@ function onChange(event: Event) {
       :step="step"
       :min="min"
       :max="max"
-      :value="model"
+      :value="displayValue"
       @change="onChange"
     />
     <div

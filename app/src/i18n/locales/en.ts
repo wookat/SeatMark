@@ -259,8 +259,8 @@ export const en: Record<string, string> = {
     'Print / vector PDF: opens the browser print dialog. Choose "Save as PDF" as the printer to get a vector PDF with selectable text, or print directly.',
   '打印校准': 'Print calibration',
   '打开可视化设计器': 'Open visual designer',
-  '打开浏览器开发者工具（F12 → Network）就能自己验证：在 SeatMark 上传 Excel、生成、导出全程，没有任何一个携带名单数据的网络请求':
-    'Verify it yourself with browser dev tools (F12 → Network): throughout uploading, generating and exporting in SeatMark, not a single network request carries your list data',
+  '在电脑上打开浏览器开发者工具（F12 → Network）就能自己验证：在 SeatMark 上传 Excel、生成、导出全程，没有任何一个携带名单数据的网络请求':
+    'On a desktop browser, open dev tools (F12 → Network) to verify it yourself: throughout uploading, generating and exporting in SeatMark, not a single network request carries your list data',
   '拖拽调整字段位置与大小，按毫米设置尺寸，自定义模板可保存复用。':
     'Drag to position and resize fields with sizes set in millimetres; custom templates can be saved and reused.',
   '按不干胶纸型选择': 'Choose by label paper',
@@ -479,7 +479,7 @@ export const en: Record<string, string> = {
   '尽量不拆组（默认）': 'Keep groups together (default)',
   '同组尽量同桌，可能留空位': 'Same group at the same table where possible; may leave empty seats',
   '优先坐满': 'Fill tables first',
-  '按桌顺序依次坐满，空桌最少': 'Fill tables in order; fewest empty tables',
+  '按桌顺序依次坐满，空桌最少；可能把同组拆到不同桌': 'Fill tables in order, fewest empty tables; may split a group across tables',
   '{group} {n} 人 > 任一桌最大 {seats} 座': '{group}: {n} guests > largest table ({seats} seats)',
   '{group} {n} 人：轮到时没有一桌剩余座位够整组坐下':
     '{group}: {n} guests — no table had enough free seats for the whole group',
@@ -600,7 +600,7 @@ export const en: Record<string, string> = {
   '已将 {group} 整组移到 {table}': 'Moved all of {group} to {table}',
   '换策略重新分配：': 'Re-run with another strategy:',
   '换用「尽量不拆组」重新分配': 'Re-run: keep groups together',
-  '换用「优先坐满」重新分配': 'Re-run: fill tables first',
+  '换用「优先坐满」重新分配（减少空桌，允许拆分同组）': 'Re-run: fill tables first (fewer empty tables, groups may be split)',
   '空桌可删除，也可保留备用（临时加人时直接落座）': 'Empty tables can be removed or kept as spares for walk-ins',
   '删除全部空桌并重新编号；也可保留空桌备用，不影响导出':
     'Remove all empty tables and renumber; keeping them as spares does not affect export',
@@ -816,7 +816,7 @@ export const en: Record<string, string> = {
   '隔一排坐一排，前后不相邻': 'Every other row — no front/back neighbours',
   '相邻排错开空位，前后左右都不相邻': 'Adjacent rows offset like a checkerboard — no neighbours on any side',
   '尽量散开': 'Spread out',
-  '按人数自动拉开间距，保证全员入座': 'Spacing adapts to the headcount so everyone gets a seat',
+  '按人数自动拉开间距，保证全员入座；人少时退化为棋盘': 'Spacing adapts to the headcount so everyone gets a seat; with few people it falls back to checkerboard',
   '可坐': 'Usable',
   '该排为间隔留空，没有座位可交换': 'This row is left empty by the spacing rule — nothing to swap',
   '座位表标题': 'Seating chart title',

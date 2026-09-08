@@ -127,7 +127,7 @@ const SPACING_OPTIONS = computed<{ value: SeatingSpacing; label: string; hint: s
   { value: 'skipCol', label: tr('隔位'), hint: tr('每排隔一列坐一人，左右不相邻') },
   { value: 'skipRow', label: tr('隔排'), hint: tr('隔一排坐一排，前后不相邻') },
   { value: 'checker', label: tr('棋盘'), hint: tr('相邻排错开空位，前后左右都不相邻') },
-  { value: 'spread', label: tr('尽量散开'), hint: tr('按人数自动拉开间距，保证全员入座') },
+  { value: 'spread', label: tr('尽量散开'), hint: tr('按人数自动拉开间距，保证全员入座；人少时退化为棋盘') },
 ])
 const spacingLabel = computed(
   () => SPACING_OPTIONS.value.find((o) => o.value === spacing.value)?.label ?? '',
