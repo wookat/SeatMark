@@ -82,6 +82,20 @@ describe('第 359 轮 P3：banquet 「不同桌」排斥对', () => {
     expect([...result.values()].flat().sort()).toEqual(['a1', 'a2', 'b1', 'b2', 'c1', 'c2'])
   })
 
+  it('同组内的排斥对：有空桌时后者拆出组单独落座，组内其余成员仍同桌，无冲突', () => {
+    const guests = [guest('a1', 'gA'), guest('a2', 'gA'), guest('a3', 'gA'), guest('b1', 'gB'), guest('b2', 'gB')]
+    const tables = [table('t1', 4), table('t2', 4), table('t3', 4)]
+    for (const strategy of ['keep-groups', 'fill-tables'] as const) {
+      const result = autoAssignGuests(guests, tables, strategy, { avoidPairs: [['a1', 'a3']] })
+      expect(tableOf(result, 'a1')).not.toBe(tableOf(result, 'a3'))
+      expect(tableOf(result, 'a1')).toBe(tableOf(result, 'a2'))
+      expect(tableOf(result, 'b1')).toBe(tableOf(result, 'b2'))
+      expect([...result.values()].flat().sort()).toEqual(['a1', 'a2', 'a3', 'b1', 'b2'])
+      const seated = tables.map((t) => ({ ...t, guestIds: result.get(t.id)! }))
+      expect(findAvoidConflicts([['a1', 'a3']], seated)).toEqual([])
+    }
+  })
+
   it('无替代桌时仍落座（软约束），validateBanquet 报冲突、summarizeAssignments 计数', () => {
     const guests = [guest('a'), guest('b')]
     const tables = [table('t1', 2)]
