@@ -459,6 +459,22 @@
   font-size: 7pt;
 }
 
+/* 二维码字段：按字段内框短边取方，水平居中；垂直位置沿用 verticalAlign（justify-content） */
+.label-field--qr {
+  flex-direction: column;
+  align-items: center;
+}
+
+.label-field__qr {
+  flex: none;
+}
+
+.label-field__qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .label-field--photo-missing {
   background: rgba(220, 38, 38, 0.06);
   outline: 0.45mm dashed rgba(220, 38, 38, 0.55);

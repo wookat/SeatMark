@@ -24,6 +24,13 @@ describe('第 365 轮：教程 quickStart 尾注变体分布', () => {
     expect(max / notes.length).toBeLessThanOrEqual(0.4)
   })
 
+  it('第 368 轮：同一句尾注复用 ≤ 4 篇', () => {
+    const counts = new Map<string, number>()
+    for (const n of notes) counts.set(n, (counts.get(n) ?? 0) + 1)
+    const overused = [...counts.entries()].filter(([, c]) => c > 4)
+    expect(overused).toEqual([])
+  })
+
   it('本轮替换的变体保留本地处理事实锚点；全部尾注无感叹号与禁词', () => {
     const replaced = notes.filter((n) => /先看|先用|演示名单/.test(n) && /名单/.test(n))
     expect(replaced.length).toBeGreaterThanOrEqual(52)

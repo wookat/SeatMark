@@ -29,11 +29,13 @@ import {
   dedupeSeatingEntries,
   findSeatsByName,
   interleaveByGender,
+  isSeatingSpacing,
   parseSeatingRosterDetailed,
   reconcileArranged,
   roomIdHasLabel,
   roomsFitIndividually,
   SEATING_HANDOFF_KEY,
+  seatCapacity,
   seatingExportFileName,
   seatingRosterTextFromTable,
   shuffleEntries,
@@ -45,6 +47,7 @@ import {
   type SeatingEntry,
   type SeatingFillOrder,
   type SeatingHandoff,
+  type SeatingSpacing,
   type SeatingViewMode,
 } from '@/utils/seating'
 import { seatingCsvHasGender, seatingRosterCsv } from '@/utils/seatingCsv'
@@ -68,6 +71,8 @@ interface SeatingPersistedState {
   cols: number
   podium: 'top' | 'none'
   fillOrder: SeatingFillOrder
+  /** 座位间隔（隔位 / 隔排 / 棋盘）；旧状态无此字段 = none */
+  spacing?: SeatingSpacing
   aisles: number[]
   namesText: string
   arranged: SeatingEntry[] | null
@@ -107,6 +112,7 @@ const rows = ref(persisted?.rows ?? 6)
 const cols = ref(persisted?.cols ?? 8)
 const podium = ref<'top' | 'none'>(persisted?.podium ?? 'top')
 const fillOrder = ref<SeatingFillOrder>(persisted?.fillOrder ?? 'rows')
+const spacing = ref<SeatingSpacing>(isSeatingSpacing(persisted?.spacing) ? persisted.spacing : 'none')
 /** 过道位置：第 n 列之后（1 起） */
 const aisles = ref(new Set<number>(persisted?.aisles ?? []))
 const namesText = ref(persisted?.namesText ?? '')
@@ -115,6 +121,19 @@ const FILL_OPTIONS = computed<SelectOption[]>(() => [
   { value: 'rows', label: tr('按行填充'), hint: tr('从讲台侧第一排，自左向右') },
   { value: 'serpentine', label: tr('S 形蛇形填充'), hint: tr('奇数排向右、偶数排向左') },
 ])
+/** 座位间隔分段选项：与填充顺序正交，留空位不算座位 */
+const SPACING_OPTIONS = computed<{ value: SeatingSpacing; label: string; hint: string }[]>(() => [
+  { value: 'none', label: tr('不隔'), hint: tr('每个位置都坐人') },
+  { value: 'skipCol', label: tr('隔位'), hint: tr('每排隔一列坐一人，左右不相邻') },
+  { value: 'skipRow', label: tr('隔排'), hint: tr('隔一排坐一排，前后不相邻') },
+  { value: 'checker', label: tr('棋盘'), hint: tr('相邻排错开空位，前后左右都不相邻') },
+])
+const spacingLabel = computed(
+  () => SPACING_OPTIONS.value.find((o) => o.value === spacing.value)?.label ?? '',
+)
+const spacingHint = computed(
+  () => SPACING_OPTIONS.value.find((o) => o.value === spacing.value)?.hint ?? '',
+)
 
 const parsedRoster = computed(() => parseSeatingRosterDetailed(namesText.value))
 /** 重名处理：默认合并（同名学生不占两座）；开关后保留并加 ①② 后缀 */
@@ -247,6 +266,8 @@ interface SeatingSnapshot {
   arrangedByRoom: Record<string, SeatingEntry[]>
   selectedSeat: number | null
   keepDuplicates: boolean
+  /** 座位间隔：换座下标的座位含义依赖它，撤销时一并恢复 */
+  spacing: SeatingSpacing
 }
 function takeSnapshot(): SeatingSnapshot {
   return {
@@ -256,6 +277,7 @@ function takeSnapshot(): SeatingSnapshot {
     ),
     selectedSeat: selectedSeat.value,
     keepDuplicates: keepDuplicates.value,
+    spacing: spacing.value,
   }
 }
 /** 撤销回写开关时让 keepDuplicates 监听器跳过一次，避免再次清空座次 / 弹第二次 toast */
@@ -267,6 +289,7 @@ function restoreSnapshot(snapshot: SeatingSnapshot) {
   }
   arrangedByRoom.value = snapshot.arrangedByRoom
   arranged.value = snapshot.arranged
+  spacing.value = snapshot.spacing
   selectedSeat.value = snapshot.selectedSeat
 }
 function toastUndoable(title: string, text: string, snapshot: SeatingSnapshot) {
@@ -409,7 +432,7 @@ watch(activeRoom, (room, prev) => {
 })
 
 watch(
-  [title, roomNo, rows, cols, podium, fillOrder, aisles, namesText, arranged, keepDuplicates, roomFilter, arrangedByRoom],
+  [title, roomNo, rows, cols, podium, fillOrder, spacing, aisles, namesText, arranged, keepDuplicates, roomFilter, arrangedByRoom],
   () => {
     try {
       const state: SeatingPersistedState = {
@@ -419,6 +442,7 @@ watch(
         cols: cols.value,
         podium: podium.value,
         fillOrder: fillOrder.value,
+        spacing: spacing.value,
         aisles: [...aisles.value],
         namesText: namesText.value,
         arranged: arranged.value,
@@ -433,7 +457,7 @@ watch(
   },
   { deep: true },
 )
-watch([rows, cols, fillOrder], () => {
+watch([rows, cols, fillOrder, spacing], () => {
   selectedSeat.value = null
 })
 
@@ -451,7 +475,7 @@ function toggleAisle(afterCol: number) {
 function loadDemoNames() {
   const locale = currentLocale()
   const genders = locale === 'en' ? ['M', 'F'] : ['男', '女']
-  const list = demoPersonNames(rows.value * cols.value, locale).map(
+  const list = demoPersonNames(seatCount.value, locale).map(
     (name, i) => `${name}\t${genders[i % 2]}`,
   )
   namesText.value = list.join('\n')
@@ -507,7 +531,7 @@ function restoreOrder() {
 
 // ---------- 座位计算 ----------
 const seats = computed<Seat[]>(() =>
-  buildSeats(entries.value, rows.value, cols.value, fillOrder.value),
+  buildSeats(entries.value, rows.value, cols.value, fillOrder.value, spacing.value),
 )
 
 /** 按物理行列索引取座位（渲染网格用） */
@@ -530,7 +554,7 @@ const dragRow = ref<number | null>(null)
 /** 以当前座位序生成可交换的工作数组（长度补齐到座位数；超员时保留座位数之后的未排座尾部） */
 function workingEntries(): SeatingEntry[] {
   const out: SeatingEntry[] = []
-  const len = Math.max(rows.value * cols.value, entries.value.length)
+  const len = Math.max(seatCount.value, entries.value.length)
   for (let i = 0; i < len; i++) {
     out.push(entries.value[i] ?? { name: '' })
   }
@@ -559,13 +583,27 @@ function swapSeatsWithToast(a: number, b: number) {
   )
 }
 
+/** 第 r 排（0 起）的可坐座位在名单序中的下标（按物理列从左到右）；间隔留空的排为空数组 */
+function rowSeatIndexes(r: number): number[] {
+  return seats.value
+    .filter((s) => s.row === r + 1)
+    .sort((x, y) => x.col - y.col)
+    .map((s) => s.seatNo - 1)
+}
+
 function swapRows(a: number, b: number) {
   if (a === b) return
+  const idxA = rowSeatIndexes(a)
+  const idxB = rowSeatIndexes(b)
+  if (!idxA.length || !idxB.length) {
+    toast.info(tr('该排为间隔留空，没有座位可交换'))
+    return
+  }
   const snapshot = rememberUndo()
   const work = workingEntries()
-  const c = cols.value
-  for (let i = 0; i < c; i++) {
-    ;[work[a * c + i], work[b * c + i]] = [work[b * c + i]!, work[a * c + i]!]
+  const n = Math.min(idxA.length, idxB.length)
+  for (let i = 0; i < n; i++) {
+    ;[work[idxA[i]!], work[idxB[i]!]] = [work[idxB[i]!]!, work[idxA[i]!]!]
   }
   arranged.value = work
   toastUndoable(`${tr('已交换排')}: ${a + 1} ⇄ ${b + 1}`, tr('10 秒内可撤销（Ctrl/Cmd+Z）'), snapshot)
@@ -673,7 +711,8 @@ function onDragPointerUp() {
     } else if (dragRow.value != null) {
       if (dropRowTarget.value != null) swapRows(dragRow.value, dropRowTarget.value)
       else if (dropSeatTarget.value != null) {
-        swapRows(dragRow.value, Math.floor(dropSeatTarget.value / cols.value))
+        const targetRow = seats.value[dropSeatTarget.value]?.row
+        if (targetRow) swapRows(dragRow.value, targetRow - 1)
       }
     }
   }
@@ -684,7 +723,8 @@ function onDragPointerUp() {
   dropRowTarget.value = null
 }
 
-const seatCount = computed(() => rows.value * cols.value)
+/** 可坐座位数（间隔留空的位置不算）：溢出、进度、演示名单都按这个口径 */
+const seatCount = computed(() => seatCapacity(rows.value, cols.value, spacing.value))
 
 // ---------- 底部「下一步」操作条（只做导航，不碰数据） ----------
 const rosterSection = ref<HTMLElement | null>(null)
@@ -711,7 +751,9 @@ const nextStepProgress = computed(
   () => `${filledCount.value} ${personUnit.value} / ${seatCount.value} ${tr('座')}`,
 )
 /** 排不进座位的学生（按填充顺序座位数之后的非空姓名）及其在名单序中的位置，点姓名可与选中座位互换 */
-const unseated = computed(() => unseatedEntries(entries.value, rows.value, cols.value))
+const unseated = computed(() =>
+  unseatedEntries(entries.value, rows.value, cols.value, spacing.value),
+)
 const unseatedItems = computed(() => {
   const items: { entry: SeatingEntry; index: number }[] = []
   for (let i = seatCount.value; i < entries.value.length; i++) {
@@ -1055,6 +1097,37 @@ function toDeskLabels() {
             <div class="col-span-2">
               <label class="field-label">{{ tr('座位填充顺序') }}</label>
               <SelectField v-model="fillOrder" :options="FILL_OPTIONS" />
+            </div>
+            <div class="col-span-2">
+              <span id="seating-spacing-label" class="field-label">{{ tr('座位间隔') }}</span>
+              <div
+                class="grid grid-cols-4 gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+                role="radiogroup"
+                aria-labelledby="seating-spacing-label"
+                data-testid="seating-spacing"
+              >
+                <button
+                  v-for="o in SPACING_OPTIONS"
+                  :key="o.value"
+                  type="button"
+                  role="radio"
+                  :aria-checked="spacing === o.value"
+                  :title="o.hint"
+                  :data-spacing="o.value"
+                  class="min-w-0 rounded-md px-1 py-1.5 text-[11px] font-bold leading-4 transition-colors sm:text-xs"
+                  :class="
+                    spacing === o.value
+                      ? 'bg-white text-brand-700 shadow-sm ring-1 ring-brand-200'
+                      : 'text-slate-500 hover:text-slate-800'
+                  "
+                  @click="spacing = o.value"
+                >
+                  {{ o.label }}
+                </button>
+              </div>
+              <p class="mt-1 text-[11px] leading-4 text-slate-500" data-testid="seating-spacing-hint">
+                {{ spacingHint }} · {{ tr('可坐') }} {{ seatCount }} {{ tr('座') }}
+              </p>
             </div>
             <div class="col-span-2">
               <CheckboxField
@@ -1487,6 +1560,12 @@ function toDeskLabels() {
                       </button>
                       <template v-for="(cell, i) in rowCells" :key="`${r}-${i}`">
                         <div
+                          v-if="!cell.seat && spacing !== 'none'"
+                          class="seating-seat seating-seat--blocked"
+                          aria-hidden="true"
+                        ></div>
+                        <div
+                          v-else
                           class="seating-seat"
                           :class="{
                             'seating-seat--empty': !cell.seat?.name,
@@ -1518,7 +1597,8 @@ function toDeskLabels() {
                     data-testid="seating-preview-unseated"
                   >{{ unseatedFootnote }}</p>
                   <p class="seating-footnote">
-                    {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} · {{ filledCount }} {{ personUnit }} ·
+                    {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} ·
+                    <template v-if="spacing !== 'none'">{{ spacingLabel }} · </template>{{ filledCount }} {{ personUnit }} ·
                     {{ viewMode === 'teacher' ? tr('教师视角') : tr('学生视角') }} · {{ tr('seatmark.cn 生成') }}
                   </p>
                 </div>
@@ -1537,7 +1617,7 @@ function toDeskLabels() {
       @close="exportChoiceOpen = false"
     >
       <p class="text-sm text-slate-600">
-        {{ tr('带水印导出永远免费、不限次数（页脚一行 seatmark.cn 细线签名）；无水印导出今日剩余') }} {{ quota.remaining }}{{ tr('。') }}
+        {{ tr('带水印导出永远免费、不限次数（页脚一行 seatmark.cn 细线签名）；无水印导出今日剩余') }} {{ tr('{n} 次').replace('{n}', String(quota.remaining)) }}{{ tr('。') }}
       </p>
       <template #actions>
         <button type="button" class="btn btn-secondary btn-md" data-testid="seating-export-watermarked" @click="chooseWatermarked">
@@ -1558,7 +1638,12 @@ function toDeskLabels() {
           <div class="seating-grid">
             <div v-for="(rowCells, r) in displayGrid" :key="r" class="seating-row">
               <template v-for="(cell, i) in rowCells" :key="`${r}-${i}`">
-                <div class="seating-seat" :class="{ 'seating-seat--empty': !cell.seat?.name }">
+                <div
+                  v-if="!cell.seat && spacing !== 'none'"
+                  class="seating-seat seating-seat--blocked"
+                  aria-hidden="true"
+                ></div>
+                <div v-else class="seating-seat" :class="{ 'seating-seat--empty': !cell.seat?.name }">
                   <span class="seating-seat-no">{{ cell.seat?.seatNo }}</span>
                   <span class="seating-seat-name">{{ cell.seat?.name || '—' }}</span>
                 </div>
@@ -1572,7 +1657,8 @@ function toDeskLabels() {
             data-testid="seating-export-unseated"
           >{{ unseatedFootnote }}</p>
           <p class="seating-footnote">
-            {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} · {{ filledCount }} {{ personUnit }} ·
+            {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} ·
+            <template v-if="spacing !== 'none'">{{ spacingLabel }} · </template>{{ filledCount }} {{ personUnit }} ·
             {{ viewMode === 'teacher' ? tr('教师视角') : tr('学生视角') }} · {{ tr('seatmark.cn 生成') }}
           </p>
           <div v-if="withWatermark" class="sheet-watermark" aria-hidden="true">
@@ -1701,6 +1787,13 @@ function toDeskLabels() {
 .seating-seat--empty {
   border-style: dashed;
   color: #64748b;
+  cursor: default;
+}
+
+/* 间隔留空的位置：只留极淡的桌位轮廓，提示该座不坐人 */
+.seating-seat--blocked {
+  border: 0.2mm dotted #cbd5e1;
+  background: transparent;
   cursor: default;
 }
 

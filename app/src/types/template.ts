@@ -1,9 +1,10 @@
-export type FieldType = 'text' | 'image'
+/** text / qr 绑定名单列取单元格文本（qr 把文本编成二维码），image 走照片匹配或固定图片 */
+export type FieldType = 'text' | 'image' | 'qr'
 export type TextAlign = 'left' | 'center' | 'right' | 'justify'
 export type VerticalAlign = 'top' | 'middle' | 'bottom'
 export type FontWeight = 'normal' | 'bold'
 
-/** 模板中的一个字段（文本或照片），坐标与尺寸单位均为 mm */
+/** 模板中的一个字段（文本、照片或二维码），坐标与尺寸单位均为 mm */
 export interface TemplateField {
   id: string
   label: string

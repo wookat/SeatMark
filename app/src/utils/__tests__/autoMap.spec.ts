@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { defaultTemplates } from '@/data/defaultTemplates'
 import type { TemplateField } from '@/types/template'
 import { autoMapFields, autoMapFieldsDetailed } from '@/utils/autoMap'
+import { PERSON_NAME_HEADER_WORDS } from '@/utils/excel'
 
 const standardFields = defaultTemplates[0]!.fields
 
@@ -164,5 +165,20 @@ describe('autoMapFields', () => {
   it('非同族字段（考场/座位号）不参与回退', () => {
     const mapping = autoMapFields(standardFields, ['部门', '职务'])
     expect(mapping).toEqual({})
+  })
+
+  it('会议类人名列名（与会人员/参会人/出席人/来宾/嘉宾）映射到 name，所在单位映射到 company', () => {
+    for (const header of ['与会人员', '参会人', '参会人员', '出席人', '来宾', '嘉宾']) {
+      expect(autoMapFields(standardFields, [header, '桌号']).name, header).toBe(header)
+    }
+    const mapping = autoMapFields([textField('company', '单位')], ['所在单位'])
+    expect(mapping.company).toBe('所在单位')
+  })
+
+  it('excel.ts 表头关键词中所有人名类词都能被 autoMap 映射到 name（两套词表不漂移）', () => {
+    expect(PERSON_NAME_HEADER_WORDS.length).toBeGreaterThan(0)
+    for (const word of PERSON_NAME_HEADER_WORDS) {
+      expect(autoMapFields(standardFields, [word]).name, word).toBe(word)
+    }
   })
 })

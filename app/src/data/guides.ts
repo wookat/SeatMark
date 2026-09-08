@@ -632,7 +632,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费使用，名单不出浏览器',
+      note: '先用演示名单导出一张试页，对照本文排查偏移或显示问题，再换成自己的名单；名单不出浏览器',
     },
     faqs: [
       {
@@ -1252,7 +1252,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '演示名单可直接导出试打，确认尺寸无误再换成自己的名单；名单只在浏览器本地处理',
+      note: '先用演示名单看字段如何映射到标签，再换成整理好的名单；解析与生成都在浏览器本地完成',
     },
     faqs: [
       {
@@ -1325,7 +1325,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费使用，名单不出浏览器',
+      note: '先用演示名单导出一张试页，对照本文排查偏移或显示问题，再换成自己的名单；名单不出浏览器',
     },
     faqs: [
       {
@@ -1396,7 +1396,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「照片核验版」+ 演示数据',
       to: '/studio?template=withPhoto&demo=1',
-      note: '演示名单可直接导出试打，确认尺寸无误再换成自己的名单；名单只在浏览器本地处理',
+      note: '先用演示名单导出一张带照片的试页，确认清晰度与尺寸后再换成自己的名单与照片；照片只在浏览器本地处理',
     },
     faqs: [
       {
@@ -1480,7 +1480,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「考场门贴」+ 演示数据',
       to: '/studio?template=examDoor&demo=1',
-      note: '先用演示名单看考场号、座位号等字段怎么落到标签上，再换成自己的考生名单；名单只在浏览器本地处理',
+      note: '先用演示名单看考场门贴、点名表等配套材料怎么生成，再换成自己的考生名单；名单只在浏览器本地处理',
     },
     howTo: {
       name: '批量制作考场门贴',
@@ -1633,7 +1633,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先用演示名单看考场号、座位号等字段怎么落到标签上，再换成自己的考生名单；名单只在浏览器本地处理',
+      note: '先用演示名单看考场门贴、点名表等配套材料怎么生成，再换成自己的考生名单；名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -1713,7 +1713,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「工作证」模板 + 演示数据',
       to: '/studio?template=staffIdCard&demo=1',
-      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费使用，名单不出浏览器',
+      note: '先看证卡与牌面的成品效果，再换成自己的人员名单；免费使用，名单只在浏览器本地处理',
     },
     howTo: {
       name: '批量制作员工/访客胸卡',
@@ -1792,7 +1792,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「幼儿园姓名贴」+ 演示数据',
       to: '/studio?template=kidsName&demo=1',
-      note: '先看成品效果，再换成班级或学生名单；免费使用，名单只在浏览器本地处理',
+      note: '先看姓名贴、门牌的成品效果，再换成班级或学生名单；免费使用，名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -1869,7 +1869,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「宿舍门贴」+ 演示数据',
       to: '/studio?template=dormDoor&demo=1',
-      note: '先看成品效果，再换成班级或学生名单；免费使用，名单只在浏览器本地处理',
+      note: '先看姓名贴、门牌的成品效果，再换成班级或学生名单；免费使用，名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -1944,7 +1944,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「面试候场号牌」+ 演示数据',
       to: '/studio?template=interviewNo&demo=1',
-      note: '演示名单可直接导出试打，确认尺寸无误再换成自己的名单；名单只在浏览器本地处理',
+      note: '先看本场景模板的成品效果，再换成自己的名单批量导出；免费使用，名单不出浏览器',
     },
     faqs: [
       {
@@ -2025,7 +2025,7 @@ export const guides: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费使用，名单不出浏览器',
+      note: '演示数据可走完导入到导出的完整流程；换成自己的名单与照片后同样全程留在浏览器本地',
     },
     faqs: [
       {

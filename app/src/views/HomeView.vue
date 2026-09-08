@@ -61,7 +61,7 @@ const HERO_EN_NAMES = [
 /** 英文站首屏演示行：英文姓名与英文考场名，其余字段与中文演示一致 */
 const heroRowsEn: DataRow[] = HERO_EN_NAMES.map((name, i) => ({
   姓名: name,
-  考场: `No. ${Math.floor(i / 12) + 1}`,
+  考场: `Room ${Math.floor(i / 12) + 1}`,
   座位号: String((i % 12) + 1).padStart(2, '0'),
   准考证号: String(2026061001 + i),
 }))

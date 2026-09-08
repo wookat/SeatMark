@@ -10,9 +10,24 @@ const { t, locale, localePath } = useI18n()
 const EN_INTRO =
   'Hands-on, item-by-item comparisons of SeatMark with the usual ways people make desk cards and place cards — design tools, Word/WPS mail merge and online card makers — covering batch generation from a roster, print imposition, calibration accuracy, privacy and price. Where a competitor leads, we say so. These write-ups are in Chinese for now.'
 const EN_FEATURED: EnIndexFeatured[] = [
-  { title: 'SeatMark vs Canva', to: '/vs/canva' },
-  { title: 'SeatMark vs WPS / Word mail merge', to: '/vs/wps-mail-merge' },
-  { title: 'SeatMark vs placecard.us', to: '/vs/placecard-us' },
+  {
+    title: 'SeatMark vs Canva',
+    summary:
+      'Canva has a mature drag-and-drop editor and a large template library, but no roster batch or A4 imposition; we compare both when the job is “print one per name”.',
+    to: '/vs/canva',
+  },
+  {
+    title: 'SeatMark vs WPS / Word mail merge',
+    summary:
+      'Mail merge is offline and already on most PCs; we compare the number of steps, re-rendering after roster edits and millimetre-level imposition.',
+    to: '/vs/wps-mail-merge',
+  },
+  {
+    title: 'SeatMark vs placecard.us',
+    summary:
+      'Two browser-local place-card makers side by side: Excel import, paper sizes and cut lines, print calibration, template scenes, watermark and pricing.',
+    to: '/vs/placecard-us',
+  },
 ]
 </script>
 
@@ -29,7 +44,12 @@ const EN_FEATURED: EnIndexFeatured[] = [
       <ZhOnlyNotice />
     </div>
 
-    <EnIndexShell v-if="locale === 'en'" :intro="EN_INTRO" :featured="EN_FEATURED" />
+    <EnIndexShell
+      v-if="locale === 'en'"
+      :intro="EN_INTRO"
+      featured-heading="Comparisons"
+      :featured="EN_FEATURED"
+    />
 
     <div v-else class="mt-10 grid gap-5 sm:grid-cols-2">
       <RouterLink

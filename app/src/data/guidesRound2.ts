@@ -187,7 +187,7 @@ export const guidesRound2: Guide[] = [
     quickStart: {
       label: '一键载入「艺考面试号码牌」+ 演示数据',
       to: '/studio?template=artExamNo&demo=1',
-      note: '先用演示名单看考场号、座位号等字段怎么落到标签上，再换成自己的考生名单；名单只在浏览器本地处理',
+      note: '先用演示名单看准考证号、考场等字段的排布，再换成本次考试的考生名单；名单只在浏览器本地处理',
     },
     howTo: {
       name: '批量制作艺考检录号码贴',
@@ -266,7 +266,7 @@ export const guidesRound2: Guide[] = [
     quickStart: {
       label: '一键载入「考研考场桌贴」+ 演示数据',
       to: '/studio?template=kaoyanDesk&demo=1',
-      note: '先用演示名单看考场号、座位号等字段怎么落到标签上，再换成自己的考生名单；名单只在浏览器本地处理',
+      note: '先用演示名单看准考证号、考场等字段的排布，再换成本次考试的考生名单；名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -501,7 +501,7 @@ export const guidesRound2: Guide[] = [
     quickStart: {
       label: '一键载入「班牌」+ 演示数据',
       to: '/studio?template=classBrand&demo=1',
-      note: '先看成品效果，再换成班级或学生名单；免费使用，名单只在浏览器本地处理',
+      note: '先看班级牌与座位安排的成品效果，再换成自己的班级名单；免费使用，名单不出浏览器',
     },
     howTo: {
       name: '批量制作运动会号码牌',
@@ -913,7 +913,7 @@ export const guidesRound2: Guide[] = [
     quickStart: {
       label: '一键载入「照片核验版」+ 演示数据',
       to: '/studio?template=withPhoto&demo=1',
-      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费使用，名单不出浏览器',
+      note: '演示数据可走完导入到导出的完整流程；换成自己的名单与照片后同样全程留在浏览器本地',
     },
     howTo: {
       name: '批量照片命名整理四步法',
@@ -995,7 +995,7 @@ export const guidesRound2: Guide[] = [
     quickStart: {
       label: '一键载入「学生证」+ 演示数据',
       to: '/studio?template=studentIdCard&demo=1',
-      note: '演示名单可直接导出试打，确认尺寸无误再换成自己的名单；名单只在浏览器本地处理',
+      note: '先用演示名单导出一张带照片的试页，确认清晰度与尺寸后再换成自己的名单与照片；照片只在浏览器本地处理',
     },
     howTo: {
       name: '批量制作学生证',
@@ -1075,7 +1075,7 @@ export const guidesRound2: Guide[] = [
     quickStart: {
       label: '一键载入「会议大桌牌」+ 演示数据',
       to: '/studio?template=meetingTent&demo=1',
-      note: '先看桌牌成品效果，再换成自己的名单，毫米级尺寸已按桌牌纸预设好；名单只在浏览器本地处理',
+      note: '先看桌牌成品效果，再按座次换成自己的名单；毫米级尺寸已预设好，名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -1147,7 +1147,7 @@ export const guidesRound2: Guide[] = [
     quickStart: {
       label: '一键载入「标准考场版」+ 演示数据',
       to: '/studio?template=standard&demo=1',
-      note: '先看成品再换成自己的名单，标签尺寸按毫米设定；免费使用，名单不出浏览器',
+      note: '先看证卡与牌面的成品效果，再换成自己的人员名单；免费使用，名单只在浏览器本地处理',
     },
     faqs: [
       {
@@ -1221,7 +1221,7 @@ export const guidesRound2: Guide[] = [
     quickStart: {
       label: '一键载入「期末多科目版」+ 演示数据',
       to: '/studio?template=multiSubject&demo=1',
-      note: '先用演示名单看考场号、座位号等字段怎么落到标签上，再换成自己的考生名单；名单只在浏览器本地处理',
+      note: '先用演示名单看考场门贴、点名表等配套材料怎么生成，再换成自己的考生名单；名单只在浏览器本地处理',
     },
     faqs: [
       {

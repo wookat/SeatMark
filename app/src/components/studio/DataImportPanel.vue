@@ -288,7 +288,7 @@ function confirmPaste() {
     toast.warning(t('名单为空'), t('请粘贴名单内容，每行一条数据'))
     return
   }
-  workspace.applyDataset(t('粘贴的名单'), parsed.headers, parsed.rows)
+  workspace.applyDataset(t('粘贴的名单'), parsed.headers, parsed.rows, { suggestTemplate: true })
   pasteOpen.value = false
   const dedupeNote = parsed.removed
     ? t('，已去重 {n} 条').replace('{n}', String(parsed.removed))
@@ -340,7 +340,12 @@ async function onDownloadSample() {
         <p class="text-xs text-slate-600">{{ t('第一行默认作为表头，支持 .xlsx / .xls / .csv；不确定格式可先下载样例 Excel') }}</p>
       </div>
       <div class="mt-3 grid grid-cols-2 gap-2">
-        <button type="button" class="btn btn-ghost btn-sm" @click="openPasteDialog">
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm lg:scroll-mt-16"
+          data-testid="paste-open"
+          @click="openPasteDialog"
+        >
           {{ t('没有文件？粘贴名单') }}
         </button>
         <button type="button" class="btn btn-ghost btn-sm" @click="workspace.useDemoData()">

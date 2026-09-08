@@ -1,4 +1,5 @@
 import type { FieldMapping, TemplateField } from '@/types/template'
+import { isMappableField } from '@/utils/fieldType'
 
 /**
  * 字段 -> 表头匹配词，按优先级排序（前面的词优先命中）。
@@ -7,7 +8,24 @@ import type { FieldMapping, TemplateField } from '@/types/template'
  */
 const MATCH_PATTERNS: Record<string, string[]> = {
   seatNo: ['座位号', '座号', '座位', 'seatno', 'seat', '序号'],
-  name: ['姓名', '名字', '考生姓名', '宾客', 'name', '考生', '名称', '称呼'],
+  name: [
+    '姓名',
+    '名字',
+    '考生姓名',
+    '宾客',
+    '与会人员',
+    '参会人员',
+    '参会人',
+    '出席人',
+    '来宾',
+    '嘉宾',
+    'name',
+    '考生',
+    '名称',
+    '称呼',
+    '代表',
+    '人员',
+  ],
   room: ['考场号', '考场', '教室', '包间名', '包间', '场次', 'room', '地点'],
   examId: ['准考证号', '准考证', '考号', '考生号', 'examid', '编号'],
   gender: ['性别', 'gender', 'sex'],
@@ -15,7 +33,7 @@ const MATCH_PATTERNS: Record<string, string[]> = {
   studentId: ['学号', '学籍号', '学籍', 'studentid', 'student'],
   className: ['班级', '年级', 'class'],
   school: ['学校', '院校', '学院', 'school'],
-  company: ['单位', '公司', '机构', '企业', '集团', 'company', 'organization', 'org'],
+  company: ['单位', '所在单位', '公司', '机构', '企业', '集团', 'company', 'organization', 'org'],
   org: ['单位', '公司', '机构', '企业', '集团', 'organization', 'org', 'company'],
   unit: ['单位', '公司', '机构', '企业', '集团', 'unit', 'organization', 'org'],
   department: ['部门', '科室', '院系', '处室', '科组', 'department', 'dept', 'team'],
@@ -69,9 +87,7 @@ export function autoMapFieldsDetailed(fields: TemplateField[], headers: string[]
   const mapping: FieldMapping = {}
   const borrowed: Record<string, string> = {}
   const used = new Set<string>()
-  const mappable = fields.filter(
-    (f) => f.type === 'text' && f.fixedText == null && f.mirrorOf == null,
-  )
+  const mappable = fields.filter(isMappableField)
   const normalized = headers.map((h) => normalize(h))
 
   const patternsOf = (field: TemplateField): string[] =>

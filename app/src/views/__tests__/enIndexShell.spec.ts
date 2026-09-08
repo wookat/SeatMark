@@ -192,10 +192,52 @@ describe('第 356 轮：/en 模板与教程卡片「Chinese」语言角标', () 
     }
   })
 
-  it('/en/vs 与 /en/papers 未开启角标（仅教程/模板卡片）', async () => {
+  it('第 368 轮：/en/vs 与 /en/papers 精选条目也带条目级 Chinese 角标', async () => {
     for (const view of [VIEWS[2], VIEWS[3]]) {
       const wrapper = await mountView(view, 'en')
-      expect(wrapper.find(BADGE).exists()).toBe(false)
+      const featured = wrapper.findAll('[data-testid="en-index-featured"] a')
+      expect(featured.length).toBeGreaterThan(0)
+      for (const a of featured) expect(a.find(BADGE).text()).toBe('Chinese')
+      wrapper.unmount()
+    }
+  })
+})
+
+describe('第 368 轮：/en 精选块层级——纯英文区块标题 + 每条英文摘要 + Read in Chinese CTA', () => {
+  const HEADINGS: Record<string, string> = {
+    GuidesView: 'Featured guides',
+    PapersView: 'Paper sizes',
+    VsIndexView: 'Comparisons',
+  }
+
+  for (const view of SHELL_VIEWS) {
+    it(`${view.name}：区块标题为「${HEADINGS[view.name]}」，不再含 Featured (in Chinese)`, async () => {
+      const wrapper = await mountView(view, 'en')
+      const shell = wrapper.find('[data-testid="en-index-shell"]')
+      const heading = shell.find('[data-testid="en-index-featured-heading"]')
+      expect(heading.element.tagName).toBe('H2')
+      expect(heading.text()).toBe(HEADINGS[view.name])
+      expect(shell.text()).not.toMatch(/in Chinese\)/i)
+      for (const h2 of shell.findAll('h2')) expect(h2.text()).not.toContain('Chinese')
+
+      const items = shell.findAll('[data-testid="en-index-featured"] a')
+      expect(items.length).toBeGreaterThan(0)
+      for (const a of items) {
+        const summary = a.find('[data-testid="en-index-summary"]')
+        expect(summary.text().length).toBeGreaterThan(30)
+        expect(summary.text()).not.toMatch(CJK)
+        expect(a.find('[data-testid="en-index-read-cta"]').text()).toBe('Read in Chinese →')
+        expect(a.find('[data-testid="lang-badge-zh"]').text()).toBe('Chinese')
+      }
+      wrapper.unmount()
+    })
+  }
+
+  it('中文页零改动：zh 下不出现英文精选块与 CTA', async () => {
+    for (const view of SHELL_VIEWS) {
+      const wrapper = await mountView(view, 'zh')
+      expect(wrapper.find('[data-testid="en-index-featured-heading"]').exists()).toBe(false)
+      expect(wrapper.text()).not.toContain('Read in Chinese')
       wrapper.unmount()
     }
   })

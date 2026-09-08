@@ -942,11 +942,24 @@ function addPreset(preset: FieldPreset) {
 
 // ---------- 字段管理 ----------
 function addField(type: FieldType) {
-  const id = uid(type === 'image' ? 'photo' : 'text')
+  const id = uid(type === 'image' ? 'photo' : type === 'qr' ? 'qr' : 'text')
   const field: TemplateField =
     type === 'image'
       ? { id, label: '照片', type, x: 5, y: 5, width: 20, height: 25, radius: 1, sample: 'photo' }
-      : {
+      : type === 'qr'
+        ? {
+            id,
+            label: '二维码',
+            type,
+            x: 5,
+            y: 5,
+            width: 18,
+            height: 18,
+            verticalAlign: 'middle',
+            padding: 0.8,
+            sample: 'https://www.seatmark.cn/',
+          }
+        : {
           id,
           label: '新字段',
           type,
@@ -988,7 +1001,7 @@ function duplicateSelected() {
   const labelH = draft.value.label.height
   const clones = fields.map((f) => {
     const clone = JSON.parse(JSON.stringify(f)) as TemplateField
-    clone.id = uid(f.type === 'image' ? 'photo' : 'field')
+    clone.id = uid(f.type === 'image' ? 'photo' : f.type === 'qr' ? 'qr' : 'field')
     clone.x = snap(clamp(f.x + 2, 0, Math.max(labelW - f.width, 0)))
     clone.y = snap(clamp(f.y + 2, 0, Math.max(labelH - f.height, 0)))
     return clone
@@ -1050,7 +1063,9 @@ const aiPrefill = computed(() =>
   draft.value.fields
     .filter((f) => f.fixedText == null)
     .map((f) =>
-      f.type === 'image' ? `${f.label || '照片'}:` : `${f.label || f.id}: ${f.sample ?? ''}`,
+      f.type === 'image'
+        ? `${f.label || '照片'}:`
+        : `${f.label || (f.type === 'qr' ? '二维码' : f.id)}: ${f.sample ?? ''}`,
     )
     .join('\n'),
 )
@@ -1271,6 +1286,19 @@ function save(asNew: boolean) {
               class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
             >
               图
+            </span>
+          </button>
+          <button
+            type="button"
+            class="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50"
+            data-testid="designer-add-qr"
+            @click="addField('qr')"
+          >
+            {{ t('二维码') }}
+            <span
+              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
+            >
+              {{ t('码') }}
             </span>
           </button>
         </div>
@@ -1517,7 +1545,7 @@ function save(asNew: boolean) {
                 <span
                   class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
                 >
-                  {{ field.type === 'image' ? t('图') : t('文') }}
+                  {{ field.type === 'image' ? t('图') : field.type === 'qr' ? t('码') : t('文') }}
                 </span>
                 <span class="truncate">{{ field.label || field.id }}</span>
               </span>
@@ -1676,6 +1704,14 @@ function save(asNew: boolean) {
                 :aria-label="t('标签名前缀（可选）')"
                 :placeholder="t('如填“姓名”则渲染为：姓名 张三')"
               />
+            </div>
+
+            <div v-if="selectedField.type === 'qr'" class="col-span-2">
+              <label class="field-label">{{ t('示例内容（仅预览用）') }}</label>
+              <input v-model="selectedField.sample" type="text" class="input-field" :aria-label="t('示例内容（仅预览用）')" />
+              <p class="mt-1 text-[11px] leading-4 text-slate-600">
+                {{ t('二维码内容取自映射列的单元格文本，按字段短边取方，全程本地生成') }}
+              </p>
             </div>
 
             <div v-if="selectedField.type === 'image'" class="col-span-2">

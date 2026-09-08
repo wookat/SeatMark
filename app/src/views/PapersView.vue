@@ -12,9 +12,21 @@ const { t, locale, localePath } = useI18n()
 /** /en 下列表区的英文替代块：主题说明 + 精选入口（英文标题，指向中文纸型页） */
 const EN_INTRO = `A library of ${labelPapers.length} pre-cut A4 self-adhesive label sheets sold by Chinese stationery shops — 2×4, 3×7, 3×10, rounded-corner die-cuts and more. Pick a sheet in the Studio and the rows, columns, margins and gaps lock in automatically so the print lines up without manual tuning. Sheet details are in Chinese for now.`
 const EN_FEATURED: EnIndexFeatured[] = [
-  { title: 'A4 2-up (1 × 2, 210 × 148.5 mm)', to: '/papers/a4-2up' },
-  { title: 'A4 8-up rounded corners (99.1 × 67.7 mm)', to: '/papers/a4-8up-round' },
-  { title: 'A4 21-up (3 × 7, 70 × 42.4 mm)', to: '/papers/a4-21up' },
+  {
+    title: 'A4 2-up (1 × 2, 210 × 148.5 mm)',
+    summary: 'A4 split in half (A5 size) — for exam-room door signs, venue wayfinding and oversized desk labels.',
+    to: '/papers/a4-2up',
+  },
+  {
+    title: 'A4 8-up rounded corners (99.1 × 67.7 mm)',
+    summary: 'The Avery L7165-compatible 8-up die-cut: no-cut exam desk labels, asset tags and large name stickers.',
+    to: '/papers/a4-8up-round',
+  },
+  {
+    title: 'A4 21-up (3 × 7, 70 × 42.4 mm)',
+    summary: 'Classic 3 × 7 full-bleed sheet (Avery 3652-compatible) — the go-to size for exam seat labels and name stickers.',
+    to: '/papers/a4-21up',
+  },
 ]
 
 const activeCorner = ref<'全部' | '直角' | '圆角'>('全部')
@@ -56,7 +68,12 @@ function cells(spec: (typeof labelPapers)[number]) {
       <ZhOnlyNotice />
     </div>
 
-    <EnIndexShell v-if="locale === 'en'" :intro="EN_INTRO" :featured="EN_FEATURED" />
+    <EnIndexShell
+      v-if="locale === 'en'"
+      :intro="EN_INTRO"
+      featured-heading="Paper sizes"
+      :featured="EN_FEATURED"
+    />
 
     <div v-if="locale !== 'en'" class="mt-8 flex flex-wrap items-center justify-center gap-2">
       <span class="shrink-0 text-xs font-bold text-slate-600">{{ t('切角') }}</span>

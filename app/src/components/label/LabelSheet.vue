@@ -4,6 +4,7 @@ import { computed, type CSSProperties } from 'vue'
 import LabelCard from '@/components/label/LabelCard.vue'
 import { t } from '@/i18n'
 import type { DataRow, LabelTemplate } from '@/types/template'
+import { isColumnField } from '@/utils/fieldType'
 import { cutLines, labelPosition } from '@/utils/layout'
 
 const props = withDefaults(
@@ -57,7 +58,7 @@ function boxStyle(idx: number): CSSProperties {
 function textsFor(row: DataRow): Record<string, string> {
   const result: Record<string, string> = {}
   for (const field of props.template.fields) {
-    if (field.type === 'text') result[field.id] = props.getText(row, field.id)
+    if (isColumnField(field)) result[field.id] = props.getText(row, field.id)
   }
   return result
 }
