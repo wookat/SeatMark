@@ -18,7 +18,7 @@ import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { dismissStudioGuide } from '@/utils/firstVisit'
 import { labelPosition, labelsPerPage, MM_TO_PX } from '@/utils/layout'
-import { paperLabel, setPrintPageSize } from '@/utils/paper'
+import { matchPaperPreset, paperLabel, setPrintPageSize } from '@/utils/paper'
 import {
   deliverPdfForMobilePrint,
   isMobilePrintEnvironment,
@@ -71,7 +71,8 @@ const toolbarSummary = computed(() => {
   const parts: string[] = []
   if (workspace.excel.rows.length) parts.push(`${workspace.excel.rows.length} ${t('个标签')}`)
   if (workspace.totalPages > 0) parts.push(`${workspace.totalPages} ${t('页')}`)
-  parts.push(currentPaperLabel.value)
+  const preset = matchPaperPreset(workspace.template.page)
+  parts.push(preset ? preset.label.split(' ')[0]! : currentPaperLabel.value)
   return parts.join(' · ')
 })
 
@@ -946,7 +947,7 @@ const hintKey = ref<HintKey | null>(null)
       class="no-print sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200/80 bg-white/95 px-3 py-2.5 shadow-card backdrop-blur sm:px-4"
       data-testid="preview-toolbar"
     >
-      <div class="flex min-w-0 flex-wrap items-center gap-2" data-testid="preview-toolbar-left">
+      <div class="flex min-w-0 flex-wrap items-center gap-2 md:max-xl:contents" data-testid="preview-toolbar-left">
         <div class="flex items-center gap-1.5 text-xs">
           <span
             class="rounded-full bg-slate-100 px-2.5 py-1 font-bold whitespace-nowrap text-slate-600 xl:hidden"
@@ -1026,7 +1027,7 @@ const hintKey = ref<HintKey | null>(null)
         </div>
       </div>
 
-      <div class="ml-auto flex flex-wrap items-center gap-2">
+      <div class="ml-auto flex flex-wrap items-center gap-2 md:max-xl:contents">
         <SelectField v-model="zoomMode" class="w-20 xl:w-24" size="sm" :options="ZOOM_OPTIONS" />
         <button
           type="button"
@@ -1127,6 +1128,7 @@ const hintKey = ref<HintKey | null>(null)
         <button
           type="button"
           class="btn btn-primary btn-sm relative max-sm:min-h-9"
+          :aria-label="`${t('打印')} / ${t('矢量 PDF')}`"
           :title="t('直接打印或交印刷厂（文字可选中、最清晰）：经浏览器打印对话框输出，选「另存为 PDF」即得矢量 PDF；直接打印请用对应纸张、无边距、缩放 100%')"
           :disabled="!workspace.excel.rows.length"
           @click="openExportChoice('print')"
@@ -1142,7 +1144,7 @@ const hintKey = ref<HintKey | null>(null)
           >
             <path d="M7 8V3h10v5M7 17H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3m-10-3h10v7H7v-7z" />
           </svg>
-          {{ t('打印') }}<span class="hidden sm:inline"> / {{ t('矢量 PDF') }}</span>
+          {{ t('打印') }}<span class="hidden sm:inline md:max-xl:hidden"> / {{ t('矢量 PDF') }}</span>
         </button>
         <button
           type="button"

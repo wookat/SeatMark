@@ -1972,7 +1972,7 @@ export const en: Record<string, string> = {
   '排斥冲突': 'Keep-apart conflicts',
   '对': 'pair(s)',
   '排斥冲突 {n} 对': '{n} keep-apart conflict(s)',
-  '标记两位宾客不同桌，自动分配会避开': 'Mark two guests to keep apart; auto-assign seats them separately',
+  '标记两位宾客不同桌，自动分配会避开': 'Keep two guests apart when auto-assigning',
   '标记两位宾客不同桌：自动分配会尽量避开（仅在没有其它可坐的桌时才同桌）；手动拖到一起会提醒但不阻止。清单只存在本机。':
     'Mark two guests to keep apart: auto-assign avoids seating them together (only shares a table when no other table fits); dragging them together warns but is allowed. Stored on this device only.',
   '宾客 A': 'Guest A',

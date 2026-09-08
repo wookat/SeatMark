@@ -194,7 +194,7 @@ describe('第 359 轮 P3：BanquetView 「不同桌」排斥清单', () => {
     await setLocale('en')
     const en = await mountView()
     const enHint = en.find('[data-testid="avoid-collapsed-hint"]')
-    expect(enHint.text()).toBe('Mark two guests to keep apart; auto-assign seats them separately')
+    expect(enHint.text()).toBe('Keep two guests apart when auto-assigning')
     expect(enHint.text()).not.toMatch(/[\u4e00-\u9fff]/)
     en.unmount()
   })
