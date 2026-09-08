@@ -10,6 +10,7 @@ import { mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
 import { en } from '@/i18n/locales/en'
+import { AUTH_MAINTENANCE_HINT } from '@/utils/maintenanceCopy'
 import { enDemoValues, enFieldLabels, enPaperNames, enSubcategories, enTemplateNames, enTemplateScenarios } from '@/i18n/locales/enStudio'
 import { enTemplateDescriptions } from '@/i18n/locales/enStudioDescriptions'
 import { setLocale } from '@/i18n'
@@ -73,8 +74,8 @@ describe('第 348 轮：en.ts 译文病句护栏', () => {
 
   it('定价页与维护提示译文已修正', () => {
     expect(en['次（免费登录即升为每日']).toBe('(signing up free raises it to')
-    expect(en['恢复后可注册领取专业版试用。']).toMatch(/^once restored/)
-    expect(en['账号服务维护中，恢复后可领取']).toBeTruthy()
+    expect(en[AUTH_MAINTENANCE_HINT]).toMatch(/^Sign-in\/sign-up is temporarily unavailable/)
+    expect(en).not.toHaveProperty('账号服务维护中，带水印导出不限次')
   })
 
   it('英文首页 FAQ 区 eyebrow 为 Help，与标题 FAQ 不重复', () => {
@@ -238,6 +239,35 @@ describe('第 349 轮：首页 FAQ eyebrow', () => {
       expect(zh.find('#faq .section-eyebrow').text()).toBe('FAQ')
       expect(zh.find('#faq .section-heading').text()).toBe('常见问题')
       zh.unmount()
+    } finally {
+      globalThis.IntersectionObserver = prevIO
+      globalThis.ResizeObserver = prevRO
+      window.matchMedia = prevMatchMedia
+    }
+  })
+})
+
+describe('第 364 轮：/en 首页 <br /> 换行处可访问文本有空格', () => {
+  it('h1 textContent 不出现 print-readyseating；新建模板卡说明两行之间有空格', async () => {
+    const io = class {
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+    }
+    const prevIO = globalThis.IntersectionObserver
+    const prevRO = globalThis.ResizeObserver
+    const prevMatchMedia = window.matchMedia
+    globalThis.IntersectionObserver = io as unknown as typeof IntersectionObserver
+    globalThis.ResizeObserver = io as unknown as typeof ResizeObserver
+    window.matchMedia = (() => ({ matches: true, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia
+    try {
+      const wrapper = await mountAt(HomeView, '/en')
+      const h1 = wrapper.find('h1').element.textContent ?? ''
+      expect(h1).not.toContain('print-readyseating')
+      expect(h1.replace(/\s+/g, ' ').trim()).toBe('Excel in, print-ready seating charts out')
+      expect(wrapper.element.textContent).not.toContain('freelywith')
+      expect(wrapper.element.textContent?.replace(/\s+/g, ' ')).toContain('lay out fields freely with sizes and margins')
+      wrapper.unmount()
     } finally {
       globalThis.IntersectionObserver = prevIO
       globalThis.ResizeObserver = prevRO

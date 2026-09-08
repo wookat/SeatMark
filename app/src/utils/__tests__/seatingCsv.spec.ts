@@ -58,3 +58,37 @@ describe('seatingRosterCsv：座位清单 CSV', () => {
     expect(out).toEqual(['Row,Column,Seat No.,Name,Gender', '1,1,1,Amy,F', '1,2,2,Bob,M'])
   })
 })
+
+describe('seatingRosterCsv：未排座段（第 364 轮）', () => {
+  it('超员时末尾追加空行 + 「未排座」段（序号/姓名）；含性别列时追加性别', () => {
+    const entries: SeatingEntry[] = [{ name: '张伟' }, { name: '李娜' }, { name: '王芳' }, { name: '赵六' }, { name: '周七' }]
+    const seats = buildSeats(entries, 2, 2, 'rows')
+    const out = lines(seatingRosterCsv(seats, entries.slice(4)))
+    expect(out).toEqual(['排,列,座位号,姓名', '1,1,1,张伟', '1,2,2,李娜', '2,1,3,王芳', '2,2,4,赵六', '', '未排座', '序号,姓名', '1,周七'])
+
+    const gendered: SeatingEntry[] = [
+      { name: '张伟', gender: '男' },
+      { name: '李娜', gender: '女' },
+      { name: '王芳', gender: '女' },
+      { name: '赵六' },
+    ]
+    const g = lines(seatingRosterCsv(buildSeats(gendered, 1, 2, 'rows'), gendered.slice(2)))
+    expect(g.slice(-5)).toEqual(['', '未排座', '序号,姓名,性别', '1,王芳,女', '2,赵六,'])
+  })
+
+  it('不超员（未传或空数组、或全为空姓名）时无「未排座」段', () => {
+    const entries: SeatingEntry[] = [{ name: '张伟' }, { name: '李娜' }]
+    const seats = buildSeats(entries, 1, 2, 'rows')
+    expect(seatingRosterCsv(seats)).not.toContain('未排座')
+    expect(seatingRosterCsv(seats, [])).not.toContain('未排座')
+    expect(seatingRosterCsv(seats, [{ name: '' }])).not.toContain('未排座')
+    expect(seatingRosterCsv(seats, [])).toBe(seatingRosterCsv(seats))
+  })
+
+  it('英文 locale：段标题与表头为英文', async () => {
+    await setLocale('en')
+    const seats: Seat[] = [{ row: 1, col: 1, seatNo: 1, name: 'Amy' }]
+    const out = lines(seatingRosterCsv(seats, [{ name: 'Bob' }]))
+    expect(out).toEqual(['Row,Column,Seat No.,Name', '1,1,1,Amy', '', 'Unseated', 'No.,Name', '1,Bob'])
+  })
+})

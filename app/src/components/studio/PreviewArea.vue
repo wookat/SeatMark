@@ -16,7 +16,7 @@ import { useCalibrationStore } from '@/stores/calibration'
 import { QUOTA_USER_DAILY, useQuotaStore } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { dismissStudioGuide } from '@/utils/firstVisit'
+import { dismissStudioGuide, markStudioExported } from '@/utils/firstVisit'
 import { labelPosition, labelsPerPage, MM_TO_PX } from '@/utils/layout'
 import { matchPaperPreset, paperLabel, setPrintPageSize } from '@/utils/paper'
 import {
@@ -661,7 +661,8 @@ async function confirmDuplexPrint() {
 
 /** 导出/打印成功后消耗无水印配额（失败不扣，可直接重试） */
 async function consumeQuotaAfterSuccess() {
-  // 拿到过一次成品即视为老用户，首访三步引导不再展示
+  // 拿到过一次成品即视为老用户，首访四步引导不再展示
+  markStudioExported()
   dismissStudioGuide()
   if (withWatermark.value) return
   await quota.tryConsume()
@@ -1670,7 +1671,14 @@ const hintKey = ref<HintKey | null>(null)
               <span>
                 <span class="block text-sm font-bold text-slate-900">{{ t('无水印导出（今日剩余 {n} 次）').replace('{n}', String(quota.remaining)) }}</span>
                 <span class="mt-0.5 block text-xs leading-5 text-slate-600">
-                  {{ quota.remaining > 0 ? t('页面不叠加任何标识') : (auth.isLoggedIn ? t('今日已用完，分享链接每被点开 1 次即得 1 次，或明日 0 点恢复') : t('今日已用完，登录后每天 3 次，还可分享送次数')) }}
+                  {{ quota.remaining > 0 ? t('页面不叠加任何标识') : (auth.isLoggedIn ? t('今日已用完，分享链接每被点开 1 次即得 1 次，或明日 0 点恢复') : (auth.serviceUnavailable ? t('今日未登录额度已用完，明日 0 点恢复') : t('今日已用完，登录后每天 3 次，还可分享送次数'))) }}
+                </span>
+                <span
+                  v-if="!auth.isLoggedIn && auth.serviceUnavailable"
+                  class="mt-1 block text-xs leading-5 text-slate-500"
+                  data-testid="export-service-unavailable"
+                >
+                  {{ t('登录暂不可用（服务维护中），暂无法登录领取更多次数；下方带水印导出与打印不受影响') }}
                 </span>
               </span>
             </button>
@@ -1693,14 +1701,7 @@ const hintKey = ref<HintKey | null>(null)
               </span>
             </button>
           </div>
-          <p
-            v-if="!auth.isLoggedIn && auth.serviceUnavailable"
-            class="mt-3 text-xs leading-5 text-slate-600"
-            data-testid="export-service-unavailable"
-          >
-            {{ t('账号服务维护中，带水印导出不限次') }}
-          </p>
-          <p v-else-if="!auth.isLoggedIn" class="mt-3 text-xs leading-5 text-slate-600">
+          <p v-if="!auth.isLoggedIn && !auth.serviceUnavailable" class="mt-3 text-xs leading-5 text-slate-600">
             {{ t('注册即送 7 天专业版试用（无水印导出不限次）；免费版登录后每天') }} {{ QUOTA_USER_DAILY }} {{ t('次，分享链接每被点开 1 次再得 1 次。') }}
           </p>
         </div>

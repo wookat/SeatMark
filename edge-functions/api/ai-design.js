@@ -21,7 +21,10 @@
  * 防护：
  * - 请求体 > 32KB → 413（先看 Content-Length，再看实际字节数）
  * - 按 IP 1 小时滑动窗口最多 30 次 → 429 + Retry-After
- * - 上游 fetch 共用 25s AbortController 超时；任一上游超时后不再尝试后续上游，直接 504
+ * - 有密钥上游 fetch 共用 25s AbortController 超时；任一上游超时后不再尝试后续上游，直接 504
+ * - 匿名 Pollinations 兜底两个 model 共用 10s 单一计时器（不叠加），到时直接 502 固定文案
+ * - 无任何密钥且匿名兜底关闭 → 不发任何上游请求，直接 502（fail fast）
+ * - 主模型告警推送不阻塞上游链路（有 waitUntil 时后台完成，否则不等待）
  * - 上游失败的诊断（模型名 / HTTP 状态）只进日志；502 响应体为固定文案，不泄露上游模型名
  * - 回复 content > 20KB 截断并在响应顶层标记 truncated:true
  *
@@ -38,6 +41,7 @@ export const AI_MAX_BODY_BYTES = 32 * 1024
 export const AI_RATE_LIMIT = 30
 export const AI_RATE_WINDOW_MS = 60 * 60 * 1000
 export const AI_UPSTREAM_TIMEOUT_MS = 25_000
+export const AI_ANON_FALLBACK_TIMEOUT_MS = 10_000
 export const AI_MAX_CONTENT_CHARS = 20 * 1024
 
 const encoder = new TextEncoder()
@@ -131,6 +135,16 @@ async function sendAlert(env, level, detail) {
   }
 }
 
+const UNAVAILABLE_ERROR = 'AI 服务暂时不可用，请稍后再试'
+
+function hasUpstreamKey(env) {
+  return !!(env && (env.DEEPSEEK_API_KEY || env.AI_API_KEY))
+}
+
+function anonFallbackOn(env) {
+  return String((env && env.SEATMARK_AI_ANON_FALLBACK) ?? '') !== '0'
+}
+
 export async function onRequest(context) {
   const res = await handleRequest(context)
   res.headers.set(REV_HEADER_NAME, SEATMARK_REV)
@@ -139,6 +153,8 @@ export async function onRequest(context) {
 
 async function handleRequest(context) {
   const { request, env } = context
+  const waitUntil =
+    typeof context.waitUntil === 'function' ? (p) => context.waitUntil(p) : (p) => void p.catch(() => {})
 
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 })
   if (request.method !== 'POST') return json({ error: '请求方法不支持' }, 405)
@@ -174,6 +190,12 @@ async function handleRequest(context) {
     if (!roleOk || !contentOk) return json({ error: '消息内容无效' }, 400)
   }
 
+  // 无任何上游可用：不发请求、不计限频，直接固定 502
+  if (!hasUpstreamKey(env) && !anonFallbackOn(env)) {
+    console.warn('[seatmark-ai-design] no upstream configured (anonFallback=off)')
+    return json({ error: UNAVAILABLE_ERROR }, 502)
+  }
+
   // 按 IP 限频：存储不可用（memory 未放行）时跳过，见文件头注释
   const { kv, storage } = await getStorage(env)
   const memoryAllowed = !!(env && env.SEATMARK_ALLOW_MEMORY_STORAGE === '1')
@@ -193,7 +215,7 @@ async function handleRequest(context) {
   const aborter = new AbortController()
   const timer = setTimeout(() => aborter.abort(), AI_UPSTREAM_TIMEOUT_MS)
   try {
-    return await proxyUpstreams({ env, messages, signal: aborter.signal })
+    return await proxyUpstreams({ env, messages, signal: aborter.signal, waitUntil })
   } finally {
     clearTimeout(timer)
   }
@@ -206,7 +228,7 @@ function okResponse(text) {
   })
 }
 
-async function proxyUpstreams({ env, messages, signal }) {
+async function proxyUpstreams({ env, messages, signal, waitUntil }) {
   let timedOut = false
 
   async function callUpstream(baseUrl, apiKey, model) {
@@ -240,12 +262,12 @@ async function proxyUpstreams({ env, messages, signal }) {
       const errBody = await upstream.text().catch(() => '')
       const level = alertLevel(upstream.status)
       const detail = `HTTP ${upstream.status} ${errBody.slice(0, 200)}`
-      await sendAlert(env, level, detail)
+      waitUntil(sendAlert(env, level, detail))
     } catch (e) {
       if (isAbortError(e)) timedOut = true
-      // DeepSeek 网络异常：告警
+      // DeepSeek 网络异常：告警（不阻塞后续上游）
       const detail = `网络异常 ${e instanceof Error ? e.message : String(e)}`
-      await sendAlert(env, '网络异常', detail)
+      waitUntil(sendAlert(env, '网络异常', detail))
     }
   }
 
@@ -264,34 +286,52 @@ async function proxyUpstreams({ env, messages, signal }) {
   }
 
   // 无密钥兜底：服务端代理 Pollinations 匿名接口（前端不直连，这是唯一的第三方调用点）；
-  // SEATMARK_AI_ANON_FALLBACK=0 时关闭，上游超时后也不再逐个尝试
-  const anonFallbackEnabled = String((env && env.SEATMARK_AI_ANON_FALLBACK) ?? '') !== '0'
+  // SEATMARK_AI_ANON_FALLBACK=0 时关闭，有密钥上游超时后也不再尝试。
+  // 两个 model 共用一个 10s 计时器：到时即停止尝试并返回固定 502，不与 25s 主超时叠加。
+  const anonFallbackEnabled = anonFallbackOn(env)
   const attempts = []
-  for (const model of anonFallbackEnabled ? POLLINATIONS_MODELS : []) {
-    if (timedOut) break
+  if (anonFallbackEnabled && !timedOut) {
+    const anonAborter = new AbortController()
+    const abortAnon = () => anonAborter.abort()
+    const anonTimer = setTimeout(abortAnon, AI_ANON_FALLBACK_TIMEOUT_MS)
+    if (signal.aborted) abortAnon()
+    else signal.addEventListener('abort', abortAnon)
     try {
-      const upstream = await fetch(POLLINATIONS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, messages, temperature: 0.6 }),
-        signal,
-        eo: {
-          timeoutSetting: {
-            connectTimeout: 30_000,
-            readTimeout: 120_000,
-            writeTimeout: 30_000,
-          },
-        },
-      })
-      if (upstream.ok) return okResponse(await upstream.text())
-      const errBody = await upstream.text().catch(() => '')
-      // 上游诊断只进 Workers 日志，不回给客户端
-      console.warn(`[seatmark-ai-design] ${model}: HTTP ${upstream.status} ${errBody.slice(0, 300)}`)
-      attempts.push(`${model}: HTTP ${upstream.status}`)
-    } catch (e) {
-      if (isAbortError(e)) timedOut = true
-      console.warn(`[seatmark-ai-design] ${model}: ${e instanceof Error ? e.message : String(e)}`)
-      attempts.push(`${model}: 网络异常`)
+      for (const model of POLLINATIONS_MODELS) {
+        if (anonAborter.signal.aborted) break
+        try {
+          const upstream = await fetch(POLLINATIONS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model, messages, temperature: 0.6 }),
+            signal: anonAborter.signal,
+            eo: {
+              timeoutSetting: {
+                connectTimeout: AI_ANON_FALLBACK_TIMEOUT_MS,
+                readTimeout: AI_ANON_FALLBACK_TIMEOUT_MS,
+                writeTimeout: AI_ANON_FALLBACK_TIMEOUT_MS,
+              },
+            },
+          })
+          if (upstream.ok) return okResponse(await upstream.text())
+          const errBody = await upstream.text().catch(() => '')
+          // 上游诊断只进 Workers 日志，不回给客户端
+          console.warn(`[seatmark-ai-design] ${model}: HTTP ${upstream.status} ${errBody.slice(0, 300)}`)
+          attempts.push(`${model}: HTTP ${upstream.status}`)
+        } catch (e) {
+          if (isAbortError(e)) {
+            if (signal.aborted) timedOut = true
+            console.warn(`[seatmark-ai-design] ${model}: anon fallback timed out`)
+            attempts.push(`${model}: 超时`)
+            break
+          }
+          console.warn(`[seatmark-ai-design] ${model}: ${e instanceof Error ? e.message : String(e)}`)
+          attempts.push(`${model}: 网络异常`)
+        }
+      }
+    } finally {
+      clearTimeout(anonTimer)
+      signal.removeEventListener('abort', abortAnon)
     }
   }
 
@@ -300,5 +340,5 @@ async function proxyUpstreams({ env, messages, signal }) {
   console.warn(
     `[seatmark-ai-design] all upstreams failed (anonFallback=${anonFallbackEnabled ? 'on' : 'off'}, attempts=${attempts.length})`,
   )
-  return json({ error: 'AI 服务暂时不可用，请稍后再试' }, 502)
+  return json({ error: UNAVAILABLE_ERROR }, 502)
 }

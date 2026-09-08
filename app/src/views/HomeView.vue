@@ -267,7 +267,7 @@ const FAQS = computed(() => [
             class="mt-4 text-3xl leading-tight font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl"
           >
             <template v-if="locale === 'en'">
-              Excel in, print-ready<br />
+              Excel in, print-ready{{ ' ' }}<br />
               <span class="text-brand-600 whitespace-nowrap">seating charts out</span>
             </template>
             <template v-else>
@@ -580,7 +580,7 @@ const FAQS = computed(() => [
               {{ t('从空白新建模板') }}
             </h3>
             <p class="mt-1 text-xs leading-5 text-slate-600">
-              <template v-if="locale === 'en'">Open the visual designer and lay out fields freely<br />with sizes and margins set in millimetres</template>
+              <template v-if="locale === 'en'">Open the visual designer and lay out fields freely{{ ' ' }}<br />with sizes and margins set in millimetres</template>
               <template v-else>打开可视化设计器，拖拽字段自由排版，<br />尺寸与边距按毫米自定义</template>
             </p>
           </div>

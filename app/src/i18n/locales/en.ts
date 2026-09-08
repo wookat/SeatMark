@@ -543,11 +543,13 @@ export const en: Record<string, string> = {
   '带水印导出与打印不限次；无水印导出按未登录配额计算。':
     'Watermarked export and printing are unlimited; watermark-free export follows the signed-out quota.',
   '返回工坊': 'Back to Studio',
-  '账号服务维护中，带水印导出不限次': 'Account service under maintenance — watermarked export is unlimited',
-  '恢复后可注册领取专业版试用。': 'once restored, sign up to claim the Pro trial.',
-  '账号服务维护中，恢复后可领取': 'Account service under maintenance; claim it once restored',
-  '账号服务维护中，带水印导出不限次；恢复后可领取':
-    'Account service under maintenance — watermarked export is unlimited; claim it once restored',
+  '登录/注册暂不可用（服务维护中）；带水印导出与打印不限次，恢复后可领取试用。':
+    'Sign-in/sign-up is temporarily unavailable (maintenance); watermarked export and printing stay unlimited, claim the trial once restored.',
+  '登录/注册暂不可用（服务维护中）。不登录也能正常制作、带水印导出与打印，不限次数。':
+    'Sign-in/sign-up is temporarily unavailable (maintenance). You can still design, export with watermark and print without signing in, with no limit.',
+  '登录暂不可用（服务维护中），暂无法登录领取更多次数；下方带水印导出与打印不受影响':
+    'Sign-in is temporarily unavailable (maintenance), so extra quota cannot be claimed right now; watermarked export and printing below are unaffected',
+  '今日未登录额度已用完，明日 0 点恢复': 'Today\'s signed-out quota is used up; it resets at midnight',
   '限时 0 折免费': 'Free for a limited time',
   '先用带水印导出': 'Use watermarked export for now',
   '导出与打印不受影响，可直接使用工坊。': 'Export and print are not affected — the Studio works as usual.',
@@ -672,6 +674,21 @@ export const en: Record<string, string> = {
   '当前为教师视角，与屏幕预览一致': 'Teacher view, matching the on-screen preview',
   '导出高清 PNG': 'Export high-res PNG',
   '已交换排': 'Swapped rows',
+  // r364: 未排座名单 + 撤销快捷键
+  '未排座': 'Unseated',
+  '另有 {n} 人未排座：{names}': '{n} more unseated: {names}',
+  '等': ', etc.',
+  '点姓名把 TA 排到已选中的座位，原座位学生变为未排座': 'Click a name to seat them in the selected seat; the current occupant becomes unseated',
+  '未排座的学生。先在预览中点选一个座位，再点姓名即可互换': 'Unseated students. Select a seat in the preview first, then click a name to swap',
+  '排到座位 {no}': 'Seat at position {no}',
+  '先在预览中点选一个座位': 'Select a seat in the preview first',
+  '再点未排座的姓名，就能把 TA 换到那个座位': 'Then click an unseated name to move them into that seat',
+  '{name} 已排到座位 {no}': '{name} seated at position {no}',
+  '{name} 变为未排座；可用 Ctrl/Cmd+Z 撤销': '{name} is now unseated — Ctrl/Cmd+Z to undo',
+  '可用 Ctrl/Cmd+Z 撤销': 'Ctrl/Cmd+Z to undo',
+  '已撤销上一步换座': 'Last seat change undone',
+  '10 秒内可撤销（Ctrl/Cmd+Z）': 'Undo within 10 s (Ctrl/Cmd+Z)',
+  '再点一次可重新打乱；10 秒内可撤销（Ctrl/Cmd+Z）': 'Click again to reshuffle — undo within 10 s (Ctrl/Cmd+Z)',
   '已同步到云端': 'Synced to cloud',
   '已安排': 'seated',
   '已完全随机排座': 'Seats fully randomized',
@@ -804,6 +821,13 @@ export const en: Record<string, string> = {
   '准备打印…': 'Preparing to print…',
   '宾客速查表': 'Guest quick reference',
   '按桌名单 .csv': 'Roster by table .csv',
+  '下载 PDF': 'Download PDF',
+  '生成中…': 'Generating…',
+  '速查表 PDF 已导出': 'Quick reference PDF exported',
+  '共 {n} 页 A4 纵向，全程本地生成，不占无水印次数':
+    '{n} A4 portrait page(s), generated entirely in your browser; does not use watermark-free quota',
+  '「下载 PDF」在浏览器本地生成，不占无水印次数。':
+    '"Download PDF" is generated in your browser and does not use watermark-free quota.',
   '速查表为 A4 纵向：前半按姓名拼音索引「姓名 → 桌名」，后半按桌列名单，方便签到台快速查桌。':
     'A4 portrait quick reference: a name → table index sorted by name first, then the roster of each table, so the check-in desk can look up seats fast.',
   '姓名索引（拼音序）': 'Name index (alphabetical)',
@@ -1235,6 +1259,7 @@ export const en: Record<string, string> = {
   '选模板': 'Pick a template',
   '核对字段映射与版式': 'Check field mapping & layout',
   '字段已按表头自动匹配，若表头不同请手动选择': 'Fields are matched by header automatically — pick manually if your headers differ',
+  '还有 {n} 个字段未对上列': '{n} field(s) still have no matching column',
   '默认已选好，可随时更换': 'A default is preselected — switch anytime',
   '名单已就绪': 'Your list is ready',
   '上传 Excel 或先用演示数据': 'Upload an Excel file or try the demo data',
@@ -1594,6 +1619,8 @@ export const en: Record<string, string> = {
   '已换用适配该纸型的模板': 'Switched to a template that fits this paper',
   '原模板与「{paper}」适配度不足，已切换到「{template}」并按纸型锁定排版（每页 {n} 枚）；可在「模板」中更换其他样式': 'The previous template did not fit "{paper}", so "{template}" was applied with the layout locked to the paper ({n} per page). You can pick another style under "Templates".',
   '已切换到课桌贴模板': 'Switched to a desk-label template',
+  '已切换到「{template}」：{n} 个字段全部对上名单列': 'Switched to "{template}": all {n} fields matched roster columns',
+  '原模板有字段对不上座位名单；可在「模板」中更换其他样式': 'Some fields of the previous template had no matching roster column; pick another style under "Templates"',
   '原模板字段与座位名单不匹配；可在「模板」中更换其他样式': 'The previous template fields did not match the seating roster. You can pick another style under "Templates".',
   '座位表名单已带入': 'Seating roster imported',
   '已切换到婚礼席位卡模板': 'Switched to the wedding place-card template',
@@ -1826,6 +1853,8 @@ export const en: Record<string, string> = {
     'Seat: 12 | 8\nName: Alice Chen | Christopher Zhang\nRoom: Room 1\nCandidate No.: 2026061001\nPhoto:',
   '字段名含「照片 / 头像」会生成图片占位框':
     'Fields named “Photo” or “Avatar” become an image placeholder',
+  '示例值会发送给 AI 服务，请用虚构内容，不要填真实姓名/证件号':
+    'Sample values are sent to the AI service — use made-up data, never real names or ID numbers',
   '设计要求（可选）': 'Design brief (optional)',
   '例如：正式考务风格，重点突出座位号；底部加一行「请对号入座」提示语；主色用深蓝。':
     'e.g. Formal exam style, emphasize the seat number; add a “Please take your assigned seat” line at the bottom; use dark blue as the main color.',

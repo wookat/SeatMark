@@ -6,6 +6,7 @@ import { localePath, t } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
 import { QUOTA_USER_DAILY, useQuotaStore } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
+import { AUTH_MAINTENANCE_HINT } from '@/utils/maintenanceCopy'
 import { copyToClipboard } from '@/utils/share'
 
 const auth = useAuthStore()
@@ -91,7 +92,7 @@ function close() {
       data-testid="quota-service-unavailable"
       class="mt-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"
     >
-      {{ t('账号服务维护中，带水印导出不限次') }}
+      {{ t(AUTH_MAINTENANCE_HINT) }}
     </p>
 
     <div v-else class="mt-4 grid gap-2">

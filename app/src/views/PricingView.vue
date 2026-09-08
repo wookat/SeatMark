@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/auth'
 import { QUOTA_ANON_DAILY, QUOTA_USER_DAILY } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
 import { apiFetch, ApiError, isValidEmail } from '@/utils/api'
+import { AUTH_MAINTENANCE_HINT } from '@/utils/maintenanceCopy'
 
 const auth = useAuthStore()
 const toast = useToastStore()
@@ -154,7 +155,7 @@ async function submitReserve() {
         data-testid="pricing-signup-benefit"
       >
         <template v-if="auth.serviceUnavailable">
-          {{ t('账号服务维护中，带水印导出不限次') }}{{ t('；') }}{{ t('恢复后可注册领取专业版试用。') }}
+          {{ t(AUTH_MAINTENANCE_HINT) }}
         </template>
         <template v-else>
           {{ t('注册即送 7 天专业版；邀请好友注册，双方各送 7 天，可累计叠加；专业版可用兑换码开通。') }}
@@ -227,7 +228,7 @@ async function submitReserve() {
           class="mt-3 text-xs leading-5 text-slate-500"
           data-testid="pricing-maintenance-hint"
         >
-          {{ t('账号服务维护中，带水印导出不限次；恢复后可领取') }}
+          {{ t(AUTH_MAINTENANCE_HINT) }}
         </p>
 
         <RouterLink
@@ -284,7 +285,7 @@ async function submitReserve() {
             class="mt-1.5 text-xs leading-5 text-slate-500"
             data-testid="pricing-maintenance-hint"
           >
-            {{ t('账号服务维护中，恢复后可领取') }}
+            {{ t(AUTH_MAINTENANCE_HINT) }}
           </p>
         </div>
       </div>

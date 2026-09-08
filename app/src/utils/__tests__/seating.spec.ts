@@ -12,6 +12,8 @@ import {
   seatingExportFileName,
   seatingRosterTextFromTable,
   shuffleEntries,
+  unseatedEntries,
+  unseatedSummary,
 } from '../seating'
 
 const NAME_LABELS = { fallback: '教室座位表', teacher: '教师视角', student: '学生视角' }
@@ -418,5 +420,37 @@ describe('第 349 轮：名单重名合并 / 保留后缀', () => {
     expect(duplicateSuffix(1)).toBe('①')
     expect(duplicateSuffix(20)).toBe('⑳')
     expect(duplicateSuffix(21)).toBe('(21)')
+  })
+})
+
+describe('unseatedEntries（第 364 轮）：超出座位数的名单条目', () => {
+  it('52 人 48 座 → 返回座位数之后的 4 人，保持填充顺序', () => {
+    const entries = Array.from({ length: 52 }, (_, i) => ({ name: `学生${i + 1}` }))
+    const out = unseatedEntries(entries, 6, 8)
+    expect(out.map((e) => e.name)).toEqual(['学生49', '学生50', '学生51', '学生52'])
+  })
+
+  it('不超员 / 恰好坐满 → 空数组；尾部空姓名条目被过滤', () => {
+    const entries = Array.from({ length: 48 }, (_, i) => ({ name: `学生${i + 1}` }))
+    expect(unseatedEntries(entries, 6, 8)).toEqual([])
+    expect(unseatedEntries(entries.slice(0, 10), 6, 8)).toEqual([])
+    expect(unseatedEntries([...entries, { name: '' }, { name: '甲' }, { name: '' }], 6, 8)).toEqual([{ name: '甲' }])
+    expect(unseatedEntries([{ name: 'A' }], 0, 8)).toEqual([{ name: 'A' }])
+  })
+})
+
+describe('unseatedSummary（第 364 轮）：PNG 页脚未排座摘要', () => {
+  const labels = { template: '另有 {n} 人未排座：{names}', etc: '等', join: (items: readonly string[]) => items.join('、') }
+
+  it('无未排座返回空串；有则填入人数与姓名', () => {
+    expect(unseatedSummary([], labels)).toBe('')
+    expect(unseatedSummary([{ name: '甲' }, { name: '乙' }], labels)).toBe('另有 2 人未排座：甲、乙')
+  })
+
+  it('超过 10 人只列前 10 个并加「等」', () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ name: `生${i + 1}` }))
+    const out = unseatedSummary(many, labels)
+    expect(out).toBe('另有 12 人未排座：生1、生2、生3、生4、生5、生6、生7、生8、生9、生10等')
+    expect(unseatedSummary(many.slice(0, 10), labels).endsWith('等')).toBe(false)
   })
 })
