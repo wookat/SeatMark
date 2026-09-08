@@ -7,6 +7,7 @@ import {
   buildSentryOptions,
   createPreInitErrorQueue,
   installSentry,
+  redactDataUrls,
   scrubBreadcrumb,
   scrubEvent,
 } from '@/utils/sentry'
@@ -131,6 +132,23 @@ describe('scrubEvent / scrubBreadcrumb', () => {
     expect(out.breadcrumbs![0]!.data).toEqual({ target: 'IMG[src=data:[redacted]]' })
     expect(out.message).toBe('img failed data:[redacted]')
     expect(out.exception!.values![0]!.value).toBe('cannot load data:[redacted]')
+  })
+
+  it('第 330 轮：percent-encoded svg+xml data URL 内的未编码 ) 与 > 不终止匹配——整段抹除且超长值截断', () => {
+    const svg =
+      'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cline%20style%3D%22stroke%3A%20oklch(0.5%200.1%20200)%3B%20-webkit-text-security%3A%20none%3B%20' +
+      'color%3A%20rgb(0%2C%200%2C%200)%3B%20'.repeat(400) +
+      '%22%3E%3C%2Fline%3E%3C%2Fsvg%3E'
+    const invoker = `IMG[src=${svg}].onload`
+    const out = redactDataUrls(invoker)
+    expect(out).toBe('IMG[src=data:[redacted]].onload')
+    expect(out).not.toContain('oklch')
+    expect(out).not.toContain('webkit-text-security')
+
+    const stubborn = `x ${'data:'.padEnd(3000, 'a')}`
+    const cut = redactDataUrls(stubborn)
+    expect(cut.length).toBeLessThan(1100)
+    expect(cut.endsWith('…[truncated]')).toBe(true)
   })
 
   it('无可清洗字段的事件原样返回，不新增字段；异常消息文本不动', () => {
