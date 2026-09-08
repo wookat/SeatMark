@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { t } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
+import { API_TIMEOUT_STATUS, ApiError, apiFetch } from '@/utils/api'
 
 const toast = useToastStore()
 
@@ -133,24 +134,32 @@ async function submit() {
 
   submitting.value = true
   try {
-    const res = await fetch('/api/feedback', {
+    await apiFetch('/api/feedback', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      body: {
         type: type.value,
         content: content.value.trim(),
         contact: contact.value.trim(),
         page: window.location.pathname,
-      }),
+      },
     })
-    if (!res.ok) throw new Error()
     toast.success(t('感谢反馈！'), t('已收到你的意见'))
     close()
-  } catch {
-    toast.danger(t('提交失败'), t('请稍后重试'))
+  } catch (err) {
+    toast.danger(t('提交失败'), submitErrorMessage(err))
   } finally {
     submitting.value = false
   }
+}
+
+/** 失败文案：超时 / 服务端 5xx / 网络异常分开说，4xx 照搬服务端的可读错误（如当日次数上限）；失败不清表单 */
+function submitErrorMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.status === API_TIMEOUT_STATUS) return t('网络超时，请稍后重试')
+    if (err.status >= 500) return t('服务暂时不可用，请稍后重试')
+    return err.message || t('请稍后重试')
+  }
+  return t('网络异常，请检查网络后重试')
 }
 </script>
 

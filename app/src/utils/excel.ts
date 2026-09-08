@@ -1,5 +1,5 @@
 import type { SampleExcel } from '@/data/demoDatasets'
-import { sampleExcelFor } from '@/data/demoDatasets'
+import { demoGenderOf, demoPersonNames, sampleExcelFor } from '@/data/demoDatasets'
 import type { DataRow, LabelTemplate, ParsedExcel } from '@/types/template'
 import { assertImportFileSize, assertImportRowCount } from '@/utils/importLimits'
 
@@ -176,13 +176,6 @@ export async function downloadSampleExcel(template: LabelTemplate): Promise<Samp
   return sample
 }
 
-const DEMO_NAMES = [
-  '张伟', '王芳', '李娜', '刘洋', '陈静', '杨帆', '赵磊', '黄敏',
-  '周杰', '吴霞', '徐强', '孙丽', '马超', '朱琳', '胡军', '郭颖',
-  '何平', '高翔', '林芳', '罗斌', '郑爽', '梁波', '谢宇', '宋健',
-  '唐瑶', '许辉', '韩雪', '冯刚', '曹阳', '彭飞',
-]
-
 /** 演示数据覆盖全部内置模板字段（含学生证 / 工作证），任何模板都能直接预览 */
 const DEMO_HEADERS = [
   '姓名',
@@ -325,14 +318,16 @@ export function dedupeDataRows(
 export function makeDemoRows(count = 30): { headers: string[]; rows: DataRow[] } {
   const rows: DataRow[] = []
   const perRoom = 15
+  const names = demoPersonNames(count, 'zh')
   for (let i = 0; i < count; i++) {
+    const name = names[i]!
     const room = Math.floor(i / perRoom) + 1
     const seat = (i % perRoom) + 1
     const birthMonth = String((i % 12) + 1).padStart(2, '0')
     const birthDay = String((i % 28) + 1).padStart(2, '0')
     rows.push({
-      姓名: DEMO_NAMES[i % DEMO_NAMES.length]!,
-      性别: i % 2 === 0 ? '男' : '女',
+      姓名: name,
+      性别: demoGenderOf(name) ?? '男',
       考场: `第${room}考场`,
       座位号: String(seat).padStart(2, '0'),
       准考证号: String(2026061000 + i + 1),

@@ -1263,17 +1263,36 @@ const QUICKREF_PAGE_H = 297
 /** 速查表姓名索引的分栏数：人数多时分三栏，少时两栏更易读 */
 const quickRefColumns = computed(() => ((quickRef.value?.index.length ?? 0) > 40 ? 3 : 2))
 
+/** CSV / 速查表打印 / 速查表 PDF 共用的导出前预检：名单为空或一人未安排都阻止，免得导出全为「待安排」的空表 */
 function ensureGuestsForQuickRef(): boolean {
-  if (guestCount.value) return true
-  toast.warning(tr('名单为空'), tr('请先粘贴宾客名单'))
-  return false
+  if (!guestCount.value) {
+    toast.warning(tr('名单为空'), tr('请先粘贴宾客名单'))
+    return false
+  }
+  if (!handoffRows.value.length) {
+    toast.warning(tr('还没有已安排的宾客，先一键自动分配'), tr('在第 3 步一键自动分配或拖拽安排宾客后，再导出按桌名单与速查表'))
+    return false
+  }
+  return true
+}
+
+/** 未安排宾客数（名单中有姓名但不在任何桌上），导出成功时提醒已列在末尾 */
+const unassignedGuestCount = computed(() => Math.max(0, guestCount.value - handoffRows.value.length))
+
+function withUnassignedHint(message: string): string {
+  const n = unassignedGuestCount.value
+  if (!n) return message
+  return `${message}${tr('；')}${tr('{n} 位未安排宾客已列在末尾「待安排」').replace('{n}', String(n))}`
 }
 
 async function printQuickReference() {
   if (quickRefPrinting.value || !ensureGuestsForQuickRef()) return
   quickRefPrinting.value = true
   quickRef.value = buildGuestQuickReference(guests.value, tables.value, groups.value)
-  toast.info(tr('即将调起浏览器打印'), tr('速查表为 A4 纵向；也可在打印对话框「另存为 PDF」'))
+  toast.info(
+    tr('即将调起浏览器打印'),
+    withUnassignedHint(tr('速查表为 A4 纵向；也可在打印对话框「另存为 PDF」')),
+  )
   setPrintPageSize(210, 297)
   renderQuickRefHost.value = true
   await nextTick()
@@ -1354,7 +1373,9 @@ async function downloadQuickReferencePdf() {
     })
     toast.success(
       tr('速查表 PDF 已导出'),
-      tr('共 {n} 页 A4 纵向，全程本地生成，不占无水印次数').replace('{n}', String(starts.length)),
+      withUnassignedHint(
+        tr('共 {n} 页 A4 纵向，全程本地生成，不占无水印次数').replace('{n}', String(starts.length)),
+      ),
     )
   } catch (error) {
     toast.danger(tr('导出失败'), error instanceof Error ? error.message : String(error))
@@ -1373,7 +1394,10 @@ function downloadTableRosterCsv() {
   const baseName = sanitizeFileNamePart(title.value) || tr('宴会座位表')
   const blob = new Blob([quickReferenceCsv(data.tables)], { type: 'text/csv;charset=utf-8' })
   downloadBlob(blob, `${baseName}-${tr('按桌名单')}.csv`)
-  toast.success(tr('CSV 已下载'), tr('列：桌名 / 座次 / 姓名 / 分组，可直接用 Excel 打开'))
+  toast.success(
+    tr('CSV 已下载'),
+    withUnassignedHint(tr('列：桌名 / 座次 / 姓名 / 分组，可直接用 Excel 打开')),
+  )
 }
 
 // ---------- 渲染辅助 ----------
@@ -1481,7 +1505,7 @@ function toPlaceCards() {
             aria-describedby="banquet-paste-help"
           ></textarea>
           <p id="banquet-paste-help" class="mt-1.5 text-xs leading-5 text-slate-600">
-            {{ tr('第二列可填分组，自动归组；支持从 Excel 直接复制「姓名、分组」两列') }}{{ tr('，如：') }}<code class="rounded bg-slate-100 px-1 text-slate-700">{{ tr('张伟') }} {{ tr('男方亲友') }}</code>
+            {{ tr('第二列可填分组，自动归组；支持从 Excel 直接复制「姓名、分组」两列') }}{{ tr('，如：') }}<code class="rounded bg-slate-100 px-1 text-slate-700">{{ tr('张伟') }}{{ tr('，') }}{{ tr('男方亲友') }}</code>{{ tr('（每行一位，也可用空格或 Tab 分开）') }}
           </p>
           <div class="mt-2 flex flex-wrap gap-2">
             <button type="button" class="btn btn-primary btn-sm" @click="importPasted">

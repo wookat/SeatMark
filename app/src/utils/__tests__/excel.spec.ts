@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { demoGenderOf } from '@/data/demoDatasets'
 import { dedupeDataRows, makeDemoRows, parseExcelFile, parsePastedRoster } from '@/utils/excel'
 
 describe('dedupeDataRows', () => {
@@ -169,6 +170,20 @@ describe('makeDemoRows', () => {
     const { rows } = makeDemoRows(30)
     const ids = new Set(rows.map((r) => r['准考证号']))
     expect(ids.size).toBe(30)
+  })
+
+  it('第 369 轮：性别列与 demoGenderOf(姓名) 一致，姓名不重复，无「李娜 男」错配', () => {
+    const { rows } = makeDemoRows(30)
+    expect(new Set(rows.map((r) => r['姓名'])).size).toBe(30)
+    for (const row of rows) {
+      const name = row['姓名']!
+      expect(demoGenderOf(name), name).toBeDefined()
+      expect(row['性别'], name).toBe(demoGenderOf(name))
+    }
+    const byName = new Map(rows.map((r) => [r['姓名'], r['性别']]))
+    expect(byName.get('李娜')).toBe('女')
+    expect(byName.get('陈静')).toBe('女')
+    expect(byName.get('张伟')).toBe('男')
   })
 })
 

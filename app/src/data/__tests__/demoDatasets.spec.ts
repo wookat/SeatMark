@@ -4,9 +4,12 @@ import { defaultTemplates } from '@/data/defaultTemplates'
 import {
   CATEGORY_DEMO_DATASET,
   DEMO_DATASETS,
+  DEMO_GENDER_EN,
   demoExcelFor,
+  demoGenderLabel,
   demoGenderOf,
   demoPersonNames,
+  GIVEN_CHAR_GENDER,
   localizeDemoExcel,
   NAME_GENDERS,
   resolveDemoDataset,
@@ -191,10 +194,11 @@ describe('demoDatasets', () => {
 
     it('zh 优先使用内置姓名池，en 不足时追加序号后缀', () => {
       expect(demoPersonNames(3, 'zh')).toEqual(['张伟', '王芳', '李娜'])
-      const en = demoPersonNames(26, 'en')
+      const pool = NAME_GENDERS.length
+      const en = demoPersonNames(pool + 2, 'en')
       expect(en[0]).toBe('ZHANG Wei')
-      expect(en[24]).toBe('ZHANG Wei 2')
-      expect(en[25]).toBe('WANG Fang 2')
+      expect(en[pool]).toBe('ZHANG Wei 2')
+      expect(en[pool + 1]).toBe('WANG Fang 2')
     })
 
     it('默认 zh；count 为 0 返回空数组', () => {
@@ -234,5 +238,59 @@ describe('第 368 轮：演示名单性别按名定、英文考场用 Room N', (
       (s) => s,
     )
     expect(banquet.rows[0]!['桌号']).toBe('No. 3')
+  })
+})
+
+describe('第 369 轮：演示名单性别全部来自人工标注池', () => {
+  const FEMALE_SUFFIX = /[娜芳静丽]$/
+
+  it('NAME_GENDERS ≥ 60 个真实姓名且不重复，含双字名 王建国 / 李秀英', () => {
+    expect(NAME_GENDERS.length).toBeGreaterThanOrEqual(60)
+    const names = NAME_GENDERS.map(([n]) => n)
+    expect(new Set(names).size).toBe(names.length)
+    expect(names).toContain('王建国')
+    expect(names).toContain('李秀英')
+    expect(demoGenderOf('王建国')).toBe('男')
+    expect(demoGenderOf('李秀英')).toBe('女')
+    for (const n of names) expect(n, n).toMatch(/^[\u4e00-\u9fff]{2,3}$/)
+  })
+
+  it('demoPersonNames(48,"zh") 每个名字 demoGenderOf 有值且与 NAME_GENDERS 一致，无「X娜/X芳/X静/X丽 男」错配', () => {
+    const annotated = new Map(NAME_GENDERS)
+    const names = demoPersonNames(48, 'zh')
+    expect(names).toHaveLength(48)
+    for (const name of names) {
+      const gender = demoGenderOf(name)
+      expect(gender, `${name} 应有性别`).toBeDefined()
+      expect(annotated.get(name), `${name} 应来自标注池`).toBe(gender)
+      if (FEMALE_SUFFIX.test(name)) expect(gender, name).toBe('女')
+    }
+    expect(demoGenderOf('李娜')).toBe('女')
+    expect(demoGenderOf('陈静')).toBe('女')
+    expect(demoGenderOf('林芳')).toBe('女')
+  })
+
+  it('池耗尽后的合成名按末字查 GIVEN_CHAR_GENDER，不再按奇偶；未知名返回 undefined', () => {
+    const pool = new Set(NAME_GENDERS.map(([n]) => n))
+    const synthetic = demoPersonNames(200, 'zh').filter((n) => !pool.has(n))
+    expect(synthetic.length).toBeGreaterThan(0)
+    for (const name of synthetic) {
+      const last = name[name.length - 1]!
+      expect(GIVEN_CHAR_GENDER[last], `${name} 末字 ${last} 应在字级表`).toBeDefined()
+      expect(demoGenderOf(name)).toBe(GIVEN_CHAR_GENDER[last])
+    }
+    expect(demoGenderOf('Alice Wang')).toBeUndefined()
+    expect(demoGenderOf('某某某某某')).toBeUndefined()
+  })
+
+  it('en 映射：男→M / 女→F，英文拼音名（含序号后缀）也能查到性别', () => {
+    expect(DEMO_GENDER_EN).toEqual({ 男: 'M', 女: 'F' })
+    expect(demoGenderLabel('女', 'en')).toBe('F')
+    expect(demoGenderLabel('男', 'en')).toBe('M')
+    expect(demoGenderLabel('女')).toBe('女')
+    expect(demoGenderOf('LI Na')).toBe('女')
+    expect(demoGenderOf('ZHANG Wei')).toBe('男')
+    expect(demoGenderOf('LI Na 2')).toBe('女')
+    for (const name of demoPersonNames(48, 'en')) expect(demoGenderOf(name), name).toBeDefined()
   })
 })

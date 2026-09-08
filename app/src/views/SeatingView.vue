@@ -12,7 +12,7 @@ import { useElementSize } from '@/composables/useElementSize'
 import { GUEST_FILE_ACCEPT, useGuestFileImport } from '@/composables/useGuestFileImport'
 import { useQuotaBadge } from '@/composables/useQuotaBadge'
 import { useCanvasSafeArea, useStickyActions } from '@/composables/useStickyActions'
-import { demoPersonNames } from '@/data/demoDatasets'
+import { demoGenderLabel, demoGenderOf, demoPersonNames } from '@/data/demoDatasets'
 import { currentLocale, localePath, t as tr } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
@@ -127,6 +127,7 @@ const SPACING_OPTIONS = computed<{ value: SeatingSpacing; label: string; hint: s
   { value: 'skipCol', label: tr('隔位'), hint: tr('每排隔一列坐一人，左右不相邻') },
   { value: 'skipRow', label: tr('隔排'), hint: tr('隔一排坐一排，前后不相邻') },
   { value: 'checker', label: tr('棋盘'), hint: tr('相邻排错开空位，前后左右都不相邻') },
+  { value: 'spread', label: tr('尽量散开'), hint: tr('按人数自动拉开间距，保证全员入座') },
 ])
 const spacingLabel = computed(
   () => SPACING_OPTIONS.value.find((o) => o.value === spacing.value)?.label ?? '',
@@ -474,10 +475,10 @@ function toggleAisle(afterCol: number) {
 
 function loadDemoNames() {
   const locale = currentLocale()
-  const genders = locale === 'en' ? ['M', 'F'] : ['男', '女']
-  const list = demoPersonNames(seatCount.value, locale).map(
-    (name, i) => `${name}\t${genders[i % 2]}`,
-  )
+  const list = demoPersonNames(seatCount.value, locale).map((name) => {
+    const gender = demoGenderOf(name)
+    return gender ? `${name}\t${demoGenderLabel(gender, locale)}` : name
+  })
   namesText.value = list.join('\n')
   toast.info(tr('已生成演示名单'), `${list.length} ${tr('人（含性别列），与当前行列数一致')}`)
 }
@@ -531,7 +532,7 @@ function restoreOrder() {
 
 // ---------- 座位计算 ----------
 const seats = computed<Seat[]>(() =>
-  buildSeats(entries.value, rows.value, cols.value, fillOrder.value, spacing.value),
+  buildSeats(entries.value, rows.value, cols.value, fillOrder.value, spacing.value, entries.value.length),
 )
 
 /** 按物理行列索引取座位（渲染网格用） */
@@ -724,7 +725,9 @@ function onDragPointerUp() {
 }
 
 /** 可坐座位数（间隔留空的位置不算）：溢出、进度、演示名单都按这个口径 */
-const seatCount = computed(() => seatCapacity(rows.value, cols.value, spacing.value))
+const seatCount = computed(() =>
+  seatCapacity(rows.value, cols.value, spacing.value, entries.value.length),
+)
 
 // ---------- 底部「下一步」操作条（只做导航，不碰数据） ----------
 const rosterSection = ref<HTMLElement | null>(null)
@@ -752,7 +755,7 @@ const nextStepProgress = computed(
 )
 /** 排不进座位的学生（按填充顺序座位数之后的非空姓名）及其在名单序中的位置，点姓名可与选中座位互换 */
 const unseated = computed(() =>
-  unseatedEntries(entries.value, rows.value, cols.value, spacing.value),
+  unseatedEntries(entries.value, rows.value, cols.value, spacing.value, entries.value.length),
 )
 const unseatedItems = computed(() => {
   const items: { entry: SeatingEntry; index: number }[] = []

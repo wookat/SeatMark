@@ -95,6 +95,29 @@ function splitRow(line: string): string[] {
     .filter(Boolean)
 }
 
+const LATIN = /[A-Za-z]/
+
+/** 单格且不含拉丁字母的行按空格再切（"Alice Wang" 这类西文姓名不拆） */
+function splitRowBySpace(row: string[]): string[] {
+  const cell = row[0]
+  if (row.length !== 1 || cell === undefined || LATIN.test(cell)) return row
+  return cell.split(/\s+/).filter(Boolean)
+}
+
+/**
+ * 「姓名 分组」空格两列的二次判定：按分隔符切分后所有行都只有 1 格时，
+ * 各不含拉丁字母的行按空格切分后必须恰好 2 格且第一格像人名（至少 2 行），
+ * 满足则返回空格切分后的表，否则 null（保持原表）。
+ */
+function spaceSplitTable(table: string[][]): string[][] | null {
+  if (table.length < 2 || !table.every((r) => r.length === 1)) return null
+  const split = table.map(splitRowBySpace)
+  const cjkRows = split.filter((_, i) => !LATIN.test(table[i]![0]!))
+  if (cjkRows.length < 2) return null
+  if (!cjkRows.every((r) => r.length === 2 && NAME_LIKE.test(r[0]!))) return null
+  return split
+}
+
 /** 粘贴文本的布局判定：列模式 / 逐 token 拆分 / 无信号但各行列数一致（需用户确认） */
 export interface BanquetPasteLayout {
   mode: 'column' | 'tokens' | 'ambiguous'
@@ -108,6 +131,8 @@ export interface BanquetPasteLayout {
  * 多信号判定两列「姓名，分组」模式：首行表头 / 第二列出现桌名词 / 第二列有重复值 /
  * 所有行恰好两列且第一列像人名；第二列命中性别词时否决自动列模式。
  * 完全无信号但各行列数一致（≥ 2 列、≥ 2 行）时不再静默拆 token，交由调用方弹解析预览确认。
+ * 各行都只有 1 格但按空格恰好切成「像人名 + 分组」2 格时（spaceSplitTable），按同样信号判定，
+ * 无信号也进 ambiguous（columnCount=2）而不是静默把分组拆成宾客。
  */
 export function detectBanquetPasteLayout(text: string): BanquetPasteLayout {
   const lines = text
@@ -115,7 +140,9 @@ export function detectBanquetPasteLayout(text: string): BanquetPasteLayout {
     .split('\n')
     .map(cleanLine)
     .filter((l) => l.trim() !== '')
-  const table = lines.map(splitRow)
+  const delimited = lines.map(splitRow)
+  const spaced = spaceSplitTable(delimited)
+  const table = spaced ?? delimited
   const firstRow = table[0] ?? []
   const signals: BanquetPasteLayout['signals'] = []
   if (firstRow.length >= 2 && firstRow.some((c) => GUEST_HEADER.test(c))) signals.push('header')
@@ -138,6 +165,7 @@ export function detectBanquetPasteLayout(text: string): BanquetPasteLayout {
     }
   }
   if (signals.length) return { mode: 'column', signals, columnCount: firstRow.length }
+  if (spaced) return { mode: 'ambiguous', signals, columnCount: 2 }
   const columnCount = firstRow.length
   const consistent =
     table.length >= 2 && columnCount >= 2 && table.every((r) => r.length === columnCount)
@@ -154,6 +182,7 @@ export type BanquetParseMode = 'auto' | 'column' | 'nameOnly' | 'tokens'
  * 两列「姓名，分组」模式由 detectBanquetPasteLayout 多信号判定（表头 / 桌名词 / 第二列重复 /
  * 两列且第一列像人名），第二列视为分组，不再展开为宾客；mode 可强制指定解析方式
  * （解析预览确认后使用）。auto 下无信号（含 ambiguous）时回退拆 token。
+ * column / nameOnly 模式下，只有 1 格且不含拉丁字母的行再按空格切分（「张伟 男方亲友」）。
  * 自动去除空白行、全角空格与重复姓名（保留首次出现顺序）。
  */
 export function parseBanquetGuests(text: string, mode: BanquetParseMode = 'auto'): ParsedBanquetGuests {
@@ -174,13 +203,13 @@ export function parseBanquetGuests(text: string, mode: BanquetParseMode = 'auto'
     .split('\n')
     .map(cleanLine)
     .filter((l) => l.trim() !== '')
-  const table = lines.map(splitRow)
-  const firstRow = table[0] ?? []
-  const headerHit = firstRow.length >= 2 && firstRow.some((c) => GUEST_HEADER.test(c))
   const columnMode =
     mode === 'column' ||
     mode === 'nameOnly' ||
     (mode === 'auto' && detectBanquetPasteLayout(text).mode === 'column')
+  const table = columnMode ? lines.map((l) => splitRowBySpace(splitRow(l))) : lines.map(splitRow)
+  const firstRow = table[0] ?? []
+  const headerHit = firstRow.length >= 2 && firstRow.some((c) => GUEST_HEADER.test(c))
 
   if (!columnMode) {
     for (const line of lines) {

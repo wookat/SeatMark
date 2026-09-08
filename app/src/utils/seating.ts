@@ -435,19 +435,77 @@ export function summarizeGenderMix(arranged: readonly SeatingEntry[]): GenderMix
 export type SeatingFillOrder = 'rows' | 'serpentine'
 /**
  * 座位间隔：none 全坐；skipCol 隔位（每排 1 起的奇数列留空）；skipRow 隔排（1 起的偶数排留空，
- * 首排靠讲台照常坐）；checker 棋盘错位（相邻排的空位互相错开）。与填充顺序正交。
+ * 首排靠讲台照常坐）；checker 棋盘错位（相邻排的空位互相错开）；spread 尽量散开（按人数自动拉开
+ * 间距：坐得下时等价棋盘 / 隔位，坐不下时在全部座位上均匀留空，保证全员入座）。与填充顺序正交。
  */
-export type SeatingSpacing = 'none' | 'skipCol' | 'skipRow' | 'checker'
+export type SeatingSpacing = 'none' | 'skipCol' | 'skipRow' | 'checker' | 'spread'
 export type SeatingViewMode = 'teacher' | 'student'
 
-export const SEATING_SPACINGS: readonly SeatingSpacing[] = ['none', 'skipCol', 'skipRow', 'checker']
+export const SEATING_SPACINGS: readonly SeatingSpacing[] = ['none', 'skipCol', 'skipRow', 'checker', 'spread']
 
 export function isSeatingSpacing(value: unknown): value is SeatingSpacing {
   return typeof value === 'string' && (SEATING_SPACINGS as readonly string[]).includes(value)
 }
 
-/** 物理位置（0 起的排、列）在给定间隔下是否留空（不可坐） */
-export function isSeatBlocked(r: number, c: number, spacing: SeatingSpacing): boolean {
+/** spread 档的上下文：教室尺寸、要入座的人数与填充顺序（其他四档不需要） */
+export interface SpreadContext {
+  rows: number
+  cols: number
+  count: number
+  fillOrder?: SeatingFillOrder
+}
+
+/** spread 人数坐得下时退化到的固定档：先棋盘，再隔位；都坐不下返回 null（按人数均匀留空） */
+function spreadFallback(rows: number, cols: number, count: number): 'checker' | 'skipCol' | null {
+  if (count <= seatCapacity(rows, cols, 'checker')) return 'checker'
+  if (count <= seatCapacity(rows, cols, 'skipCol')) return 'skipCol'
+  return null
+}
+
+/**
+ * 「尽量散开」留空的物理位置集（键为 r*cols+c，0 起）：count ≤ 棋盘容量时等价 checker，
+ * ≤ 隔位容量时等价 skipCol，否则在全部座位的填充线性序上按 floor(k*total/count) 均匀取 count 个可坐位，
+ * 其余留空（空位均匀分布，同排空位数相差 ≤ 1）；count ≥ 座位总数时不留空。
+ */
+export function spreadBlockedSet(
+  rows: number,
+  cols: number,
+  count: number,
+  fillOrder: SeatingFillOrder = 'rows',
+): Set<number> {
+  const blocked = new Set<number>()
+  if (rows <= 0 || cols <= 0) return blocked
+  const total = rows * cols
+  const fallback = spreadFallback(rows, cols, count)
+  if (fallback) {
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) if (isSeatBlocked(r, c, fallback)) blocked.add(r * cols + c)
+    }
+    return blocked
+  }
+  if (count >= total) return blocked
+  const open = new Set<number>()
+  for (let k = 0; k < count; k++) {
+    const linear = Math.floor((k * total) / count)
+    const r = Math.floor(linear / cols)
+    const c = linear % cols
+    const col = fillOrder === 'serpentine' && r % 2 === 1 ? cols - 1 - c : c
+    open.add(r * cols + col)
+  }
+  for (let i = 0; i < total; i++) if (!open.has(i)) blocked.add(i)
+  return blocked
+}
+
+/**
+ * 物理位置（0 起的排、列）在给定间隔下是否留空（不可坐）。
+ * spread 档需要 spread 上下文（教室尺寸 + 人数），缺省时视为不留空；批量判定请直接用 spreadBlockedSet。
+ */
+export function isSeatBlocked(
+  r: number,
+  c: number,
+  spacing: SeatingSpacing,
+  spread?: SpreadContext,
+): boolean {
   switch (spacing) {
     case 'skipCol':
       return c % 2 === 0
@@ -455,15 +513,31 @@ export function isSeatBlocked(r: number, c: number, spacing: SeatingSpacing): bo
       return r % 2 === 1
     case 'checker':
       return (r + c) % 2 === 1
+    case 'spread':
+      return spread
+        ? spreadBlockedSet(spread.rows, spread.cols, spread.count, spread.fillOrder).has(r * spread.cols + c)
+        : false
     default:
       return false
   }
 }
 
-/** rows×cols 教室在给定间隔下的可坐座位数（溢出、进度、演示名单都按这个口径） */
-export function seatCapacity(rows: number, cols: number, spacing: SeatingSpacing = 'none'): number {
+/**
+ * rows×cols 教室在给定间隔下的可坐座位数（溢出、进度、演示名单都按这个口径）；
+ * spread 档按 count（要入座的人数）计：坐得下时为退化档的容量，否则为 min(count, 座位总数)。
+ */
+export function seatCapacity(
+  rows: number,
+  cols: number,
+  spacing: SeatingSpacing = 'none',
+  count = 0,
+): number {
   if (rows <= 0 || cols <= 0) return 0
   if (spacing === 'none') return rows * cols
+  if (spacing === 'spread') {
+    const fallback = spreadFallback(rows, cols, count)
+    return fallback ? seatCapacity(rows, cols, fallback) : Math.min(count, rows * cols)
+  }
   let n = 0
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) if (!isSeatBlocked(r, c, spacing)) n++
@@ -488,6 +562,7 @@ export interface SeatingDisplayCell {
 /**
  * 按填充顺序把名单铺进 rows×cols 的座位（座位号为名单序，蛇形时偶数排从右向左）；
  * spacing 留空的位置不产生座位（座位号连续只数可坐座位），网格里对应格为 null。
+ * spread 档按 count（缺省为名单长度）拉开间距。
  */
 export function buildSeats(
   entries: readonly SeatingEntry[],
@@ -495,13 +570,15 @@ export function buildSeats(
   cols: number,
   fillOrder: SeatingFillOrder,
   spacing: SeatingSpacing = 'none',
+  count = entries.length,
 ): Seat[] {
   const out: Seat[] = []
+  const spreadBlocked = spacing === 'spread' ? spreadBlockedSet(rows, cols, count, fillOrder) : null
   let idx = 0
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const col = fillOrder === 'serpentine' && r % 2 === 1 ? cols - 1 - c : c
-      if (isSeatBlocked(r, col, spacing)) continue
+      if (spreadBlocked ? spreadBlocked.has(r * cols + col) : isSeatBlocked(r, col, spacing)) continue
       const entry = entries[idx]
       out.push({
         row: r + 1,
@@ -525,8 +602,9 @@ export function unseatedEntries(
   rows: number,
   cols: number,
   spacing: SeatingSpacing = 'none',
+  count = entries.length,
 ): SeatingEntry[] {
-  return entries.slice(seatCapacity(rows, cols, spacing)).filter((e) => e.name)
+  return entries.slice(seatCapacity(rows, cols, spacing, count)).filter((e) => e.name)
 }
 
 /**

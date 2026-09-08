@@ -200,23 +200,41 @@ const extraFilterCount = computed(
 )
 
 /**
- * chips 横滑可发现性：右侧白色渐隐遮罩，提示右边还有分类；滚到末尾（或内容未溢出）时隐藏，滚回时恢复。
- * 尚未完成布局（scrollWidth = 0）时保持当前状态，默认可见。
+ * chips 横滑可发现性：左右两侧白色渐隐遮罩，提示该方向还有分类；右侧滚到末尾（或内容未溢出）时隐藏，
+ * 左侧仅在滚动位置 > 0 时显示。尚未完成布局（scrollWidth = 0）时保持当前状态，右侧默认可见。
  */
 const chipsEl = ref<HTMLElement | null>(null)
 const chipsFadeVisible = ref(true)
+const chipsFadeLeftVisible = ref(false)
 function updateChipsFade() {
   const el = chipsEl.value
   if (!el || !el.scrollWidth) return
   const overflow = el.scrollWidth - el.clientWidth
   chipsFadeVisible.value = overflow > 1 && el.scrollLeft < overflow - 1
+  chipsFadeLeftVisible.value = overflow > 1 && el.scrollLeft > 1
 }
 function scrollChipsForward() {
   const el = chipsEl.value
   if (!el) return
   el.scrollBy({ left: el.clientWidth * 0.6, behavior: 'smooth' })
 }
-watch(chipsEl, updateChipsFade, { flush: 'post' })
+function scrollChipsBackward() {
+  const el = chipsEl.value
+  if (!el) return
+  el.scrollBy({ left: -el.clientWidth * 0.6, behavior: 'smooth' })
+}
+/** 当前分类 chip 保持可见：深链 ?cat= 进入或切换分类后，把选中 chip 滚入 chips 可视区（仅横向，不动页面纵向滚动） */
+function revealActiveChip() {
+  const el = chipsEl.value
+  if (!el) return
+  const chip = el.querySelector<HTMLElement>('[aria-selected="true"]')
+  if (chip && typeof chip.scrollIntoView === 'function') {
+    chip.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+  }
+  updateChipsFade()
+}
+watch(chipsEl, revealActiveChip, { flush: 'post' })
+watch(activeCategory, revealActiveChip, { flush: 'post' })
 onMounted(() => window.addEventListener('resize', updateChipsFade))
 onBeforeUnmount(() => window.removeEventListener('resize', updateChipsFade))
 
@@ -277,6 +295,23 @@ const recommendedItems = computed(() => {
               <span :class="activeCategory === opt.id ? 'text-brand-100' : 'text-slate-600'">
                 {{ opt.count }}
               </span>
+            </button>
+          </div>
+          <div
+            v-show="chipsFadeLeftVisible"
+            class="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-start bg-gradient-to-r from-white via-white/80 to-transparent"
+            data-testid="templates-chips-fade-left"
+          >
+            <button
+              type="button"
+              class="pointer-events-auto flex size-6 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors duration-150 hover:border-brand-300 hover:text-brand-600"
+              :aria-label="t('查看前面的分类')"
+              data-testid="templates-chips-back"
+              @click="scrollChipsBackward"
+            >
+              <svg class="size-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m10 4-4 4 4 4" />
+              </svg>
             </button>
           </div>
           <div
