@@ -162,6 +162,7 @@ onBeforeUnmount(() => {
             class="flex w-full items-center justify-between gap-2 rounded-lg text-left"
             :class="[
               size === 'sm' ? 'px-2 py-1.5 text-xs max-sm:min-h-9' : 'px-2.5 py-2 text-sm',
+              option.hint ? 'max-sm:flex-wrap max-sm:gap-y-0.5' : '',
               option.disabled
                 ? 'cursor-not-allowed text-slate-600 opacity-60'
                 : 'cursor-pointer hover:bg-slate-50',
@@ -182,7 +183,12 @@ onBeforeUnmount(() => {
             >
               {{ option.badge }}
             </span>
-            <span v-if="option.hint" class="shrink-0 text-[10px] text-slate-600">
+            <!-- 窄屏下提示另起一行，不挤占选项名的宽度 -->
+            <span
+              v-if="option.hint"
+              class="shrink-0 text-[10px] text-slate-600 max-sm:order-last max-sm:min-w-0 max-sm:basis-full max-sm:font-normal"
+              data-testid="select-option-hint"
+            >
               {{ option.hint }}
             </span>
             <svg
