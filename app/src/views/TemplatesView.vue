@@ -12,6 +12,7 @@ import { TEMPLATE_SUBCATEGORIES, subcategoryOf } from '@/data/templateTaxonomy'
 import { t as tr } from '@/i18n'
 import { useI18n } from '@/i18n'
 import type { TemplateCategory } from '@/types/template'
+import { paperName } from '@/utils/paperName'
 import { matchesChineseQuery } from '@/utils/pinyin'
 
 const { t, localePath, locale } = useI18n()
@@ -19,7 +20,7 @@ const { t, localePath, locale } = useI18n()
 const CJK_RE = /[\u4e00-\u9fff]/
 
 /** 列表前几张卡片在首屏内，直接渲染缩略图不走懒渲染 */
-const EAGER_THUMB_COUNT = 6
+const EAGER_THUMB_COUNT = 9
 
 /** en 下卡片说明：优先读已有英文译文，缺失时隐藏中文段落而不外泄 */
 function cardText(text: string | undefined): string {
@@ -530,6 +531,9 @@ const recommendedItems = computed(() => {
             </span>
             <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
               {{ item.template!.page.cols * item.template!.page.rows }} {{ t('枚 / 页') }}
+            </span>
+            <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
+              {{ paperName(item.template!.page) }}
             </span>
           </div>
         </div>

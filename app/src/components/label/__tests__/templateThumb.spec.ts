@@ -95,3 +95,23 @@ describe('第 355 轮：模板缩略图 transform-origin 顶部居中 + 按容�
     wrapper.unmount()
   })
 })
+
+describe('第 362 轮：defer 懒渲染的 IntersectionObserver 预取距离', () => {
+  it('rootMargin 放宽到 900px，快速滚动一屏内的占位卡更早换成真实缩略图', async () => {
+    const seen: Array<IntersectionObserverInit | undefined> = []
+    class IntersectionObserverStub {
+      constructor(_cb: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+        seen.push(options)
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('IntersectionObserver', IntersectionObserverStub)
+    const wrapper = mount(TemplateThumb, { props: { template: standard, defer: true } })
+    await wrapper.vm.$nextTick()
+    expect(seen).toHaveLength(1)
+    expect(seen[0]?.rootMargin).toBe('900px')
+    wrapper.unmount()
+  })
+})

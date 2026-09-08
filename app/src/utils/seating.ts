@@ -400,6 +400,36 @@ export function interleaveByGender(
   return out
 }
 
+export interface GenderMixSummary {
+  boys: number
+  girls: number
+  /** 未识别性别的人数（混排后均排在末尾） */
+  unknown: number
+  /** 人数多的一方多出的人数（交替用尽后连续排在末尾） */
+  surplus: number
+  /** 线性顺序中相邻同性（均有性别）的座位对数 */
+  adjacentSamePairs: number
+}
+
+/** 统计一份排座结果的男女构成与相邻同性对数，供混排后的提示文案使用 */
+export function summarizeGenderMix(arranged: readonly SeatingEntry[]): GenderMixSummary {
+  let boys = 0
+  let girls = 0
+  let unknown = 0
+  for (const e of arranged) {
+    if (e.gender === '男') boys++
+    else if (e.gender === '女') girls++
+    else unknown++
+  }
+  let adjacentSamePairs = 0
+  for (let i = 1; i < arranged.length; i++) {
+    const prev = arranged[i - 1]!.gender
+    const cur = arranged[i]!.gender
+    if (prev && cur && prev === cur) adjacentSamePairs++
+  }
+  return { boys, girls, unknown, surplus: Math.abs(boys - girls), adjacentSamePairs }
+}
+
 // ---------- 座位网格与视角镜像 ----------
 
 export type SeatingFillOrder = 'rows' | 'serpentine'

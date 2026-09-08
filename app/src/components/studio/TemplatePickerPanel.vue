@@ -6,7 +6,7 @@ import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import { useIsPhone } from '@/composables/useMediaQuery'
 import { TEMPLATE_CATEGORIES } from '@/data/defaultTemplates'
-import { t as tr } from '@/i18n'
+import { t as tr, useI18n } from '@/i18n'
 import { TEMPLATE_SUBCATEGORIES, subcategoryOf } from '@/data/templateTaxonomy'
 import { useAuthStore } from '@/stores/auth'
 import { useTemplateLibrary, isValidTemplate } from '@/stores/templateLibrary'
@@ -16,6 +16,7 @@ import type { LabelTemplate, TemplateCategory } from '@/types/template'
 import { uid } from '@/utils/id'
 import { matchLabelPaper } from '@/utils/labelPaper'
 import { evaluatePaperFit, rankTemplatesForPaper, type PaperFit } from '@/utils/paperFit'
+import { paperName } from '@/utils/paperName'
 import { matchesChineseQuery } from '@/utils/pinyin'
 import { qrToSvg } from '@/utils/qrcode'
 import {
@@ -35,6 +36,7 @@ const auth = useAuthStore()
 const library = useTemplateLibrary()
 const toast = useToastStore()
 const router = useRouter()
+const { locale } = useI18n()
 
 const importInput = ref<HTMLInputElement | null>(null)
 const deleteTarget = ref<LabelTemplate | null>(null)
@@ -428,6 +430,7 @@ function confirmDelete() {
             <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600">
               <span>{{ t.label.width }} × {{ t.label.height }} mm</span>
               <span>{{ t.page.cols * t.page.rows }} {{ tr('枚 / 页') }}</span>
+              <span class="rounded bg-slate-100 px-1.5 py-0.5 font-semibold">{{ paperName(t.page) }}</span>
               <span v-if="t.scenario">{{ tr(t.scenario) }}</span>
             </div>
             <div class="mt-2 flex gap-1.5">
@@ -476,7 +479,7 @@ function confirmDelete() {
       <button type="button" class="btn btn-secondary btn-sm" @click="shareCurrentTemplate">
         {{ tr('复制当前模板分享链接') }}
       </button>
-      <button type="button" class="btn btn-secondary btn-sm" @click="showShareQr">
+      <button v-if="locale === 'zh'" type="button" class="btn btn-secondary btn-sm" @click="showShareQr">
         <svg
           class="size-3.5"
           viewBox="0 0 24 24"
@@ -490,7 +493,7 @@ function confirmDelete() {
         </svg>
         {{ tr('微信扫码打开') }}
       </button>
-      <button type="button" class="btn btn-ghost btn-sm" @click="exportCurrentTemplate">
+      <button type="button" class="btn btn-secondary btn-sm" @click="exportCurrentTemplate">
         {{ tr('导出 JSON') }}
       </button>
     </div>
@@ -508,7 +511,12 @@ function confirmDelete() {
       </template>
     </p>
 
-    <ModalDialog :open="shareQrOpen" :title="tr('微信扫码打开此模板')" @close="closeShareQr">
+    <ModalDialog
+      v-if="locale === 'zh'"
+      :open="shareQrOpen"
+      :title="tr('微信扫码打开此模板')"
+      @close="closeShareQr"
+    >
       <div v-if="shareQrLoading" class="flex flex-col items-center gap-3 py-8">
         <span
           class="size-8 animate-spin rounded-full border-[3px] border-brand-200 border-t-brand-600"
@@ -675,7 +683,7 @@ function confirmDelete() {
           </div>
           <p class="mt-1 text-[11px] text-slate-600">
             {{ t.label.width }} × {{ t.label.height }} mm · {{ t.page.cols * t.page.rows }}
-            {{ tr('枚 / 页') }}<template v-if="t.scenario"> · {{ tr(t.scenario) }}</template>
+            {{ tr('枚 / 页') }} · {{ paperName(t.page) }}<template v-if="t.scenario"> · {{ tr(t.scenario) }}</template>
           </p>
           <p
             v-if="fitOf(t)?.level === 'incompatible'"

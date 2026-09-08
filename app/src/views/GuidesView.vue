@@ -314,7 +314,7 @@ const recommendedGuides = computed(() => {
       class="mt-12 flex flex-col items-center justify-between gap-4 rounded-lg border border-brand-200 bg-brand-50/60 px-6 py-6 text-center sm:flex-row sm:text-left"
     >
       <div>
-        <h2 class="text-base font-bold text-slate-900">{{ t('边看边做，效果最好') }}</h2>
+        <h2 class="text-base font-bold text-slate-900">{{ t('打开教程，跟着操作一遍') }}</h2>
         <p class="mt-1 text-sm text-slate-600">
           {{ t('打开标签工坊，用演示数据即可完整体验教程里的每一步，全程免费。') }}
         </p>

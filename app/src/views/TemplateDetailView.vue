@@ -7,12 +7,21 @@ import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 import { defaultTemplates } from '@/data/defaultTemplates'
 import { findTemplateDetail, TEMPLATE_STEPS, templateDetails } from '@/data/templateDetails'
+import { paperName } from '@/utils/paperName'
 
 const route = useRoute()
 
 const slug = computed(() => String(route.params.slug ?? ''))
 const detail = computed(() => findTemplateDetail(slug.value))
 const template = computed(() => defaultTemplates.find((t) => t.id === slug.value))
+/** 纸张尺寸口径与模板库卡片徽标一致：标准纸型前置简名，非标尺寸只显示 mm */
+const paperText = computed(() => {
+  const page = template.value?.page
+  if (!page) return ''
+  const size = `${page.paperWidth} × ${page.paperHeight} mm`
+  const name = paperName(page)
+  return name === size ? size : `${name} · ${size}`
+})
 
 /** 同类推荐：模板库里除自己外取 3 款 */
 const others = computed(() => {
@@ -57,7 +66,7 @@ const others = computed(() => {
             {{ template.page.cols * template.page.rows }} 枚 / 页
           </span>
           <span class="rounded-md bg-slate-100 px-2 py-1">
-            纸张 {{ template.page.paperWidth }} × {{ template.page.paperHeight }} mm
+            纸张 {{ paperText }}
           </span>
         </div>
       </div>

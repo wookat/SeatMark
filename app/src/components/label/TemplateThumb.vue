@@ -62,7 +62,7 @@ onMounted(() => {
         observer = null
       }
     },
-    { rootMargin: '400px' },
+    { rootMargin: '900px' },
   )
   observer.observe(container.value)
 })
