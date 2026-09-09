@@ -20,8 +20,12 @@ export interface VsFaq {
   a: string
 }
 
+export type VsLang = 'zh' | 'en'
+
 export interface VsPage {
   slug: string
+  /** 页面正文语言；缺省中文（挂 /vs/:slug），'en' 仅挂 /en/vs/:slug */
+  lang?: 'en'
   /** 对方产品名（表头与正文用） */
   competitorName: string
   /** 页面 H1 */
@@ -49,6 +53,34 @@ export const SEATMARK_HIGHLIGHTS = [
   { title: '照片批量匹配', text: '照片按文件名自动对应到名单，人证核验标签一次生成。' },
   { title: '生僻字扩展字库', text: '内置生僻字检测与扩展字库，名单里的冷僻姓名不缺字。' },
   { title: '名单不出浏览器', text: 'Excel 名单与照片全部在浏览器本地解析排版，不上传任何服务器。' },
+] as const
+
+/** 英文对比页共用的 SeatMark 差异化亮点（与中文版逐条对应） */
+export const SEATMARK_HIGHLIGHTS_EN = [
+  {
+    title: 'Print calibration within 0.35 mm',
+    text: 'Print one ruler page, measure two lines, and the global offset is compensated automatically. Measured error stays within 0.35 mm.',
+  },
+  {
+    title: '17 label sheets, two-way fit',
+    text: 'Pick a sheet and rows, columns and margins lock in; pick a template and see which sheets fit. What you print lines up with the sheet.',
+  },
+  {
+    title: 'Excel formats preserved',
+    text: 'Multi-sheet import keeps text-type numbers, dates and leading zeros intact, and headers map to fields automatically.',
+  },
+  {
+    title: 'Photo batch matching',
+    text: 'Photos are matched to the roster by file name, so ID-check labels come out in one pass.',
+  },
+  {
+    title: 'Rare-character fonts built in',
+    text: 'Rare CJK characters in names are detected and rendered with an extended font instead of showing as blanks.',
+  },
+  {
+    title: 'Your list stays in the browser',
+    text: 'Spreadsheets and photos are parsed and laid out locally on your device. Nothing is uploaded to a server.',
+  },
 ] as const
 
 export const vsPages: VsPage[] = [
@@ -320,8 +352,100 @@ export const vsPages: VsPage[] = [
     ],
     researchDate: '2026-08',
   },
+  {
+    slug: 'prismm-alternative',
+    lang: 'en',
+    competitorName: 'Prismm (formerly Allseated)',
+    heading: 'Prismm (Allseated) alternative: seating charts and place cards that stay in your browser',
+    seoTitle: 'Prismm (Allseated) Alternative for Seating Charts',
+    seoDescription:
+      'Prismm (formerly Allseated) goes view-only on Oct 1, 2026 per Cvent. Compare SeatMark on price, data storage, seating-chart export, place cards, offline use and 3D maps.',
+    intro:
+      'Prismm, formerly Allseated, is a 3D floor-plan and collaboration platform built for venues and event planners. Cvent acquired it in April 2025 and is moving customers to Cvent Event Diagramming: per Cvent\'s public notice, Prismm events become view-and-export-only on October 1, 2026 and prismm.com shuts down on December 31, 2026 (verify the current timeline on their site). SeatMark is a much smaller tool: it turns a guest list into a printable seating chart and place cards, entirely in your browser. If you rely on 3D venue maps and vendor collaboration, SeatMark is not a replacement; if you mainly need to seat guests and print cards, the table below shows where the two differ.',
+    competitorStrengths: [
+      'To-scale 3D venue maps and virtual walkthroughs of the room layout (SeatMark has none)',
+      'Planners, venues and vendors collaborate on the same floor plan through shared links and invites',
+      'Enterprise-grade accounts, and a vendor-provided migration path into Cvent Event Diagramming',
+    ],
+    dimensions: [
+      {
+        dimension: 'Price and sign-up',
+        competitor:
+          'Account required. Creating new Prismm events is being phased out ahead of the October 1, 2026 view-only date; ongoing use means a Cvent Event Diagramming account, priced by Cvent',
+        seatmark:
+          'Every feature works without an account. Watermarked export is free and unlimited; watermark-free export has a daily quota, and Pro (normally CNY 19/mo) is free for a limited time',
+      },
+      {
+        dimension: 'Where your data lives',
+        competitor: 'Cloud-hosted: floor plans and guest lists are stored on Prismm/Cvent servers and shared by link',
+        seatmark:
+          'Browser-local: your guest list, photos and seating are parsed and laid out on your device and never uploaded',
+      },
+      {
+        dimension: 'Seating chart export and printing',
+        competitor: 'Floor plans and reports can be exported; view-and-export-only after October 1, 2026',
+        seatmark:
+          'Seating chart as PNG or PDF at A4/A3 print size, plus a per-table guest list (print or CSV) for the welcome desk',
+      },
+      {
+        dimension: 'Batch place-card printing',
+        competitor:
+          'Built around floor plans and guest management rather than card layout; check their export options for card printing',
+        seatmark:
+          'Place cards, table tents and name tags are generated from the same roster with mm-accurate imposition, cut lines and fold lines on A4/A5/A3',
+      },
+      {
+        dimension: 'Offline / PWA',
+        competitor: 'Online service; needs an account and a connection',
+        seatmark: 'Installable PWA that keeps working offline after the first load',
+      },
+      {
+        dimension: '3D venue maps',
+        competitor: 'Prismm leads: to-scale 3D floor plans and virtual walkthroughs are its core feature',
+        seatmark: 'None. SeatMark uses simple 2D table and seat layouts (round, long, U-shape, classroom grid) with no venue modeling',
+      },
+    ],
+    faqs: [
+      {
+        q: 'Can I import my Prismm files into SeatMark?',
+        a: 'No. SeatMark does not read Prismm or Cvent exports and has no automatic import. You can paste a guest list (one guest per line, with a group) or import a CSV/Excel file, then assign tables and print. Nothing is uploaded in the process.',
+      },
+      {
+        q: 'Is SeatMark a full replacement for Prismm?',
+        a: 'Not if you rely on 3D venue maps, vendor collaboration or an enterprise account structure. Cvent Event Diagramming is the vendor\'s designated successor for that. SeatMark covers the narrower job of seating guests and printing seating charts, place cards and name tags.',
+      },
+      {
+        q: 'What happens to my guest data in SeatMark?',
+        a: 'It stays in your browser. Rosters, photos and seating are processed locally; optional sign-in only syncs template structures and your export quota, never guest data.',
+      },
+      {
+        q: 'Where does this comparison come from?',
+        a: 'Prismm facts are taken from Cvent\'s public migration notices as of September 2026; we did not run a hands-on trial of Prismm. Its features, pricing and timeline may change, so verify on their site.',
+      },
+    ],
+    relatedGuides: [
+      { label: 'Banquet seating planner', to: '/en/banquet' },
+      { label: 'Classroom seating chart', to: '/en/seating' },
+      { label: 'Label templates', to: '/en/templates' },
+    ],
+    researchDate: '2026-09',
+  },
 ]
 
-export function findVsPage(slug: string): VsPage | undefined {
-  return vsPages.find((p) => p.slug === slug)
+export function vsLangOf(page: VsPage): VsLang {
+  return page.lang ?? 'zh'
+}
+
+/** 按正文语言筛选：/vs 索引只列中文页，/en/vs 索引列英文页 */
+export function vsPagesFor(lang: VsLang): VsPage[] {
+  return vsPages.filter((p) => vsLangOf(p) === lang)
+}
+
+export function findVsPage(slug: string, lang?: VsLang): VsPage | undefined {
+  return vsPages.find((p) => p.slug === slug && (lang === undefined || vsLangOf(p) === lang))
+}
+
+/** 英文对比页的规范路径（/en/vs/:slug） */
+export function vsPagePath(page: VsPage): string {
+  return vsLangOf(page) === 'en' ? `/en/vs/${page.slug}` : `/vs/${page.slug}`
 }

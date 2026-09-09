@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { demoGenderOf } from '@/data/demoDatasets'
 import { dedupeDataRows, makeDemoRows, parseExcelFile, parsePastedRoster } from '@/utils/excel'
+import { IMPORT_MAX_ROWS, IMPORT_TOO_MANY_ROWS_MESSAGE } from '@/utils/importLimits'
 
 describe('dedupeDataRows', () => {
   it('去除完全重复的行并保留首次出现顺序', () => {
@@ -374,5 +375,57 @@ describe('parseExcelFile', () => {
   it('只有表头时报错', async () => {
     const file = await buildFile([['姓名', '座位号']])
     await expect(parseExcelFile(file)).rejects.toThrow('至少需要包含表头行和一行数据')
+  })
+
+  describe('第 372 轮：行数预算护栏', () => {
+    it('!ref 声明到第 50000 行但只有 100 行真实数据（其余仅格式）仍成功导入', async () => {
+      const XLSX = await import('xlsx')
+      const aoa: unknown[][] = [['姓名', '座位号']]
+      for (let i = 1; i <= 100; i++) aoa.push([`学生${i}`, i])
+      const sheet = XLSX.utils.aoa_to_sheet(aoa)
+      sheet['!ref'] = 'A1:B50000'
+      // 模拟仅设置了单元格格式而无内容的尾部单元格（SheetJS 读取带格式的空格时也会留下 t:'z' 单元格）
+      sheet['A49999'] = { t: 'z' }
+      sheet['B50000'] = { t: 's', v: '' }
+      expect(sheet['!ref']).toBe('A1:B50000')
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, sheet, 'Sheet1')
+      const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer
+      const file = new File([buffer], 'wide-ref.xlsx')
+
+      const result = await parseExcelFile(file)
+      expect(result.headers).toEqual(['姓名', '座位号'])
+      expect(result.rows).toHaveLength(100)
+      expect(result.rows[99]).toEqual({ 姓名: '学生100', 座位号: '100' })
+    })
+
+    it(`${IMPORT_MAX_ROWS + 1} 行真实数据被拒（错误文案与行数上限一致）`, async () => {
+      const aoa: unknown[][] = [['姓名', '座位号']]
+      for (let i = 1; i <= IMPORT_MAX_ROWS + 1; i++) aoa.push([`学生${i}`, i])
+      const file = await buildFile(aoa)
+      await expect(parseExcelFile(file)).rejects.toThrow(IMPORT_TOO_MANY_ROWS_MESSAGE)
+    })
+
+    it('恰好 IMPORT_MAX_ROWS 行数据（带前置标题行）仍在范围内，正常导入', async () => {
+      const aoa: unknown[][] = [['2026 年春季学期期末考试考场安排表'], [], ['姓名', '座位号']]
+      for (let i = 1; i <= IMPORT_MAX_ROWS; i++) aoa.push([`学生${i}`, i])
+      const file = await buildFile(aoa)
+      const result = await parseExcelFile(file)
+      expect(result.rows).toHaveLength(IMPORT_MAX_ROWS)
+    })
+
+    it('数据行本身在范围内、但范围之外还有一行非空内容 → 按行数超限拒绝', async () => {
+      const XLSX = await import('xlsx')
+      const aoa: unknown[][] = [['姓名', '座位号']]
+      for (let i = 1; i <= 10; i++) aoa.push([`学生${i}`, i])
+      const sheet = XLSX.utils.aoa_to_sheet(aoa)
+      sheet['!ref'] = 'A1:B20000'
+      sheet['A20000'] = { t: 's', v: '漏网之鱼' }
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, sheet, 'Sheet1')
+      const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer
+      const file = new File([buffer], 'tail-row.xlsx')
+      await expect(parseExcelFile(file)).rejects.toThrow(IMPORT_TOO_MANY_ROWS_MESSAGE)
+    })
   })
 })

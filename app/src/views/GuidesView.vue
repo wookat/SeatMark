@@ -120,7 +120,7 @@ const recommendedGuides = computed(() => {
         {{ t('教程中心') }}
       </h1>
       <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-        {{ t('座签、桌牌、席位卡、证卡的制作与打印实战教程：从 Excel 名单整理、模板选择到打印裁切，问答式讲解常见坑点。') }}
+        {{ t('座签、桌牌、席位卡、证卡的制作与打印实战教程：从 Excel 名单整理、模板选择到打印裁切，每篇给出输入示例、操作步骤与失败时怎么改。') }}
       </p>
       <ZhOnlyNotice />
     </div>

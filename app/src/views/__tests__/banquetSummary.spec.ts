@@ -279,7 +279,7 @@ describe('第 347 轮：拆分/空桌收尾动作', () => {
     await wrapper.vm.$nextTick()
 
     // keep-groups：亲友 11 可整桌落座 → splitGroups 由 3 变为 2；策略已切换，快捷按钮互换
-    expect(wrapper.find('[data-testid="auto-assign"]').text()).toContain('同组同桌')
+    expect(wrapper.find('[data-testid="auto-assign"]').text()).toContain('尽量不拆组')
     expect(wrapper.find('[data-banquet-summary]').text()).toContain('拆分分组 2')
     expect(wrapper.find('[data-testid="reassign-keep-groups"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="reassign-fill-tables"]').exists()).toBe(true)

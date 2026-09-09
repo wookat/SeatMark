@@ -206,6 +206,11 @@ ${sitemapEntries
   .join('\n')}
 </urlset>
 `
+// 构建期断言：/en 下有独立英文正文的对比页必须进 sitemap（可索引、canonical 为自身）
+for (const v of vsPages.filter((v) => v.lang === 'en')) {
+  const loc = `<loc>${SITE_ORIGIN}/en/vs/${v.slug}</loc>`
+  if (!sitemap.includes(loc)) throw new Error(`sitemap assertion failed: missing ${loc}`)
+}
 writeFileSync(join(distDir, 'sitemap.xml'), sitemap)
 const distinctLastmod = new Set(sitemapEntries.map(({ p }) => resolveLastmod(p, lastmodSources)))
 console.log(`sitemap.xml generated with ${sitemapEntries.length} urls (${distinctLastmod.size} distinct lastmod dates)`)

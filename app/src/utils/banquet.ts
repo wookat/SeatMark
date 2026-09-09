@@ -558,7 +558,7 @@ function groupGuestsForAssign(guests: BanquetGuest[]): Array<[string, BanquetGue
 
 /**
  * 有排斥对时，同一单元（分组 / 散客桶）内互斥的后者拆成独立单元追加到最后，
- * 保证单元内部无冲突：「不同桌」是用户逐对明确的意向，优先于同组同桌；
+ * 保证单元内部无冲突：「不同桌」是用户逐对明确的意向，优先于整组同桌；
  * 组内其余成员仍整组同桌，被拆出者保留组名。
  */
 function splitAvoidUnits(
@@ -1000,7 +1000,7 @@ export function summarizeBanquet(
  * 自动分配前的容量预估（第 3 步按钮上方说明）。
  * - 锁定桌自动分配不动：其已就座宾客视为已占位，空位不计入可用容量；
  * - minTables：按每桌坐满的下限 = 锁定桌数 + ceil(待排宾客 / 未锁定桌平均座位)，与「优先坐满」策略一致，
- *   「同组同桌」策略实际留空桌数以 summarizeBanquet 为准。
+ *   「尽量不拆组」策略实际留空桌数以 summarizeBanquet 为准。
  */
 export interface CapacityEstimate {
   status: 'no-guests' | 'no-tables' | 'enough' | 'short'

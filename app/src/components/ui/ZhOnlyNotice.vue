@@ -1,16 +1,17 @@
 <script lang="ts">
 /**
  * /en 下内容站索引页（教程 / 模板 / 纸型 / 对比）顶部提示条：
- * 按页面数据是否含英文字段区分文案（模板页卡片已英文化，其余三页仅中文），
+ * 按页面数据是否含英文字段区分文案（模板页卡片已英文化，对比页含英文条目，其余仅中文），
  * 并给出中文原页与已完整英文化的功能页链接。
  */
-export type ZhOnlyNoticeVariant = 'chinese-only' | 'templates'
+export type ZhOnlyNoticeVariant = 'chinese-only' | 'templates' | 'vs'
 
 export const ZH_ONLY_NOTICE_TEXT: Record<ZhOnlyNoticeVariant, string> = {
   'chinese-only':
     'This section is currently available in Chinese only. The Studio, Seating Chart, Banquet planner and Pricing pages are fully in English.',
   templates:
     'Template names, descriptions and the label maker are in English; tutorial articles are in Chinese only.',
+  vs: 'Comparisons marked Chinese are available in Chinese only; the others are in English, as are the Studio, Seating Chart, Banquet planner and Pricing pages.',
 }
 </script>
 

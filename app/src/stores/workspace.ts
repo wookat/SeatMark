@@ -421,7 +421,18 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       missingMore: number
       duplicateExamIds: number
       duplicateSeatKeys: number
-    } = { missingRows: 0, missingDetails: [], missingMore: 0, duplicateExamIds: 0, duplicateSeatKeys: 0 }
+      /** 判重字段在当前模板中的 label（中文原文，展示时再过 t()），模板缺该字段时回退考场口径 */
+      duplicateExamIdLabel: string
+      duplicateSeatKeyLabels: { room: string; seat: string }
+    } = {
+      missingRows: 0,
+      missingDetails: [],
+      missingMore: 0,
+      duplicateExamIds: 0,
+      duplicateSeatKeys: 0,
+      duplicateExamIdLabel: fieldLabelOf('examId', '准考证号'),
+      duplicateSeatKeyLabels: { room: fieldLabelOf('room', '考场'), seat: fieldLabelOf('seatNo', '座位号') },
+    }
     const rows = excel.rows
     if (!rows.length) return result
 
@@ -797,6 +808,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   // ---------- 取值辅助 ----------
+  /** 当前模板中某字段的 label（为空时回退给定默认） */
+  function fieldLabelOf(fieldId: string, fallback: string): string {
+    const label = template.value.fields.find((f) => f.id === fieldId)?.label
+    return label?.trim() || fallback
+  }
+
   /** 某字段映射到的单一 Excel 列；组合字段（模板串）返回空 */
   function columnOf(fieldId: string): string {
     const value = mapping[fieldId]

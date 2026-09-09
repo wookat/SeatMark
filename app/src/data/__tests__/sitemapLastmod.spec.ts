@@ -58,6 +58,9 @@ describe('sitemap lastmod 取数据源日期', () => {
     }
     const dated = { ...sources, vsPages: [{ slug: 'z', researchDate: '2026-08-15' }] }
     expect(resolveLastmod('/vs/z', dated)).toBe('2026-08-15')
+    // 第 372 轮：/en/vs/:slug 英文对比页同样回到 vsPages 日期字段
+    expect(resolveLastmod('/en/vs/z', dated)).toBe('2026-08-15')
+    expect(resolveLastmod('/en/vs/prismm-alternative', sources)).toBe(today)
     const topicDated = { ...sources, topicPages: [{ path: '/topics/t', updatedAt: '2026-08-20' }] }
     expect(resolveLastmod('/topics/t', topicDated)).toBe('2026-08-20')
   })

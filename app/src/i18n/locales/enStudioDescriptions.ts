@@ -348,7 +348,7 @@ export const enTemplateDescriptions: Record<string, string> = {
     '190×88 mm class sign on a dark green chalkboard with chalk-drawn borders and stars, class name in chalk white. Hangs by the classroom door and echoes the class blackboard style.',
   '180×90 mm 桌牌，朱砂红回纹样条上下呼应 + 鎏金细线，取意传统纹样的国风会议桌牌，宋体大字庄重大气。':
     '180×90 mm tent with vermilion meander bands and fine gold rules. A Chinese-style meeting tent in a stately serif.',
-  '2 列 × 4 行，房号反白大字 + 房型与入住宾客信息，团队入住批量布房一步到位。':
+  '2 列 × 4 行，房号反白大字 + 房型与入住宾客信息，团队入住时按房号名单一次批量生成全部门牌。':
     '2 cols × 4 rows: reversed large room number with room type and guest info for group check-ins.',
   '2 列 × 6 行小券式排版，房号、姓名与用餐日期各占一行，底部一条「凭卡用餐」提示。团队入住时随房卡一起发放。':
     '2 cols × 6 rows voucher-style layout: room number, name and meal date each on its own line, with a "meals by card" note along the bottom. Hand out with room keys for group check-ins.',

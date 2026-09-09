@@ -1,23 +1,51 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import ChineseOnlyNotice from '@/components/ChineseOnlyNotice.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
-import { findVsPage, SEATMARK_HIGHLIGHTS } from '@/data/vsPages'
+import { findVsPage, SEATMARK_HIGHLIGHTS, SEATMARK_HIGHLIGHTS_EN, vsLangOf, vsPagePath } from '@/data/vsPages'
+import { useI18n } from '@/i18n'
 
 const route = useRoute()
+const router = useRouter()
+const { t, localePath } = useI18n()
+
 const page = computed(() => findVsPage(String(route.params.slug ?? '')))
+const pageLang = computed(() => (page.value ? vsLangOf(page.value) : 'zh'))
+const highlights = computed(() => (pageLang.value === 'en' ? SEATMARK_HIGHLIGHTS_EN : SEATMARK_HIGHLIGHTS))
+
+/** 英文正文页只挂 /en/vs/:slug：从中文路径进入时换到规范路径 */
+watch(
+  () => [page.value, route.path] as const,
+  ([p, path]) => {
+    if (p && vsLangOf(p) === 'en' && !path.startsWith('/en/')) {
+      void router.replace({ path: vsPagePath(p), query: route.query, hash: route.hash })
+    }
+  },
+  { immediate: true },
+)
+
+const strengthsHeading = computed(() =>
+  page.value ? t('{name} 的长处').replace('{name}', page.value.competitorName) : '',
+)
+const researchNote = computed(() =>
+  page.value
+    ? t('以上为我们 {date} 的实际上手/公开页面调研结论，双方产品均会持续迭代，{name} 的最新功能与价格以其官方渠道为准。')
+        .replace('{date}', page.value.researchDate)
+        .replace('{name}', page.value.competitorName)
+    : '',
+)
 </script>
 
 <template>
-  <div v-if="page" class="mx-auto w-full max-w-4xl px-4 py-10 sm:py-14">
-    <ChineseOnlyNotice />
+  <div v-if="page" class="mx-auto w-full max-w-4xl px-4 py-10 sm:py-14" :lang="pageLang === 'en' ? 'en' : undefined">
+    <ChineseOnlyNotice :has-english="pageLang === 'en'" />
     <!-- 面包屑 -->
-    <nav class="flex flex-wrap items-center gap-1.5 text-xs text-slate-600" aria-label="面包屑">
-      <RouterLink to="/" class="hover:text-brand-600">首页</RouterLink>
+    <nav class="flex flex-wrap items-center gap-1.5 text-xs text-slate-600" :aria-label="t('面包屑')">
+      <RouterLink :to="localePath('/')" class="hover:text-brand-600">{{ t('首页') }}</RouterLink>
       <span>/</span>
-      <RouterLink to="/vs" class="hover:text-brand-600">工具对比</RouterLink>
+      <RouterLink :to="localePath('/vs')" class="hover:text-brand-600">{{ t('工具对比') }}</RouterLink>
       <span>/</span>
       <span class="line-clamp-1" aria-current="page">vs {{ page.competitorName }}</span>
     </nav>
@@ -33,7 +61,7 @@ const page = computed(() => findVsPage(String(route.params.slug ?? '')))
 
     <!-- 对方长处（如实致意） -->
     <section class="mt-8">
-      <h2 class="text-lg font-bold tracking-tight text-slate-900">{{ page.competitorName }} 的长处</h2>
+      <h2 class="text-lg font-bold tracking-tight text-slate-900">{{ strengthsHeading }}</h2>
       <ul class="mt-3 space-y-2">
         <li
           v-for="s in page.competitorStrengths"
@@ -48,15 +76,15 @@ const page = computed(() => findVsPage(String(route.params.slug ?? '')))
 
     <!-- 能力对照表 -->
     <section class="mt-8">
-      <h2 class="text-lg font-bold tracking-tight text-slate-900">逐项能力对照</h2>
-      <p class="mt-2 text-[11px] leading-5 text-slate-400 sm:hidden">← 左右滑动查看完整对照表 →</p>
-      <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200">
+      <h2 class="text-lg font-bold tracking-tight text-slate-900">{{ t('逐项能力对照') }}</h2>
+      <p class="mt-2 text-[11px] leading-5 text-slate-400 sm:hidden">{{ t('← 左右滑动查看完整对照表 →') }}</p>
+      <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200" data-testid="vs-table-scroll">
         <table class="w-full min-w-[560px] border-collapse bg-white text-left text-sm">
           <thead>
             <tr class="border-b border-slate-200 bg-slate-50 text-xs text-slate-600">
-              <th scope="col" class="px-4 py-3 font-bold">维度</th>
+              <th scope="col" class="px-4 py-3 font-bold">{{ t('维度') }}</th>
               <th scope="col" class="px-4 py-3 font-bold">{{ page.competitorName }}</th>
-              <th scope="col" class="px-4 py-3 font-bold text-brand-700">SeatMark 座签</th>
+              <th scope="col" class="px-4 py-3 font-bold text-brand-700">{{ t('SeatMark 座签') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -76,18 +104,15 @@ const page = computed(() => findVsPage(String(route.params.slug ?? '')))
           </tbody>
         </table>
       </div>
-      <p class="mt-2 text-[11px] leading-5 text-slate-500">
-        以上为我们 {{ page.researchDate }} 的实际上手/公开页面调研结论，双方产品均会持续迭代，
-        {{ page.competitorName }} 的最新功能与价格以其官方渠道为准。
-      </p>
+      <p class="mt-2 text-[11px] leading-5 text-slate-500">{{ researchNote }}</p>
     </section>
 
     <!-- SeatMark 差异化亮点 -->
     <section class="mt-10">
-      <h2 class="text-lg font-bold tracking-tight text-slate-900">SeatMark 的差异化亮点</h2>
+      <h2 class="text-lg font-bold tracking-tight text-slate-900">{{ t('SeatMark 的差异化亮点') }}</h2>
       <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div
-          v-for="h in SEATMARK_HIGHLIGHTS"
+          v-for="h in highlights"
           :key="h.title"
           class="rounded-lg border border-slate-200 bg-white p-4"
         >
@@ -99,7 +124,7 @@ const page = computed(() => findVsPage(String(route.params.slug ?? '')))
 
     <!-- FAQ -->
     <section class="mt-10">
-      <h2 class="text-lg font-bold tracking-tight text-slate-900">常见问答</h2>
+      <h2 class="text-lg font-bold tracking-tight text-slate-900">{{ t('常见问答') }}</h2>
       <div class="mt-4 grid gap-3">
         <div
           v-for="faq in page.faqs"
@@ -117,20 +142,20 @@ const page = computed(() => findVsPage(String(route.params.slug ?? '')))
       class="mt-10 flex flex-col items-center justify-between gap-4 rounded-lg bg-brand-700 px-6 py-6 text-center sm:flex-row sm:text-left"
     >
       <div>
-        <h2 class="text-base font-bold text-white">亲自对比一下最直观</h2>
-        <p class="mt-1 text-sm text-brand-100">免费、免登录，上传名单即生成打印页，名单不出浏览器。</p>
+        <h2 class="text-base font-bold text-white">{{ t('亲自对比一下最直观') }}</h2>
+        <p class="mt-1 text-sm text-brand-100">{{ t('免费、免登录，上传名单即生成打印页，名单不出浏览器。') }}</p>
       </div>
       <RouterLink
-        to="/studio"
+        :to="localePath('/studio')"
         class="btn btn-md w-full shrink-0 bg-white text-brand-700 hover:bg-brand-50 sm:w-auto"
       >
-        打开标签工坊试试
+        {{ t('打开标签工坊试试') }}
       </RouterLink>
     </div>
 
     <!-- 相关教程 -->
     <section class="mt-10">
-      <h2 class="text-base font-bold text-slate-900">相关教程</h2>
+      <h2 class="text-base font-bold text-slate-900">{{ t('相关教程') }}</h2>
       <div class="mt-3 grid gap-3 sm:grid-cols-3">
         <RouterLink
           v-for="rel in page.relatedGuides"

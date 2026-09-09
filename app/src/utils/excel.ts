@@ -1,7 +1,17 @@
 import type { SampleExcel } from '@/data/demoDatasets'
 import { demoGenderOf, demoPersonNames, sampleExcelFor } from '@/data/demoDatasets'
 import type { DataRow, LabelTemplate, ParsedExcel } from '@/types/template'
-import { assertImportFileSize, assertImportRowCount } from '@/utils/importLimits'
+import {
+  assertImportFileSize,
+  assertImportRowCount,
+  IMPORT_MAX_ROWS,
+  IMPORT_TOO_MANY_ROWS_MESSAGE,
+} from '@/utils/importLimits'
+
+type XlsxModule = typeof import('xlsx')
+type WorkSheet = import('xlsx').WorkSheet
+type CellRange = import('xlsx').Range
+type CellObject = import('xlsx').CellObject
 
 /** 表头行探测时最多跳过的前置标题/空行数 */
 export const MAX_TITLE_ROWS = 3
@@ -19,6 +29,44 @@ async function loadXlsx() {
   } catch {
     throw new Error('表格组件加载失败（可能是网络异常），请刷新页面后重试')
   }
+}
+
+/** 转矩阵时最多读取的行数：数据行上限 + 可跳过的前置标题行 + 表头行 + 1 行冗余（用于判定真实超限） */
+export const SHEET_SCAN_MAX_ROWS = IMPORT_MAX_ROWS + MAX_TITLE_ROWS + 2
+
+/** 把工作表 !ref 收窄到 SHEET_SCAN_MAX_ROWS 行内；无 !ref 或本就在范围内时返回 null（按默认整表转矩阵） */
+function boundedRange(XLSX: XlsxModule, sheet: WorkSheet): CellRange | null {
+  const ref = sheet['!ref']
+  if (typeof ref !== 'string' || !ref) return null
+  const full = XLSX.utils.decode_range(ref)
+  const lastAllowed = full.s.r + SHEET_SCAN_MAX_ROWS - 1
+  if (full.e.r <= lastAllowed) return null
+  return { s: full.s, e: { c: full.e.c, r: lastAllowed } }
+}
+
+function isPopulated(cell: CellObject | undefined): boolean {
+  if (!cell) return false
+  if (cell.v !== undefined && cell.v !== null && cell.v !== '') return true
+  return typeof cell.w === 'string' && cell.w.trim() !== ''
+}
+
+/** 行号（0 基）大于 lastRow 的单元格中是否存在非空内容；兼容稀疏（A1 键）与 dense（!data）两种存储 */
+function hasPopulatedCellsBeyond(sheet: WorkSheet, lastRow: number): boolean {
+  const dense = sheet['!data']
+  if (Array.isArray(dense)) {
+    for (let r = lastRow + 1; r < dense.length; r++) {
+      if (dense[r]?.some(isPopulated)) return true
+    }
+    return false
+  }
+  for (const key of Object.keys(sheet)) {
+    if (key.startsWith('!')) continue
+    const match = /\d+$/.exec(key)
+    if (!match) continue
+    const row = Number(match[0]) - 1
+    if (row > lastRow && isPopulated(sheet[key] as CellObject | undefined)) return true
+  }
+  return false
 }
 
 /** CSV 文本解码：UTF-8（含 BOM）优先，非法字节序列时回退 GB18030 */
@@ -76,8 +124,18 @@ export async function parseExcelFile(file: File, targetSheet?: string): Promise<
   if (!sheetName) throw new Error('Excel 文件中没有可用的工作表')
 
   const sheet = workbook.Sheets[sheetName]!
+  // 只把行数上限内的范围转成矩阵（表头探测最多再跳过 MAX_TITLE_ROWS 行 + 表头行 + 1 行冗余），
+  // 超出范围的行若有任何非空单元格即按行数超限拒绝；仅有格式而无内容的超长 !ref 不误拒
+  const range = boundedRange(XLSX, sheet)
+  if (range && hasPopulatedCellsBeyond(sheet, range.e.r)) {
+    throw new Error(IMPORT_TOO_MANY_ROWS_MESSAGE)
+  }
   // raw:false 读取格式化文本（cell.w），日期/时间/前导零/百分比等按 Excel 中所见呈现
-  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: false })
+  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+    header: 1,
+    raw: false,
+    ...(range ? { range } : {}),
+  })
 
   const cellTexts = (row: unknown[] | undefined) =>
     (row ?? [])

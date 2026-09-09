@@ -37,7 +37,7 @@ export const round4Templates: LabelTemplate[] = [
     id: 'hotelDoorHanger',
     name: '酒店房门牌',
     category: 'life',
-    description: '2 列 × 4 行，房号反白大字 + 房型与入住宾客信息，团队入住批量布房一步到位。',
+    description: '2 列 × 4 行，房号反白大字 + 房型与入住宾客信息，团队入住时按房号名单一次批量生成全部门牌。',
     scenario: '酒店 / 民宿房门牌',
     accent: '#0e7490',
     sampleData: { roomNo: '1208', roomType: '高级大床房', guest: '研学一团', date: '8 月 12 日—8 月 15 日' },

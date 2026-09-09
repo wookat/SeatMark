@@ -200,6 +200,8 @@ export async function resolveSeo(path: string): Promise<PageSeo> {
     const base = p === '/en' ? '/' : p.slice(3)
     const enSeo = resolveEnSeo(base)
     if (enSeo) return enSeo
+    const enContent = await resolveEnContentSeo(p)
+    if (enContent) return enContent
     const seo = await resolveSeo(base)
     return { ...seo, lang: 'en', robots: 'noindex, follow' }
   }
@@ -210,6 +212,46 @@ export async function resolveSeo(path: string): Promise<PageSeo> {
   }
 
   return resolveZhSeo(p)
+}
+
+/**
+ * /en 下有独立英文正文的内容站详情页（如 /en/vs/prismm-alternative）：可索引、canonical 为自身，
+ * 无中文对应页，故 hreflang 仅挂 en + x-default。
+ */
+async function resolveEnContentSeo(p: string): Promise<PageSeo | null> {
+  if (!p.startsWith('/en/vs/')) return null
+  const { findVsPage } = await import('@/data/vsPages')
+  const page = findVsPage(p.slice('/en/vs/'.length), 'en')
+  if (!page) return null
+  const path = `/en/vs/${page.slug}`
+  return {
+    title: `${page.seoTitle} | SeatMark`,
+    description: page.seoDescription,
+    path,
+    lang: 'en',
+    alternates: [
+      { hreflang: 'en', path },
+      { hreflang: 'x-default', path },
+    ],
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: page.heading,
+        description: page.seoDescription,
+        inLanguage: 'en',
+        author: { '@type': 'Organization', name: 'SeatMark', url: `${SITE_ORIGIN}/en` },
+        publisher: { '@type': 'Organization', name: 'SeatMark', url: `${SITE_ORIGIN}/en` },
+        mainEntityOfPage: `${SITE_ORIGIN}${path}`,
+      },
+      faqJsonLd(page.faqs),
+      breadcrumb([
+        { name: 'Home', path: '/en' },
+        { name: 'Compare', path: '/en/vs' },
+        { name: `vs ${page.competitorName}`, path },
+      ]),
+    ],
+  }
 }
 
 /** 已英文化核心页的英文 SEO 数据；内容站索引外壳与账号/管理壳页仅提供英文 title（noindex） */
@@ -646,7 +688,8 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
   }
 
   if (p === '/vs') {
-    const { vsPages } = await import('@/data/vsPages')
+    const { vsPagesFor } = await import('@/data/vsPages')
+    const vsPages = vsPagesFor('zh')
     return {
       title: '工具对比：SeatMark 与常见桌牌席卡做法逐项对照 - SeatMark 座签',
       description:
@@ -675,7 +718,7 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
 
   if (p.startsWith('/vs/')) {
     const { findVsPage } = await import('@/data/vsPages')
-    const page = findVsPage(p.slice('/vs/'.length))
+    const page = findVsPage(p.slice('/vs/'.length), 'zh')
     if (page) {
       return {
         title: `${page.seoTitle} - SeatMark 座签`,
@@ -750,7 +793,7 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
     return {
       title: '婚宴/宴会座位表在线制作，圆桌布局自动排座 - SeatMark 座签',
       description:
-        '免费在线生成婚宴、年会宴会座位表：粘贴宾客名单自动去重、按亲友/同事分组标色，选圆桌、长桌、U 形等场地布局，一键自动分配同组同桌、拖拽微调，导出 A4/A3 高清 PNG/PDF 直接打印。名单不出浏览器。',
+        '免费在线生成婚宴、年会宴会座位表：粘贴宾客名单自动去重、按亲友/同事分组标色，选圆桌、长桌、U 形等场地布局，一键自动分配尽量不拆组、拖拽微调，导出 A4/A3 高清 PNG/PDF 直接打印。名单不出浏览器。',
       path: '/banquet',
       jsonLd: [
         SOFTWARE_APP_JSONLD,
@@ -819,7 +862,7 @@ export function appShellPaths(): string[] {
 
 /** 需要构建期预渲染的全部路径（同时是 sitemap 的路径清单）；仅构建脚本使用 */
 export async function prerenderPaths(): Promise<string[]> {
-  const [{ guides }, { templateDetails }, { labelPapers }, { vsPages }, { topicPages }] = await Promise.all([
+  const [{ guides }, { templateDetails }, { labelPapers }, { vsPagesFor }, { topicPages }] = await Promise.all([
     import('@/data/guides'),
     import('@/data/templateDetails'),
     import('@/data/labelPapers'),
@@ -837,7 +880,9 @@ export async function prerenderPaths(): Promise<string[]> {
     '/papers',
     ...labelPapers.map((paper) => `/papers/${paper.slug}`),
     '/vs',
-    ...vsPages.map((v) => `/vs/${v.slug}`),
+    ...vsPagesFor('zh').map((v) => `/vs/${v.slug}`),
+    // /en 下有独立英文正文的对比页（可索引，进 sitemap）
+    ...vsPagesFor('en').map((v) => `/en/vs/${v.slug}`),
     ...topicPages.map((t) => t.path),
     '/seating',
     '/banquet',

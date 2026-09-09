@@ -370,6 +370,7 @@ const nextStepTarget = computed(() => {
 const nextStepProgress = computed(
   () => `${tr('已安排')} ${assignmentSummary.value.assigned}/${guests.value.length}`,
 )
+const nextStepProgressCompact = computed(() => `${assignmentSummary.value.assigned}/${guests.value.length}`)
 
 /** 空名单时叠在画布顶部的引导条：可手动关闭，导入名单后自动消失 */
 const canvasEmptyHintDismissed = ref(false)
@@ -553,7 +554,7 @@ function onElementPointerUp() {
 /** 分配策略：默认尽量不拆组；「优先坐满」按桌顺序依次坐满 */
 const assignStrategy = ref<AssignStrategy>('keep-groups')
 const STRATEGY_OPTIONS = computed<SelectOption[]>(() => [
-  { value: 'keep-groups', label: tr('尽量不拆组（默认）'), hint: tr('同组尽量同桌，可能留空位') },
+  { value: 'keep-groups', label: tr('尽量不拆组（默认）'), hint: tr('同组优先同桌；整组放不下时会拆到多桌，分配后摘要会列出被拆的分组') },
   { value: 'fill-tables', label: tr('优先坐满'), hint: tr('按桌顺序依次坐满，空桌最少；可能把同组拆到不同桌') },
 ])
 
@@ -754,7 +755,7 @@ const capacityEstimateText = computed(() => {
   const tail = tr('；按每桌坐满至少需要 {m} 桌，分配后预计空 {e} 桌')
     .replace('{m}', String(c.minTables))
     .replace('{e}', String(c.expectedEmptyTables))
-  const note = assignStrategy.value === 'fill-tables' ? '' : tr('（同组同桌策略实际空桌数以分配后摘要为准）')
+  const note = assignStrategy.value === 'fill-tables' ? '' : tr('（尽量不拆组策略实际空桌数以分配后摘要为准）')
   return `${head}${tail}${note}`
 })
 
@@ -1517,7 +1518,7 @@ function toPlaceCards() {
             {{ tr('第二列可填分组，自动归组；支持从 Excel 直接复制「姓名、分组」两列') }}{{ tr('，如：') }}<code class="rounded bg-slate-100 px-1 text-slate-700">{{ tr('张伟') }}{{ tr('，') }}{{ tr('男方亲友') }}</code>{{ tr('（每行一位，也可用空格或 Tab 分开）') }}
           </p>
           <div class="mt-2 flex flex-wrap gap-2">
-            <button type="button" class="btn btn-primary btn-sm" @click="importPasted">
+            <button type="button" class="btn btn-primary btn-sm" data-next-step-primary @click="importPasted">
               {{ tr('添加到名单（自动去重）') }}
             </button>
             <button type="button" class="btn btn-secondary btn-sm" @click="guestFile.open">
@@ -1793,8 +1794,8 @@ function toPlaceCards() {
             {{ capacityEstimateText }}
           </p>
           <div class="mt-2 flex flex-wrap gap-2">
-            <button type="button" class="btn btn-primary btn-sm" data-testid="auto-assign" @click="autoAssign">
-              {{ assignStrategy === 'fill-tables' ? tr('一键自动分配（优先坐满）') : tr('一键自动分配（同组同桌）') }}
+            <button type="button" class="btn btn-primary btn-sm" data-testid="auto-assign" data-next-step-primary @click="autoAssign">
+              {{ assignStrategy === 'fill-tables' ? tr('一键自动分配（优先坐满）') : tr('一键自动分配（尽量不拆组）') }}
             </button>
             <button type="button" class="btn btn-ghost btn-sm" @click="clearAssignments">
               {{ tr('清空安排') }}
@@ -1910,6 +1911,7 @@ function toPlaceCards() {
               :disabled="exporting"
               :title="exportBadgeTitle"
               data-testid="banquet-export-png"
+              data-next-step-primary
               @click="startExport('png')"
             >
               {{ exporting ? tr('导出中…') : tr('导出高清 PNG') }}
@@ -2831,6 +2833,7 @@ function toPlaceCards() {
       :step="nextStep"
       :arrange-label="tr('自动分配')"
       :progress="nextStepProgress"
+      :progress-compact="nextStepProgressCompact"
       :target="nextStepTarget"
       :quota-badge="exportBadge"
       :quota-badge-title="exportBadgeTitle"

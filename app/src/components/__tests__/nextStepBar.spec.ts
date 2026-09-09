@@ -17,10 +17,10 @@ afterEach(async () => {
 
 describe('NextStepBar', () => {
   it.each<[NextStep, string, string]>([
-    ['import', '随机排座', '下一步：导入名单'],
-    ['arrange', '随机排座', '下一步：随机排座'],
-    ['arrange', '自动分配', '下一步：自动分配'],
-    ['export', '自动分配', '下一步：检查并导出'],
+    ['import', '随机排座', '跳到：导入名单'],
+    ['arrange', '随机排座', '跳到：随机排座'],
+    ['arrange', '自动分配', '跳到：自动分配'],
+    ['export', '自动分配', '跳到：检查并导出'],
   ])('状态 %s（%s）→ 主按钮文案「%s」', (step, arrangeLabel, expected) => {
     const target = document.createElement('section')
     const wrapper = mountBar({ step, arrangeLabel, progress: '12 人 / 48 座', target })
@@ -32,13 +32,13 @@ describe('NextStepBar', () => {
     await setLocale('en')
     const target = document.createElement('section')
     expect(mountBar({ step: 'import', arrangeLabel: 'Random seating', target }).text()).toContain(
-      'Next: import roster',
+      'Go to: Import roster',
     )
     expect(mountBar({ step: 'arrange', arrangeLabel: 'Auto-assign', target }).text()).toContain(
-      'Next: Auto-assign',
+      'Go to: Auto-assign',
     )
     expect(mountBar({ step: 'export', arrangeLabel: 'Auto-assign', target }).text()).toContain(
-      'Next: check & export',
+      'Go to: Check & export',
     )
   })
 
@@ -77,27 +77,27 @@ describe('NextStepBar', () => {
     })
     await narrowWithBadge.vm.$nextTick()
     const action = narrowWithBadge.find('[data-testid="next-step-action"]')
-    expect(action.text()).toBe('下一步：导出 无水印 今日剩余 1 次')
+    expect(action.text()).toBe('跳到：导出 无水印 今日剩余 1 次')
     expect(action.find('[data-testid="next-step-quota-badge"]').classes()).toContain('whitespace-nowrap')
 
     const narrowNoBadge = mountBar({ step: 'export', arrangeLabel: '随机排座', target })
     await narrowNoBadge.vm.$nextTick()
-    expect(narrowNoBadge.find('[data-testid="next-step-action"]').text()).toBe('下一步：检查并导出')
+    expect(narrowNoBadge.find('[data-testid="next-step-action"]').text()).toBe('跳到：检查并导出')
 
     await setLocale('en')
     const narrowEn = mount(NextStepBar, {
       props: { step: 'export', arrangeLabel: 'Random seating', target, quotaBadge: { ...badge, text: '1 watermark-free left today' } },
     })
     await narrowEn.vm.$nextTick()
-    expect(narrowEn.find('[data-testid="next-step-action"]').text()).toContain('Next: export')
-    expect(narrowEn.find('[data-testid="next-step-action"]').text()).not.toContain('check & export')
+    expect(narrowEn.find('[data-testid="next-step-action"]').text()).toContain('Go to: Export')
+    expect(narrowEn.find('[data-testid="next-step-action"]').text()).not.toContain('Check & export')
 
     vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false }))
     const wideWithBadge = mount(NextStepBar, {
       props: { step: 'export', arrangeLabel: 'Random seating', target, quotaBadge: badge },
     })
     await wideWithBadge.vm.$nextTick()
-    expect(wideWithBadge.find('[data-testid="next-step-action"]').text()).toContain('Next: check & export')
+    expect(wideWithBadge.find('[data-testid="next-step-action"]').text()).toContain('Go to: Check & export')
   })
 
   it('第 367 轮：窄屏上完整角标仍超出操作条右缘时退到 compactText（按真实渲染宽度判定），能放下时保持完整文案', async () => {
@@ -276,6 +276,163 @@ describe('NextStepBar', () => {
       expect(progress.classes()).toContain('truncate')
       expect(progress.classes()).not.toContain('min-w-0')
       wrapper.unmount()
+    })
+  })
+
+  describe('第 372 轮：进度文案被挤压时切 progressCompact，完整文案保留在 title / aria-label', () => {
+    const narrowMatchMedia = () =>
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn((query: string) => ({
+          matches: query === '(max-width: 639px)',
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        })),
+      )
+    const squeezeProgress = () => {
+      const clientW = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
+        return this.dataset.testid === 'next-step-progress' ? 71 : 0
+      })
+      const scrollW = vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockImplementation(function (this: HTMLElement) {
+        return this.dataset.testid === 'next-step-progress' ? 140 : 0
+      })
+      return () => {
+        clientW.mockRestore()
+        scrollW.mockRestore()
+      }
+    }
+
+    it('窄屏进度 scrollWidth > clientWidth → 显示 compact 文案，title/aria-label 为全文，仍 truncate 单行', async () => {
+      narrowMatchMedia()
+      const restore = squeezeProgress()
+      const target = document.createElement('section')
+      const wrapper = mount(NextStepBar, {
+        props: { step: 'import', arrangeLabel: 'Random seating', progress: '0 students / 48 seats', progressCompact: '0/48', target },
+      })
+      await wrapper.vm.$nextTick()
+      await wrapper.vm.$nextTick()
+      const progress = wrapper.find('[data-testid="next-step-progress"]')
+      expect(progress.text()).toBe('0/48')
+      expect(progress.attributes('title')).toBe('0 students / 48 seats')
+      expect(progress.attributes('aria-label')).toBe('0 students / 48 seats')
+      expect(progress.attributes('data-compact')).toBe('true')
+      expect(progress.classes()).toContain('truncate')
+      wrapper.unmount()
+      restore()
+    })
+
+    it('未提供 progressCompact 时退化为两行换行（line-clamp-2），文案不变', async () => {
+      narrowMatchMedia()
+      const restore = squeezeProgress()
+      const target = document.createElement('section')
+      const wrapper = mount(NextStepBar, {
+        props: { step: 'import', arrangeLabel: 'Random seating', progress: '0 students / 48 seats', target },
+      })
+      await wrapper.vm.$nextTick()
+      await wrapper.vm.$nextTick()
+      const progress = wrapper.find('[data-testid="next-step-progress"]')
+      expect(progress.text()).toBe('0 students / 48 seats')
+      expect(progress.classes()).toContain('line-clamp-2')
+      expect(progress.classes()).toContain('whitespace-normal')
+      expect(progress.classes()).not.toContain('truncate')
+      expect(progress.attributes('title')).toBeUndefined()
+      wrapper.unmount()
+      restore()
+    })
+
+    it('放得下（未被截断、宽度 ≥ 56px）或宽屏时保持完整文案，不加 title', async () => {
+      narrowMatchMedia()
+      const clientW = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
+        return this.dataset.testid === 'next-step-progress' ? 140 : 0
+      })
+      const target = document.createElement('section')
+      const fitting = mount(NextStepBar, {
+        props: { step: 'import', arrangeLabel: 'Random seating', progress: '0 students / 48 seats', progressCompact: '0/48', target },
+      })
+      await fitting.vm.$nextTick()
+      await fitting.vm.$nextTick()
+      const progress = fitting.find('[data-testid="next-step-progress"]')
+      expect(progress.text()).toBe('0 students / 48 seats')
+      expect(progress.attributes('title')).toBeUndefined()
+      expect(progress.attributes('data-compact')).toBeUndefined()
+      fitting.unmount()
+      clientW.mockRestore()
+
+      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+      const restore = squeezeProgress()
+      const wide = mount(NextStepBar, {
+        props: { step: 'import', arrangeLabel: 'Random seating', progress: '0 students / 48 seats', progressCompact: '0/48', target },
+      })
+      await wide.vm.$nextTick()
+      await wide.vm.$nextTick()
+      expect(wide.find('[data-testid="next-step-progress"]').text()).toBe('0 students / 48 seats')
+      wide.unmount()
+      restore()
+    })
+  })
+
+  describe('第 372 轮：go() 聚焦目标区块内的 [data-next-step-primary] 主按钮并加一次性 sm-attn', () => {
+    it('有主按钮标记 → activeElement 是主按钮，带 sm-attn，animationend 后移除；区块不再被赋 tabindex', async () => {
+      const target = document.createElement('section')
+      const other = document.createElement('button')
+      const primary = document.createElement('button')
+      primary.setAttribute('data-next-step-primary', '')
+      target.append(other, primary)
+      document.body.appendChild(target)
+      target.scrollIntoView = vi.fn()
+      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false }))
+
+      const wrapper = mountBar({ step: 'arrange', arrangeLabel: '随机排座', target })
+      await wrapper.find('[data-testid="next-step-action"]').trigger('click')
+      expect(document.activeElement).toBe(primary)
+      expect(primary.classList.contains('sm-attn')).toBe(true)
+      expect(target.hasAttribute('tabindex')).toBe(false)
+
+      primary.dispatchEvent(new Event('animationend'))
+      expect(primary.classList.contains('sm-attn')).toBe(false)
+      wrapper.unmount()
+      target.remove()
+    })
+
+    it('主按钮 disabled 时跳过它，退回聚焦区块；无标记时同样退回', async () => {
+      const target = document.createElement('section')
+      const primary = document.createElement('button')
+      primary.setAttribute('data-next-step-primary', '')
+      primary.disabled = true
+      target.append(primary)
+      document.body.appendChild(target)
+      target.scrollIntoView = vi.fn()
+      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false }))
+
+      const wrapper = mountBar({ step: 'export', arrangeLabel: '随机排座', target })
+      await wrapper.find('[data-testid="next-step-action"]').trigger('click')
+      expect(document.activeElement).toBe(target)
+      expect(target.getAttribute('tabindex')).toBe('-1')
+      expect(primary.classList.contains('sm-attn')).toBe(false)
+      wrapper.unmount()
+      target.remove()
+    })
+
+    it('减少动效时仍聚焦主按钮并加类，没有 animationend 时由定时器兑底移除', async () => {
+      vi.useFakeTimers()
+      const target = document.createElement('section')
+      const primary = document.createElement('button')
+      primary.setAttribute('data-next-step-primary', '')
+      target.append(primary)
+      document.body.appendChild(target)
+      target.scrollIntoView = vi.fn()
+      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true }))
+
+      const wrapper = mountBar({ step: 'import', arrangeLabel: '随机排座', target })
+      await wrapper.find('[data-testid="next-step-action"]').trigger('click')
+      expect(target.scrollIntoView).toHaveBeenCalledWith({ behavior: 'instant', block: 'start' })
+      expect(document.activeElement).toBe(primary)
+      expect(primary.classList.contains('sm-attn')).toBe(true)
+      vi.advanceTimersByTime(1600)
+      expect(primary.classList.contains('sm-attn')).toBe(false)
+      wrapper.unmount()
+      target.remove()
+      vi.useRealTimers()
     })
   })
 

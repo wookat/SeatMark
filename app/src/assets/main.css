@@ -253,6 +253,29 @@
       transition: none;
     }
   }
+
+  /* 「跳到」操作条落点的一次性提示环：ring-2 brand-400 在 1.2s 内淡出，动画结束由脚本移除类；
+   * 减少动效时不播放动画，改为静态提示环，同样由脚本定时移除 */
+  .sm-attn {
+    animation: sm-attn-fade 1.2s var(--ease-standard) both;
+  }
+
+  @keyframes sm-attn-fade {
+    0%,
+    45% {
+      box-shadow: 0 0 0 2px var(--color-brand-400);
+    }
+    100% {
+      box-shadow: 0 0 0 2px transparent;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sm-attn {
+      animation: none;
+      box-shadow: 0 0 0 2px var(--color-brand-400);
+    }
+  }
 }
 
 /* ---------------------------------------------------------------------------

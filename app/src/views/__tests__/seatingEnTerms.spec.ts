@@ -71,4 +71,18 @@ describe('第 350 轮：/en/seating 术语 students', () => {
     expect(text).not.toMatch(/students/i)
     wrapper.unmount()
   })
+
+  it('第 372 轮：英文页底部操作条文案为「Go to: …」，主按钮带 data-next-step-primary 标记', async () => {
+    await setLocale('en')
+    const wrapper = await mountSeating('/en/seating')
+    const action = wrapper.find('[data-testid="next-step-action"]')
+    expect(action.exists()).toBe(true)
+    expect(action.text()).toBe('Go to: Import roster')
+    expect(action.text()).not.toMatch(/^Next:/)
+    expect(wrapper.find('[data-testid="seating-upload-roster"]').attributes('data-next-step-primary')).toBeDefined()
+    expect(wrapper.find('[data-testid="seating-randomize"]').attributes('data-next-step-primary')).toBeDefined()
+    expect(wrapper.find('[data-testid="seating-export-png"]').attributes('data-next-step-primary')).toBeDefined()
+    expect(wrapper.find('[data-testid="next-step-progress"]').text()).toBe('0 students / 48 seats')
+    wrapper.unmount()
+  })
 })
