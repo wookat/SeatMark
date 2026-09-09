@@ -1471,7 +1471,7 @@ function toPlaceCards() {
       <!-- 设置面板 -->
       <aside class="flex min-w-0 flex-col gap-4">
         <!-- 第 1 步：宾客名单 -->
-        <section ref="rosterSection" class="panel-card scroll-mt-4 outline-none">
+        <section ref="rosterSection" class="panel-card scroll-mt-16 outline-none">
           <div class="panel-head">
             <h2 class="section-title"><span class="step-chip">1</span>{{ tr('宾客名单与分组') }}</h2>
             <button type="button" class="btn btn-ghost btn-sm" @click="loadDemoGuests()">
@@ -1772,7 +1772,7 @@ function toPlaceCards() {
         </section>
 
         <!-- 第 3 步：自动分配 -->
-        <section ref="assignSection" class="panel-card scroll-mt-4 outline-none">
+        <section ref="assignSection" class="panel-card scroll-mt-16 outline-none">
           <h2 class="section-title"><span class="step-chip">3</span>{{ tr('分配座位') }}</h2>
           <p class="mt-1 text-xs leading-5 text-slate-500">
             {{ tr('先一键自动分配，再拖拽微调，最后到第 4 步导出。') }}
@@ -1878,7 +1878,7 @@ function toPlaceCards() {
         </section>
 
         <!-- 第 4 步：检查与导出 -->
-        <section ref="exportSection" class="panel-card scroll-mt-4 outline-none">
+        <section ref="exportSection" class="panel-card scroll-mt-16 outline-none">
           <h2 class="section-title"><span class="step-chip">4</span>{{ tr('检查与导出') }}</h2>
           <div class="mt-3 grid grid-cols-2 gap-2.5">
             <div>

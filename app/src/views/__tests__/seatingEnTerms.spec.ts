@@ -85,4 +85,15 @@ describe('第 350 轮：/en/seating 术语 students', () => {
     expect(wrapper.find('[data-testid="next-step-progress"]').text()).toBe('0 students / 48 seats')
     wrapper.unmount()
   })
+
+  it('第 372 轮补丁：操作条滚动目标区块留出吸顶页头高度（scroll-mt-16 ≥ h-14），主按钮不被页头遮住', async () => {
+    const wrapper = await mountSeating('/seating')
+    const sections = wrapper.findAll('section.panel-card')
+    expect(sections.length).toBeGreaterThanOrEqual(4)
+    for (const s of sections) {
+      expect(s.classes()).toContain('scroll-mt-16')
+      expect(s.classes()).not.toContain('scroll-mt-4')
+    }
+    wrapper.unmount()
+  })
 })

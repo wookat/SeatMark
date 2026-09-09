@@ -57,15 +57,23 @@ const progressText = computed(() =>
   compactProgress.value && props.progressCompact ? props.progressCompact : props.progress,
 )
 const progressWraps = computed(() => compactProgress.value && !props.progressCompact)
+const progressIsCompact = computed(() => compactProgress.value && !!props.progressCompact)
+/** 角标/进度已 compact 后主按钮仍越出右缘时：先切「导出 ↓」短文案，再隐藏进度；完整文案并入 aria-label */
+const tightLabel = ref(false)
+const hideProgress = ref(false)
 
 async function measureBadgeFit() {
   if (!isNarrow.value) {
     compactBadge.value = false
     compactProgress.value = false
+    tightLabel.value = false
+    hideProgress.value = false
     return
   }
   compactBadge.value = false
   compactProgress.value = false
+  tightLabel.value = false
+  hideProgress.value = false
   await nextTick()
   const el = actionEl.value
   if (!el || typeof window === 'undefined') return
@@ -81,6 +89,13 @@ async function measureBadgeFit() {
     (progress.clientWidth < PROGRESS_MIN_PX || progress.scrollWidth > progress.clientWidth + 1)
   if (truncated || progressSqueezed || el.getBoundingClientRect().right > limit) compactBadge.value = true
   if (progressSqueezed) compactProgress.value = true
+  if (!compactBadge.value || props.step !== 'export') return
+  const overflows = () => !!actionEl.value && actionEl.value.getBoundingClientRect().right > limit
+  await nextTick()
+  if (!overflows()) return
+  tightLabel.value = true
+  await nextTick()
+  if (overflows()) hideProgress.value = true
 }
 
 /** 文案只描述真实动作（滚动并聚焦到目标区块的主按钮），不暗示点下去会直接执行排座 / 导出 */
@@ -97,6 +112,14 @@ const label = computed(() => {
         : tr('跳到：检查并导出')
   }
 })
+const displayLabel = computed(() => (tightLabel.value ? tr('导出 ↓') : label.value))
+const actionAriaLabel = computed(() =>
+  tightLabel.value
+    ? [label.value, showQuotaBadge.value ? badgeText.value : '', hideProgress.value ? props.progress : '']
+        .filter(Boolean)
+        .join(' · ')
+    : undefined,
+)
 
 /** 目标区块不在视口内才显示；环境不支持 IntersectionObserver 时保持显示 */
 const targetOffscreen = ref(true)
@@ -216,16 +239,20 @@ function go() {
   >
     <div class="mx-auto flex h-12 w-full max-w-[1480px] items-center justify-between gap-3 px-4">
       <p
+        v-show="!hideProgress"
         ref="progressEl"
-        class="min-w-[3.5rem] text-xs text-slate-500"
-        :class="progressWraps ? 'line-clamp-2 leading-4 whitespace-normal' : 'truncate'"
+        class="text-xs text-slate-500"
+        :class="[
+          progressWraps ? 'line-clamp-2 leading-4 whitespace-normal' : 'truncate',
+          progressIsCompact ? 'min-w-0 shrink-0' : 'min-w-[3.5rem]',
+        ]"
         :title="progressText !== progress ? progress : undefined"
         :aria-label="progressText !== progress ? progress : undefined"
         :data-compact="compactProgress && progressCompact ? 'true' : undefined"
         data-testid="next-step-progress"
       >{{ progressText }}</p>
       <!-- 进度文本先让位；按钮组仅在自身超过整条宽度时才被限宽、次按钮截断 -->
-      <div ref="groupEl" class="flex min-w-0 max-w-full shrink-0 items-center gap-2">
+      <div ref="groupEl" class="ml-auto flex min-w-0 max-w-full shrink-0 items-center gap-2">
         <!-- 次按钮位（如 <md 的「查看座位预览」），并入条内而不再独立悬浮；空间不足时次按钮先换短文案再截断，主按钮不收缩 -->
         <slot name="secondary" :compact="compactBadge" />
         <button
@@ -233,10 +260,12 @@ function go() {
           type="button"
           class="btn btn-primary btn-sm relative shrink-0"
           :title="showQuotaBadge ? quotaBadgeTitle : undefined"
+          :aria-label="actionAriaLabel"
+          :data-tight="tightLabel ? 'true' : undefined"
           data-testid="next-step-action"
           @click="go"
         >
-          {{ label }}
+          {{ displayLabel }}
           <span
             v-if="showQuotaBadge && quotaBadge"
             class="ml-1 whitespace-nowrap rounded-full px-1.5 py-px text-[11px] font-semibold"

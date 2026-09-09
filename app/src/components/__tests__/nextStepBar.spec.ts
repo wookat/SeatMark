@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 import NextStepBar, { type NextStep } from '@/components/NextStepBar.vue'
@@ -317,6 +317,8 @@ describe('NextStepBar', () => {
       expect(progress.attributes('aria-label')).toBe('0 students / 48 seats')
       expect(progress.attributes('data-compact')).toBe('true')
       expect(progress.classes()).toContain('truncate')
+      expect(progress.classes()).toContain('min-w-0')
+      expect(progress.classes()).not.toContain('min-w-[3.5rem]')
       wrapper.unmount()
       restore()
     })
@@ -368,6 +370,91 @@ describe('NextStepBar', () => {
       expect(wide.find('[data-testid="next-step-progress"]').text()).toBe('0 students / 48 seats')
       wide.unmount()
       restore()
+    })
+  })
+
+  describe('第 372 轮补丁：角标收短后主按钮仍越界 → 「导出 ↓」短文案，再越界 → 隐藏进度', () => {
+    const badge = { text: '1 watermark-free left today', compactText: '1 watermark-free', cls: 'bg-emerald-100 text-emerald-700' }
+    const rect = (right: number) => ({ left: 0, top: 0, right, bottom: 48, width: right, height: 48, x: 0, y: 0, toJSON: () => ({}) })
+    /** 按当前档位返回主按钮右缘：完整 → compact → tight（短文案）→ 进度隐藏 */
+    const mockAction = (rights: { full: number; compact: number; tight: number; noProgress: number }) =>
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+        if (this.dataset.testid === 'next-step-bar') return rect(390) as DOMRect
+        if (this.dataset.testid !== 'next-step-action') return rect(0) as DOMRect
+        const bar = this.closest<HTMLElement>('[data-testid="next-step-bar"]')
+        const progress = bar?.querySelector<HTMLElement>('[data-testid="next-step-progress"]')
+        if (progress && progress.style.display === 'none') return rect(rights.noProgress) as DOMRect
+        if (this.dataset.tight === 'true') return rect(rights.tight) as DOMRect
+        if (this.querySelector('[data-compact="true"]')) return rect(rights.compact) as DOMRect
+        return rect(rights.full) as DOMRect
+      })
+    const mountEn = () =>
+      mount(NextStepBar, {
+        props: { step: 'export', arrangeLabel: 'Random seating', progress: '48 students / 48 seats', progressCompact: '48/48', target: document.createElement('section'), quotaBadge: badge },
+      })
+    const settle = async (w: ReturnType<typeof mountEn>) => {
+      for (let i = 0; i < 4; i++) await w.vm.$nextTick()
+    }
+
+    beforeEach(async () => {
+      await setLocale('en')
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn((query: string) => ({ matches: query === '(max-width: 639px)', addEventListener: vi.fn(), removeEventListener: vi.fn() })),
+      )
+    })
+
+    it('compact 后仍越界（如 390px 英文）→ 主按钮显示「Export ↓」，aria-label 保留「Go to: Export」与角标全文，进度仍显示', async () => {
+      const spy = mockAction({ full: 507, compact: 424, tight: 374, noProgress: 340 })
+      const w = mountEn()
+      await settle(w)
+      const action = w.find('[data-testid="next-step-action"]')
+      expect(action.attributes('data-tight')).toBe('true')
+      expect(action.text()).toBe('Export ↓ 1 watermark-free')
+      expect(action.attributes('aria-label')).toBe('Go to: Export · 1 watermark-free')
+      const progress = w.find('[data-testid="next-step-progress"]')
+      expect(progress.isVisible()).toBe(true)
+      w.unmount()
+      spy.mockRestore()
+    })
+
+    it('短文案后仍越界（如 360px）→ 隐藏进度文案，完整进度并入 aria-label；按钮组靠右（ml-auto）', async () => {
+      const spy = mockAction({ full: 537, compact: 454, tight: 404, noProgress: 372 })
+      const w = mountEn()
+      await settle(w)
+      const action = w.find('[data-testid="next-step-action"]')
+      expect(action.text()).toBe('Export ↓ 1 watermark-free')
+      expect(action.attributes('aria-label')).toBe('Go to: Export · 1 watermark-free · 48 students / 48 seats')
+      expect(w.find('[data-testid="next-step-progress"]').isVisible()).toBe(false)
+      expect(w.find('[data-testid="next-step-action"]').element.parentElement?.classList.contains('ml-auto')).toBe(true)
+      w.unmount()
+      spy.mockRestore()
+    })
+
+    it('compact 后已放下 → 文案保持「Go to: Export」，不加 aria-label / data-tight', async () => {
+      const spy = mockAction({ full: 507, compact: 370, tight: 340, noProgress: 300 })
+      const w = mountEn()
+      await settle(w)
+      const action = w.find('[data-testid="next-step-action"]')
+      expect(action.text()).toBe('Go to: Export 1 watermark-free')
+      expect(action.attributes('aria-label')).toBeUndefined()
+      expect(action.attributes('data-tight')).toBeUndefined()
+      w.unmount()
+      spy.mockRestore()
+    })
+
+    it('中文同样走该档位：「导出 ↓」', async () => {
+      await setLocale('zh')
+      const spy = mockAction({ full: 507, compact: 424, tight: 374, noProgress: 340 })
+      const w = mount(NextStepBar, {
+        props: { step: 'export', arrangeLabel: '随机排座', progress: '48 人 / 48 座', progressCompact: '48/48', target: document.createElement('section'), quotaBadge: { text: '无水印 今日剩余 1 次', compactText: '无水印 剩 1 次', cls: '' } },
+      })
+      await settle(w)
+      const action = w.find('[data-testid="next-step-action"]')
+      expect(action.text()).toBe('导出 ↓ 无水印 剩 1 次')
+      expect(action.attributes('aria-label')).toBe('跳到：导出 · 无水印 剩 1 次')
+      w.unmount()
+      spy.mockRestore()
     })
   })
 

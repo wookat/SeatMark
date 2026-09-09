@@ -1061,7 +1061,7 @@ function toDeskLabels() {
     <div class="mt-6 grid items-start gap-5 lg:grid-cols-[380px_minmax(0,1fr)]">
       <!-- 设置面板 -->
       <aside class="no-print flex min-w-0 flex-col gap-4">
-        <section ref="basicSection" class="panel-card scroll-mt-4">
+        <section ref="basicSection" class="panel-card scroll-mt-16">
           <h2 class="section-title"><span class="step-chip">1</span>{{ tr('基本信息') }}</h2>
           <div class="mt-3 grid grid-cols-2 gap-2.5">
             <div class="col-span-2 grid grid-cols-[minmax(0,1fr)_6.5rem] gap-2.5">
@@ -1163,7 +1163,7 @@ function toDeskLabels() {
           </div>
         </section>
 
-        <section ref="rosterSection" class="panel-card scroll-mt-4 outline-none">
+        <section ref="rosterSection" class="panel-card scroll-mt-16 outline-none">
           <div class="panel-head">
             <h2 class="section-title"><span class="step-chip">2</span>{{ tr('学生名单') }}</h2>
             <div class="flex flex-wrap items-center justify-end gap-1">
@@ -1291,7 +1291,7 @@ function toDeskLabels() {
           </div>
         </section>
 
-        <section ref="arrangeSection" class="panel-card scroll-mt-4 outline-none">
+        <section ref="arrangeSection" class="panel-card scroll-mt-16 outline-none">
           <h2 class="section-title">
             <span class="step-chip">3</span>{{ tr('随机排座') }}
             <span class="ml-1 text-xs font-normal text-slate-500">{{ tr('（可选）') }}</span>
@@ -1347,7 +1347,7 @@ function toDeskLabels() {
           </p>
         </section>
 
-        <section ref="exportSection" class="panel-card scroll-mt-4 outline-none">
+        <section ref="exportSection" class="panel-card scroll-mt-16 outline-none">
           <h2 class="section-title"><span class="step-chip">4</span>{{ tr('输出') }}</h2>
           <div class="mt-3 flex flex-col gap-2">
             <button type="button" class="btn btn-primary btn-md" @click="doPrint">
