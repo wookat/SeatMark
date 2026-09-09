@@ -11,6 +11,13 @@ import type { LabelTemplate } from '@/types/template'
 
 export const SHARE_HASH_PREFIX = '#tpl='
 
+/**
+ * 解码资源预算：hash 负载字符数上限与解压后字节数上限。
+ * 内置模板压缩后负载仅几 KB，两个上限都留了数十倍余量；超限的负载视为非法，不再继续解压。
+ */
+export const SHARE_PAYLOAD_MAX_CHARS = 256 * 1024
+export const SHARE_DECODED_MAX_BYTES = 4 * 1024 * 1024
+
 function bytesToBase64Url(bytes: Uint8Array): string {
   let binary = ''
   const chunk = 0x8000
@@ -27,9 +34,11 @@ function base64UrlToBytes(text: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(binary, (c) => c.charCodeAt(0))
 }
 
+/** 穿过压缩 / 解压流；累计输出超过 maxBytes 时取消读取并抛错，不让高压缩比负载占满内存 */
 async function pipeThrough(
   bytes: Uint8Array<ArrayBuffer>,
   transform: CompressionStream | DecompressionStream,
+  maxBytes = Infinity,
 ): Promise<Uint8Array<ArrayBuffer>> {
   const source = new ReadableStream<BufferSource>({
     start(controller) {
@@ -43,8 +52,12 @@ async function pipeThrough(
   for (;;) {
     const { done, value } = await reader.read()
     if (done) break
-    chunks.push(value)
     total += value.length
+    if (total > maxBytes) {
+      await reader.cancel()
+      throw new Error('decoded payload exceeds byte budget')
+    }
+    chunks.push(value)
   }
   const out = new Uint8Array(total)
   let offset = 0
@@ -68,6 +81,7 @@ export async function encodeTemplateForShare(template: LabelTemplate): Promise<s
 
 /** 解析 hash 负载；非法/不支持时返回 null */
 export async function decodeSharedTemplate(payload: string): Promise<LabelTemplate | null> {
+  if (payload.length > SHARE_PAYLOAD_MAX_CHARS) return null
   try {
     let utf8: Uint8Array
     if (payload.startsWith('v1.')) {
@@ -75,6 +89,7 @@ export async function decodeSharedTemplate(payload: string): Promise<LabelTempla
       utf8 = await pipeThrough(
         base64UrlToBytes(payload.slice(3)),
         new DecompressionStream('deflate-raw'),
+        SHARE_DECODED_MAX_BYTES,
       )
     } else if (payload.startsWith('v0.')) {
       utf8 = base64UrlToBytes(payload.slice(3))

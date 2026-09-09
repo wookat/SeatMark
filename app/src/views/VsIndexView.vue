@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import EnIndexShell, { type EnIndexFeatured } from '@/components/ui/EnIndexShell.vue'
 import ZhOnlyNotice from '@/components/ui/ZhOnlyNotice.vue'
-import { vsPages } from '@/data/vsPages'
+import { vsPagePath, vsPagesFor } from '@/data/vsPages'
 import { useI18n } from '@/i18n'
 
 const { t, locale, localePath } = useI18n()
 
-/** /en 下列表区的英文替代块：主题说明 + 精选入口（英文标题，指向中文对比页） */
+/** /vs 只列中文页；/en/vs 列英文页（中文页由 EnIndexShell 精选带 Chinese 角标列出） */
+const zhPages = vsPagesFor('zh')
+const enPages = vsPagesFor('en')
+
+/** /en 下中文对比页的英文替代块：主题说明 + 精选入口（英文标题，指向中文对比页） */
 const EN_INTRO =
-  'Hands-on, item-by-item comparisons of SeatMark with the usual ways people make desk cards and place cards — design tools, Word/WPS mail merge and online card makers — covering batch generation from a roster, print imposition, calibration accuracy, privacy and price. Where a competitor leads, we say so. These write-ups are in Chinese for now.'
+  'Hands-on, item-by-item comparisons of SeatMark with the usual ways people make desk cards and place cards — design tools, Word/WPS mail merge and online card makers — covering batch generation from a roster, print imposition, calibration accuracy, privacy and price. Where a competitor leads, we say so. The write-ups below are in Chinese for now.'
 const EN_FEATURED: EnIndexFeatured[] = [
   {
     title: 'SeatMark vs Canva',
@@ -41,21 +45,49 @@ const EN_FEATURED: EnIndexFeatured[] = [
       <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
         {{ t('基于我们对各工具的实际上手记录，逐项对照名单批量生成、打印拼版、校准精度、隐私与价格，帮你按自己的场景选对工具。措辞如实客观，对方领先项照写。') }}
       </p>
-      <ZhOnlyNotice />
+      <ZhOnlyNotice variant="vs" />
     </div>
 
-    <EnIndexShell
-      v-if="locale === 'en'"
-      :intro="EN_INTRO"
-      featured-heading="Comparisons"
-      :featured="EN_FEATURED"
-    />
+    <template v-if="locale === 'en'">
+      <section v-if="enPages.length" lang="en" class="mx-auto mt-8 max-w-2xl" data-testid="vs-en-list">
+        <h2 class="text-xs font-bold tracking-widest text-slate-500 uppercase">Comparisons in English</h2>
+        <div class="mt-3 grid gap-4">
+          <RouterLink
+            v-for="page in enPages"
+            :key="page.slug"
+            :to="vsPagePath(page)"
+            class="group flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-card transition-shadow hover:shadow-lg"
+          >
+            <h3 class="text-base font-bold text-slate-900 group-hover:text-brand-600">
+              SeatMark vs {{ page.competitorName }}
+            </h3>
+            <p class="mt-2 line-clamp-3 text-xs leading-5 text-slate-600">{{ page.intro }}</p>
+            <span class="mt-3 inline-flex items-center gap-1 text-xs font-bold text-brand-600">
+              {{ t('查看逐项对比') }}
+              <svg
+                class="size-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M5 12h14m-6-6 6 6-6 6" />
+              </svg>
+            </span>
+          </RouterLink>
+        </div>
+      </section>
+
+      <EnIndexShell :intro="EN_INTRO" featured-heading="Comparisons" :featured="EN_FEATURED" />
+    </template>
 
     <div v-else class="mt-10 grid gap-5 sm:grid-cols-2">
       <RouterLink
-        v-for="page in vsPages"
+        v-for="page in zhPages"
         :key="page.slug"
-        :to="`/vs/${page.slug}`"
+        :to="vsPagePath(page)"
         class="group flex flex-col rounded-lg border border-slate-200 bg-white p-6 shadow-card transition-shadow hover:shadow-lg"
       >
         <h2 class="text-base font-bold text-slate-900 group-hover:text-brand-600">

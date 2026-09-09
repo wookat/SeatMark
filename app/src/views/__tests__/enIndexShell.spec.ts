@@ -16,12 +16,15 @@ const NOTICE_TEXT =
 /** 第 358 轮：/en/templates 卡片已英文化，黄条文案与页面内容一致，不再自相矛盾 */
 const TEMPLATES_NOTICE_TEXT =
   'Template names, descriptions and the label maker are in English; tutorial articles are in Chinese only.'
+/** 第 372 轮：/en/vs 含英文对比页（Prismm），黄条只把带 Chinese 角标的条目声明为中文 */
+const VS_NOTICE_TEXT =
+  'Comparisons marked Chinese are available in Chinese only; the others are in English, as are the Studio, Seating Chart, Banquet planner and Pricing pages.'
 
 const VIEWS = [
   { name: 'GuidesView', component: GuidesView, path: '/guides', notice: NOTICE_TEXT },
   { name: 'TemplatesView', component: TemplatesView, path: '/templates', notice: TEMPLATES_NOTICE_TEXT },
   { name: 'PapersView', component: PapersView, path: '/papers', notice: NOTICE_TEXT },
-  { name: 'VsIndexView', component: VsIndexView, path: '/vs', notice: NOTICE_TEXT },
+  { name: 'VsIndexView', component: VsIndexView, path: '/vs', notice: VS_NOTICE_TEXT },
 ] as const
 
 async function mountView(view: (typeof VIEWS)[number], locale: 'zh' | 'en') {

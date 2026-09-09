@@ -31,6 +31,16 @@ const suggestionText = computed(() => {
     .replace('{total}', String(s.mappable))
 })
 
+/** 重复提示按当前模板的字段 label 措辞（会议模板是「会场」而非「考场」） */
+const duplicateExamIdText = computed(() =>
+  t('个{field}重复').replace('{field}', t(workspace.dataQuality.duplicateExamIdLabel)),
+)
+const duplicateSeatKeyText = computed(() =>
+  t('个「{room} + {seat}」组合重复')
+    .replace('{room}', t(workspace.dataQuality.duplicateSeatKeyLabels.room))
+    .replace('{seat}', t(workspace.dataQuality.duplicateSeatKeyLabels.seat)),
+)
+
 const TONE_CLASSES: Record<string, string> = {
   muted: 'border-slate-200 bg-slate-50 text-slate-600',
   success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
@@ -298,11 +308,11 @@ function onPhotoFiles(event: Event) {
             <p class="mt-1 font-sans opacity-85">{{ t('行号与「导入数据」预览中的序号一致（不含表头行）；空字段在成品中将留空，不会自动补全。') }}</p>
           </details>
         </li>
-        <li v-if="workspace.dataQuality.duplicateExamIds">
-          {{ workspace.dataQuality.duplicateExamIds }} {{ t('个准考证号重复') }}
+        <li v-if="workspace.dataQuality.duplicateExamIds" data-testid="duplicate-exam-ids">
+          {{ workspace.dataQuality.duplicateExamIds }} {{ duplicateExamIdText }}
         </li>
-        <li v-if="workspace.dataQuality.duplicateSeatKeys">
-          {{ workspace.dataQuality.duplicateSeatKeys }} {{ t('个「考场 + 座位号」组合重复') }}
+        <li v-if="workspace.dataQuality.duplicateSeatKeys" data-testid="duplicate-seat-keys">
+          {{ workspace.dataQuality.duplicateSeatKeys }} {{ duplicateSeatKeyText }}
         </li>
       </ul>
       <CheckboxField

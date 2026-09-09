@@ -5,19 +5,22 @@ import {
   type RouteRecordRaw,
 } from 'vue-router'
 
+import { isEnContentDetailPath } from '@/data/enContentPaths'
 import { localeFromPath, setLocale, stripLocalePrefix } from '@/i18n'
 
 /**
  * 仅有中文正文的路由：/en 镜像直接回到中文路径，避免英文外壳包中文正文。
  * - 内容站详情页（guides/templates/papers/vs 的 :slug）；
  * - 专题落地页（整路径匹配，不预渲染 /en 版本）。
- * 协议/隐私页在 /en 下渲染英文摘要 + 中文全文链接，不在此列。
+ * 协议/隐私页在 /en 下渲染英文摘要 + 中文全文链接，不在此列；
+ * 有独立英文正文的详情页（EN_CONTENT_DETAIL_PATHS）也不重定向。
  */
 const EN_ZH_ONLY_DETAIL_RE =
   /^\/en\/(?:(?:guides|templates|papers|vs)\/[^/]+|(?:desk-card-generator|name-card-batch)\/?$)/
 
 /** /en 下仅有中文正文的页面 →对应中文路径；其余返回 null */
 export function zhOnlyRedirectTarget(path: string): string | null {
+  if (isEnContentDetailPath(path)) return null
   return EN_ZH_ONLY_DETAIL_RE.test(path) ? stripLocalePrefix(path) : null
 }
 

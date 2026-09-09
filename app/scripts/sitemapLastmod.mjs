@@ -4,7 +4,7 @@
  *
  * - /guides/:slug      → guide.dateModified（其次 datePublished）
  * - /templates/:slug   → detail.dateModified / datePublished / updatedAt（数据目前无日期字段 → 构建日）
- * - /vs/:slug          → vs.dateModified / datePublished / updatedAt / researchDate
+ * - /vs/:slug, /en/vs/:slug → vs.dateModified / datePublished / updatedAt / researchDate
  *                        （researchDate 当前为 YYYY-MM 精度，校验不通过时回退构建日）
  * - /topics/*          → topic.dateModified / datePublished / updatedAt（数据目前无日期字段 → 构建日）
  * - 其余               → 构建日
@@ -54,7 +54,7 @@ export function resolveLastmod(path, sources) {
     return firstValidDate(detail, DATE_KEYS) ?? today
   }
 
-  const vsMatch = /^\/vs\/([^/]+)$/.exec(path)
+  const vsMatch = /^(?:\/en)?\/vs\/([^/]+)$/.exec(path)
   if (vsMatch) {
     const page = vsPages.find((v) => v.slug === vsMatch[1])
     return firstValidDate(page, [...DATE_KEYS, 'researchDate']) ?? today

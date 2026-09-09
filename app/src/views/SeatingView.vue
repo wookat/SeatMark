@@ -753,6 +753,7 @@ const personUnit = computed(() => (currentLocale() === 'en' ? tr('名单人数�
 const nextStepProgress = computed(
   () => `${filledCount.value} ${personUnit.value} / ${seatCount.value} ${tr('座')}`,
 )
+const nextStepProgressCompact = computed(() => `${filledCount.value}/${seatCount.value}`)
 /** 排不进座位的学生（按填充顺序座位数之后的非空姓名）及其在名单序中的位置，点姓名可与选中座位互换 */
 const unseated = computed(() =>
   unseatedEntries(entries.value, rows.value, cols.value, spacing.value, entries.value.length),
@@ -1170,6 +1171,7 @@ function toDeskLabels() {
                 type="button"
                 class="btn btn-secondary btn-sm"
                 data-testid="seating-upload-roster"
+                data-next-step-primary
                 @click="rosterFile.open"
               >
                 {{ tr('上传名单文件') }}
@@ -1295,7 +1297,7 @@ function toDeskLabels() {
             <span class="ml-1 text-xs font-normal text-slate-500">{{ tr('（可选）') }}</span>
           </h2>
           <div class="mt-3 flex flex-wrap gap-2">
-            <button type="button" class="btn btn-secondary btn-sm" @click="randomizeAll">
+            <button type="button" class="btn btn-secondary btn-sm" data-testid="seating-randomize" data-next-step-primary @click="randomizeAll">
               <svg
                 class="size-3.5"
                 viewBox="0 0 24 24"
@@ -1368,6 +1370,7 @@ function toDeskLabels() {
               :disabled="exporting"
               :title="`${tr('当前视角的座位表存为一张 PNG 图片，方便发班群、贴进 PPT')}。${exportBadgeTitle}`"
               data-testid="seating-export-png"
+              data-next-step-primary
               @click="startPngExport"
             >
               <svg
@@ -1674,6 +1677,7 @@ function toDeskLabels() {
       :step="nextStep"
       :arrange-label="tr('随机排座')"
       :progress="nextStepProgress"
+      :progress-compact="nextStepProgressCompact"
       :target="nextStepTarget"
       :quota-badge="exportBadge"
       :quota-badge-title="exportBadgeTitle"

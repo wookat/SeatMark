@@ -16,13 +16,15 @@ const props = withDefaults(
     arrangeLabel: string
     /** 当前进度短文本（如「12 人 / 48 座」） */
     progress?: string
+    /** 进度的极短形式（如「12/48」）：窄屏上 progress 被挤压时改显示它，完整文本保留在 title / aria-label */
+    progressCompact?: string
     /** 目标区块：不在视口内时显示操作条，点击后滚动并聚焦到它 */
     target: HTMLElement | null
     /** 「export」步骤时在主按钮上展示的无水印额度角标 */
     quotaBadge?: QuotaBadge | null
     quotaBadgeTitle?: string
   }>(),
-  { progress: '', quotaBadge: null, quotaBadgeTitle: '' },
+  { progress: '', progressCompact: '', quotaBadge: null, quotaBadgeTitle: '' },
 )
 
 defineSlots<{
@@ -46,13 +48,24 @@ const compactBadge = ref(false)
 const badgeText = computed(() =>
   compactBadge.value ? (props.quotaBadge?.compactText ?? props.quotaBadge?.text) : props.quotaBadge?.text,
 )
+/**
+ * 进度文案被挤压（宽度不足 PROGRESS_MIN_PX 或已被截断）时切到 progressCompact；
+ * 没有 compact 文案时退化为两行换行显示，不再截成省略号
+ */
+const compactProgress = ref(false)
+const progressText = computed(() =>
+  compactProgress.value && props.progressCompact ? props.progressCompact : props.progress,
+)
+const progressWraps = computed(() => compactProgress.value && !props.progressCompact)
 
 async function measureBadgeFit() {
   if (!isNarrow.value) {
     compactBadge.value = false
+    compactProgress.value = false
     return
   }
   compactBadge.value = false
+  compactProgress.value = false
   await nextTick()
   const el = actionEl.value
   if (!el || typeof window === 'undefined') return
@@ -62,21 +75,26 @@ async function measureBadgeFit() {
   )
   const progress = progressEl.value
   const progressSqueezed =
-    !!progress && !!props.progress && progress.clientWidth > 0 && progress.clientWidth < PROGRESS_MIN_PX
+    !!progress &&
+    !!props.progress &&
+    progress.clientWidth > 0 &&
+    (progress.clientWidth < PROGRESS_MIN_PX || progress.scrollWidth > progress.clientWidth + 1)
   if (truncated || progressSqueezed || el.getBoundingClientRect().right > limit) compactBadge.value = true
+  if (progressSqueezed) compactProgress.value = true
 }
 
+/** 文案只描述真实动作（滚动并聚焦到目标区块的主按钮），不暗示点下去会直接执行排座 / 导出 */
 const label = computed(() => {
   switch (props.step) {
     case 'import':
-      return tr('下一步：导入名单')
+      return tr('跳到：导入名单')
     case 'arrange':
-      return `${tr('下一步：')}${props.arrangeLabel}`
+      return `${tr('跳到：')}${props.arrangeLabel}`
     case 'export':
       // 窄屏上角标与次按钮同行，主按钮文案收短以免角标溢出视口
       return showQuotaBadge.value && isNarrow.value
-        ? tr('下一步：导出')
-        : tr('下一步：检查并导出')
+        ? tr('跳到：导出')
+        : tr('跳到：检查并导出')
   }
 })
 
@@ -128,7 +146,8 @@ const barEl = ref<HTMLElement | null>(null)
 useNextStepBarHeight(barEl)
 
 watch(
-  () => [visible.value, isNarrow.value, showQuotaBadge.value, props.quotaBadge?.text, label.value, props.progress] as const,
+  () =>
+    [visible.value, isNarrow.value, showQuotaBadge.value, props.quotaBadge?.text, label.value, props.progress, props.progressCompact] as const,
   () => void measureBadgeFit(),
   { flush: 'post' },
 )
@@ -143,10 +162,44 @@ function prefersReducedMotion() {
   return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
+/** 一次性高亮：动画结束即移除，避免残留样式；不支持 animationend 的环境用定时器兑底 */
+const ATTN_CLASS = 'sm-attn'
+const ATTN_FALLBACK_MS = 1500
+function flashAttention(btn: HTMLElement) {
+  btn.classList.remove(ATTN_CLASS)
+  const clear = () => {
+    btn.classList.remove(ATTN_CLASS)
+    btn.removeEventListener('animationend', clear)
+    window.clearTimeout(timer)
+  }
+  btn.addEventListener('animationend', clear)
+  const timer = window.setTimeout(clear, ATTN_FALLBACK_MS)
+  btn.classList.add(ATTN_CLASS)
+}
+
+/** 优先聚焦目标区块内标记为主按钮的元素（不可用 / 不可见的跳过），没有时回退聚焦整个区块 */
+function primaryIn(section: HTMLElement): HTMLElement | null {
+  const candidates = section.querySelectorAll<HTMLElement>('[data-next-step-primary]')
+  for (const c of candidates) {
+    if (c instanceof HTMLButtonElement && c.disabled) continue
+    if (c.hidden || c.getAttribute('aria-hidden') === 'true') continue
+    return c
+  }
+  return null
+}
+
 function go() {
   const el = props.target
   if (!el) return
   el.scrollIntoView({ behavior: prefersReducedMotion() ? 'instant' : 'smooth', block: 'start' })
+  const primary = primaryIn(el)
+  if (primary) {
+    primary.focus({ preventScroll: true })
+    if (document.activeElement === primary) {
+      flashAttention(primary)
+      return
+    }
+  }
   if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1')
   el.focus({ preventScroll: true })
 }
@@ -162,7 +215,15 @@ function go() {
     @focusout="barFocused = false"
   >
     <div class="mx-auto flex h-12 w-full max-w-[1480px] items-center justify-between gap-3 px-4">
-      <p ref="progressEl" class="min-w-[3.5rem] truncate text-xs text-slate-500" data-testid="next-step-progress">{{ progress }}</p>
+      <p
+        ref="progressEl"
+        class="min-w-[3.5rem] text-xs text-slate-500"
+        :class="progressWraps ? 'line-clamp-2 leading-4 whitespace-normal' : 'truncate'"
+        :title="progressText !== progress ? progress : undefined"
+        :aria-label="progressText !== progress ? progress : undefined"
+        :data-compact="compactProgress && progressCompact ? 'true' : undefined"
+        data-testid="next-step-progress"
+      >{{ progressText }}</p>
       <!-- 进度文本先让位；按钮组仅在自身超过整条宽度时才被限宽、次按钮截断 -->
       <div ref="groupEl" class="flex min-w-0 max-w-full shrink-0 items-center gap-2">
         <!-- 次按钮位（如 <md 的「查看座位预览」），并入条内而不再独立悬浮；空间不足时次按钮先换短文案再截断，主按钮不收缩 -->
