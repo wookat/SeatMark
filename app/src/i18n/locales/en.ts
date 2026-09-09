@@ -611,6 +611,7 @@ export const en: Record<string, string> = {
   '跳到：': 'Go to: ',
   '跳到：检查并导出': 'Go to: Check & export',
   '跳到：导出': 'Go to: Export',
+  '导出 ↓': 'Export ↓',
   '自动分配': 'Auto-assign',
   '已删除空桌': 'Removed empty tables:',
   '默认桌名已重新编号': 'Default table names have been renumbered',
