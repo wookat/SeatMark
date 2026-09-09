@@ -203,23 +203,24 @@ describe('第 372 轮：Studio 可见紧凑 h1', () => {
     await setLocale('zh')
   })
 
-  it('唯一 h1 可见（非 sr-only）、单行紧凑、不吸顶；中英文文案沿用原字符串', async () => {
+  it('唯一 h1 可见（非 sr-only）、最多两行不省略、不吸顶；中文文案沿用原字符串、英文缩短', async () => {
     const wrapper = await mountStudio()
     const h1s = wrapper.findAll('h1')
     expect(h1s.length).toBe(1)
     const h1 = h1s[0]!
     expect(h1.attributes('data-testid')).toBe('studio-title')
     expect(h1.classes()).not.toContain('sr-only')
-    for (const cls of ['truncate', 'text-sm', 'font-semibold', 'text-slate-800', 'leading-6']) {
+    for (const cls of ['line-clamp-2', 'text-balance', 'text-sm', 'font-semibold', 'text-slate-800', 'leading-5', 'sm:leading-6', 'md:w-[320px]', 'lg:w-[400px]']) {
       expect(h1.classes()).toContain(cls)
     }
+    expect(h1.classes()).not.toContain('truncate')
     expect(h1.classes().some((c) => c.startsWith('sticky'))).toBe(false)
     expect(h1.text()).toBe('SeatMark 标签工坊：批量生成桌牌 / 座签 / 席位卡')
     wrapper.unmount()
 
     await setLocale('en')
     const en = await mountStudio()
-    expect(en.get('h1').text()).toBe('SeatMark Studio: batch-generate place cards / seating labels / name tags')
+    expect(en.get('h1').text()).toBe('SeatMark Studio: place cards, seat labels & name tags in bulk')
     en.unmount()
   })
 })

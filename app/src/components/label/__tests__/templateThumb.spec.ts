@@ -31,6 +31,9 @@ async function resize(wrapper: ReturnType<typeof mount>, width: number, height: 
   await wrapper.vm.$nextTick()
 }
 
+/** 第 373 轮：卡片四周各留 3% 安全边，缩放按容器 94% 计算 */
+const SAFE_FIT = 0.94
+
 function scaleOf(style: string): number {
   const m = /scale\(([\d.]+)\)/.exec(style)
   expect(m).not.toBeNull()
@@ -48,7 +51,7 @@ describe('第 355 轮：模板缩略图 transform-origin 顶部居中 + 按容�
     const wrapper = await mountThumb()
     const card = wrapper.find('[data-testid="template-thumb-card"]')
     expect(card.classes()).toContain('origin-top')
-    expect(card.classes()).toContain('top-0')
+    expect(card.classes()).toContain('top-[3%]')
     expect(card.classes()).toContain('left-1/2')
     expect(card.classes()).not.toContain('origin-top-left')
     expect(card.attributes('style')).toContain('translateX(-50%)')
@@ -71,16 +74,16 @@ describe('第 355 轮：模板缩略图 transform-origin 顶部居中 + 按容�
 
     const naturalW = deskHalf.label.width * MM_TO_PX
     const naturalH = deskHalf.label.height * MM_TO_PX
-    // 容器按比例给足高度：缩放 = 宽比
+    // 容器按比例给足高度：缩放 = 宽比 × 94%（四周各留 3% 安全边）
     await resize(wrapper, 224, (224 * naturalH) / naturalW)
     expect(card.attributes('style')).not.toContain('visibility: hidden')
-    expect(scaleOf(card.attributes('style')!)).toBeCloseTo(224 / naturalW, 4)
+    expect(scaleOf(card.attributes('style')!)).toBeCloseTo((224 * SAFE_FIT) / naturalW, 4)
     expect(naturalH * scaleOf(card.attributes('style')!)).toBeLessThanOrEqual((224 * naturalH) / naturalW + 0.01)
 
     // 容器高度被压缩到一半：改由高比决定，标签不会被裁顶/裁底
     const shortH = ((224 * naturalH) / naturalW) * 0.5
     await resize(wrapper, 224, shortH)
-    expect(scaleOf(card.attributes('style')!)).toBeCloseTo(shortH / naturalH, 4)
+    expect(scaleOf(card.attributes('style')!)).toBeCloseTo((shortH * SAFE_FIT) / naturalH, 4)
     expect(naturalW * scaleOf(card.attributes('style')!)).toBeLessThanOrEqual(224 + 0.01)
     wrapper.unmount()
   })
@@ -91,7 +94,7 @@ describe('第 355 轮：模板缩略图 transform-origin 顶部居中 + 按容�
     const naturalW = standard.label.width * MM_TO_PX
     const naturalH = standard.label.height * MM_TO_PX
     await resize(wrapper, 64, (64 * naturalH) / naturalW)
-    expect(scaleOf(card.attributes('style')!)).toBeCloseTo(64 / naturalW, 4)
+    expect(scaleOf(card.attributes('style')!)).toBeCloseTo((64 * SAFE_FIT) / naturalW, 4)
     wrapper.unmount()
   })
 })

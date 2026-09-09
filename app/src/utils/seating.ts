@@ -409,6 +409,8 @@ export interface GenderMixSummary {
   surplus: number
   /** 线性顺序中相邻同性（均有性别）的座位对数 */
   adjacentSamePairs: number
+  /** 处在相邻同性对中的全部座位线性下标（0 起，升序去重），供预览标记“建议人工复核” */
+  adjacentSameSeats: number[]
 }
 
 /** 统计一份排座结果的男女构成与相邻同性对数，供混排后的提示文案使用 */
@@ -422,12 +424,24 @@ export function summarizeGenderMix(arranged: readonly SeatingEntry[]): GenderMix
     else unknown++
   }
   let adjacentSamePairs = 0
+  const marked = new Set<number>()
   for (let i = 1; i < arranged.length; i++) {
     const prev = arranged[i - 1]!.gender
     const cur = arranged[i]!.gender
-    if (prev && cur && prev === cur) adjacentSamePairs++
+    if (prev && cur && prev === cur) {
+      adjacentSamePairs++
+      marked.add(i - 1)
+      marked.add(i)
+    }
   }
-  return { boys, girls, unknown, surplus: Math.abs(boys - girls), adjacentSamePairs }
+  return {
+    boys,
+    girls,
+    unknown,
+    surplus: Math.abs(boys - girls),
+    adjacentSamePairs,
+    adjacentSameSeats: [...marked],
+  }
 }
 
 // ---------- 座位网格与视角镜像 ----------

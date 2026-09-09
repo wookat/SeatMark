@@ -482,6 +482,110 @@ describe('第 366 轮：estimateCapacity 纯函数（与摘要栏同一份 guest
     // 锁定桌空着 6 座不可用：35 人时容量 34 → 差 1
     expect(estimateCapacity(guestsOf(35), [locked, ...open])).toMatchObject({ status: 'short', shortage: 1 })
   })
+
+  describe('第 373 轮：oversizedGroups 预判必拆分组', () => {
+    const groups = [
+      { id: 'a', name: '男方亲友', color: '#000' },
+      { id: 'b', name: '女方亲友', color: '#000' },
+      { id: 'c', name: '同事', color: '#000' },
+    ]
+    function grouped(sizes: Record<string, number>): BanquetGuest[] {
+      return Object.entries(sizes).flatMap(([groupId, n]) =>
+        Array.from({ length: n }, (_, i) => ({ id: `${groupId}${i}`, name: `${groupId}${i}`, groupId })),
+      )
+    }
+
+    it('16 人组 vs 10 座桌 → 命中（带组名、人数、单桌最大座位）；≤10 人组不计', () => {
+      const tables = Array.from({ length: 5 }, (_, i) => table(`t${i}`, `${i + 1}号桌`, 10, []))
+      const est = estimateCapacity(grouped({ a: 16, b: 16, c: 10 }), tables, groups)
+      expect(est.status).toBe('enough')
+      expect(est.oversizedGroups).toEqual([
+        { groupId: 'a', groupName: '男方亲友', size: 16, maxTableSeats: 10 },
+        { groupId: 'b', groupName: '女方亲友', size: 16, maxTableSeats: 10 },
+      ])
+      // 座位不足（short）时同样给出预判
+      const short = estimateCapacity(grouped({ a: 16, b: 16, c: 10 }), tables.slice(0, 3), groups)
+      expect(short.status).toBe('short')
+      expect(short.oversizedGroups.map((g) => g.groupId)).toEqual(['a', 'b'])
+    })
+
+    it('所有分组 ≤ 单桌最大座位、或无分组 → 空数组', () => {
+      const tables = [table('t0', '1号桌', 8, []), table('t1', '2号桌', 12, [])]
+      expect(estimateCapacity(grouped({ a: 12, b: 3 }), tables, groups).oversizedGroups).toEqual([])
+      expect(estimateCapacity(guestsOf(20), tables, groups).oversizedGroups).toEqual([])
+      expect(estimateCapacity(grouped({ a: 12 }), [], groups).oversizedGroups).toEqual([])
+    })
+
+    it('锁定桌不计：唯一的 20 座桌被锁定后，12 人组按未锁定桌最大 10 座判定必拆；未传 groups 时组名回退为 id', () => {
+      const big: BanquetTable = { ...table('L', '主桌', 20, []), locked: true }
+      const small = [table('t0', '1号桌', 10, []), table('t1', '2号桌', 10, [])]
+      expect(estimateCapacity(grouped({ a: 12 }), [big, ...small], groups).oversizedGroups).toEqual([
+        { groupId: 'a', groupName: '男方亲友', size: 12, maxTableSeats: 10 },
+      ])
+      expect(estimateCapacity(grouped({ a: 12 }), [{ ...big, locked: false }, ...small], groups).oversizedGroups).toEqual([])
+      expect(estimateCapacity(grouped({ a: 12 }), small).oversizedGroups[0]).toMatchObject({ groupName: 'a' })
+      // 全部桌锁定：无可分配桌，不做预判
+      expect(
+        estimateCapacity(grouped({ a: 12 }), small.map((t) => ({ ...t, locked: true })), groups).oversizedGroups,
+      ).toEqual([])
+    })
+  })
+})
+
+describe('第 373 轮：容量预估文案追加「哪些分组会被拆」预告', () => {
+  it('48 人、3 个 16 人组、6 桌×10 座：分配前即列出 3 个必拆分组，分配后摘要「拆分分组 3」一致', async () => {
+    const groups = [
+      { id: 'a', name: '男方亲友', color: '#4f46e5' },
+      { id: 'b', name: '女方亲友', color: '#e11d48' },
+      { id: 'c', name: '同事', color: '#0891b2' },
+    ]
+    const guests = groups.flatMap((g) =>
+      Array.from({ length: 16 }, (_, i) => ({ id: `${g.id}${i}`, name: `${g.name}${i}`, groupId: g.id })),
+    )
+    const tables = Array.from({ length: 6 }, (_, i) => table(`t${i + 1}`, `${i + 1}号桌`, 10, []))
+    localStorage.setItem(
+      BANQUET_STATE_KEY,
+      JSON.stringify({ title: '测试', pasteText: '', guests, groups, tables, markers: [], paper: 'a4', orientation: 'landscape', exportColors: false }),
+    )
+    const wrapper = await mountView()
+    const estimate = wrapper.find('[data-testid="capacity-estimate"]')
+    expect(estimate.attributes('data-status')).toBe('enough')
+    expect(estimate.text()).toContain('3 个分组人数超过单桌最大 10 座，分配时会拆到多桌：男方亲友、女方亲友、同事')
+    expect(estimate.text()).not.toContain('…')
+
+    await wrapper.find('[data-testid="auto-assign"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[data-banquet-summary]').text()).toContain('拆分分组 3')
+    wrapper.unmount()
+  })
+
+  it('无超容量分组时不追加预告；超过 3 组只列前 3 组并加省略号', async () => {
+    const groups = Array.from({ length: 4 }, (_, i) => ({ id: `g${i}`, name: `第${i + 1}组`, color: '#000' }))
+    const smallGuests = groups.flatMap((g) =>
+      Array.from({ length: 5 }, (_, i) => ({ id: `${g.id}-${i}`, name: `${g.name}${i}`, groupId: g.id })),
+    )
+    const tables = Array.from({ length: 4 }, (_, i) => table(`t${i + 1}`, `${i + 1}号桌`, 10, []))
+    localStorage.setItem(
+      BANQUET_STATE_KEY,
+      JSON.stringify({ title: '测试', pasteText: '', guests: smallGuests, groups, tables, markers: [], paper: 'a4', orientation: 'landscape', exportColors: false }),
+    )
+    let wrapper = await mountView()
+    expect(wrapper.find('[data-testid="capacity-estimate"]').text()).not.toContain('分配时会拆到多桌')
+    wrapper.unmount()
+
+    const bigGuests = groups.flatMap((g) =>
+      Array.from({ length: 11 }, (_, i) => ({ id: `${g.id}-${i}`, name: `${g.name}${i}`, groupId: g.id })),
+    )
+    localStorage.setItem(
+      BANQUET_STATE_KEY,
+      JSON.stringify({ title: '测试', pasteText: '', guests: bigGuests, groups, tables, markers: [], paper: 'a4', orientation: 'landscape', exportColors: false }),
+    )
+    wrapper = await mountView()
+    const text = wrapper.find('[data-testid="capacity-estimate"]').text()
+    expect(text).toContain('4 个分组人数超过单桌最大 10 座，分配时会拆到多桌：第1组、第2组、第3组…')
+    expect(text).not.toContain('第4组')
+    wrapper.unmount()
+  })
 })
 
 describe('第 366 轮：第 3 步「一键自动分配」上方容量预估文案', () => {

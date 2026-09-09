@@ -17,6 +17,9 @@ export interface ToastItem {
   action?: ToastAction
 }
 
+/** 同屏最多保留的提示条数：超出时淘汰最早一条，避免连续操作把页头与内容整块遮住 */
+export const MAX_VISIBLE_TOASTS = 3
+
 let seed = 0
 
 export const useToastStore = defineStore('toast', () => {
@@ -30,7 +33,8 @@ export const useToastStore = defineStore('toast', () => {
     action?: ToastAction,
   ) {
     const id = ++seed
-    toasts.value.push({ id, type, title, text, action })
+    const next = [...toasts.value, { id, type, title, text, action }]
+    toasts.value = next.length > MAX_VISIBLE_TOASTS ? next.slice(next.length - MAX_VISIBLE_TOASTS) : next
     if (timeout > 0) {
       window.setTimeout(() => dismiss(id), timeout)
     }

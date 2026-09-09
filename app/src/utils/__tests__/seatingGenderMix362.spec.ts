@@ -22,6 +22,7 @@ describe('第 362 轮：summarizeGenderMix 混排结果摘要', () => {
       unknown: 0,
       surplus: 0,
       adjacentSamePairs: 0,
+      adjacentSameSeats: [],
     })
   })
 
@@ -33,6 +34,8 @@ describe('第 362 轮：summarizeGenderMix 混排结果摘要', () => {
       unknown: 0,
       surplus: 6,
       adjacentSamePairs: 5,
+      // 末尾 6 座（下标 24–29）两两相邻同性，全部进入复核标记
+      adjacentSameSeats: [24, 25, 26, 27, 28, 29],
     })
     // 多出的同性确实排在末尾
     expect(arranged.slice(-6).every((e) => e.gender === '男')).toBe(true)
@@ -47,6 +50,7 @@ describe('第 362 轮：summarizeGenderMix 混排结果摘要', () => {
       unknown: 2,
       surplus: 3,
       adjacentSamePairs: 2,
+      adjacentSameSeats: [20, 21, 22],
     })
     expect(arranged.slice(-2).every((e) => !e.gender)).toBe(true)
   })
@@ -58,6 +62,7 @@ describe('第 362 轮：summarizeGenderMix 混排结果摘要', () => {
       unknown: 0,
       surplus: 0,
       adjacentSamePairs: 0,
+      adjacentSameSeats: [],
     })
   })
 })

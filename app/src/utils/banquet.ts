@@ -1016,9 +1016,49 @@ export interface CapacityEstimate {
   minTables: number
   /** status=enough 时预计留空桌数（tables - minTables），否则 0 */
   expectedEmptyTables: number
+  /** 分配前预判必拆的分组：分组人数 > 任一未锁定桌的最大座位数（锁定桌不计）；按人数降序 */
+  oversizedGroups: OversizedGroup[]
 }
 
-export function estimateCapacity(guests: BanquetGuest[], tables: BanquetTable[]): CapacityEstimate {
+export interface OversizedGroup {
+  groupId: string
+  /** 分组名；未传 groups 或找不到时回退为 groupId */
+  groupName: string
+  size: number
+  /** 未锁定桌中的最大座位数 */
+  maxTableSeats: number
+}
+
+export function findOversizedGroups(
+  guests: BanquetGuest[],
+  tables: BanquetTable[],
+  groups: BanquetGroup[] = [],
+): OversizedGroup[] {
+  const unlocked = tables.filter((t) => !t.locked)
+  if (!unlocked.length) return []
+  const maxTableSeats = unlocked.reduce((max, t) => Math.max(max, Math.floor(t.seats) || 0), 0)
+  const sizeByGroup = new Map<string, number>()
+  for (const g of guests) {
+    if (!g.groupId) continue
+    sizeByGroup.set(g.groupId, (sizeByGroup.get(g.groupId) ?? 0) + 1)
+  }
+  const nameById = new Map(groups.map((g) => [g.id, g.name]))
+  return [...sizeByGroup.entries()]
+    .filter(([, size]) => size > maxTableSeats)
+    .sort((a, b) => b[1] - a[1])
+    .map(([groupId, size]) => ({
+      groupId,
+      groupName: nameById.get(groupId) ?? groupId,
+      size,
+      maxTableSeats,
+    }))
+}
+
+export function estimateCapacity(
+  guests: BanquetGuest[],
+  tables: BanquetTable[],
+  groups: BanquetGroup[] = [],
+): CapacityEstimate {
   const guestIds = new Set(guests.map((g) => g.id))
   const seats = tables.reduce((sum, t) => sum + Math.max(0, Math.floor(t.seats) || 0), 0)
   const lockedList = tables.filter((t) => t.locked)
@@ -1037,6 +1077,7 @@ export function estimateCapacity(guests: BanquetGuest[], tables: BanquetTable[])
     shortage: 0,
     minTables: 0,
     expectedEmptyTables: 0,
+    oversizedGroups: findOversizedGroups(guests, tables, groups),
   }
   if (!guests.length) return { ...base, status: 'no-guests' }
   if (!tables.length) return { ...base, status: 'no-tables' }
