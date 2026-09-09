@@ -190,13 +190,13 @@ const FEATURES = computed(() => [
     icon: 'M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3zM9 12l2 2 4-4',
   },
   {
-    title: t('字段智能映射'),
+    title: t('表头自动匹配'),
     desc: t('姓名、座位号、考号、部门、班级等常见表头自动匹配，不规范列名也可手动指定。'),
     icon: 'M4 7h9M4 12h16M4 17h12M19.5 5.5 17 8l-1.5-1.5',
   },
   {
     title: t('照片批量核验'),
-    desc: t('支持「姓名+学号」等组合命名，按所选列自动匹配照片，覆盖率实时统计。'),
+    desc: t('照片文件名按姓名、学号或「姓名+学号」组合与所选列自动匹配，缺照片的人实时列出。'),
     icon: 'M4 5h16v14H4zM9 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM20 15l-4.5-4.5L7 19',
   },
   {
@@ -206,7 +206,7 @@ const FEATURES = computed(() => [
   },
   {
     title: t('多纸张打印精度'),
-    desc: t('支持 A4 / A5 / A3 横竖向，尺寸以毫米计算，自带裁切参考线，张贴、摆放、裁剪不跑偏。'),
+    desc: t('A4 / A5 / A3 横竖向都能排，尺寸按毫米计算，自带裁切参考线，张贴、摆放、裁剪不跑偏。'),
     icon: 'M12 2v4M12 18v4M2 12h4M18 12h4M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
   },
   {
@@ -390,7 +390,8 @@ const FAQS = computed(() => [
           class="relative mx-auto w-full max-w-md min-w-0"
         >
           <div
-            class="hero-sheet relative max-h-96 overflow-hidden px-4 pt-4 [mask-image:linear-gradient(to_bottom,black_72%,transparent)] sm:max-h-none sm:[mask-image:none]"
+            class="hero-sheet relative max-h-96 overflow-hidden px-4 pt-4 mask-r-from-85% mask-b-from-72% sm:max-h-none sm:mask-b-from-100%"
+            data-testid="hero-sheet"
             :style="{ height: `${heroHeight}px` }"
           >
             <div class="relative w-fit origin-top-left" :style="{ transform: `scale(${heroScale})` }">
@@ -403,11 +404,21 @@ const FAQS = computed(() => [
               />
             </div>
           </div>
-          <p
-            class="absolute right-3 bottom-3 rounded bg-slate-900/85 px-2.5 py-1 text-[11px] font-semibold text-white"
+          <!-- 尺寸角标：默认只露「A4」，hover / 键盘聚焦展开完整说明；全文常驻在 aria-label 供读屏 -->
+          <span
+            class="group absolute right-3 bottom-3 inline-flex max-w-[calc(100%-1.5rem)] cursor-default items-center gap-1 rounded bg-slate-900/85 px-2 py-1 text-[11px] font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            tabindex="0"
+            :aria-label="t('A4 实际排版效果 · 24 枚/页')"
+            data-testid="hero-sheet-badge"
           >
-            {{ t('A4 实际排版效果 · 24 枚/页') }}
-          </p>
+            <span aria-hidden="true">A4</span>
+            <span
+              class="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-[max-width,opacity] duration-200 group-hover:max-w-[16rem] group-hover:opacity-100 group-focus-visible:max-w-[16rem] group-focus-visible:opacity-100"
+              aria-hidden="true"
+            >
+              {{ t('A4 实际排版效果 · 24 枚/页') }}
+            </span>
+          </span>
         </div>
       </div>
     </section>

@@ -173,6 +173,18 @@ describe('makeDemoRows', () => {
     expect(ids.size).toBe(30)
   })
 
+  it('第 373 轮：演示身份证号为明显虚构的 18 位（000000 地区码 + 2000-01-01 + 递增末四位），不再像真实号码', () => {
+    const { rows } = makeDemoRows(30)
+    const ids = rows.map((r) => r['身份证号']!)
+    expect(ids[0]).toBe('000000200001010001')
+    expect(ids[29]).toBe('000000200001010030')
+    for (const id of ids) {
+      expect(id).toMatch(/^00000020000101\d{4}$/)
+      expect(id).not.toMatch(/^1101/)
+    }
+    expect(new Set(ids).size).toBe(30)
+  })
+
   it('第 369 轮：性别列与 demoGenderOf(姓名) 一致，姓名不重复，无「李娜 男」错配', () => {
     const { rows } = makeDemoRows(30)
     expect(new Set(rows.map((r) => r['姓名'])).size).toBe(30)

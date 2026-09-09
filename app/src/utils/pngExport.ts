@@ -3,10 +3,8 @@ import {
   createPageRenderer,
   EXPORT_CANCELLED_MESSAGE,
   isCanvasBlank,
-  MODULE_LOAD_TIMEOUT_MESSAGE,
-  MODULE_LOAD_TIMEOUT_MS,
+  loadExportModules,
   rasterizeIndexedPng,
-  withTimeout,
 } from '@/utils/pdfExport'
 import { withPngPhys } from '@/utils/indexedPng'
 import { evaluateFieldTemplate } from '@/utils/fieldTemplate'
@@ -454,11 +452,7 @@ export async function exportPagedPng(options: PngExportOptions): Promise<void> {
     return
   }
 
-  const { default: html2canvas } = await withTimeout(
-    import('html2canvas-pro'),
-    MODULE_LOAD_TIMEOUT_MS,
-    MODULE_LOAD_TIMEOUT_MESSAGE,
-  )
+  const { default: html2canvas } = await loadExportModules(() => import('html2canvas-pro'))
 
   // 精确像素：按裁剪区域（未裁剪则整页）的设计宽度映射渲染倍率，
   // 先按 2 倍超采样渲染再高质量缩到目标尺寸，文字边缘更平滑
@@ -544,11 +538,7 @@ async function exportPerLabelPng(
   const totalLabels = labelsByPage.reduce((sum, page) => sum + page.length, 0)
   if (!totalLabels) throw new Error('没有可导出的标签')
 
-  const { default: html2canvas } = await withTimeout(
-    import('html2canvas-pro'),
-    MODULE_LOAD_TIMEOUT_MS,
-    MODULE_LOAD_TIMEOUT_MESSAGE,
-  )
+  const { default: html2canvas } = await loadExportModules(() => import('html2canvas-pro'))
 
   // 精确像素：按标签设计宽度（同模板各枚等宽）映射渲染倍率 + 2 倍超采样
   const labelWidthMm = labelsByPage.find((p) => p.length)?.[0]?.rect.width ?? options.pageWidth

@@ -21,6 +21,8 @@ import { fitScale, MM_TO_PX } from '@/utils/layout'
 import { listJoin } from '@/utils/listJoin'
 import { setPrintPageSize } from '@/utils/paper'
 import { downloadBlob, exportPagedPng, sanitizeFileNamePart } from '@/utils/pngExport'
+import { warmUpExportModules } from '@/utils/pdfExport'
+import { pushExportFailureToast } from '@/utils/exportFailureToast'
 import { printAndWaitUntilDone } from '@/utils/printing'
 import {
   buildDisplayGrid,
@@ -81,6 +83,8 @@ interface SeatingPersistedState {
   roomFilter?: string
   /** 非当前考场的手工排座缓存（key 为考场 id，全部视图为 ''）；当前考场的座次在 arranged */
   arrangedByRoom?: Record<string, SeatingEntry[]>
+  /** 当前座次来自「男女混排」（含之后的手工微调）：预览中标出同性相邻座位供人工复核 */
+  genderMixed?: boolean
 }
 
 function sanitizeArrangedByRoom(raw: unknown): Record<string, SeatingEntry[]> {
@@ -259,6 +263,8 @@ function onRosterFileChange(event: Event) {
 const arranged = ref<SeatingEntry[] | null>(persisted?.arranged ?? null)
 /** 其它考场的手工排座（当前考场不在其中）：切场时存入 / 取出，避免往返切换丢掉各场排座 */
 const arrangedByRoom = ref<Record<string, SeatingEntry[]>>(sanitizeArrangedByRoom(persisted?.arrangedByRoom))
+/** 座次是否由「男女混排」产生：完全随机 / 还原名单顺序后清除，点选互换等微调保持 */
+const genderMixed = ref(persisted?.genderMixed === true && persisted?.arranged != null)
 
 /** 破坏性操作（还原名单顺序 / 切换重名处理）前的快照，toast 上可在 UNDO_WINDOW_MS 内撤销 */
 const UNDO_WINDOW_MS = 10_000
@@ -269,9 +275,11 @@ interface SeatingSnapshot {
   keepDuplicates: boolean
   /** 座位间隔：换座下标的座位含义依赖它，撤销时一并恢复 */
   spacing: SeatingSpacing
+  genderMixed: boolean
 }
 function takeSnapshot(): SeatingSnapshot {
   return {
+    genderMixed: genderMixed.value,
     arranged: arranged.value ? arranged.value.map((e) => ({ ...e })) : null,
     arrangedByRoom: Object.fromEntries(
       Object.entries(arrangedByRoom.value).map(([k, list]) => [k, list.map((e) => ({ ...e }))]),
@@ -292,6 +300,7 @@ function restoreSnapshot(snapshot: SeatingSnapshot) {
   arranged.value = snapshot.arranged
   spacing.value = snapshot.spacing
   selectedSeat.value = snapshot.selectedSeat
+  genderMixed.value = snapshot.genderMixed
 }
 function toastUndoable(title: string, text: string, snapshot: SeatingSnapshot) {
   toast.push('info', title, text, UNDO_WINDOW_MS, {
@@ -327,6 +336,9 @@ function onUndoKeydown(event: KeyboardEvent) {
   toast.info(tr('已撤销上一步换座'))
 }
 onMounted(() => window.addEventListener('keydown', onUndoKeydown))
+onMounted(() => {
+  warmUpExportModules()
+})
 onUnmounted(() => window.removeEventListener('keydown', onUndoKeydown))
 /** 逐字输入时只提示一次：以连续编辑开始前的座次为基线，停顿后汇总净变化 */
 const RECONCILE_TOAST_DELAY_MS = 600
@@ -424,6 +436,7 @@ watch(activeRoom, (room, prev) => {
   arrangedByRoom.value = cache
   const hadArranged = arranged.value !== null
   arranged.value = restored ?? null
+  genderMixed.value = false
   selectedSeat.value = null
   if (restored) {
     toast.info(tr('已切换到 {room}，已恢复该场上次排座').replace('{room}', roomLabel(room)))
@@ -433,7 +446,7 @@ watch(activeRoom, (room, prev) => {
 })
 
 watch(
-  [title, roomNo, rows, cols, podium, fillOrder, spacing, aisles, namesText, arranged, keepDuplicates, roomFilter, arrangedByRoom],
+  [title, roomNo, rows, cols, podium, fillOrder, spacing, aisles, namesText, arranged, keepDuplicates, roomFilter, arrangedByRoom, genderMixed],
   () => {
     try {
       const state: SeatingPersistedState = {
@@ -450,6 +463,7 @@ watch(
         duplicatePolicy: duplicatePolicy.value,
         roomFilter: roomFilter.value,
         arrangedByRoom: arrangedByRoom.value,
+        genderMixed: genderMixed.value,
       }
       localStorage.setItem(SEATING_STATE_KEY, JSON.stringify(state))
     } catch {
@@ -461,10 +475,22 @@ watch(
 watch([rows, cols, fillOrder, spacing], () => {
   selectedSeat.value = null
 })
+watch(arranged, (v) => {
+  if (!v) genderMixed.value = false
+})
 
 const entries = computed<SeatingEntry[]>(() => arranged.value ?? parsedEntries.value)
 const filledCount = computed(() => entries.value.filter((e) => e.name).length)
 const hasGender = computed(() => parsedEntries.value.some((e) => e.gender))
+
+/**
+ * 混排后仍同性相邻的座位（座位号 - 1 集合）：随当前座次数据自动重算，仅预览层标记，导出 / 打印不带。
+ * 不是混排结果（原序 / 完全随机）时为空，避免把名单本身的同性相邻当成“混排残留”。
+ */
+const genderReviewSeatNos = computed<Set<number>>(() => {
+  if (!genderMixed.value || !arranged.value || !hasGender.value) return new Set()
+  return new Set(summarizeGenderMix(arranged.value).adjacentSameSeats)
+})
 
 function toggleAisle(afterCol: number) {
   const next = new Set(aisles.value)
@@ -491,6 +517,7 @@ function randomizeAll() {
   }
   const snapshot = rememberUndo()
   arranged.value = shuffleEntries(entries.value.filter((e) => e.name))
+  genderMixed.value = false
   selectedSeat.value = null
   toastUndoable(tr('已完全随机排座'), tr('再点一次可重新打乱；10 秒内可撤销（Ctrl/Cmd+Z）'), snapshot)
 }
@@ -519,6 +546,7 @@ function randomizeMixed() {
   const snapshot = rememberUndo()
   const list = interleaveByGender(parsedEntries.value.filter((e) => e.name))
   arranged.value = list
+  genderMixed.value = true
   selectedSeat.value = null
   toastUndoable(tr('已按男女混排'), genderMixMessage(list), snapshot)
 }
@@ -526,6 +554,7 @@ function randomizeMixed() {
 function restoreOrder() {
   const snapshot = takeSnapshot()
   arranged.value = null
+  genderMixed.value = false
   selectedSeat.value = null
   toastUndoable(tr('已还原为名单原始顺序'), tr('10 秒内可撤销，恢复刚才的手工座次'), snapshot)
 }
@@ -954,6 +983,8 @@ async function runPngExport() {
   if (exporting.value) return
   exporting.value = true
   renderHost.value = true
+  // finally 会把水印开关复位，重试需沿用本次选择（带水印重试不能变成无水印扣次数）
+  const watermarkChoice = withWatermark.value
   await nextTick()
   try {
     getExportPage()
@@ -983,7 +1014,17 @@ async function runPngExport() {
       viewMode.value === 'student' ? tr('当前为学生视角（镜像），与屏幕预览一致') : tr('当前为教师视角，与屏幕预览一致'),
     )
   } catch (error) {
-    toast.danger(tr('导出失败'), error instanceof Error ? error.message : String(error))
+    pushExportFailureToast({
+      toast,
+      t: tr,
+      title: tr('导出失败'),
+      error,
+      renderFailureText: tr(error instanceof Error ? error.message : String(error)),
+      retry: async () => {
+        withWatermark.value = watermarkChoice
+        await runPngExport()
+      },
+    })
   } finally {
     renderHost.value = false
     withWatermark.value = false
@@ -1048,7 +1089,7 @@ function toDeskLabels() {
         {{ tr('教室座位表打印') }}
       </h1>
       <p class="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-        {{ tr('粘贴名单、设置行列与过道，支持随机排座（男女混排）、点选或拖拽换位、整排交换与双视角切换，生成 A4 教室平面座位表直接打印张贴。名单不会上传，数据只留在这台设备的浏览器里。') }}
+        {{ tr('班主任、监考老师用：粘贴名单、设行列与过道，得到可直接打印张贴的 A4 座位表；随机或男女混排，点选就能换位。名单只留在这台设备的浏览器里，不上传。') }}
       </p>
       <p class="mt-2 text-xs text-slate-500">
         {{ tr('要排婚宴、年会圆桌？用') }}
@@ -1316,6 +1357,7 @@ function toDeskLabels() {
               class="btn btn-secondary btn-sm"
               :disabled="!hasGender"
               :title="hasGender ? tr('相邻座位尽量男女交替') : tr('名单需包含性别列（如：张伟 男）')"
+              data-testid="seating-randomize-mixed"
               @click="randomizeMixed"
             >
               <svg
@@ -1343,7 +1385,7 @@ function toDeskLabels() {
           </div>
           <p class="mt-2 text-xs leading-5 text-slate-600">
             {{ tr('男女混排需名单包含性别列（每行「姓名 性别」）。预览中可点选两个座位互换，桌面鼠标还可直接按住座位拖拽交换；触屏设备请用点选方式。点击（桌面也可拖拽）行首「排」把手可整排交换。') }}
-            {{ tr('人数不均、座位数不整齐或有过道时，尾部与过道两侧可能出现同性相邻，可点选互换微调。') }}
+            {{ tr('尽量交替；人数不等或有过道时尾部会有同性相邻，已用虚线框标出便于人工微调。') }}
           </p>
         </section>
 
@@ -1513,6 +1555,16 @@ function toDeskLabels() {
             {{ tr('载入示例') }}
           </button>
         </div>
+        <p
+          v-if="genderReviewSeatNos.size"
+          class="mb-1 flex flex-wrap items-center gap-1.5 text-[11px] leading-5 text-slate-600"
+          data-testid="seating-gender-legend"
+        >
+          <span class="inline-block h-3 w-4 shrink-0 rounded-sm bg-white ring-1 ring-dashed ring-amber-400" aria-hidden="true"></span>
+          <span>{{
+            tr('虚线框：同性相邻的 {n} 个座位，建议人工复核；点选互换后自动重算，导出与打印不带此标记').replace('{n}', String(genderReviewSeatNos.size))
+          }}</span>
+        </p>
         <p class="mb-1 text-[11px] leading-5 text-slate-500 md:hidden" data-testid="touch-swap-hint">
           {{ tr('触屏：先点一个座位再点另一个即可互换（拖拽仅支持鼠标）') }}
         </p>
@@ -1582,10 +1634,14 @@ function toDeskLabels() {
                             'seating-seat--drop-target':
                               dragging && cell.seat && dropSeatTarget === cell.seat.seatNo - 1,
                             'seating-seat--found': cell.seat && findHitSeatNos.has(cell.seat.seatNo),
+                            'seating-seat--gender-review ring-1 ring-dashed ring-amber-400':
+                              cell.seat && genderReviewSeatNos.has(cell.seat.seatNo - 1),
                           }"
                           role="button"
                           tabindex="0"
                           :data-seat-no="cell.seat?.seatNo"
+                          :data-gender-review="cell.seat && genderReviewSeatNos.has(cell.seat.seatNo - 1) ? 'true' : undefined"
+                          :title="cell.seat && genderReviewSeatNos.has(cell.seat.seatNo - 1) ? tr('同性相邻，建议人工复核') : undefined"
                           @click="onSeatClick(cell.seat)"
                           @keydown.enter.prevent="onSeatClick(cell.seat)"
                           @pointerdown="onSeatPointerDown(cell.seat, $event)"
@@ -1811,6 +1867,12 @@ function toDeskLabels() {
 
 .seating-seat--girl {
   background: #fdf2f8;
+}
+
+/* 混排后仍同性相邻的座位：琥珀色虚线框，仅预览层（导出宿主不渲染该 class） */
+.seating-seat--gender-review {
+  outline: 0.4mm dashed #f59e0b;
+  outline-offset: 0.3mm;
 }
 
 .seating-seat--selected {

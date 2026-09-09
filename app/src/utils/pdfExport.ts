@@ -69,6 +69,71 @@ export const DEFAULT_PAGE_TIMEOUT_MS = 30_000
 /** 导出依赖（html2canvas / jspdf）按需加载的超时：弱网下分包不落定时不再无限停留 */
 export const MODULE_LOAD_TIMEOUT_MS = 20_000
 export const MODULE_LOAD_TIMEOUT_MESSAGE = '导出组件加载超时，请检查网络后重试'
+/** 分包请求直接失败（断网 / 被拦截 / 4xx）时的统一文案，与超时一样属于可直接重试的加载阶段失败 */
+export const MODULE_LOAD_FAILED_MESSAGE = '导出组件加载失败，请检查网络后重试'
+
+/** 错误是否属于「导出组件加载」阶段（超时 / 失败），而非页面渲染阶段 */
+export function isExportModuleLoadError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err)
+  return message === MODULE_LOAD_TIMEOUT_MESSAGE || message === MODULE_LOAD_FAILED_MESSAGE
+}
+
+/**
+ * 按需加载导出依赖：超时与请求失败都归为可重试的加载阶段错误。
+ * loader 内保持字面 import()，便于构建分块与测试替身。
+ */
+export async function loadExportModules<T>(loader: () => Promise<T>): Promise<T> {
+  try {
+    return await withTimeout(loader(), MODULE_LOAD_TIMEOUT_MS, MODULE_LOAD_TIMEOUT_MESSAGE)
+  } catch (err) {
+    if (err instanceof Error && err.message === MODULE_LOAD_TIMEOUT_MESSAGE) throw err
+    throw new Error(MODULE_LOAD_FAILED_MESSAGE)
+  }
+}
+
+/** 无 requestIdleCallback 时的预热延迟：首屏交互就绪后再拉导出分包 */
+export const EXPORT_WARMUP_FALLBACK_DELAY_MS = 2_000
+
+interface NetworkInformationLike {
+  saveData?: boolean
+  effectiveType?: string
+}
+
+/** 省流量模式或 2g / slow-2g 下不预热：预热是锦上添花，不该占用用户的稀缺带宽 */
+export function shouldSkipExportWarmup(nav: Navigator | undefined = globalThis.navigator): boolean {
+  const connection = (nav as (Navigator & { connection?: NetworkInformationLike }) | undefined)?.connection
+  if (!connection) return false
+  if (connection.saveData) return true
+  return connection.effectiveType === '2g' || connection.effectiveType === 'slow-2g'
+}
+
+let exportWarmupScheduled = false
+
+/**
+ * 首屏后空闲时预热导出分包（jspdf + html2canvas-pro）：用户点导出时分包已在模块表 / HTTP 缓存中，
+ * 弱网下不再在点击后才开始下载 20 s 超时。每个页面会话最多调度一次，失败静默且不重试。
+ * 返回是否真正安排了预热（已调度过 / 省流量 / 非浏览器环境返回 false）。
+ */
+export function warmUpExportModules(): boolean {
+  if (exportWarmupScheduled) return false
+  if (typeof window === 'undefined') return false
+  exportWarmupScheduled = true
+  if (shouldSkipExportWarmup()) return false
+  const run = () => {
+    void Promise.all([import('jspdf'), import('html2canvas-pro')]).catch(() => undefined)
+  }
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(run, { timeout: 10_000 })
+  } else {
+    window.setTimeout(run, EXPORT_WARMUP_FALLBACK_DELAY_MS)
+  }
+  return true
+}
+
+/** 仅供测试：重置「每页面会话只预热一次」的标记 */
+export function resetExportModuleWarmupForTests(): void {
+  exportWarmupScheduled = false
+}
 
 /** 给 Promise 加看门狗超时：超时以指定文案 reject，防止 html2canvas 无限挂起 */
 export function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
@@ -877,10 +942,8 @@ export async function exportPagedPdf(options: PagedPdfExportOptions): Promise<Bl
   const { pageCount } = options
   if (!pageCount) throw new Error('没有可导出的页面')
 
-  const [{ jsPDF }, { default: html2canvas }] = await withTimeout(
+  const [{ jsPDF }, { default: html2canvas }] = await loadExportModules(() =>
     Promise.all([import('jspdf'), import('html2canvas-pro')]),
-    MODULE_LOAD_TIMEOUT_MS,
-    MODULE_LOAD_TIMEOUT_MESSAGE,
   )
 
   const scale = options.scale ?? defaultRasterScale(pageCount)

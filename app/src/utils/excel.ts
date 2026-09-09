@@ -381,8 +381,6 @@ export function makeDemoRows(count = 30): { headers: string[]; rows: DataRow[] }
     const name = names[i]!
     const room = Math.floor(i / perRoom) + 1
     const seat = (i % perRoom) + 1
-    const birthMonth = String((i % 12) + 1).padStart(2, '0')
-    const birthDay = String((i % 28) + 1).padStart(2, '0')
     rows.push({
       姓名: name,
       性别: demoGenderOf(name) ?? '男',
@@ -392,7 +390,7 @@ export function makeDemoRows(count = 30): { headers: string[]; rows: DataRow[] }
       班级: `高三（${(i % 6) + 1}）班`,
       学号: String(2023010100 + i + 1),
       学校: DEMO_SCHOOL,
-      身份证号: `1101012008${birthMonth}${birthDay}${String(17 + i * 2).padStart(4, '0')}`,
+      身份证号: `00000020000101${String(i + 1).padStart(4, '0')}`,
       部门: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length]!,
       职务: i % 5 === 0 ? '巡考员' : '监考员',
       工号: `JW${2300 + i + 1}`,

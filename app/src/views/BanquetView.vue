@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import MobilePreviewJump from '@/components/MobilePreviewJump.vue'
@@ -76,7 +76,8 @@ import { listJoin } from '@/utils/listJoin'
 import { setPrintPageSize } from '@/utils/paper'
 import { downloadBlob, exportPagedPng, sanitizeFileNamePart } from '@/utils/pngExport'
 import { printAndWaitUntilDone } from '@/utils/printing'
-import { defaultPdfFileName, exportPagedPdf } from '@/utils/pdfExport'
+import { defaultPdfFileName, exportPagedPdf, warmUpExportModules } from '@/utils/pdfExport'
+import { pushExportFailureToast } from '@/utils/exportFailureToast'
 import { SEATING_HANDOFF_KEY, type SeatingHandoff } from '@/utils/seating'
 
 const router = useRouter()
@@ -740,7 +741,18 @@ function moveGroupToTable(groupId: string, tableId: string) {
 const summary = computed(() => summarizeBanquet(guests.value, tables.value, groups.value))
 
 /** 自动分配前的容量预估（与摘要栏 / 导出检查同一份 guests / tables） */
-const capacityEstimate = computed(() => estimateCapacity(guests.value, tables.value))
+const capacityEstimate = computed(() => estimateCapacity(guests.value, tables.value, groups.value))
+/** 分配前预告：哪些分组人数超过单桌最大座位数、必会被拆到多桌（无则空串） */
+const oversizedGroupsText = computed(() => {
+  const list = capacityEstimate.value.oversizedGroups
+  if (!list.length) return ''
+  const names = list.slice(0, 3).map((g) => g.groupName).join(currentLocale() === 'en' ? ', ' : '、')
+  const more = list.length > 3 ? '…' : ''
+  return tr('；{k} 个分组人数超过单桌最大 {seats} 座，分配时会拆到多桌：{names}')
+    .replace('{k}', String(list.length))
+    .replace('{seats}', String(list[0]!.maxTableSeats))
+    .replace('{names}', `${names}${more}`)
+})
 const capacityEstimateText = computed(() => {
   const c = capacityEstimate.value
   if (c.status === 'no-guests') return tr('请先在第 1 步导入宾客名单，再分配座位。')
@@ -750,13 +762,13 @@ const capacityEstimateText = computed(() => {
     .replace('{k}', String(c.tables))
     .replace('{s}', String(c.seats))
   if (c.status === 'short') {
-    return `${head}${tr('，还差 {d} 个座位，请加桌或提高每桌座位数').replace('{d}', String(c.shortage))}`
+    return `${head}${tr('，还差 {d} 个座位，请加桌或提高每桌座位数').replace('{d}', String(c.shortage))}${oversizedGroupsText.value}`
   }
   const tail = tr('；按每桌坐满至少需要 {m} 桌，分配后预计空 {e} 桌')
     .replace('{m}', String(c.minTables))
     .replace('{e}', String(c.expectedEmptyTables))
   const note = assignStrategy.value === 'fill-tables' ? '' : tr('（尽量不拆组策略实际空桌数以分配后摘要为准）')
-  return `${head}${tail}${note}`
+  return `${head}${tail}${note}${oversizedGroupsText.value}`
 })
 
 /** 被拆到多桌的分组明细（摘要中「拆分分组」可展开查看）：含拆分原因与所在桌号 */
@@ -1215,6 +1227,22 @@ function getExportPage(): HTMLElement {
   return el
 }
 
+/** 导出失败提示：组件加载超时/失败常驻并带「重试」，页面渲染失败沿用原文案 */
+function reportExportFailure(error: unknown, retry: () => Promise<void>) {
+  pushExportFailureToast({
+    toast,
+    t: tr,
+    title: tr('导出失败'),
+    error,
+    renderFailureText: tr(error instanceof Error ? error.message : String(error)),
+    retry,
+  })
+}
+
+onMounted(() => {
+  warmUpExportModules()
+})
+
 async function runExport() {
   if (exporting.value) return
   exporting.value = true
@@ -1248,7 +1276,7 @@ async function runExport() {
       exportColors.value ? tr('本次带分组颜色输出') : tr('默认不带分组颜色，适合直接张贴'),
     )
   } catch (error) {
-    toast.danger(tr('导出失败'), error instanceof Error ? error.message : String(error))
+    reportExportFailure(error, runExport)
   } finally {
     renderExportHost.value = false
     exporting.value = false
@@ -1388,7 +1416,7 @@ async function downloadQuickReferencePdf() {
       ),
     )
   } catch (error) {
-    toast.danger(tr('导出失败'), error instanceof Error ? error.message : String(error))
+    reportExportFailure(error, downloadQuickReferencePdf)
   } finally {
     renderQuickRefHost.value = false
     quickRefPdfMode.value = false
@@ -2156,13 +2184,13 @@ function toPlaceCards() {
           class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-xs"
           data-testid="banquet-canvas-empty-hint"
         >
-          <p class="min-w-0 flex-1 font-semibold text-slate-700">
+          <p class="min-w-0 basis-full font-semibold text-slate-700 sm:basis-auto sm:flex-1">
             {{ tr('先导入宾客名单，再点“自动分配”一键分桌') }}
           </p>
-          <div class="flex flex-wrap items-center gap-1.5">
+          <div class="flex w-full flex-wrap items-center gap-1.5 sm:w-auto">
             <button
               type="button"
-              class="btn btn-primary btn-sm"
+              class="btn btn-primary btn-sm whitespace-normal text-left"
               data-testid="banquet-canvas-empty-import"
               @click="focusPasteInput"
             >
@@ -2170,7 +2198,7 @@ function toPlaceCards() {
             </button>
             <button
               type="button"
-              class="btn btn-secondary btn-sm"
+              class="btn btn-secondary btn-sm whitespace-normal text-left"
               data-testid="banquet-canvas-empty-demo"
               @click="loadDemoGuests()"
             >
@@ -2178,7 +2206,7 @@ function toPlaceCards() {
             </button>
             <button
               type="button"
-              class="rounded-md px-1.5 py-1 text-base leading-none text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+              class="ml-auto rounded-md px-1.5 py-1 text-base leading-none text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
               :aria-label="tr('关闭')"
               data-testid="banquet-canvas-empty-dismiss"
               @click="canvasEmptyHintDismissed = true"

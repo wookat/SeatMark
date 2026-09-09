@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch, watchEffect } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue'
 
 import LabelSheet from '@/components/label/LabelSheet.vue'
 import CalibrationDialog from '@/components/studio/CalibrationDialog.vue'
@@ -37,7 +37,9 @@ import {
   formatBytes,
   rasterDpi,
   settleWithin,
+  warmUpExportModules,
 } from '@/utils/pdfExport'
+import { pushExportFailureToast } from '@/utils/exportFailureToast'
 import {
   BlankLabelError,
   buildFieldFileNames,
@@ -704,6 +706,23 @@ function localizeExportError(err: unknown): string {
   return t(err instanceof Error ? err.message : String(err))
 }
 
+/** 导出失败提示：组件加载超时/失败带「重试」常驻，页面渲染失败沿用原文案；两类都不扣无水印次数 */
+function reportExportFailure(title: string, err: unknown, retry: () => Promise<void>) {
+  pushExportFailureToast({
+    toast,
+    t,
+    title,
+    error: err,
+    renderFailureText: `${localizeExportError(err)}${t('；本次未扣除无水印次数，可直接重试')}`,
+    moduleLoadNote: t('；本次未扣除无水印次数，可直接重试'),
+    retry,
+  })
+}
+
+onMounted(() => {
+  warmUpExportModules()
+})
+
 /** 准备阶段（加载导出分包与字体）超这么久仍未进入渲染时，提示可取消重试 */
 const PREPARING_HINT_DELAY_MS = 8_000
 
@@ -758,7 +777,7 @@ async function doExportPdf() {
     if (message === EXPORT_CANCELLED_MESSAGE) {
       toast.info(t('已取消导出'), t('本次未扣除无水印次数，可随时重新导出'))
     } else {
-      toast.danger(t('PDF 生成失败'), `${localizeExportError(err)}${t('；本次未扣除无水印次数，可直接重试')}`)
+      reportExportFailure(t('PDF 生成失败'), err, doExportPdf)
     }
   } finally {
     donePreparing()
@@ -914,7 +933,7 @@ async function doExportPng() {
     if (message === EXPORT_CANCELLED_MESSAGE) {
       toast.info(t('已取消导出'), t('本次未扣除无水印次数，可随时重新导出'))
     } else {
-      toast.danger(t('PNG 生成失败'), `${localizeExportError(err)}${t('；本次未扣除无水印次数，可直接重试')}`)
+      reportExportFailure(t('PNG 生成失败'), err, doExportPng)
     }
   } finally {
     donePreparing()
@@ -1007,7 +1026,7 @@ async function doMobilePrint() {
     if (message === EXPORT_CANCELLED_MESSAGE) {
       toast.info(t('已取消导出'), t('本次未扣除无水印次数，可随时重新导出'))
     } else {
-      toast.danger(t('打印 PDF 生成失败'), `${localizeExportError(err)}${t('；本次未扣除无水印次数，可直接重试')}`)
+      reportExportFailure(t('打印 PDF 生成失败'), err, doMobilePrint)
     }
   } finally {
     donePreparing()

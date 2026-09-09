@@ -30,14 +30,18 @@ const { width, height } = useElementSize(container)
 /** 测到容器尺寸前不展示：避免 SSR / 首帧以 scale(1) 渲染原尺标签被容器裁成左上角 */
 const measured = computed(() => width.value > 0)
 
-/** 按容器宽高两个方向取较小缩放，容器高度受限时宽扁模板也完整可见 */
+/** 四周安全边占容器比例：高瘦模板的底边、阴影不再贴底裁切 */
+const THUMB_SAFE_INSET = 0.03
+
+/** 按容器宽高（扣除安全边）两个方向取较小缩放，容器高度受限时宽扁模板也完整可见 */
 const scale = computed(() => {
   const naturalWidth = props.template.label.width * MM_TO_PX
   const naturalHeight = props.template.label.height * MM_TO_PX
   if (!width.value || !naturalWidth) return 1
-  const byWidth = width.value / naturalWidth
+  const fit = 1 - THUMB_SAFE_INSET * 2
+  const byWidth = (width.value * fit) / naturalWidth
   if (!height.value || !naturalHeight) return byWidth
-  return Math.min(byWidth, height.value / naturalHeight)
+  return Math.min(byWidth, (height.value * fit) / naturalHeight)
 })
 
 const cardStyle = computed(() => ({
@@ -81,10 +85,11 @@ onBeforeUnmount(() => {
       ref="container"
       class="relative w-full overflow-hidden"
       :style="{ aspectRatio: `${template.label.width} / ${template.label.height}` }"
+      data-testid="template-thumb-container"
     >
       <div
         v-if="revealed"
-        class="absolute top-0 left-1/2 origin-top"
+        class="absolute top-[3%] left-1/2 origin-top"
         :style="cardStyle"
         data-testid="template-thumb-card"
       >
