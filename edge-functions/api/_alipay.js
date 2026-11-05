@@ -4,7 +4,8 @@
  * 边缘函数是纯 Web 运行时（无 node:crypto），官方 alipay-sdk（Node.js，依赖
  * node:crypto + urllib）无法运行。本模块用 WebCrypto 的 RSASSA-PKCS1-v1_5 + fetch
  * 实现同一套 RSA2 签名/验签与网关调用，密钥字段与官方契约对齐：
- *   - 应用私钥：env.ALIPAY_PRIVATE_KEY，PKCS#8 或 PKCS#1（自动嗅探并包装为 PKCS#8 导入）
+ *   - 应用私钥：env.ALIPAY_PRIVATE_KEY，PKCS#8 或 PKCS#1（自动嗅探并包装为 PKCS#8 导入）；
+ *     超出 1000 字符限制时用 ALIPAY_PRIVATE_KEY_1/_2/_3 分段拼接（单值优先）
  *   - 支付宝公钥：env.ALIPAY_PUBLIC_KEY，SPKI base64（可带 PEM 头尾）
  *   - 网关：env.ALIPAY_GATEWAY（缺省生产网关；沙箱注入 https://openapi-sandbox.dl.alipaydev.com/gateway.do）
  *   - 可选：ALIPAY_NOTIFY_URL / ALIPAY_RETURN_URL / ALIPAY_SELLER_ID / ALIPAY_SELLER_EMAIL
@@ -134,7 +135,12 @@ async function importPublicKey(rawKey) {
  */
 export async function loadAlipayConfig(env, origin) {
   const appId = (env && env.ALIPAY_APP_ID) || ''
-  const privateKeyRaw = (env && env.ALIPAY_PRIVATE_KEY) || ''
+  // EdgeOne 环境变量单值上限 1000 字符，RSA 私钥超限时可拆成 ALIPAY_PRIVATE_KEY_1/_2/_3 拼接
+  const privateKeyRaw =
+    (env && env.ALIPAY_PRIVATE_KEY) ||
+    ['ALIPAY_PRIVATE_KEY_1', 'ALIPAY_PRIVATE_KEY_2', 'ALIPAY_PRIVATE_KEY_3']
+      .map((k) => (env && env[k]) || '')
+      .join('')
   const alipayPublicKeyRaw = (env && env.ALIPAY_PUBLIC_KEY) || ''
   if (!appId || !privateKeyRaw || !alipayPublicKeyRaw) {
     throw new AlipayConfigError('missing ALIPAY_APP_ID / ALIPAY_PRIVATE_KEY / ALIPAY_PUBLIC_KEY')
