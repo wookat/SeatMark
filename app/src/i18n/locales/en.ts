@@ -2145,5 +2145,4 @@ export const en: Record<string, string> = {
     'These keep-apart guests currently share a table. You can export anyway or go back and drag them apart.',
   '语言': 'Language',
   '选择语言': 'Choose language',
-  '桌贴 / 门贴通用': 'Desk / door labels',
 }
