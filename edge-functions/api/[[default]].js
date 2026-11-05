@@ -1149,6 +1149,70 @@ async function handleRequest(context) {
   }
 
   // ----- 认证 -----
+  // 临时诊断路由：探 EdgeOne 运行时 PBKDF2 deriveBits 参数兼容性（排查完移除）
+  if (path === '/api/_diag/pbkdf2' && method === 'GET') {
+    const pw = encoder.encode('probe-password')
+    const saltU8 = crypto.getRandomValues(new Uint8Array(16))
+    const saltBuf = saltU8.buffer.slice(0)
+    const variants = {
+      async baseline_600k_u8_strhash() {
+        const k = await crypto.subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveBits'])
+        return crypto.subtle.deriveBits(
+          { name: 'PBKDF2', hash: 'SHA-256', salt: saltU8, iterations: 600000 },
+          k,
+          256,
+        )
+      },
+      async low_iter_1k() {
+        const k = await crypto.subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveBits'])
+        return crypto.subtle.deriveBits(
+          { name: 'PBKDF2', hash: 'SHA-256', salt: saltU8, iterations: 1000 },
+          k,
+          256,
+        )
+      },
+      async salt_arraybuffer() {
+        const k = await crypto.subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveBits'])
+        return crypto.subtle.deriveBits(
+          { name: 'PBKDF2', hash: 'SHA-256', salt: saltBuf, iterations: 1000 },
+          k,
+          256,
+        )
+      },
+      async hash_object() {
+        const k = await crypto.subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveBits'])
+        return crypto.subtle.deriveBits(
+          { name: 'PBKDF2', hash: { name: 'SHA-256' }, salt: saltU8, iterations: 1000 },
+          k,
+          256,
+        )
+      },
+      async derive_key() {
+        const k = await crypto.subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveKey'])
+        return crypto.subtle.deriveKey(
+          { name: 'PBKDF2', hash: 'SHA-256', salt: saltU8, iterations: 1000 },
+          k,
+          { name: 'HMAC', hash: 'SHA-256', length: 256 },
+          true,
+          ['sign'],
+        )
+      },
+      async importkey_only() {
+        return crypto.subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveBits'])
+      },
+    }
+    const results = {}
+    for (const [name, fn] of Object.entries(variants)) {
+      try {
+        const out = await fn()
+        results[name] = 'ok:' + (out && out.byteLength !== undefined ? out.byteLength : typeof out)
+      } catch (e) {
+        results[name] = 'ERR:' + String(e && e.message ? e.message : e).slice(0, 80)
+      }
+    }
+    return json(results, 200, storageHeader)
+  }
+
   // 表单验证码：图片字符 + 签名令牌（5 分钟有效，答对后一次性消费），注册/登录/重置密码均需携带
   if (path === '/api/auth/captcha' && method === 'GET') {
     const captchaRlKey = `rl:captcha:${await sha256Hex(clientIp(request))}:${today()}`
