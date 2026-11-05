@@ -1154,7 +1154,7 @@ async function handleRequest(context) {
     const pw = encoder.encode('probe-password')
     const saltU8 = crypto.getRandomValues(new Uint8Array(16))
     const variants = Object.fromEntries(
-      [50000, 100000, 150000, 200000, 250000, 300000, 400000, 500000, 599999].map(
+      [110000, 120000, 131072, 140000, 149999].map(
         (it) => [
           `iter_${it}`,
           async () => {
