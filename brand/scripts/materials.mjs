@@ -9,18 +9,19 @@ const OUT = join(ROOT, 'materials')
 mkdirSync(OUT, { recursive: true })
 
 const BRAND = '#4f46e5'
+const BRAND_100 = '#e0e7ff'
 const INK = '#0f172a'
 const FONT = "'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif"
 
-// 方案 A 图形标，c=主色，dot=白点
-const mark = (c = BRAND, white = '#fff') => `
-  <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="${c}" stroke-width="5"/>
-  <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="${c}" stroke-width="5"/>
-  <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="${c}" stroke-width="5"/>
-  <rect x="35" y="35" width="23" height="23" rx="6" fill="${c}"/>
-  <circle cx="46.5" cy="46.5" r="4.5" fill="${white}"/>`
+// 方案 A「柔格」图形标：hi=高亮格色，dot=定位点色，light=浅格色
+const mark = (hi = BRAND, dot = '#fff', light = BRAND_100) => `
+  <rect x="6" y="6" width="23" height="23" rx="6" fill="${light}"/>
+  <rect x="35" y="6" width="23" height="23" rx="6" fill="${light}"/>
+  <rect x="6" y="35" width="23" height="23" rx="6" fill="${light}"/>
+  <rect x="35" y="35" width="23" height="23" rx="6" fill="${hi}"/>
+  <circle cx="46.5" cy="46.5" r="4.5" fill="${dot}"/>`
 
-const markAt = (x, y, s, c, white) => `<g transform="translate(${x},${y}) scale(${s / 64})">${mark(c, white)}</g>`
+const markAt = (x, y, s, hi, dot, light) => `<g transform="translate(${x},${y}) scale(${s / 64})">${mark(hi, dot, light)}</g>`
 
 const svg = (w, h, body) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" font-family="${FONT}">${body}</svg>`
@@ -32,7 +33,7 @@ writeFileSync(
     512,
     512,
     `<rect width="512" height="512" fill="${BRAND}"/>
-     ${markAt(128, 118, 256, '#ffffff', BRAND)}
+     ${markAt(128, 118, 256, '#ffffff', BRAND, 'rgba(255,255,255,0.28)')}
      <text x="256" y="436" text-anchor="middle" font-size="64" font-weight="700" fill="#fff">座签</text>`,
   ),
 )
@@ -45,7 +46,7 @@ writeFileSync(
     383,
     `<rect width="900" height="383" fill="#eef2ff"/>
      <rect width="900" height="383" fill="url(#g)" opacity="0"/>
-     ${markAt(72, 100, 96, BRAND, '#fff')}
+     ${markAt(72, 100, 96, BRAND, '#fff', BRAND_100)}
      <text x="196" y="158" font-size="52" font-weight="700" fill="${INK}">座签 SeatMark</text>
      <text x="196" y="212" font-size="26" fill="#475569">上传 Excel 名单，批量生成座位标签</text>
      <text x="196" y="252" font-size="20" fill="#64748b">精确到 0.1mm · 数据本地处理 · 免费</text>
@@ -68,7 +69,7 @@ writeFileSync(
     1242,
     1660,
     `<rect width="1242" height="1660" fill="#eef2ff"/>
-     ${markAt(521, 220, 200, BRAND, '#fff')}
+     ${markAt(521, 220, 200, BRAND, '#fff', BRAND_100)}
      <text x="621" y="560" text-anchor="middle" font-size="110" font-weight="700" fill="${INK}">考场座签</text>
      <text x="621" y="700" text-anchor="middle" font-size="110" font-weight="700" fill="${BRAND}">批量生成</text>
      <text x="621" y="810" text-anchor="middle" font-size="44" fill="#475569">上传 Excel 名单 → 一键排版 → 打印</text>
@@ -101,7 +102,7 @@ writeFileSync(
      <rect width="1200" height="630" fill="url(#ogbg)"/>
      <circle cx="1080" cy="80" r="320" fill="url(#ogglow)"/>
      <!-- 品牌 Lockup -->
-     ${markAt(80, 68, 64, '#818cf8', '#0f172a', '#818cf8')}
+     ${markAt(80, 68, 64, '#818cf8', '#0f172a', 'rgba(129,140,248,0.28)')}
      <text x="164" y="114" font-size="36" font-weight="700" fill="#fff">座签 <tspan fill="#94a3b8" font-weight="600">SeatMark</tspan></text>
      <!-- 主标题（信息层级 1）-->
      <text x="80" y="268" font-size="72" font-weight="700" fill="#fff">上传 Excel 名单</text>
@@ -143,7 +144,7 @@ writeFileSync(
     `<!-- 正面 -->
      <g>
        <rect width="1063" height="638" fill="#fff" stroke="#e2e8f0"/>
-       ${markAt(80, 80, 110, BRAND, '#fff')}
+       ${markAt(80, 80, 110, BRAND, '#fff', BRAND_100)}
        <text x="220" y="140" font-size="54" font-weight="700" fill="${INK}">座签 SeatMark</text>
        <text x="220" y="192" font-size="26" fill="#64748b">考场座签 · 桌牌席卡 · 批量生成</text>
        <text x="80" y="480" font-size="30" font-weight="600" fill="${INK}">王小明 · 产品负责人</text>
@@ -153,7 +154,7 @@ writeFileSync(
      <!-- 反面 -->
      <g transform="translate(1143,0)">
        <rect width="1063" height="638" fill="${BRAND}"/>
-       ${markAt(451, 189, 160, '#ffffff', BRAND)}
+       ${markAt(451, 189, 160, '#ffffff', BRAND, 'rgba(255,255,255,0.28)')}
        <text x="531" y="460" text-anchor="middle" font-size="40" font-weight="700" fill="#fff">座签 SeatMark</text>
        <text x="531" y="516" text-anchor="middle" font-size="24" fill="#c7d2fe">www.seatmark.cn</text>
      </g>`,

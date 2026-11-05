@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1242" height="1660" viewBox="0 0 1242 1660" font-family="'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif"><rect width="1242" height="1660" fill="#f8fafc"/>
      <rect width="1242" height="1660" fill="#eef2ff" opacity="0.6"/>
      <g transform="translate(505,150) scale(3.625)">
-  <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
-  <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
-  <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+  <rect x="6" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+  <rect x="35" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+  <rect x="6" y="35" width="23" height="23" rx="6" fill="#e0e7ff"/>
   <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
   <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></g>
      <text x="621" y="540" text-anchor="middle" font-size="96" font-weight="700" fill="#0f172a">A4 一页 6 签</text>
