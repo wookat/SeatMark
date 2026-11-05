@@ -1,0 +1,31 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>A6 柔格·浅格深度对比</title>
+<style>
+  *{margin:0;box-sizing:border-box}
+  body{font-family:'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif;background:#f8fafc;color:#0f172a;padding:36px;width:1200px}
+  h1{font-size:22px;margin-bottom:20px}
+  .row{display:flex;gap:24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 20px;margin-bottom:14px;align-items:center}
+  .meta{width:200px;flex:none}
+  .meta h2{font-size:15px;color:#4f46e5;margin-bottom:4px}
+  .meta p{font-size:12px;color:#64748b}
+  .sizes{display:flex;gap:18px;align-items:flex-end}
+  .navbar{display:flex;align-items:center;gap:8px;height:56px;padding:0 14px;border:1px solid #e2e8f0;border-radius:8px;background:rgba(255,255,255,.95)}
+  .navbar b{font-size:15px}
+  .navbar b span{color:#4f46e5}
+  .navbar .dim{font-size:13px;color:#64748b;margin-left:6px}
+</style></head><body>
+<h1>A6 柔格 · 浅格深度对比（同结构换色）</h1>
+<script>
+const depths=[
+ ['D1 · brand-100（现行）','#e0e7ff','最柔，但 16px 几乎消失'],
+ ['D2 · 中间档','#d3dbfd','100 与 200 之间，存在感略升'],
+ ['D3 · brand-200','#c7d2fe','Tailwind 标准档，层次最清晰'],
+ ['D4 · brand-300','#a5b4fc','最深，浅格开始抢高亮格'],
+];
+const mark=(light,hi,dot='#fff')=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="SZ" height="SZ"><rect x="6" y="6" width="23" height="23" rx="6" fill="${light}"/><rect x="35" y="6" width="23" height="23" rx="6" fill="${light}"/><rect x="6" y="35" width="23" height="23" rx="6" fill="${light}"/><rect x="35" y="35" width="23" height="23" rx="6" fill="${hi}"/><circle cx="46.5" cy="46.5" r="4.5" fill="${dot}"/></svg>`;
+document.write(depths.map(([name,hex,note])=>`<section class="row">
+ <div class="meta"><h2>${name}</h2><p>${hex} · ${note}</p></div>
+ <div class="sizes">${[64,48,32,24,16].map(s=>mark(hex,'#4f46e5').replaceAll('SZ',s)).join('')}</div>
+ <div class="navbar">${mark(hex,'#4f46e5').replaceAll('SZ',32)}<b>SeatMark <span>座签</span></b><span class="dim">模板 排座 教程 定价</span></div>
+</section>`).join(''));
+</script>
+</body></html>

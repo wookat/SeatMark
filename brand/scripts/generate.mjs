@@ -19,15 +19,15 @@ const directions = [
     name: 'A · 座位格（柔格）',
     desc: '浅底格阵中一格高亮：考场座位表里被定位的座位。柔和克制，深浅底皆成立。',
     mark: (c, a) => `
-      <rect x="6" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
-      <rect x="35" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
-      <rect x="6" y="35" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="#c7d2fe"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="#c7d2fe"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="#c7d2fe"/>
       <rect x="35" y="35" width="23" height="23" rx="6" fill="${a}"/>
       <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/>`,
     markMono: (c, dot = '#fff') => `
-      <rect x="6" y="6" width="23" height="23" rx="6" fill="${c}" fill-opacity="0.14"/>
-      <rect x="35" y="6" width="23" height="23" rx="6" fill="${c}" fill-opacity="0.14"/>
-      <rect x="6" y="35" width="23" height="23" rx="6" fill="${c}" fill-opacity="0.14"/>
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="${c}" fill-opacity="0.28"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="${c}" fill-opacity="0.28"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="${c}" fill-opacity="0.28"/>
       <rect x="35" y="35" width="23" height="23" rx="6" fill="${c}"/>
       <circle cx="46.5" cy="46.5" r="4.5" fill="${dot}"/>`,
   },

@@ -12,12 +12,13 @@ mkdirSync(OUT, { recursive: true })
 const BRAND = '#4f46e5'
 const BRAND_700 = '#4338ca'
 const BRAND_100 = '#e0e7ff'
+const MARK_LIGHT = '#c7d2fe'
 const BRAND_50 = '#eef2ff'
 const INK = '#0f172a'
 const FONT = "'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif"
 
 // 方案 A「柔格」图形标：hi=高亮格色，dot=定位点色，light=浅格色
-const mark = (hi = BRAND, dot = '#fff', light = BRAND_100) => `
+const mark = (hi = BRAND, dot = '#fff', light = MARK_LIGHT) => `
   <rect x="6" y="6" width="23" height="23" rx="6" fill="${light}"/>
   <rect x="35" y="6" width="23" height="23" rx="6" fill="${light}"/>
   <rect x="6" y="35" width="23" height="23" rx="6" fill="${light}"/>
@@ -93,7 +94,7 @@ write(
     675,
     `<rect width="1200" height="675" fill="${BRAND_50}"/>
      <g opacity="0.5">${markAt(1000, -60, 380, BRAND_100, BRAND_50, BRAND_50)}</g>
-     ${markAt(84, 76, 88, BRAND, '#fff', BRAND_100)}
+     ${markAt(84, 76, 88, BRAND, '#fff', MARK_LIGHT)}
      <text x="196" y="136" font-size="46" font-weight="700" fill="${INK}">座签 SeatMark</text>
      <text x="84" y="288" font-size="64" font-weight="700" fill="${INK}">考场座签批量生成</text>
      <text x="84" y="368" font-size="34" fill="#475569">上传 Excel 名单 → 一键排版 → 打印</text>
@@ -110,7 +111,7 @@ write(
     1660,
     `<rect width="1242" height="1660" fill="${BRAND_50}"/>
      <g opacity="0.5">${markAt(920, -120, 520, BRAND_100, BRAND_50, BRAND_50)}</g>
-     ${markAt(505, 190, 232, BRAND, '#fff', BRAND_100)}
+     ${markAt(505, 190, 232, BRAND, '#fff', MARK_LIGHT)}
      <text x="621" y="560" text-anchor="middle" font-size="104" font-weight="700" fill="${INK}">考场座签</text>
      <text x="621" y="694" text-anchor="middle" font-size="104" font-weight="700" fill="${BRAND}">批量生成</text>
      <text x="621" y="800" text-anchor="middle" font-size="44" fill="#475569">上传 Excel 名单 → 一键排版 → 打印</text>
@@ -195,7 +196,7 @@ write(
     675,
     `<rect width="1200" height="675" fill="#f8fafc"/>
      <rect width="1200" height="675" fill="${BRAND_50}" opacity="0.6"/>
-     ${markAt(84, 76, 88, BRAND, '#fff', BRAND_100)}
+     ${markAt(84, 76, 88, BRAND, '#fff', MARK_LIGHT)}
      <text x="196" y="136" font-size="46" font-weight="700" fill="${INK}">座签 SeatMark</text>
      <text x="84" y="300" font-size="60" font-weight="700" fill="${INK}">A4 一页 6 签</text>
      <text x="84" y="382" font-size="60" font-weight="700" fill="${BRAND}">打印即贴</text>
@@ -211,7 +212,7 @@ write(
     1660,
     `<rect width="1242" height="1660" fill="#f8fafc"/>
      <rect width="1242" height="1660" fill="${BRAND_50}" opacity="0.6"/>
-     ${markAt(505, 150, 232, BRAND, '#fff', BRAND_100)}
+     ${markAt(505, 150, 232, BRAND, '#fff', MARK_LIGHT)}
      <text x="621" y="540" text-anchor="middle" font-size="96" font-weight="700" fill="${INK}">A4 一页 6 签</text>
      <text x="621" y="676" text-anchor="middle" font-size="96" font-weight="700" fill="${BRAND}">打印即贴</text>
      <text x="621" y="784" text-anchor="middle" font-size="44" fill="#475569">桌牌 · 席卡 · 门贴 · 证卡全覆盖</text>
@@ -230,7 +231,7 @@ write(
     400,
     `<rect width="500" height="400" fill="${BRAND_50}"/>
      <g opacity="0.5">${markAt(360, -50, 240, BRAND_100, BRAND_50, BRAND_50)}</g>
-     ${markAt(40, 40, 72, BRAND, '#fff', BRAND_100)}
+     ${markAt(40, 40, 72, BRAND, '#fff', MARK_LIGHT)}
      <text x="130" y="90" font-size="40" font-weight="700" fill="${INK}">座签 SeatMark</text>
      <text x="40" y="188" font-size="30" font-weight="700" fill="${INK}">上传名单，批量生成座位标签</text>
      <text x="40" y="238" font-size="21" fill="#475569">61 款模板 · 毫米级排版 · PDF 导出</text>
@@ -251,7 +252,7 @@ write(
     `<rect width="1280" height="720" fill="#fff"/>
      <rect width="1280" height="8" fill="${BRAND}"/>
      <g opacity="0.35">${markAt(1010, 420, 420, BRAND_100, '#fff', BRAND_50)}</g>
-     ${markAt(96, 88, 72, BRAND, '#fff', BRAND_100)}
+     ${markAt(96, 88, 72, BRAND, '#fff', MARK_LIGHT)}
      <text x="188" y="138" font-size="38" font-weight="700" fill="${INK}">座签 SeatMark</text>
      <text x="96" y="330" font-size="72" font-weight="700" fill="${INK}">演示文稿标题</text>
      <text x="96" y="404" font-size="32" fill="#475569">副标题 · 汇报人 · 日期</text>
