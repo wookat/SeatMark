@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
 import BrandMark from '@/components/ui/BrandMark.vue'
-import { localePath, rememberLocale, stripLocalePrefix, t, useI18n } from '@/i18n'
+import { localePath, LOCALES, rememberLocale, stripLocalePrefix, t, useI18n, type Locale } from '@/i18n'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,13 +14,17 @@ const { locale } = useI18n()
 /** 去掉 en- 前缀的路由名，zh/en 镜像路由共用高亮判断 */
 const routeName = computed(() => String(route.name ?? '').replace(/^en-/, ''))
 
-/** 语言切换：同一页面的 zh/en 对应路径 */
-const switchTarget = computed(() =>
-  locale.value === 'en' ? stripLocalePrefix(route.path) : localePath(route.path, 'en'),
-)
+/** 语言菜单：每个 locale 对应本页在目标语言下的路径（zh 无前缀，en 带 /en） */
+const langOpen = ref(false)
+const langRef = ref<HTMLElement | null>(null)
 
-function onSwitchLocale() {
-  rememberLocale(locale.value === 'en' ? 'zh' : 'en')
+function localeTarget(code: Locale): string {
+  return code === 'en' ? localePath(route.path, 'en') : stripLocalePrefix(route.path)
+}
+
+function onPickLocale(code: Locale) {
+  rememberLocale(code)
+  langOpen.value = false
 }
 
 const menuOpen = ref(false)
@@ -81,6 +85,9 @@ function onDocClick(event: MouseEvent) {
   if (drawerRef.value && !drawerRef.value.contains(event.target as Node)) {
     drawerOpen.value = false
   }
+  if (langRef.value && !langRef.value.contains(event.target as Node)) {
+    langOpen.value = false
+  }
 }
 
 function onDocKeydown(event: KeyboardEvent) {
@@ -111,13 +118,7 @@ async function onLogout() {
   }
 }
 
-/** 落地页锚点导航：仅首页展示 */
-const SECTIONS = computed(() => [
-  { href: '#templates', label: t('精选模板') },
-  { href: '#features', label: t('功能') },
-  { href: '#how', label: t('使用流程') },
-  { href: '#faq', label: t('常见问题') },
-])
+/** 落地页锚点导航已移除：与英文版顶栏保持一致（EN 站无页内锚点入口） */
 </script>
 
 <template>
@@ -137,21 +138,6 @@ const SECTIONS = computed(() => [
           <template v-else><span class="hidden md:inline">SeatMark </span><span class="text-brand-600">座签</span></template>
         </span>
       </RouterLink>
-
-      <nav
-        v-if="routeName === 'home' && locale !== 'en'"
-        class="ml-4 hidden items-center gap-1 lg:flex"
-        :aria-label="t('页面导航')"
-      >
-        <a
-          v-for="section in SECTIONS"
-          :key="section.href"
-          :href="section.href"
-          class="rounded-lg px-2.5 py-1.5 text-sm font-semibold whitespace-nowrap text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-        >
-          {{ section.label }}
-        </a>
-      </nav>
 
       <nav class="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
         <span
@@ -265,19 +251,64 @@ const SECTIONS = computed(() => [
           <template v-else>{{ t('开始制作') }}</template>
         </RouterLink>
 
-        <RouterLink
-          :to="switchTarget"
-          class="btn btn-ghost btn-sm hidden max-md:min-h-11 max-md:min-w-11 sm:inline-flex"
-          :aria-label="locale === 'en' ? t('切换到中文') : 'Switch to English'"
-          :title="locale === 'en' ? t('切换到中文') : 'Switch to English'"
-          @click="onSwitchLocale"
+        <div
+          ref="langRef"
+          class="relative hidden sm:block"
+          data-testid="nav-lang"
+          @mouseenter="langOpen = true"
+          @mouseleave="langOpen = false"
         >
-          <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-          </svg>
-          <span class="hidden md:inline" :lang="locale === 'en' ? 'zh' : undefined">{{ locale === 'en' ? '中文' : 'EN' }}</span>
-        </RouterLink>
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm whitespace-nowrap"
+            :class="{ 'bg-slate-100 text-brand-600': langOpen }"
+            :aria-expanded="langOpen"
+            aria-haspopup="true"
+            :aria-label="t('选择语言')"
+            :title="t('选择语言')"
+          >
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            </svg>
+            <span class="hidden md:inline">{{ LOCALES.find((l) => l.code === locale)?.name }}</span>
+            <svg class="size-3 transition-transform" :class="{ 'rotate-180': langOpen }" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m4 6 4 4 4-4" />
+            </svg>
+          </button>
+          <div
+            v-if="langOpen"
+            class="absolute right-0 top-9 z-50 w-36 rounded-lg border border-slate-200 bg-white p-1.5 shadow-pop"
+            role="menu"
+            :aria-label="t('语言')"
+          >
+            <RouterLink
+              v-for="l in LOCALES"
+              :key="l.code"
+              :to="localeTarget(l.code)"
+              class="flex items-center justify-between rounded px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+              :class="{ 'text-brand-600': locale === l.code }"
+              role="menuitem"
+              :aria-current="locale === l.code ? 'true' : undefined"
+              @click="onPickLocale(l.code)"
+            >
+              <span :lang="l.code">{{ l.name }}</span>
+              <svg
+                v-if="locale === l.code"
+                class="size-3.5 text-brand-600"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m3.5 8.5 3 3 6-7" />
+              </svg>
+            </RouterLink>
+          </div>
+        </div>
 
         <RouterLink
           v-if="!auth.user"
@@ -394,18 +425,32 @@ const SECTIONS = computed(() => [
               >
                 {{ auth.user ? t('个人中心') : t('登录') }}
               </RouterLink>
-              <RouterLink
-                :to="switchTarget"
-                class="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
-                data-testid="nav-drawer-locale"
-                @click="onSwitchLocale(); drawerOpen = false"
-              >
-                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                </svg>
-                <span :lang="locale === 'en' ? 'zh' : undefined">{{ locale === 'en' ? '中文' : 'English' }}</span>
-              </RouterLink>
+              <div data-testid="nav-drawer-locale">
+                <p class="px-3 pb-1 pt-2 text-[11px] font-semibold text-slate-400">{{ t('语言') }}</p>
+                <RouterLink
+                  v-for="l in LOCALES"
+                  :key="l.code"
+                  :to="localeTarget(l.code)"
+                  class="flex min-h-11 items-center justify-between rounded-lg px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                  :class="{ 'bg-slate-50 text-brand-600': locale === l.code }"
+                  @click="onPickLocale(l.code); drawerOpen = false"
+                >
+                  <span :lang="l.code">{{ l.name }}</span>
+                  <svg
+                    v-if="locale === l.code"
+                    class="size-3.5 text-brand-600"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="m3.5 8.5 3 3 6-7" />
+                  </svg>
+                </RouterLink>
+              </div>
             </nav>
           </Transition>
         </div>

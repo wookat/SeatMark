@@ -2143,4 +2143,7 @@ export const en: Record<string, string> = {
   '已按你的拖拽落座；如需避开请再拖到其它桌': 'Seated as dragged; drag to another table to keep them apart',
   '这些「不同桌」的宾客目前坐在同一桌，可继续导出或返回拖拽调整。':
     'These keep-apart guests currently share a table. You can export anyway or go back and drag them apart.',
+  '语言': 'Language',
+  '选择语言': 'Choose language',
+  '桌贴 / 门贴通用': 'Desk / door labels',
 }
