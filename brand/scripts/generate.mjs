@@ -16,20 +16,20 @@ const LATIN = "'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif"
 const directions = [
   {
     id: 'a-seatgrid',
-    name: 'A · 座位格',
-    desc: '考场座位表网格中定位到「你的座位」，一格高亮，直指核心场景。',
+    name: 'A · 座位格（柔格）',
+    desc: '浅底格阵中一格高亮：考场座位表里被定位的座位。柔和克制，深浅底皆成立。',
     mark: (c, a) => `
-      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="${c}" stroke-width="5"/>
-      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="${c}" stroke-width="5"/>
-      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="${c}" stroke-width="5"/>
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="#e0e7ff"/>
       <rect x="35" y="35" width="23" height="23" rx="6" fill="${a}"/>
-      <circle cx="46.5" cy="46.5" r="4.5" fill="${c === a ? '#fff' : '#fff'}"/>`,
-    markMono: (c) => `
-      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="${c}" stroke-width="5"/>
-      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="${c}" stroke-width="5"/>
-      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="${c}" stroke-width="5"/>
-      <rect x="35" y="35" width="23" height="23" rx="6" fill="${c}"/>
       <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/>`,
+    markMono: (c, dot = '#fff') => `
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="${c}" fill-opacity="0.14"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="${c}" fill-opacity="0.14"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="${c}" fill-opacity="0.14"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="${c}"/>
+      <circle cx="46.5" cy="46.5" r="4.5" fill="${dot}"/>`,
   },
   {
     id: 'b-tagcard',
@@ -110,7 +110,7 @@ const directions = [
 
 function markSvg(d, { size = 64, variant = 'color', onDark = false } = {}) {
   let inner
-  if (variant === 'mono') inner = d.markMono(onDark ? '#ffffff' : INK)
+  if (variant === 'mono') inner = d.markMono(onDark ? '#ffffff' : INK, onDark ? INK : '#fff')
   else inner = d.mark(BRAND, BRAND, onDark)
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="${size}" height="${size}">${inner}</svg>`
 }
@@ -119,7 +119,7 @@ function lockupSvg(d, { onDark = false, variant = 'color' } = {}) {
   const text = onDark ? '#ffffff' : INK
   const sub = onDark ? 'rgba(255,255,255,0.65)' : '#64748b'
   const markColor = variant === 'mono' ? (onDark ? '#ffffff' : INK) : BRAND
-  const inner = variant === 'mono' ? d.markMono(markColor) : d.mark(BRAND, BRAND, onDark)
+  const inner = variant === 'mono' ? d.markMono(markColor, onDark ? INK : '#fff') : d.mark(BRAND, BRAND, onDark)
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
   <g transform="translate(4,4) scale(1)">${inner}</g>
   <text x="82" y="34" font-family="${FONT}" font-size="30" font-weight="700" fill="${text}">座签</text>

@@ -1,0 +1,569 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>SeatMark Logo 方案A精修对比</title>
+<style>
+  * { margin:0; box-sizing:border-box; }
+  body { font-family:'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif; background:#f8fafc; color:#0f172a; padding:40px; width:1360px; }
+  h1 { font-size:26px; margin-bottom:6px; }
+  .sub { color:#64748b; margin-bottom:28px; font-size:14px; }
+  .row { display:flex; gap:20px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin-bottom:16px; align-items:center; }
+  .meta { width:260px; flex:none; }
+  .meta h2 { font-size:17px; margin-bottom:6px; color:#4f46e5; }
+  .meta p { font-size:13px; color:#64748b; line-height:1.6; }
+  .cells { display:flex; gap:12px; flex:1; }
+  .cell { border-radius:8px; padding:12px 16px; display:flex; align-items:center; justify-content:center; border:1px solid #e2e8f0; }
+  .cell.light { background:#fff; }
+  .cell.dark { background:#0f172a; border-color:#0f172a; }
+  .cell.fav { gap:10px; flex-direction:row; position:relative; padding-bottom:26px; }
+  .favlabel { position:absolute; bottom:6px; left:0; right:0; text-align:center; font-size:11px; color:#94a3b8; }
+</style></head><body>
+<h1>SeatMark 座签 · 方案A「座位格」精修对比（8 变体）</h1>
+<p class="sub">A0 为现行版基线。每行：亮底组合标 · 暗底组合标 · 单色版 · Favicon 缩小可用性（48/32/24/16px）。</p>
+<section class="row">
+  <div class="meta"><h2>A0 · 现行版</h2><p>当前线上版本，作对照基线。2×2 描边格 + 右下实心格白点。</p></div>
+  <div class="cells">
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell dark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#ffffff">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="rgba(255,255,255,0.65)">SeatMark</text>
+</svg></div>
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#0f172a" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#0f172a" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#0f172a" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#0f172a"/>
+      <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell light fav">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="32" height="32">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="24" height="24">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></svg>
+      <span class="favlabel">48 / 32 / 24 / 16px</span>
+    </div>
+  </div>
+</section>
+<section class="row">
+  <div class="meta"><h2>A1 · 精修</h2><p>原版光学修正：描边 5→4.5、格距 6→8 更透气、圆角 6→5.5、白点光学居中。变化最小。</p></div>
+  <div class="cells">
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="36" y="6" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="6" y="36" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="36" y="36" width="22" height="22" rx="5.5" fill="#4f46e5"/>
+      <circle cx="47" cy="47" r="4.2" fill="#fff"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell dark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="36" y="6" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="6" y="36" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="36" y="36" width="22" height="22" rx="5.5" fill="#4f46e5"/>
+      <circle cx="47" cy="47" r="4.2" fill="#fff"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#ffffff">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="rgba(255,255,255,0.65)">SeatMark</text>
+</svg></div>
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="22" height="22" rx="5.5" fill="none" stroke="#0f172a" stroke-width="4.5"/>
+      <rect x="36" y="6" width="22" height="22" rx="5.5" fill="none" stroke="#0f172a" stroke-width="4.5"/>
+      <rect x="6" y="36" width="22" height="22" rx="5.5" fill="none" stroke="#0f172a" stroke-width="4.5"/>
+      <rect x="36" y="36" width="22" height="22" rx="5.5" fill="#0f172a"/>
+      <circle cx="47" cy="47" r="4.2" fill="#fff"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell light fav">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48">
+      <rect x="6" y="6" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="36" y="6" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="6" y="36" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="36" y="36" width="22" height="22" rx="5.5" fill="#4f46e5"/>
+      <circle cx="47" cy="47" r="4.2" fill="#fff"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="32" height="32">
+      <rect x="6" y="6" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="36" y="6" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="6" y="36" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="36" y="36" width="22" height="22" rx="5.5" fill="#4f46e5"/>
+      <circle cx="47" cy="47" r="4.2" fill="#fff"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="24" height="24">
+      <rect x="6" y="6" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="36" y="6" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="6" y="36" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="36" y="36" width="22" height="22" rx="5.5" fill="#4f46e5"/>
+      <circle cx="47" cy="47" r="4.2" fill="#fff"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16">
+      <rect x="6" y="6" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="36" y="6" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="6" y="36" width="22" height="22" rx="5.5" fill="none" stroke="#4f46e5" stroke-width="4.5"/>
+      <rect x="36" y="36" width="22" height="22" rx="5.5" fill="#4f46e5"/>
+      <circle cx="47" cy="47" r="4.2" fill="#fff"/></svg>
+      <span class="favlabel">48 / 32 / 24 / 16px</span>
+    </div>
+  </div>
+</section>
+<section class="row">
+  <div class="meta"><h2>A2 · 座位表</h2><p>3×3 真实考场座位表网格，中心座位高亮。彻底脱离 2×2「应用菜单」通用感，品类语义最强。</p></div>
+  <div class="cells">
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="4.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="4.5" y="24.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="24.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="4.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="24.5" width="15" height="15" rx="3" fill="#4f46e5"/>
+      <circle cx="32" cy="32" r="3" fill="#fff"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell dark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="4.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="4.5" y="24.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="24.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="4.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="24.5" width="15" height="15" rx="3" fill="#4f46e5"/>
+      <circle cx="32" cy="32" r="3" fill="#fff"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#ffffff">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="rgba(255,255,255,0.65)">SeatMark</text>
+</svg></div>
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="4.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#0f172a" stroke-width="3.5"/>
+      <rect x="24.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#0f172a" stroke-width="3.5"/>
+      <rect x="44.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#0f172a" stroke-width="3.5"/>
+      <rect x="4.5" y="24.5" width="15" height="15" rx="3" fill="none" stroke="#0f172a" stroke-width="3.5"/>
+      <rect x="44.5" y="24.5" width="15" height="15" rx="3" fill="none" stroke="#0f172a" stroke-width="3.5"/>
+      <rect x="4.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#0f172a" stroke-width="3.5"/>
+      <rect x="24.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#0f172a" stroke-width="3.5"/>
+      <rect x="44.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#0f172a" stroke-width="3.5"/>
+      <rect x="24.5" y="24.5" width="15" height="15" rx="3" fill="#0f172a"/>
+      <circle cx="32" cy="32" r="3" fill="#fff"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell light fav">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48">
+      <rect x="4.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="4.5" y="24.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="24.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="4.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="24.5" width="15" height="15" rx="3" fill="#4f46e5"/>
+      <circle cx="32" cy="32" r="3" fill="#fff"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="32" height="32">
+      <rect x="4.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="4.5" y="24.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="24.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="4.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="24.5" width="15" height="15" rx="3" fill="#4f46e5"/>
+      <circle cx="32" cy="32" r="3" fill="#fff"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="24" height="24">
+      <rect x="4.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="4.5" y="24.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="24.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="4.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="24.5" width="15" height="15" rx="3" fill="#4f46e5"/>
+      <circle cx="32" cy="32" r="3" fill="#fff"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16">
+      <rect x="4.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="4.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="4.5" y="24.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="24.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="4.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="44.5" y="44.5" width="15" height="15" rx="3" fill="none" stroke="#4f46e5" stroke-width="3.5"/>
+      <rect x="24.5" y="24.5" width="15" height="15" rx="3" fill="#4f46e5"/>
+      <circle cx="32" cy="32" r="3" fill="#fff"/></svg>
+      <span class="favlabel">48 / 32 / 24 / 16px</span>
+    </div>
+  </div>
+</section>
+<section class="row">
+  <div class="meta"><h2>A3 · 定位勾</h2><p>高亮格内白点换成对勾——「确认并标记你的座位」，呼应 SeatMark 的 Mark。小尺寸辨识度优于圆点。</p></div>
+  <div class="cells">
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <path d="M40.5 46.5 l4.5 4.5 l8.5 -9.5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell dark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <path d="M40.5 46.5 l4.5 4.5 l8.5 -9.5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#ffffff">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="rgba(255,255,255,0.65)">SeatMark</text>
+</svg></div>
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#0f172a" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#0f172a" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#0f172a" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#0f172a"/>
+      <path d="M40.5 46.5 l4.5 4.5 l8.5 -9.5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell light fav">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <path d="M40.5 46.5 l4.5 4.5 l8.5 -9.5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="32" height="32">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <path d="M40.5 46.5 l4.5 4.5 l8.5 -9.5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="24" height="24">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <path d="M40.5 46.5 l4.5 4.5 l8.5 -9.5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <path d="M40.5 46.5 l4.5 4.5 l8.5 -9.5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="favlabel">48 / 32 / 24 / 16px</span>
+    </div>
+  </div>
+</section>
+<section class="row">
+  <div class="meta"><h2>A4 · 选中框</h2><p>实心格 + 四角选择框，像座位表里被框选定位的那一格。「定位到座位」的语义可视化最强。</p></div>
+  <div class="cells">
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <path d="M39.5 31.5 h-5 a3 3 0 0 0 -3 3 v5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M53.5 31.5 h5 a3 3 0 0 1 3 3 v5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M61.5 53.5 v5 a3 3 0 0 1 -3 3 h-5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M47.5 61.5 h-5 a3 3 0 0 1 -3 -3 v-5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell dark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <path d="M39.5 31.5 h-5 a3 3 0 0 0 -3 3 v5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M53.5 31.5 h5 a3 3 0 0 1 3 3 v5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M61.5 53.5 v5 a3 3 0 0 1 -3 3 h-5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M47.5 61.5 h-5 a3 3 0 0 1 -3 -3 v-5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#ffffff">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="rgba(255,255,255,0.65)">SeatMark</text>
+</svg></div>
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#0f172a" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#0f172a" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#0f172a" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#0f172a"/>
+      <path d="M39.5 31.5 h-5 a3 3 0 0 0 -3 3 v5" fill="none" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M53.5 31.5 h5 a3 3 0 0 1 3 3 v5" fill="none" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M61.5 53.5 v5 a3 3 0 0 1 -3 3 h-5" fill="none" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M47.5 61.5 h-5 a3 3 0 0 1 -3 -3 v-5" fill="none" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell light fav">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <path d="M39.5 31.5 h-5 a3 3 0 0 0 -3 3 v5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M53.5 31.5 h5 a3 3 0 0 1 3 3 v5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M61.5 53.5 v5 a3 3 0 0 1 -3 3 h-5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M47.5 61.5 h-5 a3 3 0 0 1 -3 -3 v-5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="32" height="32">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <path d="M39.5 31.5 h-5 a3 3 0 0 0 -3 3 v5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M53.5 31.5 h5 a3 3 0 0 1 3 3 v5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M61.5 53.5 v5 a3 3 0 0 1 -3 3 h-5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M47.5 61.5 h-5 a3 3 0 0 1 -3 -3 v-5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="24" height="24">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <path d="M39.5 31.5 h-5 a3 3 0 0 0 -3 3 v5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M53.5 31.5 h5 a3 3 0 0 1 3 3 v5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M61.5 53.5 v5 a3 3 0 0 1 -3 3 h-5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M47.5 61.5 h-5 a3 3 0 0 1 -3 -3 v-5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <path d="M39.5 31.5 h-5 a3 3 0 0 0 -3 3 v5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M53.5 31.5 h5 a3 3 0 0 1 3 3 v5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M61.5 53.5 v5 a3 3 0 0 1 -3 3 h-5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M47.5 61.5 h-5 a3 3 0 0 1 -3 -3 v-5" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/></svg>
+      <span class="favlabel">48 / 32 / 24 / 16px</span>
+    </div>
+  </div>
+</section>
+<section class="row">
+  <div class="meta"><h2>A5 · 座签格</h2><p>高亮格内嵌姓名条，这一格本身就是一张座签卡——「座位表里长出一枚座签」，产品动作可视化。</p></div>
+  <div class="cells">
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <rect x="41" y="43" width="11" height="4" rx="2" fill="#fff"/>
+      <rect x="41" y="50" width="7" height="3.5" rx="1.75" fill="#fff" opacity="0.72"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell dark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <rect x="41" y="43" width="11" height="4" rx="2" fill="#fff"/>
+      <rect x="41" y="50" width="7" height="3.5" rx="1.75" fill="#fff" opacity="0.72"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#ffffff">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="rgba(255,255,255,0.65)">SeatMark</text>
+</svg></div>
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#0f172a" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#0f172a" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#0f172a" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#0f172a"/>
+      <rect x="41" y="43" width="11" height="4" rx="2" fill="#fff"/>
+      <rect x="41" y="50" width="7" height="3.5" rx="1.75" fill="#fff" opacity="0.72"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell light fav">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <rect x="41" y="43" width="11" height="4" rx="2" fill="#fff"/>
+      <rect x="41" y="50" width="7" height="3.5" rx="1.75" fill="#fff" opacity="0.72"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="32" height="32">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <rect x="41" y="43" width="11" height="4" rx="2" fill="#fff"/>
+      <rect x="41" y="50" width="7" height="3.5" rx="1.75" fill="#fff" opacity="0.72"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="24" height="24">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <rect x="41" y="43" width="11" height="4" rx="2" fill="#fff"/>
+      <rect x="41" y="50" width="7" height="3.5" rx="1.75" fill="#fff" opacity="0.72"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <rect x="41" y="43" width="11" height="4" rx="2" fill="#fff"/>
+      <rect x="41" y="50" width="7" height="3.5" rx="1.75" fill="#fff" opacity="0.72"/></svg>
+      <span class="favlabel">48 / 32 / 24 / 16px</span>
+    </div>
+  </div>
+</section>
+<section class="row">
+  <div class="meta"><h2>A6 · 柔格</h2><p>描边格改浅底填充格（brand-100），只有高亮格实心。更柔和现代，深色/浅色底都成立。</p></div>
+  <div class="cells">
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell dark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#ffffff">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="rgba(255,255,255,0.65)">SeatMark</text>
+</svg></div>
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="#0f172a" opacity="0.14"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="#0f172a" opacity="0.14"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="#0f172a" opacity="0.14"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#0f172a"/>
+      <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell light fav">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="32" height="32">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="24" height="24">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="#e0e7ff"/>
+      <rect x="35" y="35" width="23" height="23" rx="6" fill="#4f46e5"/>
+      <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/></svg>
+      <span class="favlabel">48 / 32 / 24 / 16px</span>
+    </div>
+  </div>
+</section>
+<section class="row">
+  <div class="meta"><h2>A7 · 抽取格</h2><p>高亮格被「拿起」：略放大、轻旋转、脱格而出。动感与故事感最强，但形式最跳出。</p></div>
+  <div class="cells">
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <g transform="rotate(-8 46.5 46.5)">
+        <rect x="33.5" y="33.5" width="26" height="26" rx="7" fill="#4f46e5"/>
+        <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/>
+      </g></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell dark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <g transform="rotate(-8 46.5 46.5)">
+        <rect x="33.5" y="33.5" width="26" height="26" rx="7" fill="#4f46e5"/>
+        <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/>
+      </g></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#ffffff">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="rgba(255,255,255,0.65)">SeatMark</text>
+</svg></div>
+    <div class="cell light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" width="240" height="72">
+  <g transform="translate(4,4) scale(1)">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#0f172a" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#0f172a" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#0f172a" stroke-width="5"/>
+      <g transform="rotate(-8 46.5 46.5)">
+        <rect x="33.5" y="33.5" width="26" height="26" rx="7" fill="#0f172a"/>
+        <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/>
+      </g></g>
+  <text x="82" y="34" font-family="'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#0f172a">座签</text>
+  <text x="82" y="58" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="600" letter-spacing="1" fill="#64748b">SeatMark</text>
+</svg></div>
+    <div class="cell light fav">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <g transform="rotate(-8 46.5 46.5)">
+        <rect x="33.5" y="33.5" width="26" height="26" rx="7" fill="#4f46e5"/>
+        <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/>
+      </g></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="32" height="32">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <g transform="rotate(-8 46.5 46.5)">
+        <rect x="33.5" y="33.5" width="26" height="26" rx="7" fill="#4f46e5"/>
+        <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/>
+      </g></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="24" height="24">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <g transform="rotate(-8 46.5 46.5)">
+        <rect x="33.5" y="33.5" width="26" height="26" rx="7" fill="#4f46e5"/>
+        <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/>
+      </g></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16">
+      <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#4f46e5" stroke-width="5"/>
+      <g transform="rotate(-8 46.5 46.5)">
+        <rect x="33.5" y="33.5" width="26" height="26" rx="7" fill="#4f46e5"/>
+        <circle cx="46.5" cy="46.5" r="4.5" fill="#fff"/>
+      </g></svg>
+      <span class="favlabel">48 / 32 / 24 / 16px</span>
+    </div>
+  </div>
+</section>
+</body></html>

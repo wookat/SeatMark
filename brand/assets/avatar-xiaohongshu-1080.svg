@@ -7,9 +7,9 @@
     </defs>
     <rect width="1080" height="1080" fill="url(#avbg)"/>
     <g transform="translate(261.5625,223.59375) scale(8.701171875)">
-  <rect x="6" y="6" width="23" height="23" rx="6" fill="none" stroke="#ffffff" stroke-width="5"/>
-  <rect x="35" y="6" width="23" height="23" rx="6" fill="none" stroke="#ffffff" stroke-width="5"/>
-  <rect x="6" y="35" width="23" height="23" rx="6" fill="none" stroke="#ffffff" stroke-width="5"/>
+  <rect x="6" y="6" width="23" height="23" rx="6" fill="rgba(255,255,255,0.28)"/>
+  <rect x="35" y="6" width="23" height="23" rx="6" fill="rgba(255,255,255,0.28)"/>
+  <rect x="6" y="35" width="23" height="23" rx="6" fill="rgba(255,255,255,0.28)"/>
   <rect x="35" y="35" width="23" height="23" rx="6" fill="#ffffff"/>
   <circle cx="46.5" cy="46.5" r="4.5" fill="#4f46e5"/></g>
     <text x="540" y="945" text-anchor="middle" font-size="151.875" font-weight="700" fill="#fff" letter-spacing="12.65625">座签</text></svg>
