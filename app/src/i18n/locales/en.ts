@@ -2145,4 +2145,28 @@ export const en: Record<string, string> = {
     'These keep-apart guests currently share a table. You can export anyway or go back and drag them apart.',
   '语言': 'Language',
   '选择语言': 'Choose language',
+  // ---- 在线支付 ----
+  '在线支付开通 · ¥19/30 天': 'Pay online · ¥19 / 30 days',
+  '正在创建订单…': 'Creating order…',
+  '下单失败': 'Failed to create order',
+  '专业版支持支付宝在线支付与兑换码开通，天数可叠加；团队版预订登记不收取任何费用。':
+    'Pro can be activated via Alipay online payment or redeem codes (days stack); Team plan reservation is free.',
+  '支付结果': 'Payment result',
+  '正在确认订单状态…': 'Confirming order status…',
+  '请先登录查看订单': 'Please sign in to view this order',
+  '支付成功': 'Payment successful',
+  '订单已关闭或已退款': 'Order closed or refunded',
+  '等待支付确认': 'Waiting for payment confirmation',
+  '专业版天数已到账': 'Pro days have been credited',
+  '有效期至': 'valid until',
+  '若已在支付宝完成付款，订单将在数秒内自动更新；也可手动刷新状态。':
+    'If you have completed payment in Alipay, the order will update within seconds — or refresh manually.',
+  '订单号': 'Order No.',
+  '金额': 'Amount',
+  '支付宝交易号': 'Alipay trade No.',
+  '刷新支付状态': 'Refresh payment status',
+  '返回定价页': 'Back to pricing',
+  '缺少订单号': 'Missing order number',
+  '查询失败，请稍后再试': 'Query failed — please try again later',
+  '查询中…': 'Checking…',
 }

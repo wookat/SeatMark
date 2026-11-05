@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 import { TEMPLATE_COUNT } from '@/data/templateMeta'
 
@@ -14,6 +15,7 @@ import { AUTH_MAINTENANCE_HINT } from '@/utils/maintenanceCopy'
 
 const auth = useAuthStore()
 const toast = useToastStore()
+const router = useRouter()
 /** 英文行内链接前后需要空格分词，中文不加 */
 const wordGap = computed(() => (currentLocale() === 'en' ? ' ' : ''))
 /** FAQ 区是否有条目提到账号权益（注册送天数等）：维护态下在区块标题下只渲染一次提示 */
@@ -99,6 +101,39 @@ const PLANS = computed<Plan[]>(() => [
     cta: 'team-reserve',
   },
 ])
+
+// ---------- 在线支付（支付宝网页支付） ----------
+const paying = ref(false)
+
+async function startPay(plan: string) {
+  if (paying.value) return
+  paying.value = true
+  // 点击事件同步打开窗口避免浏览器弹窗拦截；拿到收银台表单后再写入
+  const w = window.open('', '_blank')
+  try {
+    const data = await apiFetch<{ orderNo: string; paymentHtml: string }>('/api/pay/order', {
+      method: 'POST',
+      body: { plan },
+    })
+    if (w) {
+      w.document.write(data.paymentHtml)
+      w.document.close()
+      // 收银台在新标签页，本页跳转订单结果页轮询到账状态
+      void router.push(localePath(`/pay/result?no=${encodeURIComponent(data.orderNo)}`))
+    } else {
+      // 弹窗被拦截：当前页直接渲染收银台表单，付完由 return_url 回跳结果页
+      document.open()
+      document.write(data.paymentHtml)
+      document.close()
+      return
+    }
+  } catch (err) {
+    w?.close()
+    toast.danger(t('下单失败'), err instanceof ApiError ? err.message : t('请稍后再试'))
+  } finally {
+    paying.value = false
+  }
+}
 
 // ---------- 团队版预订 ----------
 const reserveOpen = ref(false)
@@ -240,13 +275,30 @@ async function submitReserve() {
         >
           {{ t('免费开始使用') }}
         </RouterLink>
+        <template v-else-if="plan.cta === 'pro-trial' && !auth.serviceUnavailable && auth.user">
+          <button
+            type="button"
+            class="btn btn-primary btn-md mt-6 w-full"
+            data-testid="pricing-pro-cta"
+            :disabled="paying"
+            @click="startPay('pro-30')"
+          >
+            {{ paying ? t('正在创建订单…') : t('在线支付开通 · ¥19/30 天') }}
+          </button>
+          <RouterLink
+            :to="localePath('/account#redeem')"
+            class="mt-2 block text-center text-xs text-slate-500 underline-offset-2 hover:text-brand-600 hover:underline"
+          >
+            {{ t('使用兑换码开通 / 延长') }}
+          </RouterLink>
+        </template>
         <RouterLink
           v-else-if="plan.cta === 'pro-trial' && !auth.serviceUnavailable"
-          :to="localePath(auth.user ? '/account#redeem' : '/account')"
+          :to="localePath('/account')"
           class="btn btn-primary btn-md mt-6 w-full"
           data-testid="pricing-pro-cta"
         >
-          {{ auth.user ? t('使用兑换码开通 / 延长') : t('注册领 7 天试用') }}
+          {{ t('注册领 7 天试用') }}
         </RouterLink>
         <RouterLink
           v-else-if="plan.cta === 'pro-trial'"
@@ -268,7 +320,7 @@ async function submitReserve() {
     </div>
 
     <p class="mt-6 text-center text-xs text-slate-600">
-      {{ t('在线支付通道开通前，专业版通过兑换码开通') }}{{ t('（') }}<RouterLink :to="localePath('/account#redeem')" class="font-semibold text-brand-600 hover:underline">{{ t('去兑换') }}</RouterLink>{{ t('）；') }}{{ t('团队版预订登记不收取任何费用。') }}
+      {{ t('专业版支持支付宝在线支付与兑换码开通，天数可叠加；团队版预订登记不收取任何费用。') }}
     </p>
 
     <!-- FAQ -->

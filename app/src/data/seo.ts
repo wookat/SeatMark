@@ -496,6 +496,16 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
     }
   }
 
+  if (p === '/pay/result') {
+    return {
+      title: '支付结果 - SeatMark 座签',
+      description: 'SeatMark 订单支付结果查询。',
+      path: '/pay/result',
+      jsonLd: [],
+      robots: 'noindex, nofollow',
+    }
+  }
+
   if (p === '/guides') {
     const { guides } = await import('@/data/guides')
     return {
@@ -857,7 +867,7 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
  * 预渲染仅为了静态托管下直接访问路径时能命中 HTML 文件。
  */
 export function appShellPaths(): string[] {
-  return ['/account', '/admin', '/en/account', '/en/admin']
+  return ['/account', '/admin', '/pay/result', '/en/account', '/en/admin', '/en/pay/result']
 }
 
 /** 需要构建期预渲染的全部路径（同时是 sitemap 的路径清单）；仅构建脚本使用 */

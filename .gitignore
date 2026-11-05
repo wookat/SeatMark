@@ -21,3 +21,5 @@ coverage/
 !.vscode/extensions.json
 .cursor/
 chatcontinue/
+/.alipay-sandbox.json
+.edgeone/

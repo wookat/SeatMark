@@ -13,7 +13,7 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { resolveLastmod } from './sitemapLastmod.mjs'
 
@@ -37,7 +37,7 @@ const {
   PRICING_SUMMARY,
   PRO_ORIGINAL_PRICE,
   TEAM_ORIGINAL_PRICE,
-} = await import(join(root, 'dist-ssr', 'entry-server.js'))
+} = await import(pathToFileURL(join(root, 'dist-ssr', 'entry-server.js')).href)
 
 const template = readFileSync(join(distDir, 'index.html'), 'utf-8')
 

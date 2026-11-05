@@ -4,8 +4,9 @@
  *
  * 仅在 `npm run dev` 时生效，不参与生产构建。
  */
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -58,12 +59,35 @@ const devBlob = {
   },
 }
 
+/**
+ * 读取根目录 .alipay-sandbox.json（官方 AI 付 Skill 生成的沙箱配置，已 gitignore），
+ * 注入 ALIPAY_* 环境变量联调沙箱支付；文件缺失时返回空对象，支付路由 503 fail closed。
+ */
+function loadAlipaySandboxEnv() {
+  try {
+    const cfg = JSON.parse(readFileSync(resolve(root, '.alipay-sandbox.json'), 'utf8'))
+    const app = cfg.appIds && cfg.appIds[0]
+    if (!app || !app.appId || !app.appPrivateKey) return {}
+    return {
+      ALIPAY_APP_ID: app.appId,
+      ALIPAY_PRIVATE_KEY: app.appPrivateKey,
+      ALIPAY_PUBLIC_KEY: app.alipayPublicKey,
+      ALIPAY_GATEWAY: 'https://openapi-sandbox.dl.alipaydev.com/gateway.do',
+      ALIPAY_SELLER_ID: app.pid || '',
+      ALIPAY_SANDBOX: '1',
+    }
+  } catch {
+    return {}
+  }
+}
+
 function devEnv() {
   // DEV_FORCE_BLOB=1 时不绑 KV，联调 Blob 后备链路（KV → Blob → 内存）
   const forceBlob = process.env.DEV_FORCE_BLOB === '1'
   return {
     ...(forceBlob ? {} : { seatmark_kv: devKv }),
     seatmark_blob: devBlob,
+    ...loadAlipaySandboxEnv(),
     AUTH_SECRET: process.env.AUTH_SECRET || 'seatmark-dev-secret',
     ADMIN_EMAILS: process.env.ADMIN_EMAILS || 'admin@seatmark.cn',
     RESEND_API_KEY: process.env.RESEND_API_KEY || '',
@@ -106,7 +130,7 @@ export function devApiPlugin() {
           } else if (pathname === '/api/ai-design') {
             modPath = resolve(root, 'edge-functions/api/ai-design.js')
           }
-          const mod = await import(modPath)
+          const mod = await import(pathToFileURL(modPath).href)
           const request = await nodeReqToWebRequest(req)
           const response = await mod.onRequest({ request, env: devEnv() })
           res.statusCode = response.status

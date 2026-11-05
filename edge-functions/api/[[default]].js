@@ -20,8 +20,15 @@
  *   POST /api/share/tpl          模板短码寄存（微信扫码短链，内容寻址）
  *   GET  /api/share/tpl          按短码取回模板负载
  *   POST /api/redeem             兑换码开通会员（登录用户，IP 限频防枚举）
+ *   POST /api/pay/order          支付下单（登录用户）：返回 page.pay 收银台表单
+ *   GET  /api/pay/order          订单状态查询；refresh=1 时用交易查询补偿漏通知
+ *   POST /api/pay/notify         支付宝异步通知：验签+归属/金额/卖家校验+幂等发放
  *   POST /api/admin/codes        批量生成兑换码（管理员，供卡网售卖）
  *   GET  /api/admin/codes        兑换码批次列表与核销进度
+ *   GET  /api/admin/orders       支付订单列表（管理员）
+ *   POST /api/admin/pay/close    关闭未支付订单（管理员，先调网关再落状态）
+ *   POST /api/admin/pay/refund   退款（管理员，out_request_no 重试幂等）
+ *   GET  /api/admin/pay/refund   退款查询（管理员，回填 pending 退款记录）
  *   POST /api/team/reserve       团队版预订登记
  *   GET  /api/announcement       公告（公开；附 authService: ok | auth_secret_missing）
  *   GET  /api/admin/health       环境健康检查（KV/邮件/AUTH_SECRET 配置状态）
@@ -42,6 +49,14 @@
  * - TENCENT_SES_TEMPLATE_ID  腾讯云 SES 模板 ID（可选；配置后用模板发送，变量 {code}/{ttl}）
  * - RESEND_API_KEY   Resend 邮件发送密钥（腾讯云未配置时的备用通道；都未配置时仅本地开发环境以 devCode 形式返回验证码）
  * - MAIL_FROM        发件地址（默认 SeatMark <noreply@seatmark.cn>）
+ * - ALIPAY_APP_ID        支付宝应用 app_id（未配置则支付路由 503 pay_not_configured）
+ * - ALIPAY_PRIVATE_KEY   应用私钥（PKCS#8/PKCS#1 均可，仅环境变量注入，禁止入库/入库日志）
+ * - ALIPAY_PUBLIC_KEY    支付宝公钥（用于验签异步通知与网关响应）
+ * - ALIPAY_GATEWAY       网关地址（默认生产 openapi.alipay.com；沙箱 https://openapi-sandbox.dl.alipaydev.com/gateway.do）
+ * - ALIPAY_NOTIFY_URL    异步通知地址（可选；须公网可达 HTTPS，缺省下单表单不带 notify_url）
+ * - ALIPAY_RETURN_URL    同步回跳地址（缺省 <origin>/pay/result）
+ * - ALIPAY_SELLER_ID     收款方支付宝 PID（可选；配置后异步通知强制校验 seller_id）
+ * - ALIPAY_SELLER_EMAIL  收款方支付宝账号（可选；配置后异步通知强制校验 seller_email）
  *
  * 存储三级后备（见 _storage.js）：
  * - KV 绑定（变量名 seatmark_kv）优先；
@@ -58,6 +73,15 @@ import { withSecurityHeaders } from './_security.js'
 import { json, clientIp, clientIpSource, sha256Hex } from './_http.js'
 import { randomId, randomInt, randomDigits, randomToken, randomToken36 } from './_random.js'
 import { SEATMARK_REV, REV_HEADER_NAME } from './_rev.js'
+import {
+  loadAlipayConfig,
+  alipayExec,
+  pagePayFormHtml,
+  verifyAlipayNotify,
+  normalizeAmount,
+  AlipayConfigError,
+  AlipayApiError,
+} from './_alipay.js'
 
 /**
  * 受控并发 map：每批最多 limit 个元素 Promise.all，批与批之间串行；结果顺序与 items 一致。
@@ -174,6 +198,10 @@ export const MEMORY_UNSAFE_ROUTES = {
   '/api/share/visit': ['POST'],
   '/api/share/tpl': ['POST'],
   '/api/team/reserve': ['POST'],
+  '/api/pay/order': ['POST'],
+  '/api/pay/notify': ['POST'],
+  '/api/admin/pay/close': ['POST'],
+  '/api/admin/pay/refund': ['POST'],
   '/api/admin/codes': ['POST'],
   '/api/admin/announcement': ['PUT'],
 }
@@ -211,6 +239,17 @@ const REDEEM_BATCH_MAX = 200
 const REDEEM_DAYS_MAX = 3660
 /** 兑换码字符集：去除易混淆字符 0/O/1/I/L */
 const REDEEM_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'
+
+// ---------- 支付（支付宝 AI 网页应用收款） ----------
+/** 在售套餐：金额以元为单位两位小数；天数叠加到 proUntil（与兑换码同一发放逻辑） */
+const PAY_PLANS = {
+  'pro-30': { amount: '19.00', days: 30, subject: 'SeatMark 专业版（30 天）' },
+  'pro-365': { amount: '199.00', days: 365, subject: 'SeatMark 专业版（365 天）' },
+}
+/** 下单限频：每邮箱每日最多创建订单数 */
+const PAY_ORDER_DAILY_LIMIT = 10
+/** 订单页主动补偿查询的最小间隔（防轮询打爆网关） */
+const PAY_QUERY_MIN_INTERVAL_MS = 10 * 1000
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 function isValidEmail(email) {
@@ -488,6 +527,45 @@ function grantProDays(user, days) {
 function proStatus(user) {
   const until = Date.parse(user?.proUntil || '') || 0
   return { active: until > Date.now(), until: until ? new Date(until).toISOString() : null }
+}
+
+// ---------- 支付订单 ----------
+const payOrderKey = (no) => `payorder:${no}`
+
+async function getPayOrder(kv, no) {
+  const raw = await kv.get(payOrderKey(no))
+  if (!raw) return null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+async function putPayOrder(kv, order) {
+  await kv.put(payOrderKey(order.no), JSON.stringify(order))
+}
+
+/**
+ * 付款成功发放（幂等）：订单已 paid 直接返回 {already:true}；否则标记 paid、
+ * 给下单账号叠加专业版天数（与兑换码同一 grantProDays 逻辑）并持久化。
+ * 调用方必须先完成验签 + 订单归属/金额校验。
+ */
+async function markOrderPaid(kv, order, tradeNo, source) {
+  if (order.status === 'paid') return { already: true }
+  if (order.status === 'refunded' || order.status === 'partial_refund') {
+    throw new Error('refunded order cannot be re-paid')
+  }
+  const user = await getUser(kv, order.email)
+  if (!user) throw new Error(`order user missing: ${order.email}`)
+  order.status = 'paid'
+  order.tradeNo = tradeNo || order.tradeNo || null
+  order.paidAt = new Date().toISOString()
+  order.paidSource = source
+  grantProDays(user, order.days)
+  await putUser(kv, user)
+  await putPayOrder(kv, order)
+  return { already: false, pro: proStatus(user) }
 }
 
 function randomRedeemCode() {
@@ -1608,6 +1686,158 @@ async function handleRequest(context) {
     return json({ ok: true, days: record.days, pro: proStatus(user) }, 200, storageHeader)
   }
 
+  // ----- 支付：下单（alipay.trade.page.pay 网页支付表单） -----
+  if (path === '/api/pay/order' && method === 'POST') {
+    const email = await currentUserEmail(request, env, kv, storageHeader)
+    if (!email) return json({ error: '请先登录' }, 401, storageHeader)
+    const body = await readBody()
+    const plan = PAY_PLANS[body && body.plan]
+    if (!plan) return json({ error: '套餐不存在' }, 400, storageHeader)
+    const rlKey = `rl:payorder:${email}:${today()}`
+    const orderCount = await getCounter(kv, rlKey)
+    if (orderCount >= PAY_ORDER_DAILY_LIMIT) {
+      return json({ error: '今日下单次数过多，请明天再试' }, 429, storageHeader)
+    }
+    let cfg
+    try {
+      cfg = await loadAlipayConfig(env, url.origin)
+    } catch (e) {
+      if (e instanceof AlipayConfigError) {
+        return json({ error: '支付暂未开通', code: 'pay_not_configured' }, 503, storageHeader)
+      }
+      throw e
+    }
+    const orderNo = `SM${Date.now().toString(36).toUpperCase()}${randomToken(8, HEX_ALPHABET).toUpperCase()}`
+    const order = {
+      no: orderNo,
+      email,
+      plan: body.plan,
+      amount: plan.amount,
+      days: plan.days,
+      subject: plan.subject,
+      status: 'wait_pay',
+      createdAt: new Date().toISOString(),
+      lastQueryAt: 0,
+      events: [],
+    }
+    const paymentHtml = await pagePayFormHtml(cfg, {
+      outTradeNo: orderNo,
+      totalAmount: plan.amount,
+      subject: plan.subject,
+    })
+    await kv.put(rlKey, String(orderCount + 1), dailyTtl)
+    await putPayOrder(kv, order)
+    return json({ ok: true, orderNo, amount: plan.amount, days: plan.days, paymentHtml }, 200, storageHeader)
+  }
+
+  // ----- 支付：订单查询 + 主动补偿（alipay.trade.query 兜底漏通知） -----
+  if (path === '/api/pay/order' && method === 'GET') {
+    const email = await currentUserEmail(request, env, kv, storageHeader)
+    if (!email) return json({ error: '请先登录' }, 401, storageHeader)
+    const no = (url.searchParams.get('no') || '').trim()
+    const order = no ? await getPayOrder(kv, no) : null
+    if (!order || (order.email !== email && !isAdmin(email, env))) {
+      return json({ error: '订单不存在' }, 404, storageHeader)
+    }
+    if (order.status === 'wait_pay' && url.searchParams.get('refresh') === '1') {
+      const now = Date.now()
+      if (now - (order.lastQueryAt || 0) >= PAY_QUERY_MIN_INTERVAL_MS) {
+        order.lastQueryAt = now
+        try {
+          const cfg = await loadAlipayConfig(env, url.origin)
+          const res = await alipayExec(cfg, 'alipay.trade.query', { out_trade_no: order.no })
+          if (res.code === '10000' && (res.trade_status === 'TRADE_SUCCESS' || res.trade_status === 'TRADE_FINISHED')) {
+            if (normalizeAmount(res.total_amount) !== normalizeAmount(order.amount)) {
+              order.lastQueryError = 'amount_mismatch'
+            } else {
+              await markOrderPaid(kv, order, res.trade_no, 'query')
+            }
+          } else if (res.code === '10000' && res.trade_status === 'TRADE_CLOSED') {
+            order.status = 'closed'
+          }
+          order.lastQueryError = order.lastQueryError || null
+        } catch (e) {
+          if (e instanceof AlipayConfigError) order.lastQueryError = 'pay_not_configured'
+          else if (e instanceof AlipayApiError) order.lastQueryError = e.message
+          else throw e
+        }
+        await putPayOrder(kv, order)
+      }
+    }
+    const user = await getUser(kv, order.email)
+    return json(
+      {
+        order: {
+          no: order.no,
+          plan: order.plan,
+          amount: order.amount,
+          days: order.days,
+          status: order.status,
+          tradeNo: order.tradeNo || null,
+          paidAt: order.paidAt || null,
+        },
+        pro: proStatus(user),
+      },
+      200,
+      storageHeader,
+    )
+  }
+
+  // ----- 支付：异步通知（验签 → 归属/金额/卖家校验 → notify_id 幂等 → 发放 → success） -----
+  if (path === '/api/pay/notify' && method === 'POST') {
+    const reply = (text, status = 200) =>
+      new Response(text, {
+        status,
+        headers: { 'Content-Type': 'text/plain;charset=utf-8', ...storageHeader },
+      })
+    const declaredLen = Number(request.headers.get('Content-Length'))
+    if (Number.isFinite(declaredLen) && declaredLen > BODY_MAX_BYTES) return reply('fail')
+    const raw = await request.text()
+    if (encoder.encode(raw).length > BODY_MAX_BYTES) return reply('fail')
+    const params = {}
+    for (const [k, v] of new URLSearchParams(raw)) params[k] = v
+
+    let cfg
+    try {
+      cfg = await loadAlipayConfig(env, url.origin)
+    } catch {
+      return reply('fail')
+    }
+    if (params.app_id !== cfg.appId) return reply('fail')
+    if (!(await verifyAlipayNotify(cfg, params))) return reply('fail')
+
+    const order = params.out_trade_no ? await getPayOrder(kv, params.out_trade_no) : null
+    if (!order) return reply('fail')
+    if (normalizeAmount(order.amount) !== normalizeAmount(params.total_amount)) return reply('fail')
+    if (cfg.sellerId && params.seller_id !== cfg.sellerId) return reply('fail')
+    if (cfg.sellerEmail && params.seller_email !== cfg.sellerEmail) return reply('fail')
+
+    // 幂等：同一 notify_id 只处理一次；订单已支付时重复通知直接 success
+    const notifyId = params.notify_id || ''
+    const eventKey = notifyId ? `payevent:${notifyId}` : null
+    if (eventKey && (await kv.get(eventKey))) return reply('success')
+    if (eventKey) await kv.put(eventKey, order.no, dailyTtl)
+
+    const isPaidNotify =
+      (params.trade_status === 'TRADE_SUCCESS' || params.trade_status === 'TRADE_FINISHED') &&
+      !params.out_biz_no &&
+      !params.gmt_refund &&
+      !params.refund_fee
+    if (isPaidNotify) {
+      try {
+        await markOrderPaid(kv, order, params.trade_no, 'notify')
+      } catch (e) {
+        console.error('[seatmark-api] 支付通知发放失败:', e)
+        return reply('fail')
+      }
+    } else {
+      order.events = [...(order.events || []), { status: params.trade_status || 'unknown', at: new Date().toISOString() }].slice(-20)
+      if (params.trade_status === 'TRADE_CLOSED' && order.status === 'wait_pay') order.status = 'closed'
+      await putPayOrder(kv, order)
+    }
+    return reply('success')
+  }
+
   // ----- 分享裂变 -----
   if (path === '/api/share/mine' && method === 'GET') {
     const email = await currentUserEmail(request, env, kv, storageHeader)
@@ -1951,6 +2181,167 @@ async function handleRequest(context) {
       }
       batches.reverse()
       return json({ batches }, 200, storageHeader)
+    }
+
+    if (path === '/api/admin/orders' && method === 'GET') {
+      const { keys } = await listAllKeys(kv, 'payorder:', { pageLimit: 256, maxPages: 20 })
+      const raws = await mapConcurrent(keys, 8, (k) => kv.get(k))
+      const orders = []
+      for (const raw of raws) {
+        if (!raw) continue
+        try {
+          orders.push(JSON.parse(raw))
+        } catch {
+          // 跳过损坏记录
+        }
+      }
+      orders.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+      return json({ orders: orders.slice(0, 200) }, 200, storageHeader)
+    }
+
+    // 关闭未支付订单：先调网关确认关闭成功，再落本地状态
+    if (path === '/api/admin/pay/close' && method === 'POST') {
+      const body = await readBody()
+      const order = body && body.orderNo ? await getPayOrder(kv, String(body.orderNo)) : null
+      if (!order) return json({ error: '订单不存在' }, 404, storageHeader)
+      if (order.status !== 'wait_pay') {
+        return json({ error: '仅未支付订单可关闭', status: order.status }, 409, storageHeader)
+      }
+      let cfg
+      try {
+        cfg = await loadAlipayConfig(env, url.origin)
+      } catch (e) {
+        if (e instanceof AlipayConfigError) {
+          return json({ error: '支付暂未开通', code: 'pay_not_configured' }, 503, storageHeader)
+        }
+        throw e
+      }
+      try {
+        await alipayExec(cfg, 'alipay.trade.close', { out_trade_no: order.no })
+      } catch (e) {
+        if (e instanceof AlipayApiError) {
+          return json({ error: '关单结果未知，请用订单查询核实后再试', detail: e.message }, 502, storageHeader)
+        }
+        throw e
+      }
+      order.status = 'closed'
+      order.closedAt = new Date().toISOString()
+      await putPayOrder(kv, order)
+      return json({ ok: true, status: order.status }, 200, storageHeader)
+    }
+
+    // 退款：部分/全额；out_request_no 同一笔退款重试必须复用原编号
+    if (path === '/api/admin/pay/refund' && method === 'POST') {
+      const body = await readBody()
+      const order = body && body.orderNo ? await getPayOrder(kv, String(body.orderNo)) : null
+      if (!order) return json({ error: '订单不存在' }, 404, storageHeader)
+      if (order.status !== 'paid' && order.status !== 'partial_refund') {
+        return json({ error: '订单未支付，无法退款', status: order.status }, 409, storageHeader)
+      }
+      const orderAmount = normalizeAmount(order.amount)
+      const amount = normalizeAmount(body && body.amount !== undefined ? body.amount : order.amount)
+      const refundedFee = normalizeAmount(order.refundedFee || '0')
+      if (!amount || Number(amount) <= 0) return json({ error: '退款金额不正确' }, 400, storageHeader)
+      if (Number(refundedFee) + Number(amount) > Number(orderAmount) + 1e-9) {
+        return json({ error: '累计退款金额不能超过订单实付金额' }, 400, storageHeader)
+      }
+      const refunds = Array.isArray(order.refunds) ? order.refunds : []
+      const pending = refunds.find((r) => r.status === 'pending')
+      const outRequestNo =
+        (pending && pending.no) ||
+        `RQ${Date.now().toString(36).toUpperCase()}${randomToken(6, HEX_ALPHABET).toUpperCase()}`
+      const refundAmount = pending ? pending.amount : amount
+      let cfg
+      try {
+        cfg = await loadAlipayConfig(env, url.origin)
+      } catch (e) {
+        if (e instanceof AlipayConfigError) {
+          return json({ error: '支付暂未开通', code: 'pay_not_configured' }, 503, storageHeader)
+        }
+        throw e
+      }
+      let res
+      try {
+        res = await alipayExec(cfg, 'alipay.trade.refund', {
+          out_trade_no: order.no,
+          refund_amount: refundAmount,
+          refund_reason: String((body && body.reason) || '用户申请退款').slice(0, 256),
+          out_request_no: outRequestNo,
+        })
+      } catch (e) {
+        if (e instanceof AlipayApiError) {
+          // 结果未知：保留 pending 供退款查询确认，重试复用同一 out_request_no
+          if (!pending) {
+            order.refunds = [...refunds, { no: outRequestNo, amount: refundAmount, status: 'pending', at: new Date().toISOString() }]
+            await putPayOrder(kv, order)
+          }
+          return json({ error: '退款结果未知，请先用退款查询确认状态再决定是否重试', outRequestNo, detail: e.message }, 502, storageHeader)
+        }
+        throw e
+      }
+      const rest = refunds.filter((r) => r.no !== outRequestNo)
+      if (res.code === '10000' && res.fund_change === 'Y') {
+        order.refunds = [...rest, { no: outRequestNo, amount: refundAmount, status: 'success', at: new Date().toISOString() }]
+        const total = order.refunds.filter((r) => r.status === 'success').reduce((s, r) => s + Number(r.amount), 0)
+        order.refundedFee = total.toFixed(2)
+        order.status = Number(order.refundedFee) >= Number(orderAmount) ? 'refunded' : 'partial_refund'
+        await putPayOrder(kv, order)
+        return json({ ok: true, refundFee: res.refund_fee, refundedFee: order.refundedFee, status: order.status }, 200, storageHeader)
+      }
+      order.refunds = [...rest, { no: outRequestNo, amount: refundAmount, status: 'pending', at: new Date().toISOString() }]
+      await putPayOrder(kv, order)
+      return json({ ok: false, pending: true, outRequestNo, error: '退款结果待确认，请调用退款查询核实' }, 200, storageHeader)
+    }
+
+    // 退款查询：补偿确认 refund 结果，同时回填本地 pending 记录
+    if (path === '/api/admin/pay/refund' && method === 'GET') {
+      const no = (url.searchParams.get('no') || '').trim()
+      const order = no ? await getPayOrder(kv, no) : null
+      if (!order) return json({ error: '订单不存在' }, 404, storageHeader)
+      const refunds = Array.isArray(order.refunds) ? order.refunds : []
+      const target = refunds.find((r) => r.status === 'pending') || refunds[refunds.length - 1]
+      if (!target) return json({ error: '该订单没有退款记录' }, 404, storageHeader)
+      let cfg
+      try {
+        cfg = await loadAlipayConfig(env, url.origin)
+      } catch (e) {
+        if (e instanceof AlipayConfigError) {
+          return json({ error: '支付暂未开通', code: 'pay_not_configured' }, 503, storageHeader)
+        }
+        throw e
+      }
+      let res
+      try {
+        res = await alipayExec(cfg, 'alipay.trade.fastpay.refund.query', {
+          out_trade_no: order.no,
+          out_request_no: target.no,
+        })
+      } catch (e) {
+        if (e instanceof AlipayApiError) {
+          return json({ error: '退款查询失败，请稍后再试', detail: e.message }, 502, storageHeader)
+        }
+        throw e
+      }
+      if (res.code === '10000' && res.refund_status === 'REFUND_SUCCESS' && target.status === 'pending') {
+        order.refunds = refunds.map((r) => (r.no === target.no ? { ...r, status: 'success' } : r))
+        const total = order.refunds.filter((r) => r.status === 'success').reduce((s, r) => s + Number(r.amount), 0)
+        order.refundedFee = total.toFixed(2)
+        if (Number(order.refundedFee) >= Number(normalizeAmount(order.amount))) order.status = 'refunded'
+        else if (Number(order.refundedFee) > 0) order.status = 'partial_refund'
+        await putPayOrder(kv, order)
+      }
+      return json(
+        {
+          ok: true,
+          outRequestNo: target.no,
+          refundStatus: res.refund_status || null,
+          refundFee: res.refund_fee || null,
+          refundedFee: order.refundedFee || '0.00',
+          status: order.status,
+        },
+        200,
+        storageHeader,
+      )
     }
 
     if (path === '/api/admin/announcement') {
