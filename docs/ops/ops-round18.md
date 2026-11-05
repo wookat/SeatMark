@@ -1,7 +1,7 @@
 # 运营第十八轮记录（2026-08-11）
 
-> 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第十八批（`marketing/batch18/`）、竞品动态速查、人工待办更新。
-> 证据目录：`docs/ops-round18-evidence/`。基线：第十七轮 `docs/ops-round17.md`。
+> 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第十八批（`docs/marketing/batch18/`）、竞品动态速查、人工待办更新。
+> 证据目录：`docs/ops/ops-round18-evidence/`。基线：第十七轮 `docs/ops/ops-round17.md`。
 > 网络环境说明：本轮出口 IP 为数据中心 IP（54.69.238.189）。百度总查询可正常取到结果页（/vs 精查仍被滑块验证码拦截）；搜狗点选验证码、Google reCAPTCHA 拦截如旧；360 可正常取到页面；Bing 仍兜底污染。均如实记录，未硬闯。
 
 ## 一、收录复查（site:www.seatmark.cn，2026-08-11）
@@ -35,7 +35,7 @@
 | search.seznam.cz/indexnow | 200 | 成功 |
 | searchadvisor.naver.com/indexnow | 200 | 成功 |
 
-## 三、素材第十八批（已入库 `marketing/batch18/`，不发布）
+## 三、素材第十八批（已入库 `docs/marketing/batch18/`，不发布）
 
 - `zhihu-answer-batch18.md`：1 篇（名单敏感场景选型问答，主打可审计的隐私零外发）
 - `xiaohongshu-post-batch18.md`：1 篇（行政视角「我扒了它的网络请求」）
@@ -61,6 +61,6 @@
 
 1. 收录线：百度总量仍约 1 条（仅首页），/vs 矩阵与长尾落地页第六轮复查仍未收录；360 仍为 0。与 round17 零增量，站长平台验证提交仍是 P0 唯一破口。
 2. IndexNow 331 条五端点全部成功（连续多轮全绿）。
-3. 素材第十八批已入库 `marketing/batch18/` 不发布；隐私零外发实证（r218/r219）为本批最强差异化口径。
+3. 素材第十八批已入库 `docs/marketing/batch18/` 不发布；隐私零外发实证（r218/r219）为本批最强差异化口径。
 4. 竞品：placecard.us 新增 Google Sheets 直连导入横幅，值得关注其导入便捷性叙事；创客贴搜索路由 404 + 滑块反爬收紧；WPS 无新动作。
 5. 下一轮建议：站长平台未验证前收录线只做例行复查；可评估我方是否跟进「在线表格直连导入」类能力叙事（当前 Excel/CSV 本地导入已覆盖主场景，且外部表格直连与「名单不出浏览器」承诺存在张力，需产品侧权衡后再定）。

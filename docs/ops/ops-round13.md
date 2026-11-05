@@ -1,7 +1,7 @@
 # 运营第十三轮记录（2026-08-10）
 
 > 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第十三批、人工待办更新。
-> 证据目录：`docs/ops-round13-evidence/`。基线：第十二轮 `docs/ops-round12.md`。
+> 证据目录：`docs/ops/ops-round13-evidence/`。基线：第十二轮 `docs/ops/ops-round12.md`。
 > 网络环境说明：本轮出口 IP 为数据中心 IP（100.23.34.160）；百度首查取到页面（二次查询被滑块验证码拦截），360 取到页面，搜狗被点选验证码拦截，Google 被 reCAPTCHA 拦截，Bing 仍兜底污染。
 
 ## 一、收录复查（site:www.seatmark.cn，2026-08-10）
@@ -35,7 +35,7 @@
 | yandex.com/indexnow | 202 `{"success":true}` | 成功 |
 | searchadvisor.naver.com/indexnow | 200 | 成功 |
 
-## 三、素材第十三批（已入库 `docs/promo/round13/`）
+## 三、素材第十三批（已入库 `docs/marketing/promo/round13/`）
 
 - `xiaohongshu-posts-round13.md`：3 篇
 - `zhihu-answers-round13.md`：2 篇（问答式）

@@ -1,7 +1,7 @@
 # 运营第十轮记录（2026-08-10）
 
 > 角色：growth/operations。范围：收录复查、IndexNow 全量重推、目录站第三批尝试、素材第十批、长尾词缺口清单、人工待办更新。
-> 证据目录：`docs/ops-round10-evidence/`。基线：第九轮 `docs/ops-round9.md`。
+> 证据目录：`docs/ops/ops-round10-evidence/`。基线：第九轮 `docs/ops/ops-round9.md`。
 > 网络环境说明：本轮出口 IP 为数据中心 IP（54.201.200.193），Google/搜狗仍触发反爬验证；**百度本轮未被拦截，取到实测数据**。
 
 ## 一、收录复查（site:www.seatmark.cn，2026-08-10）
@@ -35,7 +35,7 @@
 
 详见 `docs/marketing/round10/directory-submissions-round10.md`。本轮实测 7 个未尝试过的渠道：1 个完成在线留言提交尝试（爱资料工具 toolnb.com），1 个表单可填但滑块验证码多次未通过（办公人导航 bgrdh.com，转人工 30 秒），其余因登录墙/无在线入口/接口损坏转人工。
 
-## 四、素材第十批（已入库 `docs/promo/round10/`）
+## 四、素材第十批（已入库 `docs/marketing/promo/round10/`）
 
 - `xiaohongshu-posts-round10.md`：3 篇
 - `zhihu-answers-round10.md`：2 篇（问答式）

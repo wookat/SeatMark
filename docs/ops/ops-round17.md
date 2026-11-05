@@ -1,7 +1,7 @@
 # 运营第十七轮记录（2026-08-11）
 
 > 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第十七批、人工待办更新。
-> 证据目录：`docs/ops-round17-evidence/`。基线：第十六轮 `docs/ops-round16.md`。
+> 证据目录：`docs/ops/ops-round17-evidence/`。基线：第十六轮 `docs/ops/ops-round16.md`。
 > 网络环境说明：本轮出口 IP 为数据中心 IP（100.23.34.160）。与 round16 相比风控略有松动：**百度总查询本轮可正常取到结果页**（但 /vs 与长尾页精查仍被滑块验证码拦截）；搜狗点选验证码、Google reCAPTCHA 拦截如旧；360 可正常取到页面；Bing 仍兜底污染。均如实记录，未硬闯。
 
 ## 一、收录复查（site:www.seatmark.cn，2026-08-11）
@@ -35,7 +35,7 @@
 | search.seznam.cz/indexnow | 200 | 成功 |
 | searchadvisor.naver.com/indexnow | 200 | 成功 |
 
-## 三、素材第十七批（已入库 `docs/promo/round17/`，不发布）
+## 三、素材第十七批（已入库 `docs/marketing/promo/round17/`，不发布）
 
 - `xiaohongshu-posts-round17.md`：1 篇（AI 排版+反馈直达+全键盘+坏页零交付·行政/教师口径）
 - `zhihu-answers-round17.md`：1 篇（批量桌牌工具四维度选型问答）

@@ -14,8 +14,8 @@ SeatMark 座签：上传 Excel 名单，在浏览器本地批量生成考场座�
   - `app/`：前端应用（Vue 3 + TypeScript strict + Vite 7 + Tailwind CSS 4 + Pinia 3 + Vue Router 4；测试 Vitest + @vue/test-utils）——见 `app/package.json`
   - `edge-functions/api/`：腾讯 EdgeOne Pages Edge Function（见下「边缘函数清单」）
   - `edgeone.json`：EdgeOne Pages 构建命令、输出目录与响应头规则
-  - `docs/`：设计评审、体验审计、运营轮次证据（`ops-roundN.md` + `ops-roundN-evidence/`）、i18n 方案（`docs/i18n-plan.md`）
-  - `brand/`、`marketing/`：品牌资源与营销素材
+  - `docs/`：按主题分目录——`docs/audits/`（设计评审、体验/合规/模板审计）、`docs/ops/`（运营轮次 `ops-roundN.md` + `ops-roundN-evidence/`）、`docs/research/`（调研与竞品分析）+ `docs/research-assets/`、`docs/marketing/`（营销轮次 `roundN/`、推广素材 `promo/`、批次素材 `batchN/`、内容矩阵）、`docs/test-plans/`（测试计划与报告）；根级保留 `i18n-plan.md`、`design-prompts.md` 与本文档
+  - `brand/`：品牌资源（营销素材已并入 `docs/marketing/`）
 - 用户数据：**没有服务端名单/照片/座位数据**。名单、照片、座位表、自定义模板全部在浏览器本地处理（`localStorage` / IndexedDB），见 `README.md`「隐私优先」与 `app/src/components/studio/DataImportPanel.vue`。
 - 服务端仅存账号/配额/验证码/模板分享短链等少量键值，走 `edge-functions/api/_storage.js` 的 KV（`seatmark_kv` 绑定）→ EdgeOne Pages Blob → 内存三级后备。
 
@@ -107,7 +107,7 @@ node scripts/i18n-audit.mjs   # /en 中文泄漏守卫，exit 0 = 0 条非允许
 
 - `docs/test-plans/test-report.md`（第 349 轮起由仓库根归档至此）：**追加式**，每轮一节 `# 第 N 轮（日期）：…`，含环境（生产、匿名）、逐判据 PASS/FAIL、收尾（存储已清、未登录未发信）与录屏路径。
 - `docs/test-plans/test-plan-roundN.md`（同上，原仓库根 `test-plan-round*.md`/`research-round324.md` 已一并归档）：每轮生产复测前的计划，列判据与依据的源码行。
-- `docs/ops-roundN.md` + `docs/ops-roundN-evidence/`：运营轮次的证据归档。
+- `docs/ops/ops-roundN.md` + `docs/ops/ops-roundN-evidence/`：运营轮次的证据归档。
 - 本地测试技能：`.agents/skills/testing-seatmark-local/SKILL.md`；生产 E2E 技能：`.agents/skills/testing-seatmark/SKILL.md`。
 
 ## 资源与凭证索引（只写名）

@@ -1,6 +1,6 @@
 /**
  * /vs 对比页矩阵内容库。
- * 对比结论全部取自仓库竞品实测记录（docs/competitive-round3.md、docs/competitive-analysis.md），
+ * 对比结论全部取自仓库竞品实测记录（docs/research/competitive-round3.md、docs/research/competitive-analysis.md），
  * 措辞客观：如实标注对方领先/持平项，不贬损、不编造对方功能。
  */
 

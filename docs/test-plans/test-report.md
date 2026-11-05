@@ -2724,7 +2724,7 @@ ModalDialog.vue 增加模块级 popstate 时间戳 + router.beforeEach 守卫：
 
 **背景**：SEO 子会话 #160（commit 5c1b44a）已合入 main 并部署到生产。新增 /vs 对比索引 + /vs/chuangkit、/vs/wps-mail-merge、/vs/placecard-us、/vs/canva 与 /desk-card-generator、/name-card-batch。本轮直接线上验收（部署已稳定，未见边缘传播窗口现象）。
 
-**方法**：curl 抓取 prerender 静态 HTML 做 SEO 元数据/JSON-LD/FAQ 一致性/内链解析（生产为 prerender 静态 HTML，HTTP 检查权威）；headless Chromium 29229 真实 UI 做 1280×900 / 390×844 视口渲染、CTA 点击与老页面回归；事实性对照 docs/competitive-round3.md 与 docs/competitive-analysis.md。计划：test-plan-round155.md。
+**方法**：curl 抓取 prerender 静态 HTML 做 SEO 元数据/JSON-LD/FAQ 一致性/内链解析（生产为 prerender 静态 HTML，HTTP 检查权威）；headless Chromium 29229 真实 UI 做 1280×900 / 390×844 视口渲染、CTA 点击与老页面回归；事实性对照 docs/research/competitive-round3.md 与 docs/research/competitive-analysis.md。计划：test-plan-round155.md。
 
 ## 结果
 

@@ -1,7 +1,7 @@
 # 运营第十一轮记录（2026-08-10）
 
 > 角色：growth/operations。范围：收录复查、IndexNow 全量重推、目录站第四批尝试、素材第十一批、长尾词缺口清单、人工待办更新。
-> 证据目录：`docs/ops-round11-evidence/`。基线：第十轮 `docs/ops-round10.md`。
+> 证据目录：`docs/ops/ops-round11-evidence/`。基线：第十轮 `docs/ops/ops-round10.md`。
 > 网络环境说明：本轮出口 IP 为数据中心 IP（100.23.34.160）；百度/搜狗/必应/360 均取到页面，Google 被 reCAPTCHA 拦截。
 
 ## 一、收录复查（site:www.seatmark.cn，2026-08-10）
@@ -36,7 +36,7 @@
 
 上轮 toolnb 留言板回访：**仍未过审显示**（留言板停留在 2020 年的 16 条留言），2026-08-24 最后回访一次。
 
-## 四、素材第十一批（已入库 `docs/promo/round11/`）
+## 四、素材第十一批（已入库 `docs/marketing/promo/round11/`）
 
 - `xiaohongshu-posts-round11.md`：3 篇
 - `zhihu-answers-round11.md`：2 篇（问答式）

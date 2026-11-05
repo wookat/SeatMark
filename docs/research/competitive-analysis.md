@@ -288,4 +288,4 @@
 
 ## 九、竞品增量对照第三轮（2026-08-10）
 
-含新玩家实机上手（placecard.us 中文站、抽奖吧姓名卡片生成器、数年网路、Pixeva）与创客贴复查，及差距/机会清单（P0–P3）、获客渠道反推，见独立文档 `docs/competitive-round3.md`（证据截图 `docs/research-assets/competitor-round3/`）。
+含新玩家实机上手（placecard.us 中文站、抽奖吧姓名卡片生成器、数年网路、Pixeva）与创客贴复查，及差距/机会清单（P0–P3）、获客渠道反推，见独立文档 `docs/research/competitive-round3.md`（证据截图 `docs/research-assets/competitor-round3/`）。

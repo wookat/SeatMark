@@ -1,6 +1,6 @@
 # 导航站 / 目录站提交执行台账（第十二轮，2026-08-10）
 
-> 承接 round3 的 40 站清单与 round8/round10/round11 的实测。本轮找了 **8 个此前未尝试过的中文工具导航/目录/排行站**（已对照 round3/round8/round9/round10/round11 清单去重），逐一实测在线提交可行性。证据截图存 `docs/ops-round12-evidence/`。
+> 承接 round3 的 40 站清单与 round8/round10/round11 的实测。本轮找了 **8 个此前未尝试过的中文工具导航/目录/排行站**（已对照 round3/round8/round9/round10/round11 清单去重），逐一实测在线提交可行性。证据截图存 `docs/ops/ops-round12-evidence/`。
 
 ## 一、本轮实测结果
 

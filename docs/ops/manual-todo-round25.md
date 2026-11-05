@@ -4,7 +4,7 @@
 
 ## P0 — 站长平台注册验证 + Google Search Console（约 35 分钟）
 
-第二十五轮复查（证据 `docs/ops-round25-evidence/`）：**Google 首次实测确认收录、核心页（/、/templates、/guides、/vs、/papers）全覆盖**；百度仍约 1 条仅首页、搜狗 0、360 0。国内 334 个页面放量只差站长平台主动提交（连续十六轮）：
+第二十五轮复查（证据 `docs/ops/ops-round25-evidence/`）：**Google 首次实测确认收录、核心页（/、/templates、/guides、/vs、/papers）全覆盖**；百度仍约 1 条仅首页、搜狗 0、360 0。国内 334 个页面放量只差站长平台主动提交（连续十六轮）：
 
 1. **Google Search Console**（search.google.com/search-console，本轮新增）：Google 账号 → 添加资源 `www.seatmark.cn` → DNS 或 HTML 文件验证 → 提交 sitemap。Google 已实测收录，验证后可看真实展现/点击数据并加速新页收录，**当前 ROI 最高**。
 2. **百度站长平台**（ziyuan.baidu.com）：注册/登录 → 添加站点 → 验证 → 提交 sitemap（334 条）→ 开通普通收录 API 并保存 token。
@@ -15,12 +15,12 @@
 
 ## P1 — B 站教程视频（本轮新增，脚本已备好）
 
-7. **注册/使用 B 站账号发布教程视频**：分镜脚本见 `marketing/batch25/bilibili-video-script-batch25.md`（3–4 分钟考场座签实操，含断网演示信任分镜）。录屏 + 简单剪辑约 1–2 小时。注册需手机号，故列人工项。
+7. **注册/使用 B 站账号发布教程视频**：分镜脚本见 `docs/marketing/batch25/bilibili-video-script-batch25.md`（3–4 分钟考场座签实操，含断网演示信任分镜）。录屏 + 简单剪辑约 1–2 小时。注册需手机号，故列人工项。
 
 ## P2 — 社群发帖（本轮新增，素材已备好，注意遵守社区规则不刷帖）
 
 8. **百度贴吧**（班主任吧/教师吧/行政吧）：以经验分享帖发布 batch25 素材改写版，需百度账号。
-9. **豆瓣小组**（备婚/行政类小组）：发布婚宴席位卡 DIY 帖（`marketing/batch25/xiaohongshu-post-batch25-2.md` 改写），需豆瓣账号。
+9. **豆瓣小组**（备婚/行政类小组）：发布婚宴席位卡 DIY 帖（`docs/marketing/batch25/xiaohongshu-post-batch25-2.md` 改写），需豆瓣账号。
 
 ## P2.5 — 产品线上能力相关运维（承接 round24 P0.5）
 
@@ -36,7 +36,7 @@
 
 ## P4 — 内容发布（素材已备好）
 
-18. **优先发布第二十五批素材**：`marketing/batch25/`（小红书 2、知乎 2、公众号 2、B 站脚本 1，主打免费/无需安装/名单不出浏览器/Excel 一键导入，覆盖考场座签、会议桌牌、婚宴席位卡、幼儿园姓名贴四场景）；第二十四批（诚信配额）、第二十三批（搜索隐私）可组合投放。
+18. **优先发布第二十五批素材**：`docs/marketing/batch25/`（小红书 2、知乎 2、公众号 2、B 站脚本 1，主打免费/无需安装/名单不出浏览器/Excel 一键导入，覆盖考场座签、会议桌牌、婚宴席位卡、幼儿园姓名贴四场景）；第二十四批（诚信配额）、第二十三批（搜索隐私）可组合投放。
 
 ## 已下线/放弃渠道
 

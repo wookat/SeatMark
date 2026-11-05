@@ -4,7 +4,7 @@
 
 ## P0 — 四大站长平台注册验证（解决收录为 0 的根因，约 30 分钟）
 
-第九轮复查确认（证据 `docs/ops-round9-evidence/`）：360 收录仍为 0，百度/Google/搜狗被数据中心 IP 反爬拦截无法核验。收录破零唯一可靠路径仍是站长平台验证 + 主动提交：
+第九轮复查确认（证据 `docs/ops/ops-round9-evidence/`）：360 收录仍为 0，百度/Google/搜狗被数据中心 IP 反爬拦截无法核验。收录破零唯一可靠路径仍是站长平台验证 + 主动提交：
 
 1. **百度站长平台**（ziyuan.baidu.com）：注册/登录 → 添加 `www.seatmark.cn` → HTML 标签或文件验证 → 提交 sitemap `https://www.seatmark.cn/sitemap.xml`（现 323 条）→ 开通普通收录 API 并保存 token（给后续轮次自动推送用）。
 2. **Bing Webmaster Tools**（bing.com/webmasters）：Microsoft 账号 → 添加站点 → 提交 sitemap。IndexNow 已连续多轮全量推送成功（本轮 323 条五端点全 200/202），验证后可看收录明细并加速生效。
@@ -35,4 +35,4 @@
 
 ## P4 — 内容发布（素材已备好）
 
-18. 发布第九批素材：`docs/promo/xiaohongshu-posts-round9.md`（3 篇）、`docs/promo/zhihu-answers-round9.md`（2 篇）、`docs/promo/wechat-articles-round9.md`（2 篇）；第五至八轮未发布素材同样有效（round8 及更早见 `docs/marketing/`）。
+18. 发布第九批素材：`docs/marketing/promo/xiaohongshu-posts-round9.md`（3 篇）、`docs/marketing/promo/zhihu-answers-round9.md`（2 篇）、`docs/marketing/promo/wechat-articles-round9.md`（2 篇）；第五至八轮未发布素材同样有效（round8 及更早见 `docs/marketing/`）。

@@ -1,7 +1,7 @@
 # 运营第十六轮记录（2026-08-11）
 
 > 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第十六批、人工待办更新。
-> 证据目录：`docs/ops-round16-evidence/`。基线：第十五轮 `docs/ops-round15.md`。
+> 证据目录：`docs/ops/ops-round16-evidence/`。基线：第十五轮 `docs/ops/ops-round15.md`。
 > 网络环境说明：本轮出口 IP 为数据中心 IP（54.201.200.193），风控格局与 round15 一致：百度总查询即被滑块验证码拦截，搜狗点选验证码、Google reCAPTCHA 拦截如旧，360 可正常取到页面，Bing 仍兜底污染。均如实记录，未硬闯。
 
 ## 一、收录复查（site:www.seatmark.cn，2026-08-11）
@@ -34,7 +34,7 @@
 | search.seznam.cz/indexnow | 200 | 成功 |
 | searchadvisor.naver.com/indexnow | 200 | 成功 |
 
-## 三、素材第十六批（已入库 `docs/promo/round16/`，不发布）
+## 三、素材第十六批（已入库 `docs/marketing/promo/round16/`，不发布）
 
 - `xiaohongshu-posts-round16.md`：3 篇（导出即所见·会务行政、组合字段多列拼一格·行政、期中考整批课桌贴零坏页·班主任）
 - `zhihu-answers-round16.md`：2 篇（预览≠导出成因与三层防线、Excel 多列拼一格的三种做法对比）

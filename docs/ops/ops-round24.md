@@ -1,7 +1,7 @@
 # 运营第二十四轮记录（2026-08-11）
 
-> 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第二十四批（`marketing/batch24/`）、竞品动态速查、人工待办更新。
-> 证据目录：`docs/ops-round24-evidence/`。基线：第二十三轮 `docs/ops-round23.md`。
+> 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第二十四批（`docs/marketing/batch24/`）、竞品动态速查、人工待办更新。
+> 证据目录：`docs/ops/ops-round24-evidence/`。基线：第二十三轮 `docs/ops/ops-round23.md`。
 > 网络环境说明：本轮出口 IP 为数据中心 IP（100.23.34.160，与 round23 的 54.201.200.193 不同）。**本轮百度旋转图验证码在第三次尝试后放行、取到真实结果**（前两次仍报「存在安全风险，请再次验证」）；**搜狗点选验证码人工破解成功**；360 正常；**神马本轮未被云盾拦截、round21 以来首次复得实测值**。均如实记录。
 
 ## 一、收录复查（site:www.seatmark.cn，2026-08-11）
@@ -34,7 +34,7 @@
 | searchadvisor.naver.com/indexnow | 200 | 成功 |
 | yandex.com/indexnow | 202 `{"success":true}` | 成功 |
 
-## 三、素材第二十四批（已入库 `marketing/batch24/`，不发布）
+## 三、素材第二十四批（已入库 `docs/marketing/batch24/`，不发布）
 
 - `zhihu-answer-batch24.md`：1 篇（「免费额度靠什么限制、多标签页能否白嫖」问答，诚信配额视角）
 - `xiaohongshu-post-batch24.md`：1 篇（行政视角「微信名单直接粘贴、emoji 姓名不乱码」笔记）
@@ -59,6 +59,6 @@
 
 1. 收录线：**本轮四引擎全部复得实测值（round11 以来核验覆盖最全）——百度约 1 条仅首页、搜狗 0、360 0、神马 0，全部零增量**；Bing 兜底污染不可核验。站长平台验证提交仍是 P0 唯一破口。
 2. IndexNow 331 条五端点全部成功（连续多轮全绿）。
-3. 素材第二十四批已入库 `marketing/batch24/` 不发布；「多页签额度同步」可录屏自证、「零宽字符清洗」可复现，均为硬证据型卖点，建议与第二十三批（搜索隐私）组合投放。
+3. 素材第二十四批已入库 `docs/marketing/batch24/` 不发布；「多页签额度同步」可录屏自证、「零宽字符清洗」可复现，均为硬证据型卖点，建议与第二十三批（搜索隐私）组合投放。
 4. 竞品：三家均无实质新动作；placecard.us 定价连续三轮无变化。
 5. 下一轮建议：站长平台未验证前收录线只做例行复查；本轮百度/神马均取到实测值说明数据中心 IP 风控并非绝对，可继续尝试；若老板完成站长平台验证，立即执行百度普通收录/快速收录 API 全量提交。

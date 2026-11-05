@@ -1,7 +1,7 @@
 # 运营第二十一轮记录（2026-08-11）
 
-> 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第二十一批（`marketing/batch21/`）、竞品动态速查、人工待办更新。
-> 证据目录：`docs/ops-round21-evidence/`。基线：第二十轮 `docs/ops-round20.md`。
+> 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第二十一批（`docs/marketing/batch21/`）、竞品动态速查、人工待办更新。
+> 证据目录：`docs/ops/ops-round21-evidence/`。基线：第二十轮 `docs/ops/ops-round20.md`。
 > 网络环境说明：本轮出口 IP 为数据中心 IP（100.23.34.160）。百度总查询正常取到结果页；360、神马正常取到页面；搜狗点选验证码拦截如旧；Bing 仍兜底污染。均如实记录，未硬闯。
 
 ## 一、收录复查（site:www.seatmark.cn，2026-08-11）
@@ -35,7 +35,7 @@
 | searchadvisor.naver.com/indexnow | 200 | 成功 |
 | yandex.com/indexnow | 202 `{"success":true}` | 成功 |
 
-## 三、素材第二十一批（已入库 `marketing/batch21/`，不发布）
+## 三、素材第二十一批（已入库 `docs/marketing/batch21/`，不发布）
 
 - `zhihu-answer-batch21.md`：1 篇（「经得起真实办公场景折腾的桌牌工具」问答，坏情况实测视角）
 - `xiaohongshu-post-batch21.md`：1 篇（会务行政视角「4 个隐藏安全感」笔记）
@@ -61,6 +61,6 @@
 
 1. 收录线：与 round20 零增量。百度仍约 1 条（仅首页）、360 仍 0、神马首测 0、搜狗验证码拦截、Bing 兜底污染。站长平台验证提交仍是 P0 唯一破口。
 2. IndexNow 331 条五端点全部成功（连续多轮全绿）。
-3. 素材第二十一批已入库 `marketing/batch21/` 不发布；「坏情况清单」叙事（大名单/坏文件/手机救火/取消不扣次数）贴近会务人真实痛点，建议与第二十批组合投放。
+3. 素材第二十一批已入库 `docs/marketing/batch21/` 不发布；「坏情况清单」叙事（大名单/坏文件/手机救火/取消不扣次数）贴近会务人真实痛点，建议与第二十批组合投放。
 4. 竞品：三家均无实质新动作；容错与移动端可靠性叙事暂无竞品跟进，窗口期可用。
 5. 下一轮建议：站长平台未验证前收录线只做例行复查；神马侧可研究 UC/夸克流量入口与神马站长平台（zhanzhang.sm.cn）提交路径；若老板完成站长平台验证，立即执行百度普通收录/快速收录 API 全量提交。

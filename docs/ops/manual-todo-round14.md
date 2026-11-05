@@ -1,10 +1,10 @@
 # 人工待办清单（第十四轮，2026-08-10）
 
-> 给老板/有账号同事的手动执行清单，按 ROI 排序。承接 `docs/ops/manual-todo-round13.md`，未完成项全部保留。通用文案见 `docs/promo/round3/`（如无则用 round10 目录站文案，模板数口径 **222 款**）。
+> 给老板/有账号同事的手动执行清单，按 ROI 排序。承接 `docs/ops/manual-todo-round13.md`，未完成项全部保留。通用文案见 `docs/marketing/promo/round3/`（如无则用 round10 目录站文案，模板数口径 **222 款**）。
 
 ## P0 — 四大站长平台注册验证（约 30 分钟，连续五轮确认百度仅收录首页）
 
-第十四轮复查（证据 `docs/ops-round14-evidence/`）：**百度仍约 1 条（仅首页）**，`site:www.seatmark.cn/vs` 精查被滑块验证码拦截；360 仍为 0；搜狗被点选验证码拦截（round11 实测 0 仍是基线）；Google 被 reCAPTCHA 拦截；Bing 兜底污染（"About 344"全是无关结果）。/vs 对比矩阵（5 页）与 /desk-card-generator、/name-card-batch 两个长尾落地页第二轮复查在可核验引擎（百度/360）中**仍未收录**。剩余 330 个内页放量只差站长平台主动提交：
+第十四轮复查（证据 `docs/ops/ops-round14-evidence/`）：**百度仍约 1 条（仅首页）**，`site:www.seatmark.cn/vs` 精查被滑块验证码拦截；360 仍为 0；搜狗被点选验证码拦截（round11 实测 0 仍是基线）；Google 被 reCAPTCHA 拦截；Bing 兜底污染（"About 344"全是无关结果）。/vs 对比矩阵（5 页）与 /desk-card-generator、/name-card-batch 两个长尾落地页第二轮复查在可核验引擎（百度/360）中**仍未收录**。剩余 330 个内页放量只差站长平台主动提交：
 
 1. **百度站长平台**（ziyuan.baidu.com）：注册/登录 → 添加 `www.seatmark.cn` → 验证 → 提交 sitemap（331 条）→ 开通普通收录 API 并保存 token。**连续五轮确认只收录首页，验证后放量收益最直接。**
 2. **Bing Webmaster Tools**（bing.com/webmasters）：Microsoft 账号 → 添加站点 → 提交 sitemap。IndexNow 已连续多轮全端点成功（本轮 331 条）。
@@ -41,7 +41,7 @@
 
 ## P6 — 内容发布（素材已备好）
 
-18. 发布第十四批素材：`docs/promo/round14/`（小红书 3 篇、知乎 2 篇、公众号 1 篇，主打**座位表→课桌贴一键联动（/seating）**、**/vs 对比矩阵选型**、**CSV 多编码兼容 + PWA 离线**，与 /vs、/seating 形成引流闭环）；第十三批（离线可用/CSV 乱码/对比选型）及第五至十二轮未发布素材同样有效。
+18. 发布第十四批素材：`docs/marketing/promo/round14/`（小红书 3 篇、知乎 2 篇、公众号 1 篇，主打**座位表→课桌贴一键联动（/seating）**、**/vs 对比矩阵选型**、**CSV 多编码兼容 + PWA 离线**，与 /vs、/seating 形成引流闭环）；第十三批（离线可用/CSV 乱码/对比选型）及第五至十二轮未发布素材同样有效。
 
 ## 已下线/放弃渠道（不再跟进）
 

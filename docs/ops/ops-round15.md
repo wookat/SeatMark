@@ -1,7 +1,7 @@
 # 运营第十五轮记录（2026-08-10）
 
 > 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第十五批、人工待办更新。
-> 证据目录：`docs/ops-round15-evidence/`。基线：第十四轮 `docs/ops-round14.md`。
+> 证据目录：`docs/ops/ops-round15-evidence/`。基线：第十四轮 `docs/ops/ops-round14.md`。
 > 网络环境说明：本轮出口 IP 为数据中心 IP（54.69.238.189），风控较 round14 更严：百度连总查询都被滑块验证码拦截（round14 尚能取到结果页），搜狗点选验证码、Google reCAPTCHA 拦截如旧，360 可正常取到页面，Bing 仍兜底污染。均如实记录，未硬闯。
 
 ## 一、收录复查（site:www.seatmark.cn，2026-08-10）
@@ -35,7 +35,7 @@
 | search.seznam.cz/indexnow | 200 | 成功 |
 | searchadvisor.naver.com/indexnow | 200 | 成功 |
 
-## 三、素材第十五批（已入库 `docs/promo/round15/`，不发布）
+## 三、素材第十五批（已入库 `docs/marketing/promo/round15/`，不发布）
 
 - `xiaohongshu-posts-round15.md`：3 篇（生僻字课桌贴/班主任、维文藏文桌牌/机关行政、患者姓名贴/医院）
 - `zhihu-answers-round15.md`：2 篇（生僻字打印方框成因与解法、多民族单位维/藏/蒙/彝文桌牌批量方案）

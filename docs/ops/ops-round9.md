@@ -1,7 +1,7 @@
 # 运营第九轮记录（2026-08-09）
 
 > 角色：growth/operations。范围：收录复查、IndexNow 全量重推、素材第九批、人工待办更新。
-> 证据目录：`docs/ops-round9-evidence/`。基线：第八轮 `docs/marketing/round8/seo-indexing-round8-2026-08-08.md`。
+> 证据目录：`docs/ops/ops-round9-evidence/`。基线：第八轮 `docs/marketing/round8/seo-indexing-round8-2026-08-08.md`。
 > 网络环境说明：本轮出口 IP 仍为数据中心 IP（100.23.34.160），百度/Google/搜狗继续触发反爬验证，与第七、八轮一致，如实记录并跳过。
 
 ## 一、收录复查（site:www.seatmark.cn，2026-08-09）
@@ -31,11 +31,11 @@
 | search.seznam.cz/indexnow | 200 | 成功 |
 | searchadvisor.naver.com/indexnow | 200 | 成功 |
 
-## 三、素材第九批（已入库 `docs/promo/`）
+## 三、素材第九批（已入库 `docs/marketing/promo/`）
 
-- `docs/promo/xiaohongshu-posts-round9.md`：3 篇
-- `docs/promo/zhihu-answers-round9.md`：2 篇
-- `docs/promo/wechat-articles-round9.md`：2 篇
+- `docs/marketing/promo/xiaohongshu-posts-round9.md`：3 篇
+- `docs/marketing/promo/zhihu-answers-round9.md`：2 篇
+- `docs/marketing/promo/wechat-articles-round9.md`：2 篇
 
 本批统一突出的新卖点：222 款模板、教程 quickStart 一键开始、纸型深链自动适配模板、手机端全流程可用、名单/照片不上传（浏览器本地生成）、60 页 PDF 仅约 2MB、300dpi 高清 PNG。
 

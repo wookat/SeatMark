@@ -1,6 +1,6 @@
 # 竞品增量对照第三轮（2026-08-10）
 
-> 角色：竞品研究员。任务：实际上手可访问的同类竞品，对照仓库历史研究（`docs/competitive-analysis.md` 第 1-8 轮、`docs/overseas-market-research.md`）去重，聚焦**变化与新玩家**，产出差距/机会清单与获客反推。
+> 角色：竞品研究员。任务：实际上手可访问的同类竞品，对照仓库历史研究（`docs/research/competitive-analysis.md` 第 1-8 轮、`docs/research/overseas-market-research.md`）去重，聚焦**变化与新玩家**，产出差距/机会清单与获客反推。
 > SeatMark 基线（本轮）：222+ 模板、Excel/CSV 多 sheet 导入（格式保真）、照片匹配、自定义模板设计器、纸型库 17 款双向智能适配、打印校准向导（实测≤0.35mm）、300dpi 导出体积优化、生僻字扩展字库、eink 精确像素导出、座位表联动、PWA 离线、名单不上传。
 > 证据截图目录：`docs/research-assets/competitor-round3/`。
 

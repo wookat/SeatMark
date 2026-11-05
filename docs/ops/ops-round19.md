@@ -1,7 +1,7 @@
 # 运营第十九轮记录（2026-08-11）
 
-> 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第十九批（`marketing/batch19/`）、竞品动态速查、人工待办更新。
-> 证据目录：`docs/ops-round19-evidence/`。基线：第十八轮 `docs/ops-round18.md`。
+> 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第十九批（`docs/marketing/batch19/`）、竞品动态速查、人工待办更新。
+> 证据目录：`docs/ops/ops-round19-evidence/`。基线：第十八轮 `docs/ops/ops-round18.md`。
 > 网络环境说明：本轮出口 IP 为数据中心 IP（100.23.34.160）。百度总查询正常取到结果页；360 正常取到页面；搜狗点选验证码、Google reCAPTCHA 拦截如旧；Bing 仍兜底污染。均如实记录，未硬闯。
 
 ## 一、收录复查（site:www.seatmark.cn，2026-08-11）
@@ -35,7 +35,7 @@
 | search.seznam.cz/indexnow | 200 | 成功 |
 | searchadvisor.naver.com/indexnow | 200 | 成功 |
 
-## 三、素材第十九批（已入库 `marketing/batch19/`，不发布）
+## 三、素材第十九批（已入库 `docs/marketing/batch19/`，不发布）
 
 - `zhihu-answer-batch19.md`：1 篇（「批量桌牌的数据导入/文件导出坑」问答，主打稳健性五卖点）
 - `xiaohongshu-post-batch19.md`：1 篇（行政视角「导出总是莫名少几张」痛点切入）
@@ -61,6 +61,6 @@
 
 1. 收录线：与 round18 零增量。百度仍约 1 条（仅首页）、360 仍 0、搜狗/Google 验证码拦截、Bing 兜底污染。站长平台验证提交仍是 P0 唯一破口。
 2. IndexNow 331 条五端点全部成功（连续多轮全绿）。
-3. 素材第十九批已入库 `marketing/batch19/` 不发布；「导出丢件」这类隐蔽痛点是本批最易引发共鸣的传播点。
+3. 素材第十九批已入库 `docs/marketing/batch19/` 不发布；「导出丢件」这类隐蔽痛点是本批最易引发共鸣的传播点。
 4. 竞品：三家均无实质新动作；创客贴反爬收紧侧面说明其流量防守姿态。
 5. 下一轮建议：站长平台未验证前收录线只做例行复查；素材线可考虑围绕 /seating 排座 + 课桌贴联动做场景化长文（开学季时点临近）；若老板完成站长平台验证，立即执行百度普通收录/快速收录 API 全量提交。

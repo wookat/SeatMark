@@ -1,7 +1,7 @@
 # 运营第二十二轮记录（2026-08-11）
 
-> 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第二十二批（`marketing/batch22/`）、竞品动态速查、人工待办更新。
-> 证据目录：`docs/ops-round22-evidence/`。基线：第二十一轮 `docs/ops-round21.md`。
+> 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第二十二批（`docs/marketing/batch22/`）、竞品动态速查、人工待办更新。
+> 证据目录：`docs/ops/ops-round22-evidence/`。基线：第二十一轮 `docs/ops/ops-round21.md`。
 > 网络环境说明：本轮出口 IP 为数据中心 IP（54.201.200.193）。百度、360、必应正常取到结果页；搜狗点选验证码拦截如旧；神马本轮被阿里云盾「unusual traffic」直接拒绝（cloud_ip_bl，云 IP 黑名单），无法核验。均如实记录，未硬闯。
 
 ## 一、收录复查（site:www.seatmark.cn，2026-08-11）
@@ -35,7 +35,7 @@
 | searchadvisor.naver.com/indexnow | 200 | 成功 |
 | yandex.com/indexnow | 202 `{"success":true}` | 成功 |
 
-## 三、素材第二十二批（已入库 `marketing/batch22/`，不发布）
+## 三、素材第二十二批（已入库 `docs/marketing/batch22/`，不发布）
 
 - `zhihu-answer-batch22.md`：1 篇（「敢断网干活的桌牌工具」问答，断网实验视角）
 - `xiaohongshu-post-batch22.md`：1 篇（行政视角「断网还能导出 300 张」笔记）
@@ -61,6 +61,6 @@
 
 1. 收录线：与 round21 零增量。百度仍约 1 条（仅首页）、360 仍 0、搜狗验证码拦截、神马本轮被云盾拦截（沿用 0 基线）、Bing 兜底污染。站长平台验证提交仍是 P0 唯一破口。
 2. IndexNow 331 条五端点全部成功（连续多轮全绿）。
-3. 素材第二十二批已入库 `marketing/batch22/` 不发布；「断网可用」叙事（断网导出 300 张/弱网不白屏/200% 放大/深色模式原色）是可被用户自行验证的硬证据型卖点，建议与第二十一批组合投放。
+3. 素材第二十二批已入库 `docs/marketing/batch22/` 不发布；「断网可用」叙事（断网导出 300 张/弱网不白屏/200% 放大/深色模式原色）是可被用户自行验证的硬证据型卖点，建议与第二十一批组合投放。
 4. 竞品：三家均无实质新动作；placecard.us 定价基线已留档，后续对照涨价/降价动作。
 5. 下一轮建议：站长平台未验证前收录线只做例行复查；神马侧若数据中心 IP 持续被云盾拦，改由老板本地网络人工核验；若老板完成站长平台验证，立即执行百度普通收录/快速收录 API 全量提交。

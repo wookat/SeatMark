@@ -1,7 +1,7 @@
 # 运营第二十轮记录（2026-08-11）
 
-> 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第二十批（`marketing/batch20/`）、竞品动态速查、人工待办更新。
-> 证据目录：`docs/ops-round20-evidence/`。基线：第十九轮 `docs/ops-round19.md`。
+> 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第二十批（`docs/marketing/batch20/`）、竞品动态速查、人工待办更新。
+> 证据目录：`docs/ops/ops-round20-evidence/`。基线：第十九轮 `docs/ops/ops-round19.md`。
 > 网络环境说明：本轮出口 IP 为数据中心 IP（54.201.200.193）。百度总查询正常取到结果页；360 正常取到页面；搜狗点选验证码、Google reCAPTCHA 拦截如旧；Bing 仍兜底污染。均如实记录，未硬闯。
 
 ## 一、收录复查（site:www.seatmark.cn，2026-08-11）
@@ -35,7 +35,7 @@
 | search.seznam.cz/indexnow | 200 | 成功 |
 | searchadvisor.naver.com/indexnow | 200 | 成功 |
 
-## 三、素材第二十批（已入库 `marketing/batch20/`，不发布）
+## 三、素材第二十批（已入库 `docs/marketing/batch20/`，不发布）
 
 - `zhihu-answer-batch20.md`：1 篇（「网页工具换浏览器就翻车？」问答，主打三引擎验证方法论）
 - `xiaohongshu-post-batch20.md`：1 篇（Mac/Safari 行政用户视角「工具终于不挑浏览器」）
@@ -61,6 +61,6 @@
 
 1. 收录线：与 round19 零增量。百度仍约 1 条（仅首页）、360 仍 0、搜狗/Google 验证码拦截、Bing 兜底污染。站长平台验证提交仍是 P0 唯一破口。
 2. IndexNow 331 条五端点全部成功（连续多轮全绿）。
-3. 素材第二十批已入库 `marketing/batch20/` 不发布；「敢公开翻车与修复记录」是本批最具说服力的传播点，Mac/Safari 办公人群是明确的新触达人群。
+3. 素材第二十批已入库 `docs/marketing/batch20/` 不发布；「敢公开翻车与修复记录」是本批最具说服力的传播点，Mac/Safari 办公人群是明确的新触达人群。
 4. 竞品：三家均无实质新动作；跨浏览器可靠性叙事暂无竞品跟进，窗口期可用。
 5. 下一轮建议：站长平台未验证前收录线只做例行复查；素材线可考虑开学季排座 + 课桌贴场景长文（承接 round19 建议，时点更近）；若老板完成站长平台验证，立即执行百度普通收录/快速收录 API 全量提交。

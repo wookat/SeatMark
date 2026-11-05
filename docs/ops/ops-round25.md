@@ -1,7 +1,7 @@
 # 运营第二十五轮记录（2026-08-14）
 
-> 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第二十五批（`marketing/batch25/`）、营销引流强化（新渠道调研+可自动部分执行）、人工待办更新。
-> 证据目录：`docs/ops-round25-evidence/`。基线：第二十四轮 `docs/ops-round24.md`。
+> 角色：growth/operations（参照 company-os CHARTER 与 SOP-05）。范围：收录复查、IndexNow 全量重推、素材第二十五批（`docs/marketing/batch25/`）、营销引流强化（新渠道调研+可自动部分执行）、人工待办更新。
+> 证据目录：`docs/ops/ops-round25-evidence/`。基线：第二十四轮 `docs/ops/ops-round24.md`。
 > 网络环境说明：本轮出口 IP 为数据中心 IP（54.69.238.189）。Google 初次 reCAPTCHA 拦截后人工破解放行、**round11 以来首次取得 Google 实测值**；百度直接放行；搜狗点选验证码人工破解成功；360 正常。均如实记录。
 
 ## 一、收录复查（site:www.seatmark.cn，2026-08-14）
@@ -35,7 +35,7 @@
 | searchadvisor.naver.com/indexnow | 200 | 成功 |
 | yandex.com/indexnow | 202 | 成功 |
 
-## 三、素材第二十五批（已入库 `marketing/batch25/`，不发布）
+## 三、素材第二十五批（已入库 `docs/marketing/batch25/`，不发布）
 
 按老板要求本批扩容为**各≥2 篇**，围绕真实使用场景、统一主打「免费、无需安装、名单不出浏览器、Excel 一键导入」四卖点：
 
@@ -57,7 +57,7 @@
 
 ### 本轮已执行（自动可完成部分）
 
-1. **B 站教程视频脚本产出**：完整分镜脚本已落库 `marketing/batch25/bilibili-video-script-batch25.md`（含断网演示信任分镜、分区/标签/简介建议），录制与发布只差老板 B 站账号（注册需手机号，属人工项）。
+1. **B 站教程视频脚本产出**：完整分镜脚本已落库 `docs/marketing/batch25/bilibili-video-script-batch25.md`（含断网演示信任分镜、分区/标签/简介建议），录制与发布只差老板 B 站账号（注册需手机号，属人工项）。
 2. **360 免登录提交入口实测**：`info.so.com/site_submit.html` 实测跳转 `i.360.cn/login` 强制 360 账号登录（`ss_b7932e3d.png` 见证据说明），**无免登录通道**，转人工清单。
 3. **IndexNow 全量重推**（见第二节，含本轮新增 3 页）。
 
@@ -81,6 +81,6 @@
 
 1. 收录线：**Google 首次实测确认收录且核心页（/、/templates、/guides、/vs、/papers）全覆盖——预渲染与 SEO 工作在 Google 侧兑现，为运营开始以来收录线首个实质破口**；国内引擎零增量（百度约 1 条仅首页、搜狗 0、360 0），站长平台验证提交仍是国内侧 P0 唯一破口；Bing 兜底污染不可核验。
 2. IndexNow 334 条（+3）五端点全部成功（连续多轮全绿）。
-3. 素材第二十五批 7 篇已入库 `marketing/batch25/` 不发布，覆盖四大真实场景与四卖点，其中 B 站脚本为新增体裁。
+3. 素材第二十五批 7 篇已入库 `docs/marketing/batch25/` 不发布，覆盖四大真实场景与四卖点，其中 B 站脚本为新增体裁。
 4. 渠道线：免登录目录站确认枯竭后转向视频/社群，B 站脚本已备好、贴吧/豆瓣清单已给出，均只差老板账号（手机号注册，按约束列为人工项）。
 5. 下一轮建议：① Google 已收录 ⇒ 建议老板注册 Google Search Console（P0 同级），可看真实展现/点击数据并加速新页收录；② 2026-08-24 回访 nav3/toolnb；③ 若老板完成站长平台验证，立即执行百度普通收录 API 全量提交；④ 若 B 站视频发布，下一轮跟踪播放/转化数据。

@@ -4,7 +4,7 @@
 
 ## P0 — 四大站长平台注册验证（约 30 分钟，连续两轮确认百度已收录首页）
 
-第十一轮复查（证据 `docs/ops-round11-evidence/`）：**百度仍收录首页（约 1 条）**；**搜狗本轮首次取到实测数据：0 收录**；360 仍为 0；Google 被 reCAPTCHA 拦截；Bing 兜底污染。剩余 322 页放量只差站长平台主动提交：
+第十一轮复查（证据 `docs/ops/ops-round11-evidence/`）：**百度仍收录首页（约 1 条）**；**搜狗本轮首次取到实测数据：0 收录**；360 仍为 0；Google 被 reCAPTCHA 拦截；Bing 兜底污染。剩余 322 页放量只差站长平台主动提交：
 
 1. **百度站长平台**（ziyuan.baidu.com）：注册/登录 → 添加 `www.seatmark.cn` → 验证 → 提交 sitemap（323 条）→ 开通普通收录 API 并保存 token。**连续两轮确认首页已收录，验证后放量收益最直接。**
 2. **Bing Webmaster Tools**（bing.com/webmasters）：Microsoft 账号 → 添加站点 → 提交 sitemap。IndexNow 已连续多轮 323 条全端点成功。
@@ -42,7 +42,7 @@
 
 ## P5 — 内容发布（素材已备好）
 
-22. 发布第十一批素材：`docs/promo/round11/`（小红书 3 篇、知乎 2 篇、公众号 1 篇，主打生僻字姓名不出豆腐块 + Firefox/Safari 导出一致）；第五至十轮未发布素材同样有效。
+22. 发布第十一批素材：`docs/marketing/promo/round11/`（小红书 3 篇、知乎 2 篇、公众号 1 篇，主打生僻字姓名不出豆腐块 + Firefox/Safari 导出一致）；第五至十轮未发布素材同样有效。
 
 ## 已下线/放弃渠道（不再跟进）
 
