@@ -998,7 +998,23 @@ export async function onRequest(context) {
       context?.request?.url,
       err,
     )
-    return withSecurityHeaders(json({ error: '服务暂时不可用，请稍后重试' }, 500))
+    // 临时诊断：带 x-sm-debug: 1 的探针请求在响应头回显错误首行（排查完移除）
+    const debugHeaders =
+      context?.request?.headers?.get('x-sm-debug') === '1'
+        ? {
+            'X-SM-Debug-Err': String(
+              (err && (err.stack || err.message)) || err,
+            )
+              .split('\n')
+              .slice(0, 2)
+              .join(' | ')
+              .replace(/[^\x20-\x7e]/g, '?')
+              .slice(0, 300),
+          }
+        : null
+    return withSecurityHeaders(
+      json({ error: '服务暂时不可用，请稍后重试' }, 500, debugHeaders),
+    )
   }
 }
 
@@ -1995,12 +2011,25 @@ async function handleRequest(context) {
     }
 
     if (path === '/api/admin/overview' && method === 'GET') {
-      try {
+      // Blob 强一致读对不存在/后端异常的键会抛 PagesBlobError（如 COS 502），
+      // 统计面板应降级为部分数据而非整页 500
       const users = []
       let cursor = ''
+      let storagePartial = false
       for (let i = 0; i < 20; i++) {
-        const page = await kv.list({ prefix: 'user:', limit: 256, cursor })
-        const raws = await mapConcurrent(page.keys, 8, (k) => kv.get(k.name))
+        const page = await kv
+          .list({ prefix: 'user:', limit: 256, cursor })
+          .catch(() => null)
+        if (!page) {
+          storagePartial = true
+          break
+        }
+        const raws = await mapConcurrent(page.keys, 8, (k) =>
+          kv.get(k.name).catch(() => {
+            storagePartial = true
+            return null
+          }),
+        )
         for (const raw of raws) {
           if (raw) {
             try {
@@ -2029,8 +2058,14 @@ async function handleRequest(context) {
       let bonusToday = 0
       let activeTrialToday = 0
       const counters = await mapConcurrent(users, 8, async (u) => {
-        const used = await getCounter(kv, `usage:${u.email}:${date}`)
-        const bonus = await getCounter(kv, `bonus:${u.email}:${date}`)
+        const used = await getCounter(kv, `usage:${u.email}:${date}`).catch(() => {
+          storagePartial = true
+          return 0
+        })
+        const bonus = await getCounter(kv, `bonus:${u.email}:${date}`).catch(() => {
+          storagePartial = true
+          return 0
+        })
         return { used, bonus }
       })
       for (const { used, bonus } of counters) {
@@ -2039,8 +2074,14 @@ async function handleRequest(context) {
         bonusToday += bonus
       }
 
-      const reservations = await kv.list({ prefix: 'reserve:', limit: 256 })
-      const feedback = await kv.list({ prefix: 'fb:', limit: 256 })
+      const reservations = await kv.list({ prefix: 'reserve:', limit: 256 }).catch(() => {
+        storagePartial = true
+        return { keys: [] }
+      })
+      const feedback = await kv.list({ prefix: 'fb:', limit: 256 }).catch(() => {
+        storagePartial = true
+        return { keys: [] }
+      })
 
       return json(
         {
@@ -2055,17 +2096,11 @@ async function handleRequest(context) {
           reservationCount: reservations.keys.length,
           feedbackCount: feedback.keys.length,
           storage,
+          ...(storagePartial ? { partial: true } : {}),
         },
         200,
         storageHeader,
       )
-      } catch (e) {
-        return json(
-          { error: 'overview_debug', detail: String((e && e.message) || e).slice(0, 300), name: e && e.name },
-          500,
-          storageHeader,
-        )
-      }
     }
 
     if (path === '/api/admin/users' && method === 'GET') {
