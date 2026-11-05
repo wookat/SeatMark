@@ -1153,54 +1153,23 @@ async function handleRequest(context) {
   if (path === '/api/_diag/pbkdf2' && method === 'GET') {
     const pw = encoder.encode('probe-password')
     const saltU8 = crypto.getRandomValues(new Uint8Array(16))
-    const saltBuf = saltU8.buffer.slice(0)
-    const variants = {
-      async baseline_600k_u8_strhash() {
-        const k = await crypto.subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveBits'])
-        return crypto.subtle.deriveBits(
-          { name: 'PBKDF2', hash: 'SHA-256', salt: saltU8, iterations: 600000 },
-          k,
-          256,
-        )
-      },
-      async low_iter_1k() {
-        const k = await crypto.subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveBits'])
-        return crypto.subtle.deriveBits(
-          { name: 'PBKDF2', hash: 'SHA-256', salt: saltU8, iterations: 1000 },
-          k,
-          256,
-        )
-      },
-      async salt_arraybuffer() {
-        const k = await crypto.subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveBits'])
-        return crypto.subtle.deriveBits(
-          { name: 'PBKDF2', hash: 'SHA-256', salt: saltBuf, iterations: 1000 },
-          k,
-          256,
-        )
-      },
-      async hash_object() {
-        const k = await crypto.subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveBits'])
-        return crypto.subtle.deriveBits(
-          { name: 'PBKDF2', hash: { name: 'SHA-256' }, salt: saltU8, iterations: 1000 },
-          k,
-          256,
-        )
-      },
-      async derive_key() {
-        const k = await crypto.subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveKey'])
-        return crypto.subtle.deriveKey(
-          { name: 'PBKDF2', hash: 'SHA-256', salt: saltU8, iterations: 1000 },
-          k,
-          { name: 'HMAC', hash: 'SHA-256', length: 256 },
-          true,
-          ['sign'],
-        )
-      },
-      async importkey_only() {
-        return crypto.subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveBits'])
-      },
-    }
+    const variants = Object.fromEntries(
+      [50000, 100000, 150000, 200000, 250000, 300000, 400000, 500000, 599999].map(
+        (it) => [
+          `iter_${it}`,
+          async () => {
+            const k = await crypto.subtle.importKey('raw', pw, 'PBKDF2', false, [
+              'deriveBits',
+            ])
+            return crypto.subtle.deriveBits(
+              { name: 'PBKDF2', hash: 'SHA-256', salt: saltU8, iterations: it },
+              k,
+              256,
+            )
+          },
+        ],
+      ),
+    )
     const results = {}
     for (const [name, fn] of Object.entries(variants)) {
       try {
