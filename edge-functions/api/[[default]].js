@@ -113,8 +113,13 @@ const CODE_IP_DAILY_LIMIT = 20
 const CODE_EMAIL_DAILY_LIMIT = 10
 const PASSWORD_MIN_LENGTH = 8
 const PASSWORD_MAX_LENGTH = 72
-/** OWASP 2023 建议值；verifyPassword 按存储串内的迭代数校验，存量 100k 哈希继续可用 */
-const PBKDF2_ITERATIONS = 600000
+/**
+ * EdgeOne 边缘运行时 deriveBits 硬上限 iterations ≤ 100000（实测 100k 通过、110k 起抛
+ * Param Invalid 致注册/改密全量 500，登录经 verifyPassword catch 静默误判为密码错误）。
+ * verifyPassword 按存储串内迭代数校验，混代哈希兼容；超限存量的用户走邮箱重置自愈。
+ */
+const PBKDF2_ITERATIONS = 100000
+const PBKDF2_EDGE_MAX_ITERATIONS = 100000
 /**
  * 登录时账号不存在 / 未设密码也跑一次 PBKDF2，抹平与「密码错误」的时序差（防邮箱枚举）。
  * 固定盐与摘要均为占位常量，不对应任何真实密码。
@@ -419,6 +424,9 @@ async function verifyPassword(password, stored) {
     if (scheme !== 'pbkdf2') return false
     const iterations = Number(iterStr)
     if (!Number.isFinite(iterations) || iterations < 1000) return false
+    // 超过边缘运行时上限的存量哈希 deriveBits 必抛 Param Invalid；提前拒绝避免异常，
+    // 该用户无法用密码登录，须走邮箱验证码重置密码（重置会写入上限内的新哈希）
+    if (iterations > PBKDF2_EDGE_MAX_ITERATIONS) return false
     const salt = Uint8Array.from(b64urlDecode(saltB64), (c) => c.charCodeAt(0))
     const expected = Uint8Array.from(b64urlDecode(hashB64), (c) => c.charCodeAt(0))
     const derived = await pbkdf2Bits(password, salt, iterations)
@@ -1149,39 +1157,6 @@ async function handleRequest(context) {
   }
 
   // ----- 认证 -----
-  // 临时诊断路由：探 EdgeOne 运行时 PBKDF2 deriveBits 参数兼容性（排查完移除）
-  if (path === '/api/_diag/pbkdf2' && method === 'GET') {
-    const pw = encoder.encode('probe-password')
-    const saltU8 = crypto.getRandomValues(new Uint8Array(16))
-    const variants = Object.fromEntries(
-      [110000, 120000, 131072, 140000, 149999].map(
-        (it) => [
-          `iter_${it}`,
-          async () => {
-            const k = await crypto.subtle.importKey('raw', pw, 'PBKDF2', false, [
-              'deriveBits',
-            ])
-            return crypto.subtle.deriveBits(
-              { name: 'PBKDF2', hash: 'SHA-256', salt: saltU8, iterations: it },
-              k,
-              256,
-            )
-          },
-        ],
-      ),
-    )
-    const results = {}
-    for (const [name, fn] of Object.entries(variants)) {
-      try {
-        const out = await fn()
-        results[name] = 'ok:' + (out && out.byteLength !== undefined ? out.byteLength : typeof out)
-      } catch (e) {
-        results[name] = 'ERR:' + String(e && e.message ? e.message : e).slice(0, 80)
-      }
-    }
-    return json(results, 200, storageHeader)
-  }
-
   // 表单验证码：图片字符 + 签名令牌（5 分钟有效，答对后一次性消费），注册/登录/重置密码均需携带
   if (path === '/api/auth/captcha' && method === 'GET') {
     const captchaRlKey = `rl:captcha:${await sha256Hex(clientIp(request))}:${today()}`
