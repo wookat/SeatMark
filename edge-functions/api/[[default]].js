@@ -1995,6 +1995,7 @@ async function handleRequest(context) {
     }
 
     if (path === '/api/admin/overview' && method === 'GET') {
+      try {
       const users = []
       let cursor = ''
       for (let i = 0; i < 20; i++) {
@@ -2058,6 +2059,13 @@ async function handleRequest(context) {
         200,
         storageHeader,
       )
+      } catch (e) {
+        return json(
+          { error: 'overview_debug', detail: String((e && e.message) || e).slice(0, 300), name: e && e.name },
+          500,
+          storageHeader,
+        )
+      }
     }
 
     if (path === '/api/admin/users' && method === 'GET') {
