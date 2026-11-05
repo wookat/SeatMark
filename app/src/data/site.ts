@@ -11,7 +11,7 @@
 export const OPERATOR_NAME = 'SeatMark 座签运营团队'
 
 /** 工信部 ICP 备案号 */
-export const ICP_BEIAN = '湘ICP备2026009844号'
+export const ICP_BEIAN = '湘ICP备2026009844号-2'
 export const ICP_BEIAN_URL = 'https://beian.miit.gov.cn'
 
 /** 公安联网备案号（未办理时留空，页脚自动隐藏） */
