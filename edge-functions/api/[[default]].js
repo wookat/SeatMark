@@ -1006,23 +1006,7 @@ export async function onRequest(context) {
       context?.request?.url,
       err,
     )
-    // 临时诊断：带 x-sm-debug: 1 的探针请求在响应头回显错误首行（排查完移除）
-    const debugHeaders =
-      context?.request?.headers?.get('x-sm-debug') === '1'
-        ? {
-            'X-SM-Debug-Err': String(
-              (err && (err.stack || err.message)) || err,
-            )
-              .split('\n')
-              .slice(0, 2)
-              .join(' | ')
-              .replace(/[^\x20-\x7e]/g, '?')
-              .slice(0, 300),
-          }
-        : null
-    return withSecurityHeaders(
-      json({ error: '服务暂时不可用，请稍后重试' }, 500, debugHeaders),
-    )
+    return withSecurityHeaders(json({ error: '服务暂时不可用，请稍后重试' }, 500))
   }
 }
 
