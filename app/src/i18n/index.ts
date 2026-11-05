@@ -10,6 +10,13 @@ export type Locale = 'zh' | 'en'
 
 export const LOCALE_STORAGE_KEY = 'seatmark.locale'
 
+/** 已支持语言清单：语言切换菜单的数据源。
+ * 新增语言时：扩展 Locale 类型 → locales 目录加字典 → setLocale 懒加载分支 → 本数组加一项。 */
+export const LOCALES: { code: Locale; name: string }[] = [
+  { code: 'zh', name: '中文' },
+  { code: 'en', name: 'English' },
+]
+
 const localeRef = ref<Locale>('zh')
 
 let enDict: Record<string, string> | null = null

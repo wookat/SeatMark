@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef, type Directive } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, type Directive } from 'vue'
 
 import LabelSheet from '@/components/label/LabelSheet.vue'
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
@@ -84,10 +84,112 @@ const HERO_MAPPING: Record<string, string> = {
   examId: '准考证号',
 }
 
-function heroGetText(row: DataRow, fieldId: string): string {
-  const header = HERO_MAPPING[fieldId]
-  return header ? (row[header] ?? '') : ''
+// ---------- Hero 演示轮播：多品类模板自动轮换，悬停暂停 ----------
+/** 幻灯结构：模板 + 数据行 + 字段→列映射 + 字段→固定值（模板内装饰文案） */
+interface HeroSlide {
+  tpl: LabelTemplate
+  rows: DataRow[]
+  map: Record<string, string>
+  consts?: Record<string, string>
+  name: string
+  paper: string
+  perPage: number
 }
+
+function slideGetText(slide: HeroSlide) {
+  return (row: DataRow, fieldId: string): string => {
+    const col = slide.map[fieldId]
+    if (col) return row[col] ?? ''
+    return slide.consts?.[fieldId] ?? ''
+  }
+}
+
+function paperShort(tpl: LabelTemplate): string {
+  const { paperWidth: w, paperHeight: h } = tpl.page
+  const short = Math.min(w, h)
+  const long = Math.max(w, h)
+  if (Math.abs(short - 210) < 2 && Math.abs(long - 297) < 3) return 'A4'
+  if (Math.abs(short - 148) < 2 && Math.abs(long - 210) < 3) return 'A5'
+  if (Math.abs(short - 297) < 2 && Math.abs(long - 420) < 4) return 'A3'
+  return `${w}×${h}`
+}
+
+/** 会议桌牌演示行：姓名 + 单位两列 */
+const tentRows = computed<DataRow[]>(() => {
+  const names = locale.value === 'en' ? HERO_EN_NAMES : heroRowsZh.map((r) => r['姓名']!)
+  const orgs = locale.value === 'en'
+    ? ['Pine Labs', 'Springfield High', 'BlueSky Health', 'City Library']
+    : ['云杉科技', '明诚中学', '蓝天医院', '市图书馆']
+  return names.slice(0, 8).map((name, i) => ({ 姓名: name, 单位: orgs[i % orgs.length]! }))
+})
+
+/** 婚宴席位卡演示行：姓名 + 桌号两列 */
+const weddingRows = computed<DataRow[]>(() => {
+  const names = locale.value === 'en' ? HERO_EN_NAMES : heroRowsZh.map((r) => r['姓名']!)
+  return names.slice(0, 10).map((name, i) => ({
+    姓名: name,
+    桌号: locale.value === 'en' ? `Table ${(i % 6) + 1}` : `${(i % 6) + 1} 号桌`,
+  }))
+})
+
+function makeSlide(
+  tpl: LabelTemplate,
+  rows: DataRow[],
+  map: Record<string, string>,
+  consts?: Record<string, string>,
+): HeroSlide {
+  return {
+    tpl,
+    rows,
+    map,
+    consts,
+    name: tpl.scenario ? t(tpl.scenario) : t(tpl.name),
+    paper: paperShort(tpl),
+    perPage: tpl.page.cols * tpl.page.rows,
+  }
+}
+
+/** 轮播片：首张固定考场座签（SSR 即出），其余三品在模板 chunk 就绪后追加 */
+const heroSlides = computed<HeroSlide[]>(() => {
+  const slides: HeroSlide[] = [makeSlide(heroTemplate.value, heroRows.value, HERO_MAPPING)]
+  const list = allTemplates.value
+  if (!list) return slides
+  const en = locale.value === 'en'
+  const byId = (id: string) => list.find((tpl) => tpl.id === id)
+  const extras: [LabelTemplate | undefined, DataRow[], Record<string, string>, Record<string, string>?][] = [
+    [byId('meetingTent'), tentRows.value, { org: '单位', name: '姓名' }, { welcome: en ? 'WELCOME' : '欢迎莅临指导' }],
+    [byId('badge'), heroRows.value, HERO_MAPPING, { header: en ? 'GUEST' : '嘉宾证' }],
+    [byId('weddingPlace'), weddingRows.value, { name: '姓名', tableNo: '桌号' }, { greeting: en ? 'Welcome' : '诚邀' }],
+  ]
+  for (const [tpl, rows, map, consts] of extras) {
+    if (tpl) slides.push(makeSlide(localizeTemplateForLocale(tpl, locale.value), rows, map, consts))
+  }
+  return slides
+})
+
+const heroSlideIdx = ref(0)
+const heroHover = ref(false)
+const activeSlideIdx = computed(() => Math.min(heroSlideIdx.value, heroSlides.value.length - 1))
+const activeSlide = computed(() => heroSlides.value[activeSlideIdx.value]!)
+
+const HERO_ROTATE_MS = 5000
+let heroTimer: number | undefined
+
+onMounted(() => {
+  // 首屏先出固定幻灯；模板 chunk 延后拉取，避免阻塞 LCP，就绪后再开始轮播
+  window.setTimeout(() => {
+    void loadTemplates().then(() => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+      heroTimer = window.setInterval(() => {
+        if (!heroHover.value && !document.hidden && heroSlides.value.length > 1) {
+          heroSlideIdx.value = (heroSlideIdx.value + 1) % heroSlides.value.length
+        }
+      }, HERO_ROTATE_MS)
+    })
+  }, 1200)
+})
+
+onBeforeUnmount(() => window.clearInterval(heroTimer))
 
 // ---------- 模板展示：默认露出 5 款 + 「从空白新建」卡片，正好两排 ----------
 // 模板定义体积较大，橱窗接近视口时才动态加载，首屏只需 standardTemplate 与计数
@@ -154,13 +256,18 @@ const HERO_PAD_BOTTOM = 44
 const estimatedPanelWidth =
   typeof window === 'undefined' ? 448 : Math.min(448, window.innerWidth - 32)
 
-const heroScale = computed(() => {
+/** 每张幻灯按自身纸宽计算缩放；容器高度取全部幻灯的最大值，轮播切换不产生高度跳变 */
+function slideScale(tpl: LabelTemplate): number {
   const width = heroPanelWidth.value || estimatedPanelWidth
-  return Math.min((width - HERO_PAD_X * 2) / (standardTemplate.page.paperWidth * MM_TO_PX), 0.62)
+  return Math.min((width - HERO_PAD_X * 2) / (tpl.page.paperWidth * MM_TO_PX), 0.62)
+}
+
+const heroHeight = computed(() => {
+  const heights = heroSlides.value.map(
+    (s) => s.tpl.page.paperHeight * MM_TO_PX * slideScale(s.tpl),
+  )
+  return Math.max(...heights) + HERO_PAD_TOP + HERO_PAD_BOTTOM
 })
-const heroHeight = computed(
-  () => standardTemplate.page.paperHeight * MM_TO_PX * heroScale.value + HERO_PAD_TOP + HERO_PAD_BOTTOM,
-)
 
 const STEPS = computed(() => [
   {
@@ -250,7 +357,15 @@ const FAQS = computed(() => [
 <template>
   <div>
     <!-- Hero -->
-    <section class="relative overflow-hidden border-b border-slate-200 bg-white">
+    <section class="relative overflow-hidden border-b border-slate-200 bg-gradient-to-b from-brand-50/60 via-white to-white">
+      <!-- 装饰层：品牌色光斑 + 细点阵网格（向顶部收拢渐隐），纯 CSS 无 JS 开销 -->
+      <div aria-hidden="true" class="pointer-events-none absolute inset-0">
+        <div class="absolute -top-28 -right-24 size-[28rem] rounded-full bg-brand-200/40 blur-3xl"></div>
+        <div class="absolute -bottom-36 -left-28 size-[24rem] rounded-full bg-brand-100/50 blur-3xl"></div>
+        <div
+          class="absolute inset-0 bg-[radial-gradient(circle,#c7d2fe_1px,transparent_1px)] bg-[size:24px_24px] opacity-45 [mask-image:radial-gradient(ellipse_75%_62%_at_50%_0%,black,transparent)]"
+        ></div>
+      </div>
       <div
         class="relative mx-auto grid w-full max-w-6xl items-center gap-8 px-4 py-10 sm:py-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:py-20"
       >
@@ -289,9 +404,8 @@ const FAQS = computed(() => [
               <span class="block">{{ TEMPLATE_COUNT }} templates · Your list never leaves this device — everything stays in your browser.</span>
             </template>
             <template v-else>
-              <span class="block">把 Excel 名单粘进来 → 先看预览 → 导出可打印的座签页。</span>
-              <span class="block">需要准备：一份带表头（姓名、考场、座位号等）的名单，以及一台 A4 打印机。</span>
-              <span class="block">最后得到：考场座签、桌牌席卡、门贴证卡等 {{ TEMPLATE_COUNT }} 款模板的打印页，尺寸按毫米设定，打印后与模板标注一致。名单不会上传，数据只留在这台设备的浏览器里。</span>
+              <span class="block">把 Excel 名单粘进来 → 先看预览 → 导出可打印页。</span>
+              <span class="block">{{ TEMPLATE_COUNT }} 款模板覆盖座签、桌牌、门贴、证卡；名单不出浏览器。</span>
             </template>
           </p>
           <div class="mt-7 flex flex-wrap gap-3">
@@ -363,7 +477,7 @@ const FAQS = computed(() => [
           </div>
           <div class="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-xs font-semibold text-slate-600">
             <span
-              v-for="mark in [t('无需安装'), t('Excel 批量导入'), t('PDF / 直接打印'), 'A4 · A5 · A3']"
+              v-for="mark in [t('Excel 批量导入'), t('PDF / 直接打印'), 'A4 · A5 · A3']"
               :key="mark"
               class="flex items-center gap-1"
             >
@@ -388,35 +502,65 @@ const FAQS = computed(() => [
           ref="heroPanel"
           v-reveal="150"
           class="relative mx-auto w-full max-w-md min-w-0"
+          @mouseenter="heroHover = true"
+          @mouseleave="heroHover = false"
+          @focusin="heroHover = true"
+          @focusout="heroHover = false"
         >
           <div
             class="hero-sheet relative max-h-96 overflow-hidden px-4 pt-4 mask-r-from-85% mask-b-from-72% sm:max-h-none sm:mask-b-from-100%"
             data-testid="hero-sheet"
             :style="{ height: `${heroHeight}px` }"
           >
-            <div class="relative w-fit origin-top-left" :style="{ transform: `scale(${heroScale})` }">
-              <LabelSheet
-                :template="heroTemplate"
-                :rows="heroRows"
-                :get-text="heroGetText"
-                show-cut-lines
-                screen
-              />
+            <div
+              v-for="(slide, i) in heroSlides"
+              :key="slide.tpl.id"
+              class="absolute inset-x-4 top-4 transition-opacity duration-700"
+              :class="i === activeSlideIdx ? 'opacity-100' : 'pointer-events-none opacity-0'"
+              :aria-hidden="i !== activeSlideIdx"
+            >
+              <div class="relative w-fit origin-top-left" :style="{ transform: `scale(${slideScale(slide.tpl)})` }">
+                <LabelSheet
+                  :template="slide.tpl"
+                  :rows="slide.rows"
+                  :get-text="slideGetText(slide)"
+                  show-cut-lines
+                  screen
+                />
+              </div>
+            </div>
+          </div>
+          <!-- 模板名 + 轮播圆点：点击圆点可手动切换 -->
+          <div class="absolute left-3 bottom-3 flex items-center gap-2" data-testid="hero-slide-nav">
+            <span class="rounded bg-slate-900/85 px-2 py-1 text-[11px] font-semibold text-white">
+              {{ activeSlide.name }}
+            </span>
+            <div v-if="heroSlides.length > 1" class="flex items-center gap-1.5">
+              <button
+                v-for="(slide, i) in heroSlides"
+                :key="slide.tpl.id"
+                type="button"
+                class="size-2 cursor-pointer rounded-full transition-colors"
+                :class="i === activeSlideIdx ? 'bg-brand-600' : 'bg-slate-300 hover:bg-slate-400'"
+                :aria-label="slide.name"
+                :aria-current="i === activeSlideIdx ? 'true' : undefined"
+                @click="heroSlideIdx = i"
+              ></button>
             </div>
           </div>
           <!-- 尺寸角标：默认只露「A4」，hover / 键盘聚焦展开完整说明；全文常驻在 aria-label 供读屏 -->
           <span
             class="group absolute right-3 bottom-3 inline-flex max-w-[calc(100%-1.5rem)] cursor-default items-center gap-1 rounded bg-slate-900/85 px-2 py-1 text-[11px] font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             tabindex="0"
-            :aria-label="t('A4 实际排版效果 · 24 枚/页')"
+            :aria-label="locale === 'en' ? `Actual ${activeSlide.paper} layout · ${activeSlide.perPage} labels per page` : `${activeSlide.paper} 实际排版效果 · ${activeSlide.perPage} 枚/页`"
             data-testid="hero-sheet-badge"
           >
-            <span aria-hidden="true">A4</span>
+            <span aria-hidden="true">{{ activeSlide.paper }}</span>
             <span
               class="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-[max-width,opacity] duration-200 group-hover:max-w-[16rem] group-hover:opacity-100 group-focus-visible:max-w-[16rem] group-focus-visible:opacity-100"
               aria-hidden="true"
             >
-              {{ t('A4 实际排版效果 · 24 枚/页') }}
+              {{ locale === 'en' ? `Actual ${activeSlide.paper} layout · ${activeSlide.perPage} labels per page` : `${activeSlide.paper} 实际排版效果 · ${activeSlide.perPage} 枚/页` }}
             </span>
           </span>
         </div>
@@ -833,8 +977,12 @@ const FAQS = computed(() => [
     <section class="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-16">
       <div
         v-reveal
-        class="relative flex flex-col items-center justify-between gap-5 rounded-lg bg-brand-700 px-6 py-10 text-center sm:flex-row sm:px-10 sm:py-12 sm:text-left"
+        class="relative flex flex-col items-center justify-between gap-5 overflow-hidden rounded-lg bg-brand-700 px-6 py-10 text-center sm:flex-row sm:px-10 sm:py-12 sm:text-left"
       >
+        <div
+          aria-hidden="true"
+          class="pointer-events-none absolute inset-0 bg-[radial-gradient(560px_260px_at_85%_-25%,rgba(255,255,255,0.22),transparent)]"
+        ></div>
         <div class="relative">
           <h2 class="text-xl font-bold text-white sm:text-2xl">{{ t('开始生成你的标签') }}</h2>
           <p class="mt-1.5 text-sm text-brand-100">
