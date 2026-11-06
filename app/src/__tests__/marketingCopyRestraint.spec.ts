@@ -134,7 +134,7 @@ describe('第 346 轮：营销化表达收敛', () => {
     const w = await mountApp('/')
     const text = w.text()
     expect(text).not.toContain('排版精确到毫米')
-    expect(text).toContain('尺寸按毫米设定，打印后与模板标注一致')
+    expect(text).toContain('尺寸按毫米计算')
   })
 })
 

@@ -48,7 +48,8 @@ describe('SEO 页面元数据质量', () => {
   it('/en 内容站索引外壳：预渲染、英文 title、noindex、不进 sitemap', async () => {
     const paths = await prerenderPaths()
     const shells = enIndexShellPaths()
-    expect(shells).toEqual(['/en/templates', '/en/guides', '/en/papers', '/en/vs'])
+    // /en/guides 与 /en/vs 已有英文原生内容，升格为可索引页，不再是外壳
+    expect(shells).toEqual(['/en/templates', '/en/papers'])
     for (const p of shells) {
       expect(paths, `${p} 应预渲染`).toContain(p)
       const seo = await resolveSeo(p)

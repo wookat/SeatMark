@@ -42,21 +42,23 @@ const EN_INDEX_SHELL_SEO: Record<string, { title: string; description: string }>
     description:
       'Free built-in templates for place cards, table tents, seat labels, name badges and ID cards. Pick one, upload your spreadsheet and batch-print with mm-accurate layout.',
   },
-  '/guides': {
-    title: 'Guides: Print Place Cards, Seat Labels & Name Tags | SeatMark',
-    description:
-      'Step-by-step tutorials on batch-printing place cards, exam seat labels, table tents and name badges from a spreadsheet, plus print calibration and label-paper tips.',
-  },
   '/papers': {
     title: 'A4 Label Sheet Library: Auto-Fit Layouts | SeatMark',
     description:
       'Common A4 self-adhesive label sheet sizes (2×4, 3×7, 3×10, rounded corners). Pick a sheet and rows, columns, margins and gaps lock in automatically for aligned printing.',
   },
-  '/vs': {
-    title: 'Compare: SeatMark vs Other Place Card Tools | SeatMark',
-    description:
-      'Side-by-side comparisons of SeatMark with common place card and table tent workflows: batch generation from a list, print imposition, calibration, privacy and price.',
-  },
+}
+
+/** /en/guides 索引与 /en/vs 索引的英文 SEO（正文为英文原生内容，可索引，canonical 为自身） */
+const EN_GUIDES_INDEX_SEO = {
+  title: 'Guides: Print Place Cards, Seat Labels & Name Tags | SeatMark',
+  description:
+    'Step-by-step tutorials on batch-printing place cards, exam seat labels, table tents and name badges from a spreadsheet, plus print calibration and label-paper tips.',
+}
+const EN_VS_INDEX_SEO = {
+  title: 'Compare: SeatMark vs Other Place Card Tools | SeatMark',
+  description:
+    'Side-by-side comparisons of SeatMark with common place card and table tent workflows: batch generation from a list, print imposition, calibration, privacy and price.',
 }
 
 /** /en 下的内容站索引外壳路径（预渲染但 noindex，不进 sitemap） */
@@ -219,6 +221,113 @@ export async function resolveSeo(path: string): Promise<PageSeo> {
  * 无中文对应页，故 hreflang 仅挂 en + x-default。
  */
 async function resolveEnContentSeo(p: string): Promise<PageSeo | null> {
+  if (p === '/en/guides') {
+    const { enGuides } = await import('@/data/guidesEn')
+    return {
+      title: EN_GUIDES_INDEX_SEO.title,
+      description: EN_GUIDES_INDEX_SEO.description,
+      path: '/en/guides',
+      lang: 'en',
+      alternates: [
+        { hreflang: 'en', path: '/en/guides' },
+        { hreflang: 'x-default', path: '/en/guides' },
+      ],
+      jsonLd: [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: 'SeatMark Guides',
+          url: `${SITE_ORIGIN}/en/guides`,
+          inLanguage: 'en',
+          description: EN_GUIDES_INDEX_SEO.description,
+          hasPart: enGuides.map((g) => ({
+            '@type': 'Article',
+            headline: g.title,
+            url: `${SITE_ORIGIN}/en/guides/${g.slug}`,
+          })),
+        },
+        breadcrumb([
+          { name: 'Home', path: '/en' },
+          { name: 'Guides', path: '/en/guides' },
+        ]),
+      ],
+    }
+  }
+
+  if (p.startsWith('/en/guides/')) {
+    const { findEnGuide } = await import('@/data/guidesEn')
+    const guide = findEnGuide(p.slice('/en/guides/'.length))
+    if (!guide) return null
+    const path = `/en/guides/${guide.slug}`
+    const jsonLd: Record<string, unknown>[] = [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: guide.title,
+        description: guide.description,
+        inLanguage: 'en',
+        datePublished: guide.datePublished,
+        dateModified: guide.dateModified,
+        author: { '@type': 'Organization', name: 'SeatMark', url: `${SITE_ORIGIN}/en` },
+        publisher: { '@type': 'Organization', name: 'SeatMark', url: `${SITE_ORIGIN}/en` },
+        mainEntityOfPage: `${SITE_ORIGIN}${path}`,
+        keywords: guide.keywords.join(','),
+      },
+      breadcrumb([
+        { name: 'Home', path: '/en' },
+        { name: 'Guides', path: '/en/guides' },
+        { name: guide.title, path },
+      ]),
+    ]
+    if (guide.howTo) jsonLd.push(howToJsonLd(guide.howTo.name, guide.howTo.steps, 'en'))
+    if (guide.faqs.length) jsonLd.push(faqJsonLd(guide.faqs))
+    return {
+      title: `${guide.title} | SeatMark`,
+      description: guide.description,
+      path,
+      lang: 'en',
+      alternates: [
+        { hreflang: 'en', path },
+        { hreflang: 'x-default', path },
+      ],
+      jsonLd,
+    }
+  }
+
+  if (p === '/en/vs') {
+    const { vsPagesFor } = await import('@/data/vsPages')
+    const enPages = vsPagesFor('en')
+    return {
+      title: EN_VS_INDEX_SEO.title,
+      description: EN_VS_INDEX_SEO.description,
+      path: '/en/vs',
+      lang: 'en',
+      alternates: [
+        { hreflang: 'en', path: '/en/vs' },
+        { hreflang: 'x-default', path: '/en/vs' },
+      ],
+      jsonLd: [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: 'SeatMark Comparisons',
+          url: `${SITE_ORIGIN}/en/vs`,
+          inLanguage: 'en',
+          description: EN_VS_INDEX_SEO.description,
+          hasPart: enPages.map((v) => ({
+            '@type': 'Article',
+            headline: v.heading,
+            url: `${SITE_ORIGIN}/en/vs/${v.slug}`,
+          })),
+        },
+        breadcrumb([
+          { name: 'Home', path: '/en' },
+          { name: 'Compare', path: '/en/vs' },
+        ]),
+      ],
+    }
+  }
+
   if (!p.startsWith('/en/vs/')) return null
   const { findVsPage } = await import('@/data/vsPages')
   const page = findVsPage(p.slice('/en/vs/'.length), 'en')
@@ -872,13 +981,15 @@ export function appShellPaths(): string[] {
 
 /** 需要构建期预渲染的全部路径（同时是 sitemap 的路径清单）；仅构建脚本使用 */
 export async function prerenderPaths(): Promise<string[]> {
-  const [{ guides }, { templateDetails }, { labelPapers }, { vsPagesFor }, { topicPages }] = await Promise.all([
-    import('@/data/guides'),
-    import('@/data/templateDetails'),
-    import('@/data/labelPapers'),
-    import('@/data/vsPages'),
-    import('@/data/topicPages'),
-  ])
+  const [{ guides }, { enGuides }, { templateDetails }, { labelPapers }, { vsPagesFor }, { topicPages }] =
+    await Promise.all([
+      import('@/data/guides'),
+      import('@/data/guidesEn'),
+      import('@/data/templateDetails'),
+      import('@/data/labelPapers'),
+      import('@/data/vsPages'),
+      import('@/data/topicPages'),
+    ])
   return [
     '/',
     '/studio',
@@ -891,7 +1002,10 @@ export async function prerenderPaths(): Promise<string[]> {
     ...labelPapers.map((paper) => `/papers/${paper.slug}`),
     '/vs',
     ...vsPagesFor('zh').map((v) => `/vs/${v.slug}`),
-    // /en 下有独立英文正文的对比页（可索引，进 sitemap）
+    // /en 下有独立英文正文的内容页（可索引，进 sitemap）
+    '/en/guides',
+    ...enGuides.map((g) => `/en/guides/${g.slug}`),
+    '/en/vs',
     ...vsPagesFor('en').map((v) => `/en/vs/${v.slug}`),
     ...topicPages.map((t) => t.path),
     '/seating',

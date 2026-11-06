@@ -5,17 +5,24 @@ import { useRoute, useRouter } from 'vue-router'
 import ChineseOnlyNotice from '@/components/ChineseOnlyNotice.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 import { findGuide, guides, studioLinkForGuide } from '@/data/guides'
+import { enGuides, findEnGuide } from '@/data/guidesEn'
+import { useI18n } from '@/i18n'
 
 const route = useRoute()
 const router = useRouter()
+const { t, locale, localePath } = useI18n()
 
-const guide = computed(() => findGuide(String(route.params.slug ?? '')))
+const slug = computed(() => String(route.params.slug ?? ''))
+/** /en 下优先取英文原生教程；取不到时回退中文教程（展示中文正文 + ChineseOnlyNotice） */
+const isEnGuide = computed(() => locale.value === 'en' && !!findEnGuide(slug.value))
+const guide = computed(() => (isEnGuide.value ? findEnGuide(slug.value) : findGuide(slug.value)))
 
-const relatedGuides = computed(() =>
-  (guide.value?.related ?? [])
-    .map((slug) => guides.find((g) => g.slug === slug))
-    .filter((g) => !!g),
-)
+const relatedGuides = computed(() => {
+  const pool = isEnGuide.value ? enGuides : guides
+  return (guide.value?.related ?? [])
+    .map((s) => pool.find((g) => g.slug === s))
+    .filter((g) => !!g)
+})
 
 /** 正文内链走 SPA 导航，避免整页刷新 */
 function onArticleClick(event: MouseEvent) {
@@ -34,12 +41,12 @@ function onArticleClick(event: MouseEvent) {
 
 <template>
   <div v-if="guide" class="mx-auto w-full max-w-3xl px-4 py-10 sm:py-14">
-    <ChineseOnlyNotice />
+    <ChineseOnlyNotice :has-english="isEnGuide" />
     <!-- 面包屑 -->
-    <nav class="flex flex-wrap items-center gap-1.5 text-xs text-slate-600" aria-label="面包屑">
-      <RouterLink to="/" class="hover:text-brand-600">首页</RouterLink>
+    <nav class="flex flex-wrap items-center gap-1.5 text-xs text-slate-600" :aria-label="t('面包屑')">
+      <RouterLink :to="localePath('/')" class="hover:text-brand-600">{{ t('首页') }}</RouterLink>
       <span>/</span>
-      <RouterLink to="/guides" class="hover:text-brand-600">教程中心</RouterLink>
+      <RouterLink :to="localePath('/guides')" class="hover:text-brand-600">{{ t('教程中心') }}</RouterLink>
       <span>/</span>
       <span class="line-clamp-1 text-slate-600" aria-current="page">{{ guide.title }}</span>
     </nav>
@@ -52,8 +59,8 @@ function onArticleClick(event: MouseEvent) {
         <span class="rounded-md bg-brand-50 px-2 py-0.5 font-bold text-brand-600">
           {{ guide.category }}
         </span>
-        <span>更新于 {{ guide.dateModified }}</span>
-        <span>约 {{ guide.readingMinutes }} 分钟读完</span>
+        <span>{{ t('更新于 {d}').replace('{d}', guide.dateModified) }}</span>
+        <span>{{ t('约 {n} 分钟读完').replace('{n}', String(guide.readingMinutes)) }}</span>
       </div>
       <p class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
         {{ guide.description }}
@@ -80,14 +87,14 @@ function onArticleClick(event: MouseEvent) {
           </svg>
         </span>
         <div>
-          <p class="text-sm font-bold text-slate-900">不想读长文？直接上手试试</p>
+          <p class="text-sm font-bold text-slate-900">{{ t('不想读长文？直接上手试试') }}</p>
           <p v-if="guide.quickStart.note" class="mt-0.5 text-xs leading-5 text-slate-600">
             {{ guide.quickStart.note }}
           </p>
         </div>
       </div>
       <RouterLink
-        :to="guide.quickStart.to"
+        :to="localePath(guide.quickStart.to)"
         class="btn btn-primary btn-md w-full shrink-0 sm:w-auto"
       >
         {{ guide.quickStart.label }}
@@ -116,7 +123,7 @@ function onArticleClick(event: MouseEvent) {
 
     <!-- FAQ -->
     <section v-if="guide.faqs.length" class="mt-10">
-      <h2 class="text-xl font-bold tracking-tight text-slate-900">常见问答</h2>
+      <h2 class="text-xl font-bold tracking-tight text-slate-900">{{ t('常见问答') }}</h2>
       <div class="mt-4 grid gap-3">
         <div
           v-for="faq in guide.faqs"
@@ -134,25 +141,25 @@ function onArticleClick(event: MouseEvent) {
       class="mt-10 flex flex-col items-center justify-between gap-4 rounded-lg bg-brand-700 px-6 py-6 text-center sm:flex-row sm:text-left"
     >
       <div>
-        <h2 class="text-base font-bold text-white">在标签工坊中实践本教程</h2>
-        <p class="mt-1 text-sm text-brand-100">免费、无需注册，名单不出浏览器。</p>
+        <h2 class="text-base font-bold text-white">{{ t('在标签工坊中实践本教程') }}</h2>
+        <p class="mt-1 text-sm text-brand-100">{{ t('免费、无需注册，名单不出浏览器。') }}</p>
       </div>
       <RouterLink
-        :to="studioLinkForGuide(guide)"
+        :to="localePath(studioLinkForGuide(guide))"
         class="btn btn-md w-full shrink-0 bg-white text-brand-700 hover:bg-brand-50 sm:w-auto"
       >
-        {{ guide.quickStart ? guide.quickStart.label : '进入标签工坊' }}
+        {{ guide.quickStart ? guide.quickStart.label : t('进入标签工坊') }}
       </RouterLink>
     </div>
 
     <!-- 相关文章 -->
     <section v-if="relatedGuides.length" class="mt-10">
-      <h2 class="text-base font-bold text-slate-900">相关阅读</h2>
+      <h2 class="text-base font-bold text-slate-900">{{ t('相关阅读') }}</h2>
       <div class="mt-3 grid gap-3 sm:grid-cols-3">
         <RouterLink
           v-for="rel in relatedGuides"
           :key="rel!.slug"
-          :to="`/guides/${rel!.slug}`"
+          :to="localePath(`/guides/${rel!.slug}`)"
           class="group rounded-lg border border-slate-200 bg-white p-4 transition-colors hover:border-brand-300"
         >
           <p class="text-[11px] font-bold text-brand-600">{{ rel!.category }}</p>

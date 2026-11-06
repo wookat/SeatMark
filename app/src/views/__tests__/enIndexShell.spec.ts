@@ -19,9 +19,12 @@ const TEMPLATES_NOTICE_TEXT =
 /** 第 372 轮：/en/vs 含英文对比页（Prismm），黄条只把带 Chinese 角标的条目声明为中文 */
 const VS_NOTICE_TEXT =
   'Comparisons marked Chinese are available in Chinese only; the others are in English, as are the Studio, Seating Chart, Banquet planner and Pricing pages.'
+/** /en/guides 含英文原生教程，黄条只把带 Chinese 角标的条目声明为中文 */
+const GUIDES_NOTICE_TEXT =
+  'Guides marked Chinese are available in Chinese only; the others are in English, as are the Studio, Seating Chart, Banquet planner and Pricing pages.'
 
 const VIEWS = [
-  { name: 'GuidesView', component: GuidesView, path: '/guides', notice: NOTICE_TEXT },
+  { name: 'GuidesView', component: GuidesView, path: '/guides', notice: GUIDES_NOTICE_TEXT },
   { name: 'TemplatesView', component: TemplatesView, path: '/templates', notice: TEMPLATES_NOTICE_TEXT },
   { name: 'PapersView', component: PapersView, path: '/papers', notice: NOTICE_TEXT },
   { name: 'VsIndexView', component: VsIndexView, path: '/vs', notice: VS_NOTICE_TEXT },
@@ -208,7 +211,7 @@ describe('第 356 轮：/en 模板与教程卡片「Chinese」语言角标', () 
 
 describe('第 368 轮：/en 精选块层级——纯英文区块标题 + 每条英文摘要 + Read in Chinese CTA', () => {
   const HEADINGS: Record<string, string> = {
-    GuidesView: 'Featured guides',
+    GuidesView: 'More guides',
     PapersView: 'Paper sizes',
     VsIndexView: 'Comparisons',
   }

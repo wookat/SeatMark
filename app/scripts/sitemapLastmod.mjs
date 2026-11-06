@@ -39,8 +39,14 @@ const DATE_KEYS = ['dateModified', 'datePublished', 'updatedAt']
  * @returns {string} YYYY-MM-DD
  */
 export function resolveLastmod(path, sources) {
-  const { guides = [], templateDetails = [], vsPages = [], topicPages = [], today } = sources
+  const { guides = [], enGuides = [], templateDetails = [], vsPages = [], topicPages = [], today } = sources
   if (!isValidIsoDate(today)) throw new Error(`resolveLastmod: today 必须为 YYYY-MM-DD，得到 ${String(today)}`)
+
+  const enGuideMatch = /^\/en\/guides\/([^/]+)$/.exec(path)
+  if (enGuideMatch) {
+    const guide = enGuides.find((g) => g.slug === enGuideMatch[1])
+    return firstValidDate(guide, DATE_KEYS) ?? today
+  }
 
   const guideMatch = /^\/guides\/([^/]+)$/.exec(path)
   if (guideMatch) {

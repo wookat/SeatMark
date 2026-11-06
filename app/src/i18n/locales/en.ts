@@ -1807,6 +1807,11 @@ export const en: Record<string, string> = {
   '也许你想看这些教程': 'You might also like',
   '约 {n} 分钟读完': '{n} min read',
   '阅读全文': 'Read more',
+  '更新于 {d}': 'Updated {d}',
+  '不想读长文？直接上手试试': 'Skip the read? Try it now',
+  '在标签工坊中实践本教程': 'Try this guide in the Studio',
+  '免费、无需注册，名单不出浏览器。': 'Free, no sign-up — your list never leaves the browser.',
+  '相关阅读': 'Related guides',
   '打开教程，跟着操作一遍': 'Open a guide and follow along',
   '打开标签工坊，用演示数据即可完整体验教程里的每一步，全程免费。':
     'Open the Studio with demo data and follow every step of the guides — free.',

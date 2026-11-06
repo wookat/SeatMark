@@ -101,7 +101,13 @@ describe('VsIndexView 语言分流', () => {
     const enList = wrapper.find('[data-testid="vs-en-list"]')
     expect(enList.exists()).toBe(true)
     const enLinks = enList.findAll('a')
-    expect(enLinks.map((a) => a.attributes('href'))).toEqual(['/en/vs/prismm-alternative'])
+    expect(enLinks.map((a) => a.attributes('href'))).toEqual([
+      '/en/vs/prismm-alternative',
+      '/en/vs/canva',
+      '/en/vs/placecard-us',
+      '/en/vs/wps-mail-merge',
+      '/en/vs/chuangkit',
+    ])
     expect(enList.find('[data-testid="lang-badge-zh"]').exists()).toBe(false)
     expect(cjkTextNodes(enList.element)).toEqual([])
 

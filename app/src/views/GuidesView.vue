@@ -5,15 +5,16 @@ import { useBatchedList } from '@/composables/useBatchedList'
 import EnIndexShell, { type EnIndexFeatured } from '@/components/ui/EnIndexShell.vue'
 import ZhOnlyNotice from '@/components/ui/ZhOnlyNotice.vue'
 import { guides, sceneForGuideCategory } from '@/data/guides'
+import { enGuides } from '@/data/guidesEn'
 import { t as tr } from '@/i18n'
 import { useI18n } from '@/i18n'
 import { matchesChineseQuery } from '@/utils/pinyin'
 
 const { t, locale, localePath } = useI18n()
 
-/** /en 下列表区的英文替代块：主题说明 + 精选入口（英文标题，指向中文教程） */
+/** /en/guides：英文原生教程网格之上，EnIndexShell 精选中文教程入口（带 Chinese 角标） */
 const EN_INTRO =
-  'Our guides cover the full workflow of making and printing place cards, desk cards, seat labels and ID badges — cleaning up an Excel roster, choosing a template, calibrating your printer and cutting the sheets. They are written in Chinese for now; browse the Chinese index or start with one of the featured guides below.'
+  'Step-by-step guides for batch-printing place cards, seat labels, desk cards and ID badges from a spreadsheet — pick a template, import your roster, calibrate the printer and cut. The full library is in Chinese; the guides below are the English editions.'
 const EN_FEATURED: EnIndexFeatured[] = [
   {
     title: 'Batch-print exam seat labels from a class roster',
@@ -122,15 +123,46 @@ const recommendedGuides = computed(() => {
       <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
         {{ t('座签、桌牌、席位卡、证卡的制作与打印实战教程：从 Excel 名单整理、模板选择到打印裁切，每篇给出输入示例、操作步骤与失败时怎么改。') }}
       </p>
-      <ZhOnlyNotice />
+      <ZhOnlyNotice variant="guides" />
     </div>
 
-    <EnIndexShell
-      v-if="locale === 'en'"
-      :intro="EN_INTRO"
-      featured-heading="Featured guides"
-      :featured="EN_FEATURED"
-    />
+    <!-- /en/guides：英文原生教程网格（内容来自 enGuides，非中文教程的镜像） -->
+    <div v-if="locale === 'en'" class="mt-8" lang="en">
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" data-testid="en-guides-grid">
+        <RouterLink
+          v-for="guide in enGuides"
+          :key="guide.slug"
+          :to="`/en/guides/${guide.slug}`"
+          class="group flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-brand-300 hover:shadow-card-hover"
+        >
+          <div class="flex items-center gap-2 text-[11px] font-bold">
+            <span class="rounded-md bg-brand-50 px-2 py-0.5 text-brand-600">{{ guide.category }}</span>
+            <span class="text-slate-600">{{ guide.readingMinutes }} min read</span>
+          </div>
+          <h2 class="mt-3 text-base leading-6 font-bold text-slate-900 group-hover:text-brand-600">
+            {{ guide.title }}
+          </h2>
+          <p class="mt-2 line-clamp-3 flex-1 text-xs leading-5 text-slate-600">
+            {{ guide.description }}
+          </p>
+          <span class="mt-4 flex items-center gap-1 text-xs font-bold text-brand-600">
+            {{ tr('阅读全文') }}
+            <svg
+              class="size-3.5 transition-transform duration-200 group-hover:translate-x-1"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 8h10m-4-4 4 4-4 4" />
+            </svg>
+          </span>
+        </RouterLink>
+      </div>
+      <EnIndexShell :intro="EN_INTRO" featured-heading="More guides" :featured="EN_FEATURED" />
+    </div>
 
     <!-- 筛选器：移动端默认折叠为一行 sticky，展开时不再 sticky；桌面端始终展开且 static -->
     <div

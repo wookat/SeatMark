@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { EN_CONTENT_DETAIL_PATHS, isEnContentDetailPath } from '@/data/enContentPaths'
+import { enGuides } from '@/data/guidesEn'
 import { isSitemapEligible, prerenderPaths, resolveSeo } from '@/data/seo'
 import { findVsPage, vsLangOf, vsPagePath, vsPages, vsPagesFor } from '@/data/vsPages'
 import { zhOnlyRedirectTarget } from '@/router'
@@ -12,10 +13,14 @@ const CJK = /[\u4e00-\u9fff]/
  * （可索引、进 sitemap、不重定向回中文、无 ChineseOnlyNotice）。
  */
 describe('vsPages 语言分流', () => {
-  it('slug 唯一；缺省语言为 zh，Prismm 页为 en', () => {
-    expect(new Set(vsPages.map((p) => p.slug)).size).toBe(vsPages.length)
+  it('slug 按语言各自唯一（同 slug 可中英各一页）；缺省语言为 zh', () => {
+    for (const lang of ['zh', 'en'] as const) {
+      const slugs = vsPagesFor(lang).map((p) => p.slug)
+      expect(new Set(slugs).size).toBe(slugs.length)
+    }
     for (const p of vsPages) expect(['zh', 'en']).toContain(vsLangOf(p))
-    expect(vsLangOf(findVsPage('canva')!)).toBe('zh')
+    expect(vsLangOf(findVsPage('canva', 'zh')!)).toBe('zh')
+    expect(vsLangOf(findVsPage('canva', 'en')!)).toBe('en')
     expect(vsLangOf(findVsPage('prismm-alternative')!)).toBe('en')
   })
 
@@ -23,14 +28,20 @@ describe('vsPages 语言分流', () => {
     const zh = vsPagesFor('zh')
     const en = vsPagesFor('en')
     expect(zh.map((p) => p.slug)).toEqual(['chuangkit', 'wps-mail-merge', 'placecard-us', 'canva'])
-    expect(en.map((p) => p.slug)).toEqual(['prismm-alternative'])
+    expect(en.map((p) => p.slug)).toEqual([
+      'prismm-alternative',
+      'canva',
+      'placecard-us',
+      'wps-mail-merge',
+      'chuangkit',
+    ])
     expect(zh.length + en.length).toBe(vsPages.length)
   })
 
-  it('findVsPage 可按语言限定：中文路径查不到英文页，反之亦然', () => {
+  it('findVsPage 可按语言限定：同 slug 按语言各取各页', () => {
     expect(findVsPage('prismm-alternative', 'zh')).toBeUndefined()
     expect(findVsPage('prismm-alternative', 'en')?.slug).toBe('prismm-alternative')
-    expect(findVsPage('canva', 'en')).toBeUndefined()
+    expect(vsLangOf(findVsPage('canva', 'en')!)).toBe('en')
     expect(findVsPage('canva', 'zh')?.slug).toBe('canva')
     expect(findVsPage('nope')).toBeUndefined()
   })
@@ -40,11 +51,17 @@ describe('vsPages 语言分流', () => {
     expect(vsPagePath(findVsPage('prismm-alternative')!)).toBe('/en/vs/prismm-alternative')
   })
 
-  it('EN_CONTENT_DETAIL_PATHS 与 lang=en 的对比页一一对应', () => {
-    expect([...EN_CONTENT_DETAIL_PATHS].sort()).toEqual(vsPagesFor('en').map(vsPagePath).sort())
+  it('EN_CONTENT_DETAIL_PATHS 与全部英文内容页（对比页 + 教程）一一对应', () => {
+    const expected = [
+      ...vsPagesFor('en').map(vsPagePath),
+      ...enGuides.map((g) => `/en/guides/${g.slug}`),
+    ]
+    expect([...EN_CONTENT_DETAIL_PATHS].sort()).toEqual(expected.sort())
     expect(isEnContentDetailPath('/en/vs/prismm-alternative')).toBe(true)
     expect(isEnContentDetailPath('/en/vs/prismm-alternative/')).toBe(true)
-    expect(isEnContentDetailPath('/en/vs/canva')).toBe(false)
+    expect(isEnContentDetailPath('/en/vs/canva')).toBe(true)
+    expect(isEnContentDetailPath('/en/guides/print-place-cards-from-excel')).toBe(true)
+    expect(isEnContentDetailPath('/en/guides/exam-seat-label-batch-print')).toBe(false)
   })
 })
 
@@ -99,9 +116,13 @@ describe('Prismm 英文页内容如实', () => {
 })
 
 describe('Prismm 英文页路由 / SEO / 预渲染', () => {
-  it('/en/vs/prismm-alternative 不重定向回中文；中文对比页仍重定向', () => {
-    expect(zhOnlyRedirectTarget('/en/vs/prismm-alternative')).toBeNull()
-    expect(zhOnlyRedirectTarget('/en/vs/canva')).toBe('/vs/canva')
+  it('/en 英文内容页不重定向回中文；仅中文的镜像详情页仍重定向', () => {
+    for (const p of EN_CONTENT_DETAIL_PATHS) {
+      expect(zhOnlyRedirectTarget(p), p).toBeNull()
+    }
+    expect(zhOnlyRedirectTarget('/en/guides/exam-seat-label-batch-print')).toBe(
+      '/guides/exam-seat-label-batch-print',
+    )
   })
 
   it('英文 SEO：lang=en、canonical 为自身、可索引、hreflang 仅 en + x-default、JSON-LD 英文', async () => {
