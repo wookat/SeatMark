@@ -171,11 +171,11 @@ export const PRICING_FAQS = [
   },
   {
     q: '专业版怎么开通？',
-    a: '专业版限时 0 折免费（原价 ¥19/月）。新用户注册即送 7 天试用；邀请好友注册双方各送 7 天，可累计叠加；在线支付开通前可在个人中心用兑换码开通，天数可叠加。',
+    a: '专业版 ¥5.9/30 天（原价 ¥19/月），定价页支持支付宝在线支付，个人中心也可用兑换码开通，天数可叠加。新用户注册即送 7 天试用；邀请好友注册双方各送 7 天，可累计叠加。',
   },
   {
     q: '团队版怎么购买？',
-    a: '团队版限时 0 折免费（原价 ¥49/月）。现在可在定价页预订登记（留邮箱与团队规模），开通后我们会第一时间邮件通知，预订用户享首批优惠。',
+    a: '团队版 ¥19.9/30 天（原价 ¥49/月），定价页支持支付宝在线支付，支付成功后 30 天会员天数发放到当前登录账号。',
   },
 ]
 
@@ -426,9 +426,9 @@ function resolveEnSeo(base: string): PageSeo | null {
   if (base === '/pricing') {
     return {
       ...common,
-      title: 'Pricing: Pro Free for a Limited Time | SeatMark',
+      title: 'Pricing: Pro ¥5.9 / 30 Days | SeatMark',
       description:
-        'Unlimited watermarked export; daily free quota for watermark-free export. Pro and Team free for a limited time (list price ¥19/¥49 a month). Data stays in your browser.',
+        'Unlimited watermarked export; daily free quota for watermark-free export. Pro ¥5.9/30 days, Team ¥19.9/30 days. Data stays in your browser.',
       jsonLd: [
         SOFTWARE_APP_JSONLD_EN,
         breadcrumb([
@@ -545,9 +545,9 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
 
   if (p === '/pricing') {
     return {
-      title: '定价：专业版限时 0 折免费，带水印导出不限次 - SeatMark 座签',
+      title: '定价：专业版 ¥5.9/30 天，带水印导出不限次 - SeatMark 座签',
       description:
-        'SeatMark 座签定价：带水印导出/打印不限次数；无水印导出每日有免费次数；专业版/团队版限时 0 折免费（原价 ¥19/¥49 每月），专业版支持兑换码开通，团队版支持预订登记。数据不出浏览器。',
+        'SeatMark 座签定价：带水印导出/打印不限次数；无水印导出每日有免费次数；专业版 ¥5.9/30 天（原价 ¥19/月）、团队版 ¥19.9/30 天（原价 ¥49/月），支持支付宝在线支付；专业版还支持兑换码开通。数据不出浏览器。',
       path: '/pricing',
       jsonLd: [
         {
@@ -562,17 +562,17 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
             },
             {
               '@type': 'Offer',
-              name: '专业版（限时 0 折免费）',
-              price: '0',
+              name: '专业版',
+              price: '5.9',
               priceCurrency: 'CNY',
-              description: '限时 0 折免费（原价 ¥19/月），注册即送 7 天试用，支持兑换码开通',
+              description: '¥5.9/30 天（原价 ¥19/月），支持支付宝在线支付与兑换码开通',
             },
             {
               '@type': 'Offer',
-              name: '团队版（限时 0 折免费）',
-              price: '0',
+              name: '团队版',
+              price: '19.9',
               priceCurrency: 'CNY',
-              description: '限时 0 折免费（原价 ¥49/月），现在可预订登记',
+              description: '¥19.9/30 天（原价 ¥49/月），支持支付宝在线支付',
             },
           ],
         },

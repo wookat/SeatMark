@@ -175,7 +175,7 @@ async function seedOrder(kv: Kv, email: string, overrides: Record<string, unknow
     no: `SMTEST${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
     email,
     plan: "pro-30",
-    amount: "19.00",
+    amount: "5.90",
     days: 30,
     subject: "SeatMark 专业版（30 天）",
     status: "wait_pay",
@@ -265,7 +265,7 @@ describe("POST /api/pay/order 下单", () => {
     expect(response.status).toBe(200);
     const d = data as { orderNo: string; amount: string; days: number; paymentHtml: string };
     expect(d.orderNo).toMatch(/^SM/);
-    expect(d.amount).toBe("19.00");
+    expect(d.amount).toBe("5.90");
     expect(d.days).toBe(30);
     expect(d.paymentHtml).toContain("alipay.trade.page.pay");
     expect(d.paymentHtml).toContain("FAST_INSTANT_TRADE_PAY");
@@ -283,14 +283,34 @@ describe("POST /api/pay/order 下单", () => {
         .replaceAll("&amp;", "&"),
     ) as { out_trade_no: string; total_amount: string; product_code: string };
     expect(biz.out_trade_no).toBe(d.orderNo);
-    expect(biz.total_amount).toBe("19.00");
+    expect(biz.total_amount).toBe("5.90");
     expect(biz.product_code).toBe("FAST_INSTANT_TRADE_PAY");
     expect(getVal("sign")).toBeTruthy();
     const orderRaw = await kv.get(`payorder:${d.orderNo}`);
     const order = JSON.parse(orderRaw || "{}") as { status: string; email: string; amount: string };
     expect(order.status).toBe("wait_pay");
     expect(order.email).toBe("buyer@example.com");
-    expect(order.amount).toBe("19.00");
+    expect(order.amount).toBe("5.90");
+  });
+
+  it("团队版 team-30 下单 → ¥19.90，订单 plan 标记 team-30", async () => {
+    const kv = createKv();
+    const cookie = await registerUser(kv, "teambuyer@example.com");
+    const { response, data } = await call("POST", "/api/pay/order", {
+      body: { plan: "team-30" },
+      env: payEnv(kv),
+      cookie,
+    });
+    expect(response.status).toBe(200);
+    const d = data as { orderNo: string; amount: string; days: number };
+    expect(d.amount).toBe("19.90");
+    expect(d.days).toBe(30);
+    const order = JSON.parse((await kv.get(`payorder:${d.orderNo}`)) || "{}") as {
+      plan: string;
+      amount: string;
+    };
+    expect(order.plan).toBe("team-30");
+    expect(order.amount).toBe("19.90");
   });
 
   it("未知套餐 → 400", async () => {
@@ -500,7 +520,7 @@ describe("GET /api/pay/order 订单查询与补偿", () => {
         out_trade_no: order.no,
         trade_no: "2025010100000001",
         trade_status: "TRADE_SUCCESS",
-        total_amount: "19.00",
+        total_amount: "5.90",
         buyer_logon_id: "san***@sandbox.com",
         buyer_user_id: "2088000000000001",
       });
@@ -539,7 +559,7 @@ describe("GET /api/pay/order 订单查询与补偿", () => {
             out_trade_no: order.no,
             trade_no: "2025010100000001",
             trade_status: "TRADE_SUCCESS",
-            total_amount: "19.00",
+            total_amount: "5.90",
           },
           sign: "forged-signature==",
         }),
@@ -592,7 +612,7 @@ describe("管理端支付接口", () => {
         out_trade_no: order.no,
         buyer_logon_id: "san***@sandbox.com",
         buyer_user_id: "2088000000000001",
-        refund_fee: "19.00",
+        refund_fee: "5.90",
         fund_change: "Y",
         out_request_no: "RQTEST1",
       });
@@ -611,7 +631,7 @@ describe("管理端支付接口", () => {
     const d = data as { ok: boolean; status: string; refundedFee: string };
     expect(d.ok).toBe(true);
     expect(d.status).toBe("refunded");
-    expect(d.refundedFee).toBe("19.00");
+    expect(d.refundedFee).toBe("5.90");
   });
 
   it("未支付订单不可退款", async () => {

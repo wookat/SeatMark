@@ -37,21 +37,23 @@ describe('/pricing 静态 SEO 不含注册赠送承诺', () => {
   })
 
   it('中文 title/description 保留定价核心口径', () => {
-    expect(zh.title).toContain('限时 0 折免费')
+    expect(zh.title).toContain('¥5.9')
+    expect(zh.description).toContain('¥5.9')
+    expect(zh.description).toContain('¥19.9')
     expect(zh.description).toContain('¥19')
     expect(zh.description).toContain('¥49')
-    expect(en.description).toContain('¥19')
-    expect(en.description).toContain('¥49')
+    expect(en.description).toContain('¥5.9')
+    expect(en.description).toContain('¥19.9')
   })
 
-  it('JSON-LD offers 三档口径不变：price 0/0/0，原价 ¥19/¥49 仍在描述', () => {
+  it('JSON-LD offers 三档口径：price 0/5.9/19.9，原价 ¥19/¥49 仍在描述', () => {
     const app = zh.jsonLd?.find((j) => Array.isArray((j as { offers?: unknown }).offers)) as
       | { offers: Offer[] }
       | undefined
     expect(app).toBeDefined()
     const offers = app!.offers
     expect(offers).toHaveLength(3)
-    expect(offers.map((o) => o.price)).toEqual(['0', '0', '0'])
+    expect(offers.map((o) => o.price)).toEqual(['0', '5.9', '19.9'])
     expect(offers[0]!.name).toBe('免费版')
     expect(offers[1]!.description).toContain('原价 ¥19/月')
     expect(offers[2]!.description).toContain('原价 ¥49/月')

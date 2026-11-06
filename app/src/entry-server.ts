@@ -13,7 +13,13 @@ import { createAppRouter } from '@/router'
 export { defaultTemplates } from '@/data/defaultTemplates'
 export { guides } from '@/data/guides'
 export { enGuides } from '@/data/guidesEn'
-export { PRICING_SUMMARY, PRO_ORIGINAL_PRICE, TEAM_ORIGINAL_PRICE } from '@/data/pricingSummary'
+export {
+  PRICING_SUMMARY,
+  PRO_PRICE,
+  TEAM_PRICE,
+  PRO_ORIGINAL_PRICE,
+  TEAM_ORIGINAL_PRICE,
+} from '@/data/pricingSummary'
 export { appShellPaths, isSitemapEligible, prerenderPaths, resolveSeo, SITE_ORIGIN } from '@/data/seo'
 export { templateDetails } from '@/data/templateDetails'
 export { topicPages } from '@/data/topicPages'

@@ -248,8 +248,9 @@ const REDEEM_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'
 // ---------- 支付（支付宝 AI 网页应用收款） ----------
 /** 在售套餐：金额以元为单位两位小数；天数叠加到 proUntil（与兑换码同一发放逻辑） */
 const PAY_PLANS = {
-  'pro-30': { amount: '19.00', days: 30, subject: 'SeatMark 专业版（30 天）' },
+  'pro-30': { amount: '5.90', days: 30, subject: 'SeatMark 专业版（30 天）' },
   'pro-365': { amount: '199.00', days: 365, subject: 'SeatMark 专业版（365 天）' },
+  'team-30': { amount: '19.90', days: 30, subject: 'SeatMark 团队版（30 天）' },
 }
 /** 下单限频：每邮箱每日最多创建订单数 */
 const PAY_ORDER_DAILY_LIMIT = 10

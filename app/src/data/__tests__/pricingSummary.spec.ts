@@ -3,7 +3,13 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { PRICING_SUMMARY, PRO_ORIGINAL_PRICE, TEAM_ORIGINAL_PRICE } from '@/data/pricingSummary'
+import {
+  PRICING_SUMMARY,
+  PRO_PRICE,
+  TEAM_PRICE,
+  PRO_ORIGINAL_PRICE,
+  TEAM_ORIGINAL_PRICE,
+} from '@/data/pricingSummary'
 import { QUOTA_ANON_DAILY, QUOTA_USER_DAILY } from '@/stores/quota'
 
 const STALE_BETA_COPY = /Beta 期间|3 次生成|每天 10 次/
@@ -12,9 +18,13 @@ describe('pricingSummary：配额与定价文案单一来源', () => {
   it('摘要含 quota.ts 的两个配额常量与既定定价', () => {
     expect(PRICING_SUMMARY).toContain(`未登录每天 ${QUOTA_ANON_DAILY} 次`)
     expect(PRICING_SUMMARY).toContain(`登录后每天 ${QUOTA_USER_DAILY} 次`)
+    expect(PRO_PRICE).toBe('¥5.9')
+    expect(TEAM_PRICE).toBe('¥19.9')
     expect(PRO_ORIGINAL_PRICE).toBe('¥19')
     expect(TEAM_ORIGINAL_PRICE).toBe('¥49')
-    expect(PRICING_SUMMARY).toContain('专业版原价 ¥19、团队版 ¥49，限时 0 折免费')
+    expect(PRICING_SUMMARY).toContain(
+      '专业版 ¥5.9/30 天（原价 ¥19）、团队版 ¥19.9/30 天（原价 ¥49），支持支付宝在线支付',
+    )
     expect(PRICING_SUMMARY).not.toMatch(STALE_BETA_COPY)
   })
 

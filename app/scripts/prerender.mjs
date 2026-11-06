@@ -36,8 +36,8 @@ const {
   QUOTA_ANON_DAILY,
   QUOTA_USER_DAILY,
   PRICING_SUMMARY,
-  PRO_ORIGINAL_PRICE,
-  TEAM_ORIGINAL_PRICE,
+  PRO_PRICE,
+  TEAM_PRICE,
 } = await import(pathToFileURL(join(root, 'dist-ssr', 'entry-server.js')).href)
 
 const template = readFileSync(join(distDir, 'index.html'), 'utf-8')
@@ -246,7 +246,7 @@ ${SITE_INTRO}
 - [标签工坊（在线生成）](${SITE_ORIGIN}/studio)
 - [模板库](${SITE_ORIGIN}/templates)
 - [教程中心](${SITE_ORIGIN}/guides)
-- [定价（专业版原价 ${PRO_ORIGINAL_PRICE}、团队版 ${TEAM_ORIGINAL_PRICE}，限时 0 折免费）](${SITE_ORIGIN}/pricing)
+- [定价（专业版 ${PRO_PRICE}/30 天、团队版 ${TEAM_PRICE}/30 天，支持支付宝在线支付）](${SITE_ORIGIN}/pricing)
 - [工具对比（vs 创客贴 / WPS 邮件合并 / placecard.us / Canva）](${SITE_ORIGIN}/vs)
 - [桌牌在线生成](${SITE_ORIGIN}/desk-card-generator)
 - [姓名卡片批量生成器](${SITE_ORIGIN}/name-card-batch)
@@ -296,7 +296,7 @@ ${SITE_INTRO}
 答：打印时缩放必须选「实际大小 / 100%」，不要选「适应页面」；详见 ${SITE_ORIGIN}/guides/print-margin-calibration
 
 **问：收费吗？**
-答：${PRICING_SUMMARY}；正式收费前会提前公告。详见 ${SITE_ORIGIN}/pricing
+答：${PRICING_SUMMARY}；基础功能持续免费。详见 ${SITE_ORIGIN}/pricing
 
 ## 全部教程（共 ${guides.length} 篇）
 

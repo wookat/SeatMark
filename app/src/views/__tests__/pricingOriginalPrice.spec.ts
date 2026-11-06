@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
- * 第 346 轮：定价卡原价与现价视觉分层——原价「原价 ¥19/月 · 限时 0 折」独立一行位于现价下方，
- * 免费版无原价时保留同高占位；价格数值（¥0 / ¥19 / ¥49）不变。
+ * 定价卡原价与现价视觉分层——原价「原价 ¥19/30 天 · 限时特惠」独立一行位于现价下方，
+ * 免费版无原价时保留同高占位；现价 ¥0 / ¥5.9 / ¥19.9，原价 ¥19 / ¥49。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, RouterLinkStub } from '@vue/test-utils'
@@ -39,11 +39,13 @@ describe('第 346 轮：PricingView 原价独立一行', () => {
     expect(priceRows).toHaveLength(3)
     expect(originalRows).toHaveLength(3)
 
-    // 现价行只含 ¥0 + 单位（+ 试用徽标），不再含原价
+    // 现价行只含各自现价 + 单位（+ 试用徽标），不再含原价删除线
+    expect(priceRows[0]!.text()).toContain('¥0')
+    expect(priceRows[1]!.text()).toContain('¥5.9')
+    expect(priceRows[1]!.text()).not.toContain('¥49')
+    expect(priceRows[2]!.text()).toContain('¥19.9')
+    expect(priceRows[2]!.text()).not.toContain('¥49')
     for (const row of priceRows) {
-      expect(row.text()).toContain('¥0')
-      expect(row.text()).not.toContain('¥19')
-      expect(row.text()).not.toContain('¥49')
       expect(row.find('s, .line-through').exists()).toBe(false)
     }
 
@@ -52,7 +54,7 @@ describe('第 346 轮：PricingView 原价独立一行', () => {
     expect(originalRows[0]!.attributes('aria-hidden')).toBe('true')
     expect(originalRows[0]!.classes()).toContain('min-h-4')
     expect(originalRows[1]!.text()).toContain('原价')
-    expect(originalRows[1]!.text()).toContain('限时 0 折')
+    expect(originalRows[1]!.text()).toContain('限时特惠')
     expect(originalRows[1]!.find('s').text()).toBe('¥19')
     expect(originalRows[2]!.find('s').text()).toBe('¥49')
     expect(originalRows[1]!.attributes('aria-hidden')).toBeUndefined()
@@ -78,18 +80,19 @@ describe('第 346 轮：PricingView 原价独立一行', () => {
     wrapper.unmount()
   })
 
-  it('en：原价行为「Original price CNY 19/mo · Limited-time free」，现价 CNY 0，无 CJK；中文仍为 ¥', async () => {
+  it('en：原价行为「Original price CNY 19 / 30 days · Limited-time offer」，现价 CNY 0/5.9/19.9，无 CJK；中文仍为 ¥', async () => {
     await setLocale('en')
     const wrapper = mountPricing()
     const originalRows = wrapper.findAll('[data-testid="plan-original-price"]')
     const pro = originalRows[1]!.text().replace(/\s+/g, ' ')
-    expect(pro).toBe('Original price CNY 19/mo · Limited-time free')
-    expect(originalRows[2]!.text().replace(/\s+/g, ' ')).toBe('Original price CNY 49/mo · Limited-time free')
+    expect(pro).toBe('Original price CNY 19 / 30 days · Limited-time offer')
+    expect(originalRows[2]!.text().replace(/\s+/g, ' ')).toBe('Original price CNY 49 / 30 days · Limited-time offer')
     expect(pro).not.toMatch(CJK)
     expect(pro).not.toContain('¥')
-    for (const row of wrapper.findAll('[data-testid="plan-price"]')) {
-      expect(row.text().replace(/\s+/g, ' ')).toContain('CNY 0/mo')
-    }
+    const priceRows = wrapper.findAll('[data-testid="plan-price"]')
+    expect(priceRows[0]!.text().replace(/\s+/g, ' ')).toContain('CNY 0/mo')
+    expect(priceRows[1]!.text().replace(/\s+/g, ' ')).toContain('CNY 5.9 / 30 days')
+    expect(priceRows[2]!.text().replace(/\s+/g, ' ')).toContain('CNY 19.9 / 30 days')
     wrapper.unmount()
   })
 
