@@ -380,21 +380,37 @@ interface ChatMessage {
   content: string
 }
 
-/** 上游/代理返回非 2xx 时抛出，保留状态码供调用方分支 */
+/** 上游/代理返回非 2xx 时抛出，保留状态码与结构化 body 供调用方分支 */
 export class AiHttpError extends Error {
   constructor(
     public readonly status: number,
     message: string,
     public readonly retryAfterSeconds: number | null = null,
+    /** 服务端约定的错误代码（login_required / ai_quota_exceeded 等） */
+    public readonly code: string | null = null,
+    /** 响应 body 里的附加字段（配额 used/limit/plan 等） */
+    public readonly details: Record<string, unknown> | null = null,
   ) {
     super(message)
     this.name = 'AiHttpError'
   }
 }
 
-/** 同源代理的 413/429 是面向用户的明确拒绝，直接展示而不归入「通道不可用」 */
+/** 同源代理的明确拒绝（401 登录门 / 413 / 429）面向用户直接展示，不归入「通道不可用」 */
 export function proxyRejectionMessage(err: unknown): string | null {
   if (!(err instanceof AiHttpError)) return null
+  if (err.status === 401 || err.code === 'login_required') {
+    return t('请登录后使用 AI 设计（免费账号每月 3 次）')
+  }
+  if (err.code === 'ai_quota_exceeded') {
+    const used = typeof err.details?.used === 'number' ? err.details.used : null
+    const limit = typeof err.details?.limit === 'number' ? err.details.limit : null
+    return used !== null && limit !== null
+      ? t('本月 AI 设计次数已用完（{used}/{limit}），升级套餐获得更多次数')
+          .replace('{used}', String(used))
+          .replace('{limit}', String(limit))
+      : t('本月 AI 设计次数已用完，升级套餐获得更多次数')
+  }
   if (err.status === 413) return t('设计要求或字段示例过长（超过 32KB），请精简后重试')
   if (err.status === 429) {
     const wait = err.retryAfterSeconds
@@ -429,10 +445,23 @@ async function postChat(
   if (!res.ok) {
     const text = await res.text().catch(() => '')
     const retryAfter = Number(res.headers.get('Retry-After'))
+    let code: string | null = null
+    let details: Record<string, unknown> | null = null
+    try {
+      const parsed = JSON.parse(text) as { code?: unknown }
+      if (parsed && typeof parsed === 'object') {
+        details = parsed as Record<string, unknown>
+        if (typeof parsed.code === 'string') code = parsed.code
+      }
+    } catch {
+      /* 非 JSON 错误体 */
+    }
     throw new AiHttpError(
       res.status,
       `HTTP ${res.status}${text ? `：${text.slice(0, 160)}` : `：${res.statusText}`}`,
       Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null,
+      code,
+      details,
     )
   }
   const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
@@ -472,6 +501,52 @@ async function callChatCustom(
 export const FREE_ATTEMPTS: ReadonlyArray<{ url: string; timeoutMs: number }> = [
   { url: '/api/ai-design', timeoutMs: 90_000 },
 ]
+
+/** GET /api/ai-design 返回的站点模型项与登录用户配额 */
+export interface AiSiteModel {
+  id: string
+  label: string
+}
+export interface AiMonthlyQuota {
+  plan: 'free' | 'pro' | 'team' | string
+  limit: number
+  used: number
+  remaining: number
+  month: string
+}
+export interface AiSiteInfo {
+  models: AiSiteModel[]
+  quota: AiMonthlyQuota | null
+}
+
+/** 拉取站点托管模型清单；登录会话附带本月配额。失败返回空清单，不阻断自适应通道 */
+export async function fetchAiSiteInfo(): Promise<AiSiteInfo> {
+  try {
+    const res = await fetch('/api/ai-design')
+    if (!res.ok) return { models: [], quota: null }
+    const data = (await res.json()) as { models?: unknown; quota?: unknown }
+    const models = Array.isArray(data?.models)
+      ? (data.models as unknown[]).filter(
+          (m): m is AiSiteModel =>
+            !!m && typeof m === 'object' && typeof (m as AiSiteModel).id === 'string',
+        )
+      : []
+    const q = data?.quota as Partial<AiMonthlyQuota> | null | undefined
+    const quota: AiMonthlyQuota | null =
+      q && typeof q === 'object' && typeof q.limit === 'number'
+        ? {
+            plan: typeof q.plan === 'string' ? q.plan : 'free',
+            limit: q.limit,
+            used: typeof q.used === 'number' ? q.used : 0,
+            remaining: typeof q.remaining === 'number' ? q.remaining : Math.max(0, q.limit - (q.used ?? 0)),
+            month: typeof q.month === 'string' ? q.month : '',
+          }
+        : null
+    return { models, quota }
+  } catch {
+    return { models: [], quota: null }
+  }
+}
 
 /** 同源代理失败时给用户看的简短原因：只保留状态码/超时，不透出上游服务商的原始响应体 */
 export function freeChannelFailureReason(err: unknown): string {

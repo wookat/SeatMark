@@ -1967,6 +1967,15 @@ export const en: Record<string, string> = {
   '补充字段布局、颜色或文案细节，例如：座位号放最大；底部加一行「请对号入座」。':
     'Add layout, color or copy details, e.g. make the seat number largest; add a “Please take your assigned seat” line at the bottom.',
   '生成模型': 'Model',
+  '请登录后使用 AI 设计（免费账号每月 3 次）':
+    'Please sign in to use AI design (free accounts get 3 generations per month)',
+  '本月 AI 设计次数已用完（{used}/{limit}），升级套餐获得更多次数':
+    'Monthly AI design limit reached ({used}/{limit}) — upgrade for more',
+  '本月 AI 设计次数已用完，升级套餐获得更多次数':
+    'Monthly AI design limit reached — upgrade for more',
+  '本月 AI 设计次数：已用 {used} / 共 {limit}（剩余 {remaining}）':
+    'AI designs this month: {used} used / {limit} total ({remaining} left)',
+  '查看套餐': 'View plans',
   '自适应 · 站点推荐（无需配置）': 'Adaptive · site recommended (no setup)',
   '站点提供（无需配置）': 'Provided by this site (no setup)',
   'EO 内置模型': 'EdgeOne built-in models',

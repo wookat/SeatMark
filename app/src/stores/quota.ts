@@ -8,6 +8,11 @@ import { apiFetch, ApiError } from '@/utils/api'
 export const QUOTA_ANON_DAILY = 1
 export const QUOTA_USER_DAILY = 3
 
+/** 与 edge-functions/api/ai-design.js 的 AI_MONTHLY_LIMITS 保持一致（按账号每月计次） */
+export const AI_MONTHLY_FREE = 3
+export const AI_MONTHLY_PRO = 50
+export const AI_MONTHLY_TEAM = 300
+
 const STORAGE_KEY = 'seatmark.clean-export-usage.v1'
 
 interface LocalUsage {

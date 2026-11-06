@@ -19,12 +19,17 @@ import {
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore JS 模块无类型声明
 import { SEATMARK_REV } from '../../../edge-functions/api/_rev.js'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore JS 模块无类型声明
+import { signSessionJwt } from '../../../edge-functions/api/_session.js'
 
 interface Env {
   SEATMARK_ALLOW_MEMORY_STORAGE?: string
   AI_API_KEY?: string
   AI_GATEWAY_API_KEY?: string
   SEATMARK_AI_ANON_FALLBACK?: string
+  AUTH_SECRET?: string
+  seatmark_kv?: unknown
 }
 
 const ENV: Env = { SEATMARK_ALLOW_MEMORY_STORAGE: '1' }
@@ -500,3 +505,156 @@ function fetchMockBody(idx: number): unknown {
   const calls = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls
   return JSON.parse(String(calls[idx]![1] && (calls[idx]![1] as RequestInit).body))
 }
+
+describe('AI 月度配额：登录门 + 按账号计次（仅持久化存储启用）', () => {
+  const SECRET = 'test-auth-secret'
+
+  /** 内存 KV 假实现（与 _storage.js 接口对齐），注入 seatmark_kv 使 storage='kv' */
+  function fakeKv(initial: Record<string, string> = {}) {
+    const m = new Map(Object.entries(initial))
+    return {
+      get: async (k: string) => m.get(k) ?? null,
+      put: async (k: string, v: string) => void m.set(k, v),
+      delete: async (k: string) => void m.delete(k),
+      list: async () => ({
+        keys: [...m.keys()].sort().map((name) => ({ name })),
+        complete: true,
+        cursor: '',
+      }),
+      _map: m,
+    }
+  }
+
+  async function cookieFor(email: string) {
+    const token = await signSessionJwt(
+      { sub: email, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600 },
+      SECRET,
+    )
+    return `sm_session=${token}`
+  }
+
+  function durableEnv(kv: unknown): Env {
+    return { ...ENV, seatmark_kv: kv, AUTH_SECRET: SECRET }
+  }
+
+  function monthKey(email: string) {
+    return `aiq:${email}:${new Date().toISOString().slice(0, 7)}`
+  }
+
+  it('持久化存储下未登录 → 401 login_required，不调用上游', async () => {
+    const res = await onRequest({
+      request: post({ messages }, freshIp()),
+      env: durableEnv(fakeKv()),
+    })
+    expect(res.status).toBe(401)
+    const data = (await res.json()) as { code: string }
+    expect(data.code).toBe('login_required')
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+
+  it('已登录免费用户生成成功 → 计次 +1；上游失败不计次', async () => {
+    const kv = fakeKv({ 'user:a@b.c': JSON.stringify({ email: 'a@b.c' }) })
+    const ip = freshIp()
+    const res = await onRequest({
+      request: post({ messages }, ip, { Cookie: await cookieFor('a@b.c') }),
+      env: durableEnv(kv),
+    })
+    expect(res.status).toBe(200)
+    await vi.waitFor(() => expect(kv._map.get(monthKey('a@b.c'))).toBe('1'))
+
+    // 上游 500 → 不计次（所有上游失败 → 502）
+    globalThis.fetch = vi.fn(async () => new Response('down', { status: 500 })) as unknown as typeof fetch
+    const res2 = await onRequest({
+      request: post({ messages }, freshIp(), { Cookie: await cookieFor('a@b.c') }),
+      env: durableEnv(kv),
+    })
+    expect(res2.status).toBe(502)
+    expect(kv._map.get(monthKey('a@b.c'))).toBe('1')
+  })
+
+  it('免费账号月度 3 次：第 4 次 → 429 ai_quota_exceeded（plan/limit 透传）', async () => {
+    const kv = fakeKv({
+      'user:a@b.c': JSON.stringify({ email: 'a@b.c' }),
+      [monthKey('a@b.c')]: '3',
+    })
+    const res = await onRequest({
+      request: post({ messages }, freshIp(), { Cookie: await cookieFor('a@b.c') }),
+      env: durableEnv(kv),
+    })
+    expect(res.status).toBe(429)
+    const data = (await res.json()) as { code: string; plan: string; used: number; limit: number }
+    expect(data).toMatchObject({ code: 'ai_quota_exceeded', plan: 'free', used: 3, limit: 3 })
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+
+  it('proUntil 生效 → 额度 50；teamUntil 生效 → 额度 300', async () => {
+    const future = new Date(Date.now() + 86400000).toISOString()
+    const kvPro = fakeKv({
+      'user:p@x.y': JSON.stringify({ email: 'p@x.y', proUntil: future }),
+      [monthKey('p@x.y')]: '50',
+    })
+    const resPro = await onRequest({
+      request: post({ messages }, freshIp(), { Cookie: await cookieFor('p@x.y') }),
+      env: durableEnv(kvPro),
+    })
+    expect((await resPro.json()).limit).toBe(50)
+
+    const kvTeam = fakeKv({
+      'user:t@x.y': JSON.stringify({ email: 't@x.y', teamUntil: future }),
+      [monthKey('t@x.y')]: '299',
+    })
+    const resTeam = await onRequest({
+      request: post({ messages }, freshIp(), { Cookie: await cookieFor('t@x.y') }),
+      env: durableEnv(kvTeam),
+    })
+    expect(resTeam.status).toBe(200)
+
+    // team 已用 300 → 429 limit=300
+    const kvTeam2 = fakeKv({
+      'user:t@x.y': JSON.stringify({ email: 't@x.y', teamUntil: future }),
+      [monthKey('t@x.y')]: '300',
+    })
+    const resTeam2 = await onRequest({
+      request: post({ messages }, freshIp(), { Cookie: await cookieFor('t@x.y') }),
+      env: durableEnv(kvTeam2),
+    })
+    expect(resTeam2.status).toBe(429)
+    expect((await resTeam2.json()).limit).toBe(300)
+  })
+
+  it('GET 带会话 → quota 附带 plan/used/remaining；匿名 → quota=null', async () => {
+    const future = new Date(Date.now() + 86400000).toISOString()
+    const kv = fakeKv({
+      'user:p@x.y': JSON.stringify({ email: 'p@x.y', proUntil: future }),
+      [monthKey('p@x.y')]: '7',
+    })
+    const getReq = (cookie?: string) =>
+      new Request('https://www.seatmark.cn/api/ai-design', {
+        method: 'GET',
+        headers: cookie ? { Cookie: cookie } : {},
+      })
+    const resAnon = await onRequest({ request: getReq(), env: durableEnv(kv) })
+    expect((await resAnon.json()).quota).toBeNull()
+
+    const resAuth = await onRequest({
+      request: getReq(await cookieFor('p@x.y')),
+      env: durableEnv(kv),
+    })
+    const data = (await resAuth.json()) as { quota: { plan: string; used: number; limit: number; remaining: number } }
+    expect(data.quota).toMatchObject({ plan: 'pro', used: 7, limit: 50, remaining: 43 })
+  })
+
+  it('注销墓碑命中的旧会话 → 401', async () => {
+    const kv = fakeKv({ 'sm:revoked:a@b.c': String(Date.now() + 60000) })
+    const res = await onRequest({
+      request: post({ messages }, freshIp(), { Cookie: await cookieFor('a@b.c') }),
+      env: durableEnv(kv),
+    })
+    expect(res.status).toBe(401)
+  })
+
+  it('内存存储模式不启用登录门（本地联调路径，匿名放行）', async () => {
+    const res = await onRequest({ request: post({ messages }, freshIp()), env: ENV })
+    expect(res.status).toBe(200)
+  })
+})

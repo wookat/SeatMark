@@ -47,6 +47,7 @@
 import { withSecurityHeaders } from './_security.js'
 import { getStorage } from './_storage.js'
 import { json, clientIp, sha256Hex } from './_http.js'
+import { resolveSession } from './_session.js'
 import { SEATMARK_REV, REV_HEADER_NAME } from './_rev.js'
 
 export const AI_MAX_BODY_BYTES = 32 * 1024
@@ -59,6 +60,14 @@ export const AI_ANON_FALLBACK_MIN_BUDGET_MS = 500
 /** 匿名兜底单次连接超时上限；connect + read 合计不超剩余预算 */
 export const AI_ANON_FALLBACK_CONNECT_TIMEOUT_MS = 3_000
 export const AI_MAX_CONTENT_CHARS = 20 * 1024
+
+/**
+ * AI 设计月度配额（按账号；前端 quota.ts 与此保持一致）。
+ * 仅在持久化存储（kv/blob）下强制——内存降级模式视为本地联调，不启用登录门与计数。
+ * 只有上游真正返回 200 才计一次；限频（IP 30 次/h）独立保留作防刷层。
+ */
+export const AI_MONTHLY_LIMITS = { free: 3, pro: 50, team: 300 }
+const AI_MONTHLY_TTL_SECONDS = 40 * 24 * 3600
 
 const encoder = new TextEncoder()
 
@@ -228,9 +237,20 @@ async function handleRequest(context) {
     typeof context.waitUntil === 'function' ? (p) => context.waitUntil(p) : (p) => void p.catch(() => {})
 
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 })
-  // GET：返回站点已配置的可选模型清单（前端据此列出「站点提供」选项；不暴露任何密钥）
+  // GET：返回站点已配置的可选模型清单（前端据此列出「站点提供」选项；不暴露任何密钥）。
+  // 已登录会话附本月配额用量；匿名 quota=null（清单本身公开）。
   if (request.method === 'GET') {
-    return json({ models: configuredTiers(env) }, 200)
+    const { kv, storage } = await getStorage(env)
+    let quota = null
+    if (storage !== 'memory') {
+      try {
+        const session = await resolveSession(request, env.AUTH_SECRET, kv)
+        if (session.email) quota = await aiQuotaStatus(kv, session.email)
+      } catch {
+        /* 配额读取失败不阻断模型清单 */
+      }
+    }
+    return json({ models: configuredTiers(env), quota }, 200)
   }
   if (request.method !== 'POST') return json({ error: '请求方法不支持' }, 405)
 
@@ -287,6 +307,23 @@ async function handleRequest(context) {
     }
   }
 
+  // 持久化存储下按账号月度配额强制登录 + 计次；内存降级（本地联调）不启用。
+  let aiCounter = null
+  if (storage !== 'memory') {
+    const session = await resolveSession(request, env.AUTH_SECRET, kv)
+    if (!session.email) {
+      return json({ error: '请登录后使用 AI 设计', code: 'login_required' }, 401)
+    }
+    const quota = await aiQuotaStatus(kv, session.email)
+    if (quota.used >= quota.limit) {
+      return json(
+        { error: '本月 AI 设计次数已用完', code: 'ai_quota_exceeded', ...quota },
+        429,
+      )
+    }
+    aiCounter = { key: aiQuotaKey(session.email), used: quota.used }
+  }
+
   const aborter = new AbortController()
   const timer = setTimeout(() => aborter.abort(), AI_UPSTREAM_TIMEOUT_MS)
   try {
@@ -294,10 +331,51 @@ async function handleRequest(context) {
       typeof payload.upstream === 'string' && /^[a-z0-9-]{1,32}$/i.test(payload.upstream)
         ? payload.upstream
         : null
-    return await proxyUpstreams({ env, messages, signal: aborter.signal, waitUntil, upstreamPref })
+    const resp = await proxyUpstreams({ env, messages, signal: aborter.signal, waitUntil, upstreamPref })
+    // 仅上游真正出结果才消耗一次配额；失败/超时/502 不计
+    if (aiCounter && resp.status === 200) {
+      waitUntil(kv.put(aiCounter.key, String(aiCounter.used + 1), { expirationTtl: AI_MONTHLY_TTL_SECONDS }))
+    }
+    return resp
   } finally {
     clearTimeout(timer)
   }
+}
+
+async function getAiUser(kv, email) {
+  const raw = await kv.get(`user:${email}`)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+/** teamUntil > now → team；proUntil > now → pro；否则 free */
+function aiPlanOf(user) {
+  const now = Date.now()
+  if ((Date.parse(user?.teamUntil || '') || 0) > now) return 'team'
+  if ((Date.parse(user?.proUntil || '') || 0) > now) return 'pro'
+  return 'free'
+}
+
+function aiMonth() {
+  return new Date().toISOString().slice(0, 7)
+}
+
+function aiQuotaKey(email) {
+  return `aiq:${email}:${aiMonth()}`
+}
+
+async function aiQuotaStatus(kv, email) {
+  const user = await getAiUser(kv, email)
+  const plan = aiPlanOf(user)
+  const limit = AI_MONTHLY_LIMITS[plan]
+  const raw = await kv.get(aiQuotaKey(email))
+  const used = Number(raw)
+  const usedCount = Number.isFinite(used) ? used : 0
+  return { plan, limit, used: usedCount, remaining: Math.max(0, limit - usedCount), month: aiMonth() }
 }
 
 function okResponse(text) {

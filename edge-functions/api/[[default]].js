@@ -533,8 +533,19 @@ function grantProDays(user, days) {
   user.proUntil = new Date(base + days * 86400000).toISOString()
 }
 
+/** 团队版到期时间顺延（独立于 proUntil：AI 月度配额按 team=300/pro=50 区分） */
+function grantTeamDays(user, days) {
+  const base = Math.max(Date.now(), Date.parse(user.teamUntil || '') || 0)
+  user.teamUntil = new Date(base + days * 86400000).toISOString()
+}
+
 function proStatus(user) {
   const until = Date.parse(user?.proUntil || '') || 0
+  return { active: until > Date.now(), until: until ? new Date(until).toISOString() : null }
+}
+
+function teamStatus(user) {
+  const until = Date.parse(user?.teamUntil || '') || 0
   return { active: until > Date.now(), until: until ? new Date(until).toISOString() : null }
 }
 
@@ -572,6 +583,8 @@ async function markOrderPaid(kv, order, tradeNo, source) {
   order.paidAt = new Date().toISOString()
   order.paidSource = source
   grantProDays(user, order.days)
+  // 团队版订单额外累计 teamUntil（专业版权益经 proUntil 保持覆盖）
+  if (String(order.plan || '').startsWith('team-')) grantTeamDays(user, order.days)
   await putUser(kv, user)
   await putPayOrder(kv, order)
   return { already: false, pro: proStatus(user) }
@@ -684,6 +697,7 @@ async function publicUser(kv, email, env, preloadedUser, defer) {
     templateUpdatedAt: user.templateUpdatedAt || null,
     betaMember: true,
     pro: proStatus(user),
+    team: teamStatus(user),
     isAdmin: isAdmin(email, env),
     quota,
     share,
@@ -2113,6 +2127,7 @@ async function handleRequest(context) {
               loginCount: u.loginCount,
               templateCount: u.templateCount,
               proUntil: u.proUntil,
+              teamUntil: u.teamUntil,
               inviteCount: u.inviteCount,
               invitedBy: u.invitedBy,
             })

@@ -5,12 +5,15 @@ import { t } from '@/i18n'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import type { AiDesignResult } from '@/utils/aiDesign'
 import {
+  AiHttpError,
   aiByokPreset,
+  fetchAiSiteInfo,
   generateLabelDesign,
   loadAiConfig,
   parseFieldLines,
   saveAiConfig,
 } from '@/utils/aiDesign'
+import type { AiMonthlyQuota } from '@/utils/aiDesign'
 import { clamp } from '@/utils/layout'
 
 const props = defineProps<{
@@ -75,6 +78,9 @@ const decoFooter = ref(false)
 
 const generating = ref(false)
 const errorMsg = ref('')
+const errorCode = ref('')
+/** 登录用户的本月 AI 配额（GET /api/ai-design 附带；匿名/读取失败为 null） */
+const quota = ref<AiMonthlyQuota | null>(null)
 let aborter: AbortController | null = null
 
 const activePreset = computed(() => aiByokPreset(config.value.provider))
@@ -117,16 +123,13 @@ watch(
       return
     }
     errorMsg.value = ''
+    errorCode.value = ''
     width.value = props.labelWidth
     height.value = props.labelHeight
-    fetch('/api/ai-design')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        siteModels.value = Array.isArray(d?.models) ? d.models : []
-      })
-      .catch(() => {
-        siteModels.value = []
-      })
+    fetchAiSiteInfo().then((d) => {
+      siteModels.value = d.models
+      quota.value = d.quota
+    })
     if (!fieldsText.value.trim()) {
       fieldsText.value = props.prefill?.trim()
         ? props.prefill
@@ -138,6 +141,7 @@ watch(
 async function generate() {
   if (generating.value) return
   errorMsg.value = ''
+  errorCode.value = ''
 
   const fields = parseFieldLines(fieldsText.value)
   if (!fields.length) {
@@ -181,8 +185,17 @@ async function generate() {
       aborter.signal,
     )
     emit('apply', { width: w, height: h, result })
+    // 生成成功才计次：本地同步扣减展示值（下次打开时以服务端为准）
+    if (quota.value) {
+      quota.value = {
+        ...quota.value,
+        used: quota.value.used + 1,
+        remaining: Math.max(0, quota.value.remaining - 1),
+      }
+    }
   } catch (err) {
     if (!(err instanceof DOMException && err.name === 'AbortError')) {
+      errorCode.value = err instanceof AiHttpError && err.code ? err.code : ''
       errorMsg.value = err instanceof Error ? err.message : t('AI 生成失败，请稍后重试')
     }
   } finally {
@@ -328,6 +341,12 @@ async function generate() {
         <p v-if="isSiteServed" class="mt-2 text-[11px] leading-4 text-slate-600">
           {{ t('仅经本站同源代理调用，浏览器不直连第三方；仅发送字段名与示例值，不上传完整名单。繁忙时可能失败，可稍后重试或改选其他模型。') }}
         </p>
+        <p v-if="quota" class="mt-1 text-[11px] leading-4 text-slate-500" data-testid="ai-quota">
+          {{ t('本月 AI 设计次数：已用 {used} / 共 {limit}（剩余 {remaining}）')
+            .replace('{used}', String(quota.used))
+            .replace('{limit}', String(quota.limit))
+            .replace('{remaining}', String(quota.remaining)) }}
+        </p>
 
         <div
           v-else-if="activePreset"
@@ -408,6 +427,12 @@ async function generate() {
         class="rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs leading-5 text-red-700"
       >
         {{ errorMsg }}
+        <RouterLink v-if="errorCode === 'login_required'" to="/account" class="ml-1 underline">
+          {{ t('去登录') }}
+        </RouterLink>
+        <RouterLink v-else-if="errorCode === 'ai_quota_exceeded'" to="/pricing" class="ml-1 underline">
+          {{ t('查看套餐') }}
+        </RouterLink>
       </p>
     </div>
 
