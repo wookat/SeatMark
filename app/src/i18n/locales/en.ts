@@ -857,6 +857,8 @@ export const en: Record<string, string> = {
     'Too many AI design requests (max 30 per hour). Please try again later.',
   '站点 AI 通道暂不可用（{reason}），可稍后重试或切换「自定义 API」':
     'The site AI channel is temporarily unavailable ({reason}). Try again later or switch to "Custom API".',
+  '自适应通道暂不可用（{reason}），可稍后重试或改选其他模型':
+    'The adaptive channel is temporarily unavailable ({reason}). Try again later or pick another model',
   '请求超时': 'request timed out',
   '网络错误': 'network error',
   '删除空桌后导出': 'Remove empty tables and export',
@@ -1950,8 +1952,8 @@ export const en: Record<string, string> = {
   'AI 自动设计标签': 'AI label design',
   '填写字段与示例数据，AI 将在指定尺寸内完成一版标签排版，生成后可在画布上继续手动微调。':
     'Enter your fields with sample values and the AI lays out a label at the given size. You can fine-tune the result on the canvas afterwards.',
-  '免费通道依赖公共模型服务，繁忙时可能失败；有自己的 API 密钥时推荐「自定义 API」更稳定。':
-    'The free channel relies on a public model service and may fail when busy; if you have your own API key, “Custom API” is more reliable.',
+  '填写字段与示例数据，选择合适的尺寸与版式偏好，AI 将完成一版标签排版；生成后可在画布上继续手动微调。':
+    'Enter your fields with sample values, pick a size and layout preferences, and the AI lays out a label. You can fine-tune the result on the canvas afterwards.',
   '字段与示例数据（每行一条「字段名: 示例值」，多个示例用 | 分隔）':
     'Fields and sample values (one “Field: sample” per line; separate multiple samples with |)',
   '座位号: 12 | 8\n姓名: 张三 | 欧阳娜娜\n考场: 第1考场\n准考证号: 2026061001\n照片:':
@@ -1961,30 +1963,64 @@ export const en: Record<string, string> = {
   '示例值会发送给 AI 服务，请用虚构内容，不要填真实姓名/证件号':
     'Sample values are sent to the AI service — use made-up data, never real names or ID numbers',
   '设计要求（可选）': 'Design brief (optional)',
-  '例如：正式考务风格，重点突出座位号；底部加一行「请对号入座」提示语；主色用深蓝。':
-    'e.g. Formal exam style, emphasize the seat number; add a “Please take your assigned seat” line at the bottom; use dark blue as the main color.',
-  '生成通道': 'Generation channel',
-  '免费通道 · 繁忙时限量': 'Free channel · limited when busy',
-  '自定义 API': 'Custom API',
-  '使用站点内置免费通道自动生成：仅经站点同源代理，浏览器不直连任何第三方；仅发送字段名与示例值，不上传完整名单。':
-    'Uses the built-in free channel through a same-origin proxy; the browser never connects to third parties directly. Only field names and sample values are sent, never the full roster.',
-  '免费通道限量且不保证可用，失败时请稍后重试，或切换「自定义 API」用自己的密钥更稳定。':
-    'The free channel is rate-limited and not guaranteed. If it fails, try again later or switch to “Custom API” with your own key.',
+  '其他要求（可选）': 'Additional notes (optional)',
+  '补充字段布局、颜色或文案细节，例如：座位号放最大；底部加一行「请对号入座」。':
+    'Add layout, color or copy details, e.g. make the seat number largest; add a “Please take your assigned seat” line at the bottom.',
+  '生成模型': 'Model',
+  '自适应 · 站点推荐（无需配置）': 'Adaptive · site recommended (no setup)',
+  '免费模型（需自己的 API Key）': 'Free models (bring your own API key)',
+  '自定义 OpenAI 兼容接口…': 'Custom OpenAI-compatible endpoint…',
+  '由站点自动选用可用模型：仅经本站同源代理，浏览器不直连第三方；仅发送字段名与示例值，不上传完整名单。繁忙时可能失败，可稍后重试或改选其他模型。':
+    'The site picks an available model for you via a same-origin proxy; the browser never connects to third parties and only field names and sample values are sent, never the full roster. It may fail when busy — retry later or pick another model.',
+  '免费口径以服务商官方为准；密钥仅存本机浏览器，请求由浏览器直连服务商，不经过本站服务器。':
+    'Free quotas are subject to each provider’s official terms. Your key stays in this browser; requests go straight from the browser to the provider, never through our servers.',
+  '获取 API Key ↗': 'Get an API key ↗',
+  '标签尺寸': 'Label size',
+  '考场桌签': 'Exam desk sign',
+  '桌牌席位卡': 'Table place card',
+  '大字桌贴': 'Large desk label',
+  '胸卡证卡': 'Badge card',
+  '门贴 A5': 'Door sign A5',
+  '门贴 A6': 'Door sign A6',
+  '版式偏好（均可选，默认由 AI 自适应）': 'Layout preferences (optional — the AI adapts by default)',
+  '排列方向': 'Orientation',
+  '整体风格': 'Style',
+  '背景': 'Background',
+  '自适应': 'Adaptive',
+  '横排': 'Horizontal',
+  '竖排': 'Vertical',
+  '正式克制': 'Formal',
+  '简约现代': 'Minimal',
+  '活泼明快': 'Playful',
+  '传统典雅': 'Classic',
+  '商务专业': 'Business',
+  '纯白': 'White',
+  '浅灰': 'Light gray',
+  '主色底纹': 'Tinted accent',
+  '主色': 'Accent',
+  '细边框': 'Thin border',
+  '分隔线': 'Divider lines',
+  '底部提示语': 'Footer note',
+  '智谱 GLM-4-Flash': 'Zhipu GLM-4-Flash',
+  '美团 LongCat-Flash': 'Meituan LongCat-Flash',
+  '硅基流动 SiliconFlow': 'SiliconFlow',
+  'EdgeOne 内置模型': 'EdgeOne built-in models',
+  '每日 50 万 token 免费': '500K tokens/day free',
+  '免费模型': 'Free model',
+  '每月 50 万 token 免费额度': '500K tokens/month free',
+  ':free 模型每日限量免费': ':free models, limited daily calls',
+  '免费额度': 'Free tier',
+  '请先填写所选模型的 API Key（模型名留空时使用默认）':
+    'Enter an API key for the selected model (leave the model name empty to use the default)',
   '接口地址 Base URL': 'Base URL',
   '模型': 'Model',
   '兼容所有 OpenAI 格式接口（智谱 / DeepSeek / 通义 / Kimi / OpenRouter 等）；密钥仅存于本机浏览器，不会上传到任何服务器。':
     'Works with any OpenAI-compatible endpoint (Zhipu, DeepSeek, Qwen, Kimi, OpenRouter, etc.). Your key stays in this browser and is never uploaded.',
-  '免费接口推荐：智谱': 'Free endpoints: Zhipu',
-  '的 glm-4-flash 当前可免费调用（以智谱官方定价为准）；硅基流动':
-    'with glm-4-flash is currently free (check Zhipu pricing), SiliconFlow',
-  '；OpenRouter': ', and OpenRouter',
-  '（模型名带 :free，每天 50 次）。': '(models ending in :free, 50 calls per day).',
   '正在生成…': 'Generating…',
   '生成设计': 'Generate design',
   '请至少填写一个字段，每行一条，格式「字段名: 示例值」':
     'Enter at least one field, one per line, as “Field: sample value”',
-  '请先填写 API 接口地址、密钥与模型名称，或切换回「免费通道」':
-    'Fill in the base URL, API key and model name first, or switch back to the free channel',
+  '请先填写 API 接口地址、密钥与模型名称': 'Fill in the base URL, API key and model name first',
   'AI 生成失败，请稍后重试': 'AI generation failed. Please try again later',
 
   // ---------- 第 358 轮：模板设计器高频控件（顶部工具栏 / 字段列表 / 字段属性 / 标签与页面） ----------

@@ -7,43 +7,157 @@ import { clamp, round1 } from '@/utils/layout'
  * AI 自动设计标签：根据「字段 + 示例数据 + 设计要求」生成一版标签排版（JSON），
  * 经过严格的清洗与边界约束后转为 TemplateField[]。
  *
- * 两种生成通道：
- * - free：免费通道，无需任何配置。仅经站点同源代理 /api/ai-design
+ * 模型选择：
+ * - auto（自适应·站点推荐）：仅经站点同源代理 /api/ai-design
  *   （EdgeOne Pages Function，上游模型与密钥由站长在服务端配置），浏览器不直连任何第三方。
- * - custom：用户自己的 OpenAI 兼容接口，地址与密钥仅保存在本机 localStorage，
- *   请求直接由浏览器发出。
+ * - BYOK 预设（AI_BYOK_PRESETS）：选定服务商后只需填自己的 API Key，
+ *   Base URL 与默认模型名由预设提供，密钥仅存本机 localStorage，浏览器直连服务商。
+ * - custom：完全自定义的 OpenAI 兼容接口，同样仅存本机、浏览器直连。
  */
 
-export type AiProvider = 'free' | 'custom'
+/** 需要用户自带密钥的服务商预设 id（'auto' 与 'custom' 不在其中） */
+export type AiByokProviderId =
+  | 'zhipu'
+  | 'longcat'
+  | 'siliconflow'
+  | 'openrouter'
+  | 'groq'
+  | 'gemini'
+  | 'eomodels'
+
+export type AiProvider = 'auto' | 'custom' | AiByokProviderId
+
+export interface AiProviderPreset {
+  id: AiByokProviderId
+  /** 显示名（中文，经 t() 走 i18n） */
+  name: string
+  /** 免费额度说明（中文，经 t() 走 i18n） */
+  freeNote: string
+  baseUrl: string
+  defaultModel: string
+  /** 「获取 API Key」帮助链接 */
+  keyHelpUrl: string
+}
+
+/**
+ * OpenAI 协议兼容的免费/低门槛接口预设。
+ * 免费口径随官方政策变化，模型名可被用户修改兜底——预设值仅作默认。
+ */
+export const AI_BYOK_PRESETS: AiProviderPreset[] = [
+  {
+    id: 'zhipu',
+    name: '智谱 GLM-4-Flash',
+    freeNote: '免费',
+    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    defaultModel: 'glm-4-flash',
+    keyHelpUrl: 'https://bigmodel.cn/usercenter/proj-mgmt/apikeys',
+  },
+  {
+    id: 'longcat',
+    name: '美团 LongCat-Flash',
+    freeNote: '每日 50 万 token 免费',
+    baseUrl: 'https://api.longcat.chat/openai/v1',
+    defaultModel: 'LongCat-Flash-Chat',
+    keyHelpUrl: 'https://longcat.chat/platform/api_keys',
+  },
+  {
+    id: 'siliconflow',
+    name: '硅基流动 SiliconFlow',
+    freeNote: '免费模型',
+    baseUrl: 'https://api.siliconflow.cn/v1',
+    defaultModel: 'Qwen/Qwen2.5-7B-Instruct',
+    keyHelpUrl: 'https://cloud.siliconflow.cn/account/ak',
+  },
+  {
+    id: 'eomodels',
+    name: 'EdgeOne 内置模型',
+    freeNote: '每月 50 万 token 免费额度',
+    baseUrl: 'https://ai-gateway.edgeone.link/v1',
+    defaultModel: '@makers/deepseek-v4-flash',
+    keyHelpUrl: 'https://pages.edgeone.ai/zh/document/models',
+  },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    freeNote: ':free 模型每日限量免费',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    defaultModel: 'deepseek/deepseek-chat-v3.1:free',
+    keyHelpUrl: 'https://openrouter.ai/keys',
+  },
+  {
+    id: 'groq',
+    name: 'Groq',
+    freeNote: '免费额度',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    defaultModel: 'llama-3.3-70b-versatile',
+    keyHelpUrl: 'https://console.groq.com/keys',
+  },
+  {
+    id: 'gemini',
+    name: 'Google Gemini',
+    freeNote: '免费额度',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    defaultModel: 'gemini-2.0-flash',
+    keyHelpUrl: 'https://aistudio.google.com/apikey',
+  },
+]
+
+export function aiByokPreset(id: string): AiProviderPreset | undefined {
+  return AI_BYOK_PRESETS.find((p) => p.id === id)
+}
+
+/** BYOK 预设各自的密钥与模型名（按服务商分别记忆） */
+export interface AiByokEntry {
+  apiKey: string
+  model: string
+}
 
 export interface AiConfig {
   provider: AiProvider
   baseUrl: string
   apiKey: string
   model: string
+  byok: Record<string, AiByokEntry>
 }
 
 const AI_CONFIG_KEY = 'seatmark.ai-config'
+
+function normalizeProvider(raw: unknown, hasKey: boolean): AiProvider {
+  if (raw === 'custom' || (raw == null && hasKey)) return 'custom'
+  // 旧版本 'free' 迁移为 'auto'
+  if (raw === 'free' || raw === 'auto') return 'auto'
+  if (typeof raw === 'string' && aiByokPreset(raw)) return raw as AiByokProviderId
+  return 'auto'
+}
 
 export function loadAiConfig(): AiConfig {
   try {
     const raw = localStorage.getItem(AI_CONFIG_KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<AiConfig>
-      // 旧版本配置没有 provider 字段：填过密钥的视为自定义接口用户
-      const provider: AiProvider =
-        parsed.provider === 'custom' || (parsed.provider == null && parsed.apiKey) ? 'custom' : 'free'
+      const byok: Record<string, AiByokEntry> = {}
+      if (parsed.byok && typeof parsed.byok === 'object') {
+        for (const [id, entry] of Object.entries(parsed.byok)) {
+          if (entry && typeof entry === 'object') {
+            byok[id] = {
+              apiKey: typeof entry.apiKey === 'string' ? entry.apiKey : '',
+              model: typeof entry.model === 'string' ? entry.model : '',
+            }
+          }
+        }
+      }
       return {
-        provider,
+        provider: normalizeProvider(parsed.provider, !!parsed.apiKey),
         baseUrl: parsed.baseUrl ?? '',
         apiKey: parsed.apiKey ?? '',
         model: parsed.model ?? '',
+        byok,
       }
     }
   } catch {
     /* localStorage 不可用或数据损坏时回落到默认配置 */
   }
-  return { provider: 'free', baseUrl: '', apiKey: '', model: '' }
+  return { provider: 'auto', baseUrl: '', apiKey: '', model: '', byok: {} }
 }
 
 export function saveAiConfig(config: AiConfig): void {
@@ -51,6 +165,31 @@ export function saveAiConfig(config: AiConfig): void {
     localStorage.setItem(AI_CONFIG_KEY, JSON.stringify(config))
   } catch {
     /* ignore */
+  }
+}
+
+/** 本次生成实际要走的上游：站点代理 或 浏览器直连 */
+export type AiUpstream =
+  | { mode: 'proxy' }
+  | { mode: 'direct'; baseUrl: string; apiKey: string; model: string }
+
+export function resolveUpstream(config: AiConfig): AiUpstream {
+  if (config.provider === 'custom') {
+    return {
+      mode: 'direct',
+      baseUrl: config.baseUrl.trim(),
+      apiKey: config.apiKey.trim(),
+      model: config.model.trim(),
+    }
+  }
+  const preset = config.provider === 'auto' ? undefined : aiByokPreset(config.provider)
+  if (!preset) return { mode: 'proxy' }
+  const entry = config.byok?.[preset.id]
+  return {
+    mode: 'direct',
+    baseUrl: preset.baseUrl,
+    apiKey: (entry?.apiKey ?? '').trim(),
+    model: (entry?.model ?? '').trim() || preset.defaultModel,
   }
 }
 
@@ -65,6 +204,23 @@ export interface AiDesignInput {
   requirements: string
   labelWidth: number
   labelHeight: number
+  /** 结构化版式偏好：留空或 auto 项交给模型自适应 */
+  options?: AiDesignOptions
+}
+
+export interface AiDesignOptions {
+  /** 排列方向 */
+  orientation?: 'auto' | 'horizontal' | 'vertical'
+  /** 整体风格 */
+  style?: 'auto' | 'formal' | 'minimal' | 'playful' | 'classic' | 'business'
+  /** 背景 */
+  background?: 'auto' | 'white' | 'light-gray' | 'tint'
+  /** 主色（background=tint 时生效，十六进制，如 #1d4ed8） */
+  accentColor?: string
+  /** 装饰元素 */
+  border?: boolean
+  divider?: boolean
+  footerNote?: boolean
 }
 
 export interface AiDesignResult {
@@ -155,6 +311,46 @@ JSON 结构（可选键不需要时省略）：
 - 照片字段比例接近证件照（宽:高 ≈ 3:4），并设置 borderWidth 0.2 与 borderColor。`
 }
 
+const ORIENTATION_HINTS: Record<string, string> = {
+  horizontal: '横排，主要信息沿水平方向组织（适合宽而矮的标签）',
+  vertical: '竖排，字段自上而下排列（适合高而窄的标签）',
+}
+
+const STYLE_HINTS: Record<string, string> = {
+  formal: '正式克制，政务/考务风格',
+  minimal: '简约现代，大留白、少装饰',
+  playful: '活泼明快，适合活动、聚会场景',
+  classic: '传统典雅，适合正式宴请场景',
+  business: '商务专业，适合会议、展会场景',
+}
+
+/** 把结构化版式偏好与自由文本拼成确定性的设计要求段（全自适应且无文本时用默认口径） */
+export function composeRequirements(input: AiDesignInput): string {
+  const lines: string[] = []
+  const o = input.options ?? {}
+  if (o.orientation && o.orientation !== 'auto') {
+    lines.push(`- 排列方向：${ORIENTATION_HINTS[o.orientation]}`)
+  }
+  if (o.style && o.style !== 'auto') {
+    lines.push(`- 整体风格：${STYLE_HINTS[o.style]}`)
+  }
+  if (o.background === 'white') lines.push('- 背景：纯白底，不加底纹')
+  if (o.background === 'light-gray') lines.push('- 背景：极浅灰底（约 #f8fafc），保持文字清晰可读')
+  if (o.background === 'tint') {
+    lines.push(
+      `- 背景：浅主题色底纹或色块${o.accentColor ? `，主色取 ${o.accentColor}` : '，主色由你搭配'}，注意文字对比度`,
+    )
+  }
+  const deco: string[] = []
+  if (o.border) deco.push('四周细边框')
+  if (o.divider) deco.push('细分隔线划分信息区域')
+  if (o.footerNote) deco.push('底部一行小字提示语（用 fixedText）')
+  if (deco.length) lines.push(`- 装饰元素：${deco.join('；')}`)
+  const extra = input.requirements.trim()
+  if (extra) lines.push(`- 其他要求：${extra}`)
+  return lines.length ? lines.join('\n') : '无特殊要求，按正式、克制的考务标签风格设计。'
+}
+
 function userPrompt(input: AiDesignInput): string {
   const fieldLines = input.fields
     .map((f) => {
@@ -167,7 +363,8 @@ function userPrompt(input: AiDesignInput): string {
 字段与示例数据：
 ${fieldLines}
 
-设计要求：${input.requirements || '无特殊要求，按正式、克制的考务标签风格设计。'}`
+设计要求：
+${composeRequirements(input)}`
 }
 
 // ---------- 接口调用 ----------
@@ -238,19 +435,19 @@ async function postChat(
   return content
 }
 
-/** 自定义 OpenAI 兼容接口 */
+/** 浏览器直连的 OpenAI 兼容接口（自定义或 BYOK 预设） */
 async function callChatCustom(
-  config: AiConfig,
+  upstream: { baseUrl: string; apiKey: string; model: string },
   messages: ChatMessage[],
   signal?: AbortSignal,
 ): Promise<string> {
-  const base = config.baseUrl.trim().replace(/\/+$/, '')
+  const base = upstream.baseUrl.replace(/\/+$/, '')
   const url = base.endsWith('/chat/completions') ? base : `${base}/chat/completions`
   try {
     return await postChat(
       url,
-      { model: config.model.trim(), messages, temperature: 0.6 },
-      config.apiKey.trim(),
+      { model: upstream.model, messages, temperature: 0.6 },
+      upstream.apiKey,
       signal,
     )
   } catch (err) {
@@ -263,8 +460,8 @@ async function callChatCustom(
 }
 
 /**
- * 免费通道只走站点同源代理 /api/ai-design（上游模型、密钥与兜底都在服务端），
- * 浏览器不直连任何第三方模型接口；代理失败则提示用户重试或切到「自定义 API」。
+ * 自适应通道只走站点同源代理 /api/ai-design（上游模型、密钥与兜底都在服务端），
+ * 浏览器不直连任何第三方模型接口；代理失败则提示用户重试或改选其他模型。
  */
 export const FREE_ATTEMPTS: ReadonlyArray<{ url: string; timeoutMs: number }> = [
   { url: '/api/ai-design', timeoutMs: 90_000 },
@@ -296,7 +493,7 @@ async function callChatFree(messages: ChatMessage[], signal?: AbortSignal): Prom
     }
   }
   throw new Error(
-    t('站点 AI 通道暂不可用（{reason}），可稍后重试或切换「自定义 API」').replace('{reason}', lastError),
+    t('自适应通道暂不可用（{reason}），可稍后重试或改选其他模型').replace('{reason}', lastError),
   )
 }
 
@@ -445,13 +642,17 @@ export async function generateLabelDesign(
   input: AiDesignInput,
   signal?: AbortSignal,
 ): Promise<AiDesignResult> {
+  const upstream = resolveUpstream(config)
+  if (upstream.mode === 'direct' && (!upstream.baseUrl || !upstream.apiKey || !upstream.model)) {
+    throw new Error(t('请先填写所选模型的 API Key（模型名留空时使用默认）'))
+  }
   const messages: ChatMessage[] = [
     { role: 'system', content: systemPrompt(input) },
     { role: 'user', content: userPrompt(input) },
   ]
   const content =
-    config.provider === 'custom'
-      ? await callChatCustom(config, messages, signal)
-      : await callChatFree(messages, signal)
+    upstream.mode === 'proxy'
+      ? await callChatFree(messages, signal)
+      : await callChatCustom(upstream, messages, signal)
   return sanitizeResult(extractJson(content), input)
 }

@@ -4,7 +4,14 @@ import { computed, ref, watch } from 'vue'
 import { t } from '@/i18n'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import type { AiDesignResult } from '@/utils/aiDesign'
-import { generateLabelDesign, loadAiConfig, parseFieldLines, saveAiConfig } from '@/utils/aiDesign'
+import {
+  AI_BYOK_PRESETS,
+  aiByokPreset,
+  generateLabelDesign,
+  loadAiConfig,
+  parseFieldLines,
+  saveAiConfig,
+} from '@/utils/aiDesign'
 import { clamp } from '@/utils/layout'
 
 const props = defineProps<{
@@ -21,19 +28,73 @@ const emit = defineEmits<{
   apply: [payload: { width: number; height: number; result: AiDesignResult }]
 }>()
 
+const SIZE_PRESETS = [
+  { label: '考场桌签', w: 90, h: 28 },
+  { label: '桌牌席位卡', w: 99.1, h: 67.7 },
+  { label: '大字桌贴', w: 105, h: 74.25 },
+  { label: '胸卡证卡', w: 90, h: 54 },
+  { label: '门贴 A5', w: 210, h: 148.5 },
+  { label: '门贴 A6', w: 105, h: 148.5 },
+] as const
+
+const ORIENTATION_OPTIONS = [
+  { value: 'auto', label: '自适应' },
+  { value: 'horizontal', label: '横排' },
+  { value: 'vertical', label: '竖排' },
+] as const
+
+const STYLE_OPTIONS = [
+  { value: 'auto', label: '自适应' },
+  { value: 'formal', label: '正式克制' },
+  { value: 'minimal', label: '简约现代' },
+  { value: 'playful', label: '活泼明快' },
+  { value: 'classic', label: '传统典雅' },
+  { value: 'business', label: '商务专业' },
+] as const
+
+const BACKGROUND_OPTIONS = [
+  { value: 'auto', label: '自适应' },
+  { value: 'white', label: '纯白' },
+  { value: 'light-gray', label: '浅灰' },
+  { value: 'tint', label: '主色底纹' },
+] as const
+
 const config = ref(loadAiConfig())
-const hasCustomConfig = computed(
-  () => !!(config.value.baseUrl.trim() && config.value.apiKey.trim() && config.value.model.trim()),
-)
 
 const fieldsText = ref('')
 const requirements = ref('')
 const width = ref(props.labelWidth)
 const height = ref(props.labelHeight)
 
+const orientation = ref<'auto' | 'horizontal' | 'vertical'>('auto')
+const style = ref<'auto' | 'formal' | 'minimal' | 'playful' | 'classic' | 'business'>('auto')
+const background = ref<'auto' | 'white' | 'light-gray' | 'tint'>('auto')
+const accentColor = ref('#1d4ed8')
+const decoBorder = ref(false)
+const decoDivider = ref(false)
+const decoFooter = ref(false)
+
 const generating = ref(false)
 const errorMsg = ref('')
 let aborter: AbortController | null = null
+
+const activePreset = computed(() => aiByokPreset(config.value.provider))
+
+/** 当前选中 BYOK 预设的密钥/模型条目（不存在时创建并持久化到 config） */
+function byokEntry(id: string) {
+  if (!config.value.byok[id]) config.value.byok[id] = { apiKey: '', model: '' }
+  return config.value.byok[id]
+}
+
+const configValid = computed(() => {
+  const p = config.value.provider
+  if (p === 'auto') return true
+  if (p === 'custom') {
+    return !!(config.value.baseUrl.trim() && config.value.apiKey.trim() && config.value.model.trim())
+  }
+  const preset = aiByokPreset(p)
+  return !!preset && !!byokEntry(preset.id).apiKey.trim()
+})
 
 watch(
   () => props.open,
@@ -63,16 +124,14 @@ async function generate() {
     errorMsg.value = t('请至少填写一个字段，每行一条，格式「字段名: 示例值」')
     return
   }
-  if (config.value.provider === 'custom' && !hasCustomConfig.value) {
-    errorMsg.value = t('请先填写 API 接口地址、密钥与模型名称，或切换回「免费通道」')
+  if (!configValid.value) {
+    errorMsg.value =
+      config.value.provider === 'custom'
+        ? t('请先填写 API 接口地址、密钥与模型名称')
+        : t('请先填写所选模型的 API Key（模型名留空时使用默认）')
     return
   }
-  saveAiConfig({
-    provider: config.value.provider,
-    baseUrl: config.value.baseUrl.trim(),
-    apiKey: config.value.apiKey.trim(),
-    model: config.value.model.trim(),
-  })
+  saveAiConfig(config.value)
 
   const w = clamp(Number(width.value) || props.labelWidth, 10, 420)
   const h = clamp(Number(height.value) || props.labelHeight, 10, 420)
@@ -84,7 +143,21 @@ async function generate() {
   try {
     const result = await generateLabelDesign(
       config.value,
-      { fields, requirements: requirements.value.trim(), labelWidth: w, labelHeight: h },
+      {
+        fields,
+        requirements: requirements.value.trim(),
+        labelWidth: w,
+        labelHeight: h,
+        options: {
+          orientation: orientation.value,
+          style: style.value,
+          background: background.value,
+          accentColor: accentColor.value,
+          border: decoBorder.value,
+          divider: decoDivider.value,
+          footerNote: decoFooter.value,
+        },
+      },
       aborter.signal,
     )
     emit('apply', { width: w, height: h, result })
@@ -102,8 +175,7 @@ async function generate() {
   <ModalDialog :open="open" :title="t('AI 自动设计标签')" size="lg" @close="emit('close')">
     <div class="grid gap-4">
       <p class="text-xs leading-5 text-slate-600" data-testid="ai-design-intro">
-        {{ t('填写字段与示例数据，AI 将在指定尺寸内完成一版标签排版，生成后可在画布上继续手动微调。') }}
-        {{ t('免费通道依赖公共模型服务，繁忙时可能失败；有自己的 API 密钥时推荐「自定义 API」更稳定。') }}
+        {{ t('填写字段与示例数据，选择合适的尺寸与版式偏好，AI 将完成一版标签排版；生成后可在画布上继续手动微调。') }}
       </p>
 
       <div>
@@ -121,59 +193,152 @@ async function generate() {
       </div>
 
       <div>
-        <label class="field-label">{{ t('设计要求（可选）') }}</label>
-        <textarea
-          v-model="requirements"
-          rows="3"
-          class="input-field text-xs leading-5"
-          :placeholder="t('例如：正式考务风格，重点突出座位号；底部加一行「请对号入座」提示语；主色用深蓝。')"
-        ></textarea>
-      </div>
-
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="field-label">{{ t('标签宽 (mm)') }}</label>
-          <input v-model.number="width" type="number" min="10" max="420" class="input-field" />
+        <label class="field-label">{{ t('标签尺寸') }}</label>
+        <div class="mb-2 flex flex-wrap gap-1.5">
+          <button
+            v-for="p in SIZE_PRESETS"
+            :key="p.label"
+            type="button"
+            class="cursor-pointer rounded-lg border px-2 py-1 text-[11px] font-medium transition-colors duration-150"
+            :class="
+              Number(width) === p.w && Number(height) === p.h
+                ? 'border-brand-500 bg-brand-50 text-brand-700'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-700'
+            "
+            @click="((width = p.w), (height = p.h))"
+          >
+            {{ t(p.label) }} {{ p.w }}×{{ p.h }}
+          </button>
         </div>
-        <div>
-          <label class="field-label">{{ t('标签高 (mm)') }}</label>
-          <input v-model.number="height" type="number" min="10" max="420" class="input-field" />
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="field-label">{{ t('标签宽 (mm)') }}</label>
+            <input v-model.number="width" type="number" min="10" max="420" class="input-field" />
+          </div>
+          <div>
+            <label class="field-label">{{ t('标签高 (mm)') }}</label>
+            <input v-model.number="height" type="number" min="10" max="420" class="input-field" />
+          </div>
         </div>
       </div>
 
       <div>
-        <label class="field-label">{{ t('生成通道') }}</label>
-        <div class="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1">
-          <button
-            type="button"
-            class="cursor-pointer rounded-lg px-2 py-1.5 text-xs font-bold transition-colors duration-150"
-            :class="
-              config.provider === 'free'
-                ? 'bg-white text-brand-700 shadow-sm'
-                : 'text-slate-600 hover:text-slate-700'
-            "
-            @click="config.provider = 'free'"
-          >
-            {{ t('免费通道 · 繁忙时限量') }}
-          </button>
-          <button
-            type="button"
-            class="cursor-pointer rounded-lg px-2 py-1.5 text-xs font-bold transition-colors duration-150"
-            :class="
-              config.provider === 'custom'
-                ? 'bg-white text-brand-700 shadow-sm'
-                : 'text-slate-600 hover:text-slate-700'
-            "
-            @click="config.provider = 'custom'"
-          >
-            {{ t('自定义 API') }}
-          </button>
+        <label class="field-label">{{ t('版式偏好（均可选，默认由 AI 自适应）') }}</label>
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="field-label">{{ t('排列方向') }}</label>
+            <select v-model="orientation" class="input-field">
+              <option v-for="o in ORIENTATION_OPTIONS" :key="o.value" :value="o.value">
+                {{ t(o.label) }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">{{ t('整体风格') }}</label>
+            <select v-model="style" class="input-field">
+              <option v-for="o in STYLE_OPTIONS" :key="o.value" :value="o.value">
+                {{ t(o.label) }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">{{ t('背景') }}</label>
+            <select v-model="background" class="input-field">
+              <option v-for="o in BACKGROUND_OPTIONS" :key="o.value" :value="o.value">
+                {{ t(o.label) }}
+              </option>
+            </select>
+          </div>
         </div>
+        <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          <label class="flex cursor-pointer items-center gap-1.5 text-xs text-slate-600">
+            <input v-model="decoBorder" type="checkbox" class="accent-brand-600" />
+            {{ t('细边框') }}
+          </label>
+          <label class="flex cursor-pointer items-center gap-1.5 text-xs text-slate-600">
+            <input v-model="decoDivider" type="checkbox" class="accent-brand-600" />
+            {{ t('分隔线') }}
+          </label>
+          <label class="flex cursor-pointer items-center gap-1.5 text-xs text-slate-600">
+            <input v-model="decoFooter" type="checkbox" class="accent-brand-600" />
+            {{ t('底部提示语') }}
+          </label>
+          <label
+            v-if="background === 'tint'"
+            class="flex cursor-pointer items-center gap-1.5 text-xs text-slate-600"
+          >
+            {{ t('主色') }}
+            <input
+              v-model="accentColor"
+              type="color"
+              class="h-5 w-7 cursor-pointer rounded border border-slate-200 p-0"
+            />
+          </label>
+        </div>
+      </div>
 
-        <p v-if="config.provider === 'free'" class="mt-2 text-[11px] leading-4 text-slate-600">
-          {{ t('使用站点内置免费通道自动生成：仅经站点同源代理，浏览器不直连任何第三方；仅发送字段名与示例值，不上传完整名单。') }}
-          {{ t('免费通道限量且不保证可用，失败时请稍后重试，或切换「自定义 API」用自己的密钥更稳定。') }}
+      <div>
+        <label class="field-label">{{ t('其他要求（可选）') }}</label>
+        <textarea
+          v-model="requirements"
+          rows="2"
+          class="input-field text-xs leading-5"
+          :placeholder="t('补充字段布局、颜色或文案细节，例如：座位号放最大；底部加一行「请对号入座」。')"
+        ></textarea>
+      </div>
+
+      <div>
+        <label class="field-label">{{ t('生成模型') }}</label>
+        <select v-model="config.provider" class="input-field" data-testid="ai-model-select">
+          <option value="auto">{{ t('自适应 · 站点推荐（无需配置）') }}</option>
+          <optgroup :label="t('免费模型（需自己的 API Key）')">
+            <option v-for="p in AI_BYOK_PRESETS" :key="p.id" :value="p.id">
+              {{ t(p.name) }} · {{ t(p.freeNote) }}
+            </option>
+          </optgroup>
+          <option value="custom">{{ t('自定义 OpenAI 兼容接口…') }}</option>
+        </select>
+
+        <p v-if="config.provider === 'auto'" class="mt-2 text-[11px] leading-4 text-slate-600">
+          {{ t('由站点自动选用可用模型：仅经本站同源代理，浏览器不直连第三方；仅发送字段名与示例值，不上传完整名单。繁忙时可能失败，可稍后重试或改选其他模型。') }}
         </p>
+
+        <div
+          v-else-if="activePreset"
+          class="mt-2 grid gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3"
+        >
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="field-label">API Key</label>
+              <input
+                v-model="byokEntry(activePreset.id).apiKey"
+                type="password"
+                class="input-field"
+                placeholder="sk-..."
+                autocomplete="off"
+              />
+            </div>
+            <div>
+              <label class="field-label">{{ t('模型') }}</label>
+              <input
+                v-model="byokEntry(activePreset.id).model"
+                type="text"
+                class="input-field"
+                :placeholder="activePreset.defaultModel"
+              />
+            </div>
+          </div>
+          <p class="text-[11px] leading-4 text-slate-600">
+            {{ t('免费口径以服务商官方为准；密钥仅存本机浏览器，请求由浏览器直连服务商，不经过本站服务器。') }}
+            <a
+              :href="activePreset.keyHelpUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-brand-600 underline underline-offset-2"
+              >{{ t('获取 API Key ↗') }}</a
+            >
+          </p>
+        </div>
 
         <div v-else class="mt-2 grid gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
           <div>
@@ -208,14 +373,6 @@ async function generate() {
           </div>
           <p class="text-[11px] leading-4 text-slate-600">
             {{ t('兼容所有 OpenAI 格式接口（智谱 / DeepSeek / 通义 / Kimi / OpenRouter 等）；密钥仅存于本机浏览器，不会上传到任何服务器。') }}
-          </p>
-          <p class="text-[11px] leading-4 text-slate-600">
-            {{ t('免费接口推荐：智谱') }}
-            <code class="rounded bg-slate-100 px-1 text-slate-600">open.bigmodel.cn/api/paas/v4</code>
-            {{ t('的 glm-4-flash 当前可免费调用（以智谱官方定价为准）；硅基流动') }}
-            <code class="rounded bg-slate-100 px-1 text-slate-600">api.siliconflow.cn/v1</code>{{ t('；OpenRouter') }}
-            <code class="rounded bg-slate-100 px-1 text-slate-600">openrouter.ai/api/v1</code>
-            {{ t('（模型名带 :free，每天 50 次）。') }}
           </p>
         </div>
       </div>
@@ -253,7 +410,7 @@ async function generate() {
           stroke-linejoin="round"
         >
           <path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3z" />
-          <path d="M18.5 14.5l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9.9-2.3z" />
+          <path d="M18.5 14.5l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9.9-2.3.9-2.3z" />
         </svg>
         {{ generating ? t('正在生成…') : t('生成设计') }}
       </button>

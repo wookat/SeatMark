@@ -1,18 +1,24 @@
 /**
- * 第 357 轮：免费通道只走站点同源代理 /api/ai-design，浏览器不直连任何第三方模型接口。
+ * 自适应通道只走站点同源代理 /api/ai-design，浏览器不直连任何第三方模型接口。
  */
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { setLocale } from '@/i18n'
-import { FREE_ATTEMPTS, generateLabelDesign, loadAiConfig, saveAiConfig } from '../aiDesign'
+import {
+  FREE_ATTEMPTS,
+  generateLabelDesign,
+  loadAiConfig,
+  resolveUpstream,
+  saveAiConfig,
+} from '../aiDesign'
 
-describe('免费通道仅同源代理', () => {
+const AUTO_CONFIG = { provider: 'auto' as const, baseUrl: '', apiKey: '', model: '', byok: {} }
+
+describe('自适应通道仅同源代理', () => {
   const fetchMock = vi.fn()
   beforeEach(async () => {
     localStorage.clear()
-    saveAiConfig({ provider: 'free', baseUrl: '', apiKey: '', model: '' })
+    saveAiConfig(AUTO_CONFIG)
     fetchMock.mockReset()
     vi.stubGlobal('fetch', fetchMock)
     await setLocale('zh')
@@ -26,13 +32,14 @@ describe('免费通道仅同源代理', () => {
     expect(FREE_ATTEMPTS.every((a) => a.url.startsWith('/'))).toBe(true)
   })
 
-  it('源码中不再出现任何第三方模型接口的绝对地址', () => {
-    const source = readFileSync(resolve(process.cwd(), 'src/utils/aiDesign.ts'), 'utf8')
-    expect(source).not.toMatch(/https:\/\/[a-z0-9.-]*\.ai\//i)
-    expect(source).not.toMatch(/text\.[a-z-]+\.ai/i)
+  it('auto / 未知 provider 都解析为站点代理，不直连第三方', () => {
+    expect(resolveUpstream(AUTO_CONFIG)).toEqual({ mode: 'proxy' })
+    expect(
+      resolveUpstream({ provider: 'unknown-x' as never, baseUrl: '', apiKey: '', model: '', byok: {} }),
+    ).toEqual({ mode: 'proxy' })
   })
 
-  it('代理 502 时只请求过 /api/ai-design 一次，并提示「站点 AI 通道暂不可用」', async () => {
+  it('代理 502 时只请求过 /api/ai-design 一次，并提示「自适应通道暂不可用」', async () => {
     fetchMock.mockResolvedValue(new Response('{"error":"upstream"}', { status: 502 }))
     await expect(
       generateLabelDesign(loadAiConfig(), {
@@ -41,7 +48,7 @@ describe('免费通道仅同源代理', () => {
         labelWidth: 60,
         labelHeight: 32,
       }),
-    ).rejects.toThrow(/站点 AI 通道暂不可用（.*）.*自定义 API/)
+    ).rejects.toThrow(/自适应通道暂不可用（.*）.*改选其他模型/)
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const [url] = fetchMock.mock.calls[0] as unknown as [string]
     expect(url).toBe('/api/ai-design')
@@ -61,7 +68,7 @@ describe('免费通道仅同源代理', () => {
       labelHeight: 32,
     }).catch((e: unknown) => e as Error)
     expect(err).toBeInstanceOf(Error)
-    expect((err as Error).message).toBe('站点 AI 通道暂不可用（HTTP 502），可稍后重试或切换「自定义 API」')
+    expect((err as Error).message).toBe('自适应通道暂不可用（HTTP 502），可稍后重试或改选其他模型')
     expect((err as Error).message).not.toMatch(/402|legacy|Vendor|error/)
   })
 
@@ -75,7 +82,7 @@ describe('免费通道仅同源代理', () => {
         labelWidth: 60,
         labelHeight: 32,
       }),
-    ).rejects.toThrow(/site AI channel is temporarily unavailable \(.*\)\. Try again later or switch to "Custom API"/)
+    ).rejects.toThrow(/adaptive channel is temporarily unavailable \(.*\).*pick another model/i)
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })

@@ -19,7 +19,7 @@ describe('AI 设计结果清洗 · 字段类型', () => {
   const fetchMock = vi.fn()
   beforeEach(async () => {
     localStorage.clear()
-    saveAiConfig({ provider: 'free', baseUrl: '', apiKey: '', model: '' })
+    saveAiConfig({ provider: 'auto', baseUrl: '', apiKey: '', model: '', byok: {} })
     fetchMock.mockReset()
     vi.stubGlobal('fetch', fetchMock)
     await setLocale('zh')
