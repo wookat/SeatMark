@@ -24,6 +24,7 @@ const GROUPS = computed(() => [
       { label: t('不干胶纸型库'), to: localePath('/papers') },
       { label: t('模板设计器'), to: localePath('/studio?design=new') },
       { label: t('演示数据体验'), to: localePath('/studio?demo=1') },
+      { label: t('产品介绍'), to: localePath('/about') },
     ],
   },
   {

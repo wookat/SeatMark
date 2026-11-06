@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
+import RosterEditorDialog from '@/components/studio/RosterEditorDialog.vue'
 import { useDragScroll } from '@/composables/useDragScroll'
 import { t } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
@@ -51,6 +52,9 @@ const viewSummary = computed(() => {
   }
   return parts.join(' · ')
 })
+
+// ---------- 在线编辑名单（免 Excel 直接录入/修改） ----------
+const rosterEditorOpen = ref(false)
 
 // ---------- 全部数据浏览（列筛选与排序决定排版顺序） ----------
 const dataViewerOpen = ref(false)
@@ -354,6 +358,14 @@ async function onDownloadSample() {
         <button type="button" class="btn btn-ghost btn-sm" @click="workspace.useDemoData()">
           {{ t('先用演示数据体验') }}
         </button>
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm col-span-2"
+          data-testid="roster-editor-open"
+          @click="rosterEditorOpen = true"
+        >
+          {{ t('在线编辑名单（无需 Excel）') }}
+        </button>
       </div>
     </template>
 
@@ -463,14 +475,26 @@ async function onDownloadSample() {
         </table>
       </div>
       <div class="mt-1.5 flex items-center justify-between">
-        <button type="button" class="btn btn-ghost btn-sm -ml-2" @click="openDataViewer">
-          {{ t('查看全部数据（可筛选排序）') }}
-        </button>
+        <div class="flex items-center">
+          <button type="button" class="btn btn-ghost btn-sm -ml-2" @click="openDataViewer">
+            {{ t('查看全部数据（可筛选排序）') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            data-testid="roster-editor-open"
+            @click="rosterEditorOpen = true"
+          >
+            {{ t('编辑名单') }}
+          </button>
+        </div>
         <p v-if="workspace.displayRows.length > 5" class="text-[11px] text-slate-600">
           {{ t('仅展示前 5 条') }}{{ t('，') }}{{ t('共') }} {{ workspace.displayRows.length }} {{ t('条') }}
         </p>
       </div>
     </template>
+
+    <RosterEditorDialog :open="rosterEditorOpen" @close="rosterEditorOpen = false" />
 
     <ModalDialog :open="pasteOpen" :title="t('粘贴名单导入')" size="md" @close="pasteOpen = false">
       <p class="text-xs text-slate-600">

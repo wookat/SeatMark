@@ -26,7 +26,7 @@ export interface PageSeo {
 }
 
 /** 已提供英文版内容的中文路径（/en 前缀镜像可被索引并互挂 hreflang） */
-const EN_LOCALIZED_BASES = ['/', '/studio', '/pricing', '/seating', '/banquet', '/terms', '/privacy'] as const
+const EN_LOCALIZED_BASES = ['/', '/studio', '/pricing', '/seating', '/banquet', '/about', '/terms', '/privacy'] as const
 
 function enPathOf(base: string): string {
   return base === '/' ? '/en' : `/en${base}`
@@ -460,6 +460,21 @@ function resolveEnSeo(base: string): PageSeo | null {
         breadcrumb([
           { name: 'Home', path: '/en' },
           { name: 'Classroom Seating Chart', path: '/en/seating' },
+        ]),
+      ],
+    }
+  }
+
+  if (base === '/about') {
+    return {
+      ...common,
+      title: 'About SeatMark — Browser-based Label & Badge Generator',
+      description:
+        'What SeatMark does: roster to mm-accurate print layouts, 226 templates, paper imposition, seating planners, AI-assisted design — all processed locally in your browser.',
+      jsonLd: [
+        breadcrumb([
+          { name: 'Home', path: '/en' },
+          { name: 'About', path: '/en/about' },
         ]),
       ],
     }
@@ -930,6 +945,21 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
     }
   }
 
+  if (p === '/about') {
+    return {
+      title: '产品介绍 - SeatMark 座签',
+      description:
+        'SeatMark 座签产品介绍：名单到毫米级打印排版、226 款内置模板、纸张实际尺寸排版、排座工具与 AI 辅助设计，名单与照片全部在浏览器本地处理。',
+      path: '/about',
+      jsonLd: [
+        breadcrumb([
+          { name: '首页', path: '/' },
+          { name: '产品介绍', path: '/about' },
+        ]),
+      ],
+    }
+  }
+
   if (p === '/terms') {
     return {
       title: '用户协议 - SeatMark 座签',
@@ -1010,6 +1040,7 @@ export async function prerenderPaths(): Promise<string[]> {
     ...topicPages.map((t) => t.path),
     '/seating',
     '/banquet',
+    '/about',
     '/terms',
     '/privacy',
     ...EN_LOCALIZED_BASES.map((base) => enPathOf(base)),
