@@ -66,9 +66,9 @@ describe('第 373 轮：Hero 拼贴右缘渐隐 + 尺寸角标收起', () => {
   })
 
   it.each([
-    ['/', 'A4 实际排版效果 · 24 枚/页'],
-    ['/en', 'Actual A4 layout · 24 labels per page'],
-  ] as const)('%s：角标可聚焦、aria-label 为全文，可见常驻文本只有「A4」，全文在 hover/focus 展开层', async (path, full) => {
+    ['/', 'A4 实际排版效果 · 24 枚/页', '实际排版效果 · 24 枚/页'],
+    ['/en', 'Actual A4 layout · 24 labels per page', 'actual layout · 24 labels per page'],
+  ] as const)('%s：角标可聚焦、aria-label 为全文，可见常驻文本只有「A4」，展开层不重复纸型', async (path, full, expandedText) => {
     const wrapper = await mountHome(path)
     const badge = wrapper.get('[data-testid="hero-sheet-badge"]')
     expect(badge.attributes('tabindex')).toBe('0')
@@ -76,7 +76,7 @@ describe('第 373 轮：Hero 拼贴右缘渐隐 + 尺寸角标收起', () => {
     expect(badge.classes()).toContain('group')
     const [short, expanded] = badge.findAll(':scope > span')
     expect(short!.text()).toBe('A4')
-    expect(expanded!.text()).toBe(full)
+    expect(expanded!.text()).toBe(expandedText)
     expect(expanded!.classes()).toEqual(
       expect.arrayContaining(['max-w-0', 'overflow-hidden', 'opacity-0', 'group-hover:opacity-100', 'group-focus-visible:opacity-100']),
     )

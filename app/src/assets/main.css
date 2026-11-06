@@ -28,6 +28,15 @@
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', sans-serif;
+
+  /* 品牌字标：拉丁走自托管 Lexend Bold，CJK 回落系统字 */
+  --font-brand: 'BrandDisplay', var(--font-sans);
+}
+
+@layer utilities {
+  .brand-wordmark {
+    font-family: var(--font-brand);
+  }
 }
 
 @layer base {

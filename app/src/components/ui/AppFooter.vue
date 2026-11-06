@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { footerGuideLinks } from '@/data/guideLinks'
 import BeianInfo from '@/components/ui/BeianInfo.vue'
 import BrandMark from '@/components/ui/BrandMark.vue'
 import { localePath, t, useI18n } from '@/i18n'
@@ -29,11 +28,7 @@ const GROUPS = computed(() => [
   },
   {
     title: t('教程'),
-    links: [
-      { label: t('教程中心'), to: localePath('/guides') },
-      // 精选教程正文目前只有中文，英文站页脚只保留教程中心入口
-      ...(locale.value === 'en' ? [] : footerGuideLinks),
-    ],
+    links: [{ label: t('教程中心'), to: localePath('/guides') }],
   },
   {
     title: t('资源'),
@@ -60,7 +55,7 @@ const GROUPS = computed(() => [
         <div>
           <div class="flex items-center gap-2.5">
             <BrandMark class="size-8 shrink-0 text-brand-600" />
-            <span class="text-base font-bold tracking-tight text-slate-900">
+            <span class="brand-wordmark text-base font-bold tracking-tight text-slate-900">
               <template v-if="locale === 'en'">Seat<span class="text-brand-600">Mark</span></template>
               <template v-else>SeatMark <span class="text-brand-600">座签</span></template>
             </span>
@@ -84,6 +79,25 @@ const GROUPS = computed(() => [
             </svg>
             {{ t('所有数据仅在浏览器本地处理') }}
           </p>
+          <div class="mt-4 space-y-1.5 text-xs text-slate-600">
+            <p class="font-bold tracking-wide text-slate-900">{{ t('联系我们') }}</p>
+            <a
+              href="mailto:wookat@qq.com"
+              class="flex items-center gap-1.5 transition-colors hover:text-brand-600"
+            >
+              <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m3 7 9 6 9-6" />
+              </svg>
+              wookat@qq.com
+            </a>
+            <p class="flex items-center gap-1.5">
+              <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+              </svg>
+              {{ t('微信') }}：HERUOZAI
+            </p>
+          </div>
         </div>
 
         <div v-for="group in GROUPS" :key="group.title">

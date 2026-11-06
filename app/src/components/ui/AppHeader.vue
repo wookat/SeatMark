@@ -59,6 +59,27 @@ function onSeatingClick() {
   seatingOpen.value = !seatingOpen.value
 }
 
+/** 语言下拉：与「排座」一致的 悬停展开 / 点击钉住 语义 */
+const langByHover = ref(false)
+
+function onLangEnter() {
+  if (!langOpen.value) langByHover.value = true
+  langOpen.value = true
+}
+
+function onLangLeave() {
+  langOpen.value = false
+  langByHover.value = false
+}
+
+function onLangClick() {
+  if (langOpen.value && langByHover.value) {
+    langByHover.value = false
+    return
+  }
+  langOpen.value = !langOpen.value
+}
+
 const avatarLetter = computed(() => (auth.user ? auth.user.email[0]!.toUpperCase() : ''))
 
 /** <sm 汉堡抽屉：全部一级入口（桌面端内联导航不变） */
@@ -133,9 +154,9 @@ async function onLogout() {
         data-testid="brand-link"
       >
         <BrandMark class="size-8 shrink-0 text-brand-600" />
-        <span class="text-base font-bold tracking-tight whitespace-nowrap text-slate-900">
+        <span class="brand-wordmark text-base font-bold tracking-tight whitespace-nowrap text-slate-900">
           <template v-if="locale === 'en'"><span class="hidden max-md:inline lg:inline" data-testid="brand-wordmark-en">Seat<span class="text-brand-600">Mark</span></span></template>
-          <template v-else><span class="hidden md:inline">SeatMark </span><span class="text-brand-600">座签</span></template>
+          <template v-else><span class="brand-wordmark hidden md:inline">SeatMark </span><span class="text-brand-600">座签</span></template>
         </span>
       </RouterLink>
 
@@ -195,22 +216,21 @@ async function onLogout() {
               <path d="m4 6 4 4 4-4" />
             </svg>
           </button>
-          <div
-            v-if="seatingOpen"
-            class="absolute left-0 top-9 z-50 w-48 rounded-lg border border-slate-200 bg-white p-1.5 shadow-pop"
-            role="menu"
-          >
-            <RouterLink
-              v-for="link in SEATING_LINKS"
-              :key="link.to"
-              :to="localePath(link.to)"
-              class="block rounded px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
-              :class="{ 'text-brand-600': routeName === link.name }"
-              role="menuitem"
-              @click="seatingOpen = false"
-            >
-              {{ link.label }}
-            </RouterLink>
+          <!-- 面板用外层容器 top-full + pt-1：视觉间距落在命中区内，按钮与面板间无 hover 死区 -->
+          <div v-if="seatingOpen" class="absolute left-0 top-full z-50 w-48 pt-1">
+            <div class="rounded-lg border border-slate-200 bg-white p-1.5 shadow-pop" role="menu">
+              <RouterLink
+                v-for="link in SEATING_LINKS"
+                :key="link.to"
+                :to="localePath(link.to)"
+                class="block rounded px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                :class="{ 'text-brand-600': routeName === link.name }"
+                role="menuitem"
+                @click="seatingOpen = false"
+              >
+                {{ link.label }}
+              </RouterLink>
+            </div>
           </div>
         </div>
         <RouterLink
@@ -255,8 +275,8 @@ async function onLogout() {
           ref="langRef"
           class="relative hidden sm:block"
           data-testid="nav-lang"
-          @mouseenter="langOpen = true"
-          @mouseleave="langOpen = false"
+          @mouseenter="onLangEnter"
+          @mouseleave="onLangLeave"
         >
           <button
             type="button"
@@ -266,6 +286,7 @@ async function onLogout() {
             aria-haspopup="true"
             :aria-label="t('选择语言')"
             :title="t('选择语言')"
+            @click.stop="onLangClick"
           >
             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10" />
@@ -276,37 +297,38 @@ async function onLogout() {
               <path d="m4 6 4 4 4-4" />
             </svg>
           </button>
-          <div
-            v-if="langOpen"
-            class="absolute right-0 top-9 z-50 w-36 rounded-lg border border-slate-200 bg-white p-1.5 shadow-pop"
-            role="menu"
-            :aria-label="t('语言')"
-          >
-            <RouterLink
-              v-for="l in LOCALES"
-              :key="l.code"
-              :to="localeTarget(l.code)"
-              class="flex items-center justify-between rounded px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
-              :class="{ 'text-brand-600': locale === l.code }"
-              role="menuitem"
-              :aria-current="locale === l.code ? 'true' : undefined"
-              @click="onPickLocale(l.code)"
+          <div v-if="langOpen" class="absolute right-0 top-full z-50 w-36 pt-1">
+            <div
+              class="rounded-lg border border-slate-200 bg-white p-1.5 shadow-pop"
+              role="menu"
+              :aria-label="t('语言')"
             >
-              <span :lang="l.code">{{ l.name }}</span>
-              <svg
-                v-if="locale === l.code"
-                class="size-3.5 text-brand-600"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
+              <RouterLink
+                v-for="l in LOCALES"
+                :key="l.code"
+                :to="localeTarget(l.code)"
+                class="flex items-center justify-between rounded px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                :class="{ 'text-brand-600': locale === l.code }"
+                role="menuitem"
+                :aria-current="locale === l.code ? 'true' : undefined"
+                @click="onPickLocale(l.code)"
               >
-                <path d="m3.5 8.5 3 3 6-7" />
-              </svg>
-            </RouterLink>
+                <span :lang="l.code">{{ l.name }}</span>
+                <svg
+                  v-if="locale === l.code"
+                  class="size-3.5 text-brand-600"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="m3.5 8.5 3 3 6-7" />
+                </svg>
+              </RouterLink>
+            </div>
           </div>
         </div>
 

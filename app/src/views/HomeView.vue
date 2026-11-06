@@ -45,19 +45,7 @@ const vReveal: Directive<HTMLElement, number | undefined> = {
 /** 首屏演示模板：英文站下固定小注（如「座位号 SEAT」）换为英文 */
 const heroTemplate = computed(() => localizeTemplateForLocale(standardTemplate, locale.value))
 
-/** 首屏 CTA 下方的场景入口：教室排座 / 宴会排桌 */
-const heroSceneLinks = computed(() => [
-  {
-    to: localePath('/seating'),
-    label: t('导入名单并排座'),
-    aria: `${t('班主任排座位')}：${t('导入名单并排座')}`,
-  },
-  {
-    to: localePath('/banquet'),
-    label: t('导入宾客并自动分桌'),
-    aria: `${t('婚礼/宴会排桌')}：${t('导入宾客并自动分桌')}`,
-  },
-])
+/** 首屏 CTA 下方的场景入口已并入「快捷入口」chips（仅中文，见模板） */
 
 const HERO_EN_NAMES = [
   'Emma Johnson', 'Liam Smith', 'Olivia Brown', 'Noah Davis', 'Ava Wilson', 'Mason Clark',
@@ -157,8 +145,16 @@ const heroSlides = computed<HeroSlide[]>(() => {
   const byId = (id: string) => list.find((tpl) => tpl.id === id)
   const extras: [LabelTemplate | undefined, DataRow[], Record<string, string>, Record<string, string>?][] = [
     [byId('meetingTent'), tentRows.value, { org: '单位', name: '姓名' }, { welcome: locale.value === 'en' ? 'WELCOME' : '欢迎莅临指导' }],
+    [byId('lectureGuest'), tentRows.value, { name: '姓名', org: '单位' }, { caption: locale.value === 'en' ? 'GUEST SPEAKER' : '主讲嘉宾', title: locale.value === 'en' ? 'Professor' : '教授 · 博士生导师' }],
     [byId('badge'), heroRows.value, HERO_MAPPING, { header: locale.value === 'en' ? 'GUEST' : '嘉宾证' }],
     [byId('weddingPlace'), weddingRows.value, { name: '姓名', tableNo: '桌号' }, { greeting: locale.value === 'en' ? 'Welcome' : '诚邀' }],
+    [byId('examDoor'), [{}], {}, {
+      caption: locale.value === 'en' ? 'EXAM ROOM' : '考场',
+      room: locale.value === 'en' ? 'Room 12' : '第 12 考场',
+      idRange: locale.value === 'en' ? 'Nos. 2026061001–2026061030' : '准考证号 2026061001–2026061030',
+      floorNote: locale.value === 'en' ? 'Teaching Building · 3F' : '教学楼 3 层',
+      silenceNote: locale.value === 'en' ? 'Quiet please' : '保持安静 · 禁止喧哗',
+    }],
   ]
   for (const [tpl, rows, map, consts] of extras) {
     if (tpl) slides.push(makeSlide(localizeTemplateForLocale(tpl, locale.value), rows, map, consts))
@@ -430,27 +426,14 @@ const FAQS = computed(() => [
             </RouterLink>
           </div>
           <div
-            class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm font-semibold"
-            data-testid="hero-scene-links"
-          >
-            <RouterLink
-              v-for="scene in heroSceneLinks"
-              :key="scene.to"
-              :to="scene.to"
-              :aria-label="scene.aria"
-              class="group inline-flex items-center gap-1 text-slate-600 transition-colors hover:text-brand-700"
-            >
-              {{ scene.label }}
-              <span class="transition-transform group-hover:translate-x-0.5" aria-hidden="true">→</span>
-            </RouterLink>
-          </div>
-          <div
             v-if="locale !== 'en'"
             class="mt-5 flex flex-wrap items-center gap-2 text-xs text-slate-600"
           >
             <span class="font-semibold">{{ t('快捷入口：') }}</span>
             <RouterLink
               v-for="chip in [
+                { text: '导入名单并排座', to: '/seating' },
+                { text: '导入宾客并自动分桌', to: '/banquet' },
                 { text: '台签在线制作', to: '/guides/desk-sign-online-maker' },
                 { text: '席卡生成器', to: '/guides/place-card-generator-online' },
                 { text: '考场桌贴', to: '/guides/exam-seat-label-batch-print' },
@@ -529,23 +512,27 @@ const FAQS = computed(() => [
               </div>
             </div>
           </div>
-          <!-- 模板名 + 轮播圆点：点击圆点可手动切换 -->
-          <div class="absolute left-3 bottom-3 flex items-center gap-2" data-testid="hero-slide-nav">
-            <span class="rounded bg-slate-900/85 px-2 py-1 text-[11px] font-semibold text-white">
-              {{ activeSlide.name }}
-            </span>
-            <div v-if="heroSlides.length > 1" class="flex items-center gap-1.5">
-              <button
-                v-for="(slide, i) in heroSlides"
-                :key="slide.tpl.id"
-                type="button"
-                class="size-2 cursor-pointer rounded-full transition-colors"
-                :class="i === activeSlideIdx ? 'bg-brand-600' : 'bg-slate-300 hover:bg-slate-400'"
-                :aria-label="slide.name"
-                :aria-current="i === activeSlideIdx ? 'true' : undefined"
-                @click="heroSlideIdx = i"
-              ></button>
-            </div>
+          <!-- 轮播标签：每张幻灯一枚模板名 chip，点击直接切换 -->
+          <div
+            class="absolute bottom-3 left-3 flex max-w-[calc(100%-5rem)] flex-wrap items-center gap-1"
+            data-testid="hero-slide-nav"
+          >
+            <button
+              v-for="(slide, i) in heroSlides"
+              :key="slide.tpl.id"
+              type="button"
+              class="cursor-pointer rounded px-2 py-1 text-[11px] font-semibold transition-colors"
+              :class="
+                i === activeSlideIdx
+                  ? 'bg-slate-900/85 text-white'
+                  : 'bg-white/85 text-slate-600 ring-1 ring-slate-200/80 backdrop-blur-xs hover:bg-white hover:text-slate-900'
+              "
+              :aria-label="slide.name"
+              :aria-current="i === activeSlideIdx ? 'true' : undefined"
+              @click="heroSlideIdx = i"
+            >
+              {{ slide.name }}
+            </button>
           </div>
           <!-- 尺寸角标：默认只露「A4」，hover / 键盘聚焦展开完整说明；全文常驻在 aria-label 供读屏 -->
           <span
@@ -559,7 +546,7 @@ const FAQS = computed(() => [
               class="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-[max-width,opacity] duration-200 group-hover:max-w-[16rem] group-hover:opacity-100 group-focus-visible:max-w-[16rem] group-focus-visible:opacity-100"
               aria-hidden="true"
             >
-              {{ locale === 'en' ? `Actual ${activeSlide.paper} layout · ${activeSlide.perPage} labels per page` : `${activeSlide.paper} 实际排版效果 · ${activeSlide.perPage} 枚/页` }}
+              {{ locale === 'en' ? `actual layout · ${activeSlide.perPage} labels per page` : `实际排版效果 · ${activeSlide.perPage} 枚/页` }}
             </span>
           </span>
         </div>

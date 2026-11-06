@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { t } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
+import { trackEvent } from '@/utils/analytics'
 import { API_TIMEOUT_STATUS, ApiError, apiFetch } from '@/utils/api'
 
 const toast = useToastStore()
@@ -143,6 +144,7 @@ async function submit() {
         page: window.location.pathname,
       },
     })
+    trackEvent({ event: 'feedback_submit', category: 'feedback', label: type.value })
     toast.success(t('感谢反馈！'), t('已收到你的意见'))
     close()
   } catch (err) {
@@ -167,7 +169,7 @@ function submitErrorMessage(err: unknown): string {
   <!-- 浮动按钮：画布页（html.has-canvas-safe-area）在 ≥md 缩为 size-10 并贴边 right-3，配合预览列的 md:pr-16 与底部固定层留白不压座位图；
        底部操作条在场时按实际条高 --sm-nextstep-h + 12px 抬高 -->
   <button
-    class="no-print fixed right-5 bottom-5 z-50 flex size-12 items-center justify-center rounded-full bg-brand-600 text-white transition-all hover:bg-brand-700 tablet-down:right-3 tablet-down:size-10 md:[.has-canvas-safe-area_&]:right-3 md:[.has-canvas-safe-area_&]:size-10 [.has-next-step-bar_&]:bottom-[calc(var(--sm-nextstep-h,3rem)_+_0.75rem)] [.has-sticky-actions_&]:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]"
+    class="no-print fixed right-5 bottom-5 z-50 flex size-12 items-center justify-center rounded-full bg-brand-600 text-white transition-all hover:bg-brand-700 tablet-down:right-3 tablet-down:size-10 md:[.has-canvas-safe-area_&]:right-3 md:[.has-canvas-safe-area_&]:size-10 lg:h-12 lg:w-auto lg:gap-1.5 lg:px-3.5 md:[.has-canvas-safe-area_&]:w-10 md:[.has-canvas-safe-area_&]:gap-0 md:[.has-canvas-safe-area_&]:px-0 lg:[.has-canvas-safe-area_&]:w-10 lg:[.has-canvas-safe-area_&]:gap-0 lg:[.has-canvas-safe-area_&]:px-0 [.has-next-step-bar_&]:bottom-[calc(var(--sm-nextstep-h,3rem)_+_0.75rem)] [.has-sticky-actions_&]:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]"
     :class="[
       hiddenOnNarrow && 'tablet-down:pointer-events-none tablet-down:translate-y-2 tablet-down:opacity-0',
       hiddenForFooter && 'pointer-events-none translate-y-2 opacity-0',
@@ -180,9 +182,10 @@ function submitErrorMessage(err: unknown): string {
     :aria-label="t('反馈')"
     @click="open = true"
   >
-    <svg class="size-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <svg class="size-5.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
     </svg>
+    <span class="hidden text-xs font-semibold lg:inline lg:[.has-canvas-safe-area_&]:hidden">{{ t('反馈') }}</span>
   </button>
 
   <!-- 遮罩 -->

@@ -1496,6 +1496,8 @@ export const en: Record<string, string> = {
   '定价说明': 'Pricing',
 
   '反馈': 'Feedback',
+  '联系我们': 'Contact us',
+  '微信': 'WeChat',
   '意见反馈': 'Send feedback',
   '功能建议': 'Feature request',
   '问题反馈': 'Bug report',

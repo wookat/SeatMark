@@ -150,3 +150,16 @@
   font-display: swap;
   unicode-range: U+33000-33FFF;
 }
+
+/* ===== 品牌字标字体：Lexend Bold（SIL OFL 1.1，可免费商用）=====
+ * 仅拉丁子集（~15KB），用于「SeatMark」文字 Logo 与品牌字标；
+ * CJK 部分不落本字体，由系统字 + Plangothic 生僻字库接管。
+ */
+@font-face {
+  font-family: 'BrandDisplay';
+  src: url('/fonts/brand/lexend-latin-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF;
+}
