@@ -472,6 +472,28 @@ describe('具名上游：GET 清单 + upstream 首选 + AI_UPSTREAMS 扩展', ()
     const resBad = await onRequest({ request: get(freshIp()), env: badEnv })
     expect((await resBad.json()).models).toEqual([])
   })
+
+  it('AI_UPSTREAMS temperature:null → 请求体不带 temperature；number → 按值发送；缺省 → 0.6', async () => {
+    const bodies: Array<Record<string, unknown>> = []
+    globalThis.fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>)
+      return chatReply('{"fields":[]}')
+    }) as unknown as typeof fetch
+    const env = {
+      ...ENV,
+      AI_UPSTREAMS: JSON.stringify([
+        { id: 'no-temp', label: 'A', key: 'k', baseUrl: 'https://a.com/v1', model: 'm1', temperature: null },
+        { id: 'hot', label: 'B', key: 'k', baseUrl: 'https://b.com/v1', model: 'm2', temperature: 0.9 },
+        { id: 'plain', label: 'C', key: 'k', baseUrl: 'https://c.com/v1', model: 'm3' },
+      ]),
+    }
+    for (const id of ['no-temp', 'hot', 'plain']) {
+      await onRequest({ request: post({ messages, upstream: id }, freshIp()), env })
+    }
+    expect('temperature' in bodies[0]!).toBe(false)
+    expect(bodies[1]!.temperature).toBe(0.9)
+    expect(bodies[2]!.temperature).toBe(0.6)
+  })
 })
 
 function fetchMockBody(idx: number): unknown {

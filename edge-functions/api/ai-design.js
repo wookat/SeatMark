@@ -22,7 +22,8 @@
  * - AI_GATEWAY_API_KEY  Makers Models 网关密钥（控制台 Models 页获取；也认 MAKERS_MODELS_KEY）
  * - AI_GATEWAY_BASE_URL 网关地址，默认 https://ai-gateway.edgeone.link/v1
  * - AI_GATEWAY_MODEL    网关模型名，默认 @makers/deepseek-v4-flash
- * - AI_UPSTREAMS        扩展上游 JSON 数组：[{"id","label","key","baseUrl","model"}]，
+ * - AI_UPSTREAMS        扩展上游 JSON 数组：[{"id","label","key","baseUrl","model","temperature"?}]，
+ *                       temperature 为 null 时请求体不带该参数（个别模型会 400）；
  *                       已配置项出现在 GET 清单并排在命名 tier 之后参与级联
  * - ALERT_WEBHOOK     可选，告警 webhook（企业微信机器人）；仅从环境变量读取，未配置时跳过告警推送
  * - SEATMARK_AI_ANON_FALLBACK  可选，设为 '0' 时跳过 Pollinations 匿名兜底；默认开启
@@ -105,6 +106,9 @@ function extraUpstreams(env) {
         label: String(u.label || u.id),
         key: String(u.key),
         base: String(u.baseUrl),
+        // temperature === null 表示请求体不带 temperature 参数（个别模型拒绝该参数）
+        temperature:
+          u.temperature === null ? null : typeof u.temperature === 'number' ? u.temperature : undefined,
         model: String(u.model),
       }))
   } catch {
@@ -306,7 +310,7 @@ function okResponse(text) {
 async function proxyUpstreams({ env, messages, signal, waitUntil, upstreamPref }) {
   let timedOut = false
 
-  async function callUpstream(baseUrl, apiKey, model) {
+  async function callUpstream(baseUrl, apiKey, model, temperature) {
     const url = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl.replace(/\/+$/, '')}/chat/completions`
     const resp = await fetch(url, {
       method: 'POST',
@@ -314,7 +318,11 @@ async function proxyUpstreams({ env, messages, signal, waitUntil, upstreamPref }
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({ model, messages, temperature: 0.6 }),
+      body: JSON.stringify(
+        temperature === null
+          ? { model, messages }
+          : { model, messages, temperature: typeof temperature === 'number' ? temperature : 0.6 },
+      ),
       signal,
       eo: {
         timeoutSetting: {
@@ -336,6 +344,7 @@ async function proxyUpstreams({ env, messages, signal, waitUntil, upstreamPref }
       key: d.key(env),
       base: d.base(env),
       model: d.model(env),
+      temperature: undefined,
       alert: !!d.alert,
     })),
     ...extraUpstreams(env).map((u) => ({
@@ -344,6 +353,7 @@ async function proxyUpstreams({ env, messages, signal, waitUntil, upstreamPref }
       key: u.key,
       base: u.base,
       model: u.model,
+      temperature: u.temperature,
       alert: false,
     })),
   ]
@@ -358,7 +368,7 @@ async function proxyUpstreams({ env, messages, signal, waitUntil, upstreamPref }
     const tier = tiers.find((tr) => tr.id === id)
     if (!tier || !tier.key) continue
     try {
-      const upstream = await callUpstream(tier.base, tier.key, tier.model)
+      const upstream = await callUpstream(tier.base, tier.key, tier.model, tier.temperature)
       if (upstream.ok) return okResponse(await upstream.text())
       if (tier.alert) {
         const errBody = await upstream.text().catch(() => '')
