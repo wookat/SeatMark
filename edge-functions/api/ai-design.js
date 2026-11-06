@@ -6,15 +6,21 @@
  *
  * 主模型：DeepSeek v4 Flash（通过环境变量 DEEPSEEK_API_KEY 配置）
  * 兜底模型：智谱 glm-4-flash（通过环境变量 AI_API_KEY 配置，永久免费）
+ * 兜底模型：EdgeOne Makers Models 网关 @makers/deepseek-v4-flash
+ *   （AI_GATEWAY_API_KEY 或 MAKERS_MODELS_KEY 配置；Agents 模板部署时平台自动注入，
+ *   Pages 项目需从控制台 Models 页获取密钥后手动配置，免费版每月 50 万 token 内置模型额度）
  * 无密钥兜底：服务端代理 Pollinations 匿名接口（SEATMARK_AI_ANON_FALLBACK=0 可关闭，关闭后
  * 密钥上游全部失败即直接 502）。前端免费通道仅调本同源代理，
  * 浏览器不直连任何第三方模型接口，所有兜底都在服务端完成。
  *
  * 环境变量（EdgeOne Pages 控制台配置）：
- * - DEEPSEEK_API_KEY  主模型密钥（DeepSeek 开放平台）
- * - AI_API_KEY        兜底密钥（智谱开放平台 glm-4-flash）
- * - AI_BASE_URL       兜底接口地址，默认 https://open.bigmodel.cn/api/paas/v4
- * - AI_MODEL          兜底模型名，默认 glm-4-flash
+ * - DEEPSEEK_API_KEY    主模型密钥（DeepSeek 开放平台）
+ * - AI_API_KEY          兜底密钥（智谱开放平台 glm-4-flash）
+ * - AI_BASE_URL         兜底接口地址，默认 https://open.bigmodel.cn/api/paas/v4
+ * - AI_MODEL            兜底模型名，默认 glm-4-flash
+ * - AI_GATEWAY_API_KEY  Makers Models 网关密钥（控制台 Models 页获取；也认 MAKERS_MODELS_KEY）
+ * - AI_GATEWAY_BASE_URL 网关地址，默认 https://ai-gateway.edgeone.link/v1
+ * - AI_GATEWAY_MODEL    网关模型名，默认 @makers/deepseek-v4-flash
  * - ALERT_WEBHOOK     可选，告警 webhook（企业微信机器人）；仅从环境变量读取，未配置时跳过告警推送
  * - SEATMARK_AI_ANON_FALLBACK  可选，设为 '0' 时跳过 Pollinations 匿名兜底；默认开启
  *
@@ -164,20 +170,6 @@ async function handleRequest(context) {
   const { request, env } = context
   const waitUntil =
     typeof context.waitUntil === 'function' ? (p) => context.waitUntil(p) : (p) => void p.catch(() => {})
-
-  // TEMP env probe（验证后移除）：仅报告布尔值，不回显任何密钥内容
-  if (new URL(request.url).searchParams.get('probe') === 'ai-env') {
-    return json(
-      {
-        dsk: !!env.DEEPSEEK_API_KEY,
-        aik: !!env.AI_API_KEY,
-        gwKey: !!env.AI_GATEWAY_API_KEY,
-        gwBase: !!env.AI_GATEWAY_BASE_URL,
-        mmk: !!env.MAKERS_MODELS_KEY,
-      },
-      200,
-    )
-  }
 
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 })
   if (request.method !== 'POST') return json({ error: '请求方法不支持' }, 405)
