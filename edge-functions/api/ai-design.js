@@ -58,6 +58,9 @@ const DEEPSEEK_MODEL = 'deepseek-v4-flash'
 const FALLBACK_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4'
 const FALLBACK_MODEL = 'glm-4-flash'
 
+const EO_MODELS_BASE_URL = 'https://ai-gateway.edgeone.link/v1'
+const EO_MODELS_MODEL = '@makers/deepseek-v4-flash'
+
 const POLLINATIONS_URL = 'https://text.pollinations.ai/openai'
 const POLLINATIONS_MODELS = ['openai', 'openai-fast']
 
@@ -144,7 +147,7 @@ async function sendAlert(env, level, detail) {
 const UNAVAILABLE_ERROR = 'AI 服务暂时不可用，请稍后再试'
 
 function hasUpstreamKey(env) {
-  return !!(env && (env.DEEPSEEK_API_KEY || env.AI_API_KEY))
+  return !!(env && (env.DEEPSEEK_API_KEY || env.AI_API_KEY || env.AI_GATEWAY_API_KEY || env.MAKERS_MODELS_KEY))
 }
 
 function anonFallbackOn(env) {
@@ -161,6 +164,20 @@ async function handleRequest(context) {
   const { request, env } = context
   const waitUntil =
     typeof context.waitUntil === 'function' ? (p) => context.waitUntil(p) : (p) => void p.catch(() => {})
+
+  // TEMP env probe（验证后移除）：仅报告布尔值，不回显任何密钥内容
+  if (new URL(request.url).searchParams.get('probe') === 'ai-env') {
+    return json(
+      {
+        dsk: !!env.DEEPSEEK_API_KEY,
+        aik: !!env.AI_API_KEY,
+        gwKey: !!env.AI_GATEWAY_API_KEY,
+        gwBase: !!env.AI_GATEWAY_BASE_URL,
+        mmk: !!env.MAKERS_MODELS_KEY,
+      },
+      200,
+    )
+  }
 
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 })
   if (request.method !== 'POST') return json({ error: '请求方法不支持' }, 405)
@@ -284,6 +301,22 @@ async function proxyUpstreams({ env, messages, signal, waitUntil }) {
     const fallbackModel = (env && env.AI_MODEL) || FALLBACK_MODEL
     try {
       const upstream = await callUpstream(fallbackBaseUrl, fallbackKey, fallbackModel)
+      if (upstream.ok) return okResponse(await upstream.text())
+    } catch (e) {
+      if (isAbortError(e)) timedOut = true
+      /* 落到无密钥兜底 */
+    }
+  }
+
+  // 兜底：EdgeOne Makers Models 网关（OpenAI 兼容，免费版每月 50 万 token 内置模型额度）。
+  // Agents 模板部署时平台自动注入 AI_GATEWAY_*；Pages 项目也可在环境变量手动配置
+  // AI_GATEWAY_API_KEY（控制台 Models 页获取），AI_GATEWAY_BASE_URL/AI_GATEWAY_MODEL 可省略走默认。
+  const gwKey = env && (env.AI_GATEWAY_API_KEY || env.MAKERS_MODELS_KEY)
+  if (gwKey && !timedOut) {
+    const gwBaseUrl = String((env && env.AI_GATEWAY_BASE_URL) || EO_MODELS_BASE_URL)
+    const gwModel = (env && env.AI_GATEWAY_MODEL) || EO_MODELS_MODEL
+    try {
+      const upstream = await callUpstream(gwBaseUrl, gwKey, gwModel)
       if (upstream.ok) return okResponse(await upstream.text())
     } catch (e) {
       if (isAbortError(e)) timedOut = true
