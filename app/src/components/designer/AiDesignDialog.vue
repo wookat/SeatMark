@@ -5,7 +5,6 @@ import { t } from '@/i18n'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import type { AiDesignResult } from '@/utils/aiDesign'
 import {
-  AI_BYOK_PRESETS,
   aiByokPreset,
   generateLabelDesign,
   loadAiConfig,
@@ -317,9 +316,10 @@ async function generate() {
               {{ siteModelLabel(m) }}
             </option>
           </optgroup>
-          <optgroup :label="t('免费模型（需自己的 API Key）')">
-            <option v-for="p in AI_BYOK_PRESETS" :key="p.id" :value="p.id">
-              {{ t(p.name) }} · {{ t(p.freeNote) }}
+          <!-- BYOK 组不再对新用户展示；仅当历史配置选中了某预设时渲染该项，保证旧选择可用 -->
+          <optgroup v-if="activePreset" :label="t('免费模型（需自己的 API Key）')">
+            <option :value="activePreset.id">
+              {{ t(activePreset.name) }} · {{ t(activePreset.freeNote) }}
             </option>
           </optgroup>
           <option value="custom">{{ t('自定义 OpenAI 兼容接口…') }}</option>
