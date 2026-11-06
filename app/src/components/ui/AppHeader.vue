@@ -92,6 +92,7 @@ const DRAWER_LINKS = computed(() => [
   { to: '/banquet', name: 'banquet', label: t('宴会排桌') },
   { to: '/guides', name: 'guides', label: t('教程') },
   { to: '/pricing', name: 'pricing', label: t('定价') },
+  { to: '/about', name: 'about', label: t('关于') },
   { to: '/vs', name: 'vs-index', label: t('工具对比选型') },
   { to: '/papers', name: 'papers', label: t('不干胶纸型库') },
 ])
@@ -249,6 +250,13 @@ async function onLogout() {
           :class="{ 'bg-slate-100 text-brand-600': routeName === 'pricing' }"
         >
           {{ t('定价') }}
+        </RouterLink>
+        <RouterLink
+          :to="localePath('/about')"
+          class="btn btn-ghost btn-sm hidden lg:inline-flex"
+          :class="{ 'bg-slate-100 text-brand-600': routeName === 'about' }"
+        >
+          {{ t('关于') }}
         </RouterLink>
         <!-- 工坊页内：CTA 变为当前页标识（非链接，aria-current=page），避免自链自己 -->
         <span

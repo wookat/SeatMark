@@ -172,13 +172,11 @@ function submitErrorMessage(err: unknown): string {
     class="no-print fixed right-5 bottom-5 z-50 flex size-12 items-center justify-center rounded-full bg-brand-600 text-white transition-all hover:bg-brand-700 tablet-down:right-3 tablet-down:size-10 md:[.has-canvas-safe-area_&]:right-3 md:[.has-canvas-safe-area_&]:size-10 lg:h-12 lg:w-auto lg:gap-1.5 lg:px-3.5 md:[.has-canvas-safe-area_&]:w-10 md:[.has-canvas-safe-area_&]:gap-0 md:[.has-canvas-safe-area_&]:px-0 lg:[.has-canvas-safe-area_&]:w-10 lg:[.has-canvas-safe-area_&]:gap-0 lg:[.has-canvas-safe-area_&]:px-0 [.has-next-step-bar_&]:bottom-[calc(var(--sm-nextstep-h,3rem)_+_0.75rem)] [.has-sticky-actions_&]:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]"
     :class="[
       hiddenOnNarrow && 'tablet-down:pointer-events-none tablet-down:translate-y-2 tablet-down:opacity-0',
-      hiddenForFooter && 'pointer-events-none translate-y-2 opacity-0',
+      hiddenForFooter && 'right-3 bottom-3 size-9 lg:!w-9 lg:!gap-0 lg:!px-0 opacity-60 hover:opacity-100',
     ]"
     :data-collapsed="hiddenOnNarrow ? 'true' : 'false'"
     :data-input-focused="inputFocused ? 'true' : 'false'"
     :data-footer-visible="hiddenForFooter ? 'true' : 'false'"
-    :aria-hidden="hiddenForFooter ? 'true' : undefined"
-    :tabindex="hiddenForFooter ? -1 : undefined"
     :aria-label="t('反馈')"
     @click="open = true"
   >

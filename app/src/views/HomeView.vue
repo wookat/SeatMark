@@ -120,6 +120,19 @@ const weddingRows = computed<DataRow[]>(() => {
   }))
 })
 
+/** 固定资产标签演示行：名称 + 编号 + 部门，小标签满版更直观 */
+const assetRows = computed<DataRow[]>(() => {
+  const items = locale.value === 'en'
+    ? ['Laser printer', 'Projector', 'Standing desk', 'Meeting display', 'File cabinet', 'Water dispenser']
+    : ['激光打印机', '投影仪', '升降办公桌', '会议显示屏', '文件柜', '饮水机']
+  const depts = locale.value === 'en' ? ['Admin', 'IT', 'Finance'] : ['行政部', '信息科', '财务部']
+  return Array.from({ length: 18 }, (_, i) => ({
+    资产名称: items[i % items.length]!,
+    资产编号: `ZC-2026-${String(150 + i).padStart(4, '0')}`,
+    使用部门: depts[i % depts.length]!,
+  }))
+})
+
 function makeSlide(
   tpl: LabelTemplate,
   rows: DataRow[],
@@ -146,7 +159,7 @@ const heroSlides = computed<HeroSlide[]>(() => {
   const extras: [LabelTemplate | undefined, DataRow[], Record<string, string>, Record<string, string>?][] = [
     [byId('meetingTent'), tentRows.value, { org: '单位', name: '姓名' }, { welcome: locale.value === 'en' ? 'WELCOME' : '欢迎莅临指导' }],
     [byId('lectureGuest'), tentRows.value, { name: '姓名', org: '单位' }, { caption: locale.value === 'en' ? 'GUEST SPEAKER' : '主讲嘉宾', title: locale.value === 'en' ? 'Professor' : '教授 · 博士生导师' }],
-    [byId('badge'), heroRows.value, HERO_MAPPING, { header: locale.value === 'en' ? 'GUEST' : '嘉宾证' }],
+    [byId('assetTag'), assetRows.value, { assetName: '资产名称', assetNo: '资产编号', dept: '使用部门' }],
     [byId('weddingPlace'), weddingRows.value, { name: '姓名', tableNo: '桌号' }, { greeting: locale.value === 'en' ? 'Welcome' : '诚邀' }],
     [byId('examDoor'), [{}], {}, {
       caption: locale.value === 'en' ? 'EXAM ROOM' : '考场',

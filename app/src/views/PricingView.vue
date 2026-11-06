@@ -181,7 +181,7 @@ async function startPay(plan: string) {
       >
         <span
           v-if="plan.badge"
-          class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-0.5 text-[11px] font-semibold whitespace-nowrap shadow-sm"
+          class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full px-3 py-0.5 text-[11px] font-semibold whitespace-nowrap shadow-sm ring-4 ring-white"
           :class="plan.highlight ? 'bg-brand-600 text-white' : 'bg-slate-700 text-white'"
         >
           {{ plan.badge }}

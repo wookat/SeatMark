@@ -90,7 +90,20 @@ const EN_FEATURED: EnIndexFeatured[] = [
         :to="vsPagePath(page)"
         class="group flex flex-col rounded-lg border border-slate-200 bg-white p-6 shadow-card transition-shadow hover:shadow-lg"
       >
-        <h2 class="text-base font-bold text-slate-900 group-hover:text-brand-600">
+        <div class="flex items-center gap-2" aria-hidden="true">
+          <span class="inline-flex items-center gap-1.5 rounded-md bg-brand-50 px-2 py-1 text-[11px] font-bold text-brand-700">
+            <svg class="size-3" viewBox="0 0 16 16" fill="currentColor">
+              <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1.2" />
+              <rect x="9" y="1.5" width="5.5" height="5.5" rx="1.2" opacity="0.55" />
+              <rect x="1.5" y="9" width="5.5" height="5.5" rx="1.2" opacity="0.55" />
+              <rect x="9" y="9" width="5.5" height="5.5" rx="1.2" opacity="0.3" />
+            </svg>
+            SeatMark
+          </span>
+          <span class="text-[11px] font-black tracking-wide text-slate-400">VS</span>
+          <span class="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-600">{{ page.competitorName }}</span>
+        </div>
+        <h2 class="mt-3 text-base font-bold text-slate-900 group-hover:text-brand-600">
           SeatMark vs {{ page.competitorName }}
         </h2>
         <p class="mt-2 line-clamp-3 text-xs leading-5 text-slate-600">{{ page.intro }}</p>

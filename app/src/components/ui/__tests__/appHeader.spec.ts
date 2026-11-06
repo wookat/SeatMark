@@ -115,7 +115,7 @@ describe('AppHeader 「排座」场景下拉', () => {
 
 describe('第 347 轮：AppHeader <sm 汉堡抽屉导航', () => {
   // 末尾 '/' 与 '/en' 为抽屉内语言列表（中文 / English 两项）
-  const ZH_HREFS = ['/', '/templates', '/seating', '/banquet', '/guides', '/pricing', '/vs', '/papers', '/account', '/', '/en']
+  const ZH_HREFS = ['/', '/templates', '/seating', '/banquet', '/guides', '/pricing', '/about', '/vs', '/papers', '/account', '/', '/en']
 
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -141,7 +141,7 @@ describe('第 347 轮：AppHeader <sm 汉堡抽屉导航', () => {
     expect(toggle.attributes('aria-label')).toBe('关闭菜单')
     const nav = wrapper.get('#mobile-nav-drawer')
     expect(nav.findAll('a').map((a) => a.attributes('href'))).toEqual(ZH_HREFS)
-    for (const label of ['首页', '模板', '教室座位表', '宴会排桌', '教程', '定价', '工具对比选型', '不干胶纸型库', '登录', 'English']) {
+    for (const label of ['首页', '模板', '教室座位表', '宴会排桌', '教程', '定价', '关于', '工具对比选型', '不干胶纸型库', '登录', 'English']) {
       expect(nav.text()).toContain(label)
     }
     // 品牌不再 truncate：<sm 中文只显示「座签」
@@ -174,6 +174,7 @@ describe('第 347 轮：AppHeader <sm 汉堡抽屉导航', () => {
       '/en/banquet',
       '/en/guides',
       '/en/pricing',
+      '/en/about',
       '/en/vs',
       '/en/papers',
       '/en/account',

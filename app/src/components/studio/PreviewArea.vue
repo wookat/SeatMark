@@ -1265,6 +1265,7 @@ const hintKey = ref<HintKey | null>(null)
           ></span>
         </button>
         </div>
+        <span class="hidden h-5 w-px bg-slate-200 xl:block" aria-hidden="true"></span>
         <button
           type="button"
           class="btn btn-primary btn-sm relative max-sm:min-h-9"

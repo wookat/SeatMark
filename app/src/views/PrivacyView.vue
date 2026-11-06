@@ -88,7 +88,9 @@ function onClearLocalData() {
         <h2 class="text-lg font-bold text-slate-900">4. Updates and contact</h2>
         <p class="mt-2">
           We publish policy updates on this page and highlight major changes on the site. Questions: use the in-app
-          feedback entry or
+          feedback entry, email
+          <a href="mailto:wookat@qq.com" class="text-brand-600 hover:underline">wookat@qq.com</a>,
+          WeChat <span class="font-semibold">HERUOZAI</span>, or
           <a
             href="https://github.com/wookat/SeatMark/issues"
             target="_blank"
@@ -285,7 +287,9 @@ function onClearLocalData() {
         <h2 class="text-lg font-bold text-slate-900">八、政策更新与联系方式</h2>
         <p class="mt-2">
           本政策可能随功能迭代或法律法规变化更新，更新后会在本页面发布并更新「最后更新」日期，重大变更会在站内显著位置提示。
-          对本政策有任何疑问、意见或投诉，可通过站内「反馈」入口联系我们，或在
+          对本政策有任何疑问、意见或投诉，可通过站内「反馈」入口、邮箱
+          <a href="mailto:wookat@qq.com" class="text-brand-600 hover:underline">wookat@qq.com</a>
+          或微信 <span class="font-semibold">HERUOZAI</span> 联系我们，也可在
           <a
             href="https://github.com/wookat/SeatMark/issues"
             target="_blank"

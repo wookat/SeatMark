@@ -57,11 +57,11 @@ const SCENARIOS = computed(() =>
           : 'SeatMark 座签把一份名单变成可直接打印的座签、桌牌席卡、门贴与证卡。从 Excel 解析到 PDF 导出全部在你自己的设备上完成——快、私密，且精确到毫米。'
       }}
     </p>
-    <div class="mt-5 flex flex-wrap gap-2">
-      <RouterLink :to="localePath('/studio')" class="btn btn-primary">
+    <div class="mt-6 flex flex-wrap gap-2.5">
+      <RouterLink :to="localePath('/studio')" class="btn btn-primary btn-lg">
         {{ isEn ? 'Start making labels' : '开始制作标签' }}
       </RouterLink>
-      <RouterLink :to="localePath('/templates')" class="btn btn-secondary">
+      <RouterLink :to="localePath('/templates')" class="btn btn-secondary btn-lg">
         {{ isEn ? 'Browse templates' : '浏览模板库' }}
       </RouterLink>
     </div>

@@ -361,14 +361,21 @@ onMounted(() => {
         <LayoutPanel @open-designer="openDesigner" />
       </aside>
 
+      <!-- 外层 self-stretch 铺到整行高并延续预览点阵底纹：左栏长于视口时右下不再是死白 -->
       <div
         :class="[
           isMobile && mobileTab !== 'preview' ? 'hidden' : '',
-          'min-w-0 md:sticky md:top-[72px] md:h-[calc(100vh-92px)]',
-          isMobile ? 'h-[calc(100vh-180px)]' : '',
+          'min-w-0 md:self-stretch md:rounded-lg md:bg-[radial-gradient(circle,#e2e8f0_1px,transparent_1px)] md:bg-slate-50/60 md:bg-[size:16px_16px]',
         ]"
       >
-        <PreviewArea @focus-mapping="focusMappingPanel" />
+        <div
+          :class="[
+            'min-w-0 md:sticky md:top-[72px] md:h-[calc(100vh-92px)]',
+            isMobile ? 'h-[calc(100vh-180px)]' : '',
+          ]"
+        >
+          <PreviewArea @focus-mapping="focusMappingPanel" />
+        </div>
       </div>
     </div>
 

@@ -65,14 +65,43 @@ const activeFilterChips = computed(() => {
   return chips
 })
 
-const categories = computed(() => ['全部', ...new Set(guides.map((g) => g.category))])
-const audiences = computed(() => ['全部', ...new Set(guides.flatMap((g) => g.audiences))])
+/**
+ * 筛选器只暴露大类：细分 category/audience 归并为大组展示，
+ * 组内命中任一成员即匹配（数据层细分标签保留用于搜索与推荐）。
+ */
+const CATEGORY_GROUPS: Record<string, string[]> = {
+  考务与校园: ['考务', '校园', '教学'],
+  会议与会务: ['会议', '会务'],
+  婚庆与活动: ['婚庆'],
+  排版与设计: ['排版', '使用技巧'],
+  打印与纸型: ['打印', '打印技巧'],
+  名单与数据: ['数据'],
+  证卡: ['证卡'],
+  对比选型: ['对比'],
+}
+const AUDIENCE_GROUPS: Record<string, string[]> = {
+  考务与教务: ['考务老师', '教务处'],
+  教师与家长: ['班主任', '幼师/家长'],
+  行政与HR: ['行政/HR', '行政人员', 'HR', '行政', '会务人员'],
+  婚庆与策划: ['婚庆/活动', '婚庆策划'],
+  培训机构: ['培训机构'],
+  IT管理员: ['IT 管理员'],
+  通用: ['通用'],
+}
+
+const categories = computed(() => ['全部', ...Object.keys(CATEGORY_GROUPS)])
+const audiences = computed(() => ['全部', ...Object.keys(AUDIENCE_GROUPS)])
+
+/** 大类命中：组内任一细分标签匹配即算选中 */
+function inGroup(group: string, members: Record<string, string[]>, values: string[]): boolean {
+  return (members[group] ?? []).some((m) => values.includes(m))
+}
 
 const filteredGuides = computed(() =>
   guides.filter(
     (g) =>
-      (activeCategory.value === '全部' || g.category === activeCategory.value) &&
-      (activeAudience.value === '全部' || g.audiences.includes(activeAudience.value)) &&
+      (activeCategory.value === '全部' || inGroup(activeCategory.value, CATEGORY_GROUPS, [g.category])) &&
+      (activeAudience.value === '全部' || inGroup(activeAudience.value, AUDIENCE_GROUPS, g.audiences)) &&
       matchesChineseQuery(`${g.title} ${g.description} ${g.category}`, searchQuery.value),
   ),
 )
@@ -89,9 +118,10 @@ const shownNote = computed(() =>
     .replace('{total}', String(filteredGuides.value.length)),
 )
 
-/** 底部 CTA：筛选了教程分类时带 ?scene= 预选对应模板场景 */
+/** 底部 CTA：筛选了大类时取组内第一个有对应场景的细分分类 */
 const studioCtaPath = computed(() => {
-  const scene = sceneForGuideCategory(activeCategory.value)
+  const members = CATEGORY_GROUPS[activeCategory.value] ?? [activeCategory.value]
+  const scene = members.map((c) => sceneForGuideCategory(c)).find(Boolean)
   return scene ? `/studio?demo=1&scene=${scene}` : '/studio?demo=1'
 })
 
@@ -101,12 +131,12 @@ function resetFilters() {
   searchQuery.value = ''
 }
 
-/** 空结果时的推荐：优先同主题或同群体的教程，不足时用热门教程补齐 */
+/** 空结果时的推荐：优先同大类或同群体的教程，不足时用热门教程补齐 */
 const recommendedGuides = computed(() => {
   const partial = guides.filter(
     (g) =>
-      g.category === activeCategory.value ||
-      (activeAudience.value !== '全部' && g.audiences.includes(activeAudience.value)),
+      inGroup(activeCategory.value, CATEGORY_GROUPS, [g.category]) ||
+      (activeAudience.value !== '全部' && inGroup(activeAudience.value, AUDIENCE_GROUPS, g.audiences)),
   )
   const pool = partial.length > 0 ? partial : guides
   return pool.slice(0, 3)

@@ -358,6 +358,17 @@ function formatDate(iso: string | null | undefined): string {
               {{ QUOTA_USER_DAILY }} {{ t('次无水印导出（未登录') }} {{ QUOTA_ANON_DAILY }} {{ t('次）；自定义模板云端同步与跨设备找回；带水印导出/打印始终不限次数。') }}
             </template>
           </p>
+          <div class="mt-4 flex flex-wrap items-center justify-center gap-1.5" data-testid="account-trust-chips">
+            <span class="rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700">
+              226 {{ t('款内置模板') }}
+            </span>
+            <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+              {{ t('数据不出浏览器') }}
+            </span>
+            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+              {{ t('免费使用') }}
+            </span>
+          </div>
         </div>
 
         <!-- 账号服务不可用（如 AUTH_SECRET 缺失导致 503）：整张表单不渲染，只保留降级卡 -->

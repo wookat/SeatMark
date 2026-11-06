@@ -68,7 +68,9 @@ const { locale } = useI18n()
       <section>
         <h2 class="text-lg font-bold text-slate-900">5. Contact</h2>
         <p class="mt-2">
-          Use the in-app feedback entry or
+          Reach us via the in-app feedback entry, email
+          <a href="mailto:wookat@qq.com" class="text-brand-600 hover:underline">wookat@qq.com</a>,
+          WeChat <span class="font-semibold">HERUOZAI</span>, or
           <a
             href="https://github.com/wookat/SeatMark/issues"
             target="_blank"
@@ -187,7 +189,9 @@ const { locale } = useI18n()
       <section>
         <h2 class="text-lg font-bold text-slate-900">九、联系我们</h2>
         <p class="mt-2">
-          对本协议有任何疑问，可通过站内「反馈」入口联系我们，或在
+          对本协议有任何疑问，可通过站内「反馈」入口、邮箱
+          <a href="mailto:wookat@qq.com" class="text-brand-600 hover:underline">wookat@qq.com</a>
+          或微信 <span class="font-semibold">HERUOZAI</span> 联系我们，也可在
           <a
             href="https://github.com/wookat/SeatMark/issues"
             target="_blank"
