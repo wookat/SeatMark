@@ -1,8 +1,11 @@
 /**
  * AI 标签设计同源代理（EdgeOne Pages Edge Function）
  *
- * 路由：POST /api/ai-design   请求体：{ messages: [{ role, content }, ...] }
+ * 路由：POST /api/ai-design   请求体：{ messages: [{ role, content }, ...], upstream?: '<tier id>' }
+ *       GET  /api/ai-design   返回 { models: [{ id, label }] } 当前已配置的站点模型清单（不含密钥）
  * 作用：用站长配置的密钥转发到上游大模型，让访客无需任何配置即可使用 AI 设计。
+ *       upstream 指定已配置的 tier id 时优先尝试该上游，之后仍按默认顺序级联；
+ *       未指定或 tier 未配置时按 TIER_DEFS 顺序级联。
  *
  * 主模型：DeepSeek v4 Flash（通过环境变量 DEEPSEEK_API_KEY 配置）
  * 兜底模型：智谱 glm-4-flash（通过环境变量 AI_API_KEY 配置，永久免费）
@@ -21,6 +24,8 @@
  * - AI_GATEWAY_API_KEY  Makers Models 网关密钥（控制台 Models 页获取；也认 MAKERS_MODELS_KEY）
  * - AI_GATEWAY_BASE_URL 网关地址，默认 https://ai-gateway.edgeone.link/v1
  * - AI_GATEWAY_MODEL    网关模型名，默认 @makers/deepseek-v4-flash
+ * - AI_UPSTREAMS        扩展上游 JSON 数组：[{"id","label","key","baseUrl","model"}]，
+ *                       已配置项出现在 GET 清单并排在命名 tier 之后参与级联
  * - ALERT_WEBHOOK     可选，告警 webhook（企业微信机器人）；仅从环境变量读取，未配置时跳过告警推送
  * - SEATMARK_AI_ANON_FALLBACK  可选，设为 '0' 时跳过 Pollinations 匿名兜底；默认开启
  *
@@ -66,6 +71,65 @@ const FALLBACK_MODEL = 'glm-4-flash'
 
 const EO_MODELS_BASE_URL = 'https://ai-gateway.edgeone.link/v1'
 const EO_MODELS_MODEL = '@makers/deepseek-v4-flash'
+
+/**
+ * 命名上游 tier：请求体可带 upstream 指定首选上游，未指定时按序级联。
+ * key() 返回 falsy 表示该 tier 未配置、自动跳过。
+ */
+const TIER_DEFS = [
+  {
+    id: 'deepseek',
+    label: 'DeepSeek V4 Flash',
+    key: (env) => env.DEEPSEEK_API_KEY,
+    base: () => DEEPSEEK_BASE_URL,
+    model: () => DEEPSEEK_MODEL,
+    alert: true,
+  },
+  {
+    id: 'zhipu',
+    label: 'GLM-4-Flash',
+    key: (env) => env.AI_API_KEY,
+    base: (env) => String(env.AI_BASE_URL || FALLBACK_BASE_URL),
+    model: (env) => env.AI_MODEL || FALLBACK_MODEL,
+  },
+  {
+    id: 'eomodels',
+    label: 'EO 内置模型',
+    key: (env) => env.AI_GATEWAY_API_KEY || env.MAKERS_MODELS_KEY,
+    base: (env) => String(env.AI_GATEWAY_BASE_URL || EO_MODELS_BASE_URL),
+    model: (env) => env.AI_GATEWAY_MODEL || EO_MODELS_MODEL,
+  },
+]
+
+/**
+ * 扩展上游：环境变量 AI_UPSTREAMS 为 JSON 数组，元素形如
+ * {"id":"siliconflow","label":"SiliconFlow","key":"sk-...","baseUrl":"https://api.siliconflow.cn/v1","model":"Qwen/Qwen2.5-7B-Instruct"}
+ * 已配置项出现在 GET 清单里，并排在命名 tier 之后参与级联。
+ */
+function extraUpstreams(env) {
+  try {
+    const list = JSON.parse((env && env.AI_UPSTREAMS) || '[]')
+    if (!Array.isArray(list)) return []
+    return list
+      .filter((u) => u && typeof u === 'object' && u.id && u.key && u.baseUrl && u.model)
+      .map((u) => ({
+        id: String(u.id),
+        label: String(u.label || u.id),
+        key: String(u.key),
+        base: String(u.baseUrl),
+        model: String(u.model),
+      }))
+  } catch {
+    return []
+  }
+}
+
+/** 当前已配置的上游清单（GET 探测接口与级联共用） */
+function configuredTiers(env) {
+  const named = TIER_DEFS.filter((t) => t.key(env)).map((t) => ({ id: t.id, label: t.label }))
+  const extra = extraUpstreams(env).map((u) => ({ id: u.id, label: u.label }))
+  return [...named, ...extra]
+}
 
 const POLLINATIONS_URL = 'https://text.pollinations.ai/openai'
 const POLLINATIONS_MODELS = ['openai', 'openai-fast']
@@ -172,6 +236,10 @@ async function handleRequest(context) {
     typeof context.waitUntil === 'function' ? (p) => context.waitUntil(p) : (p) => void p.catch(() => {})
 
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 })
+  // GET：返回站点已配置的可选模型清单（前端据此列出「站点提供」选项；不暴露任何密钥）
+  if (request.method === 'GET') {
+    return json({ models: configuredTiers(env) }, 200)
+  }
   if (request.method !== 'POST') return json({ error: '请求方法不支持' }, 405)
 
   const declared = Number(request.headers.get('Content-Length'))
@@ -230,7 +298,11 @@ async function handleRequest(context) {
   const aborter = new AbortController()
   const timer = setTimeout(() => aborter.abort(), AI_UPSTREAM_TIMEOUT_MS)
   try {
-    return await proxyUpstreams({ env, messages, signal: aborter.signal, waitUntil })
+    const upstreamPref =
+      typeof payload.upstream === 'string' && /^[a-z0-9-]{1,32}$/i.test(payload.upstream)
+        ? payload.upstream
+        : null
+    return await proxyUpstreams({ env, messages, signal: aborter.signal, waitUntil, upstreamPref })
   } finally {
     clearTimeout(timer)
   }
@@ -243,7 +315,7 @@ function okResponse(text) {
   })
 }
 
-async function proxyUpstreams({ env, messages, signal, waitUntil }) {
+async function proxyUpstreams({ env, messages, signal, waitUntil, upstreamPref }) {
   let timedOut = false
 
   async function callUpstream(baseUrl, apiKey, model) {
@@ -267,52 +339,50 @@ async function proxyUpstreams({ env, messages, signal, waitUntil }) {
     return resp
   }
 
-  // 主模型：DeepSeek v4 Pro
-  const deepseekKey = env && env.DEEPSEEK_API_KEY
-  if (deepseekKey) {
-    try {
-      const upstream = await callUpstream(DEEPSEEK_BASE_URL, deepseekKey, DEEPSEEK_MODEL)
-      if (upstream.ok) return okResponse(await upstream.text())
-      // DeepSeek 返回非 200：读取错误详情并告警
-      const errBody = await upstream.text().catch(() => '')
-      const level = alertLevel(upstream.status)
-      const detail = `HTTP ${upstream.status} ${errBody.slice(0, 200)}`
-      waitUntil(sendAlert(env, level, detail))
-    } catch (e) {
-      if (isAbortError(e)) timedOut = true
-      // DeepSeek 网络异常：告警（不阻塞后续上游）
-      const detail = `网络异常 ${e instanceof Error ? e.message : String(e)}`
-      waitUntil(sendAlert(env, '网络异常', detail))
-    }
-  }
+  // 有序上游列表：命名 tier（TIER_DEFS 顺序）+ AI_UPSTREAMS 扩展上游。
+  // 请求指定 upstream 时把它提到首位尝试；该 tier 未配置则跳过、按默认顺序级联。
+  const tiers = [
+    ...TIER_DEFS.map((d) => ({
+      id: d.id,
+      label: d.label,
+      key: d.key(env),
+      base: d.base(env),
+      model: d.model(env),
+      alert: !!d.alert,
+    })),
+    ...extraUpstreams(env).map((u) => ({
+      id: u.id,
+      label: u.label,
+      key: u.key,
+      base: u.base,
+      model: u.model,
+      alert: false,
+    })),
+  ]
+  const ids = tiers.map((tr) => tr.id)
+  const order =
+    upstreamPref && tiers.some((tr) => tr.id === upstreamPref && tr.key)
+      ? [upstreamPref, ...ids.filter((id) => id !== upstreamPref)]
+      : ids
 
-  // 兜底：智谱 glm-4-flash（共用超时已触发时不再尝试）
-  const fallbackKey = env && env.AI_API_KEY
-  if (fallbackKey && !timedOut) {
-    const fallbackBaseUrl = String((env && env.AI_BASE_URL) || FALLBACK_BASE_URL)
-    const fallbackModel = (env && env.AI_MODEL) || FALLBACK_MODEL
+  for (const id of order) {
+    if (timedOut) break
+    const tier = tiers.find((tr) => tr.id === id)
+    if (!tier || !tier.key) continue
     try {
-      const upstream = await callUpstream(fallbackBaseUrl, fallbackKey, fallbackModel)
+      const upstream = await callUpstream(tier.base, tier.key, tier.model)
       if (upstream.ok) return okResponse(await upstream.text())
+      if (tier.alert) {
+        const errBody = await upstream.text().catch(() => '')
+        waitUntil(sendAlert(env, alertLevel(upstream.status), `HTTP ${upstream.status} ${errBody.slice(0, 200)}`))
+      }
     } catch (e) {
       if (isAbortError(e)) timedOut = true
-      /* 落到无密钥兜底 */
-    }
-  }
-
-  // 兜底：EdgeOne Makers Models 网关（OpenAI 兼容，免费版每月 50 万 token 内置模型额度）。
-  // Agents 模板部署时平台自动注入 AI_GATEWAY_*；Pages 项目也可在环境变量手动配置
-  // AI_GATEWAY_API_KEY（控制台 Models 页获取），AI_GATEWAY_BASE_URL/AI_GATEWAY_MODEL 可省略走默认。
-  const gwKey = env && (env.AI_GATEWAY_API_KEY || env.MAKERS_MODELS_KEY)
-  if (gwKey && !timedOut) {
-    const gwBaseUrl = String((env && env.AI_GATEWAY_BASE_URL) || EO_MODELS_BASE_URL)
-    const gwModel = (env && env.AI_GATEWAY_MODEL) || EO_MODELS_MODEL
-    try {
-      const upstream = await callUpstream(gwBaseUrl, gwKey, gwModel)
-      if (upstream.ok) return okResponse(await upstream.text())
-    } catch (e) {
-      if (isAbortError(e)) timedOut = true
-      /* 落到无密钥兜底 */
+      if (tier.alert) {
+        waitUntil(
+          sendAlert(env, '网络异常', `网络异常 ${e instanceof Error ? e.message : String(e)}`),
+        )
+      }
     }
   }
 

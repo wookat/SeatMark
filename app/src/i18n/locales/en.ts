@@ -1968,6 +1968,10 @@ export const en: Record<string, string> = {
     'Add layout, color or copy details, e.g. make the seat number largest; add a “Please take your assigned seat” line at the bottom.',
   '生成模型': 'Model',
   '自适应 · 站点推荐（无需配置）': 'Adaptive · site recommended (no setup)',
+  '站点提供（无需配置）': 'Provided by this site (no setup)',
+  'EO 内置模型': 'EdgeOne built-in models',
+  '仅经本站同源代理调用，浏览器不直连第三方；仅发送字段名与示例值，不上传完整名单。繁忙时可能失败，可稍后重试或改选其他模型。':
+    'Calls go through this site’s same-origin proxy only; the browser never connects to third parties and only field names and sample values are sent, never the full roster. It may fail when busy — retry later or pick another model.',
   '免费模型（需自己的 API Key）': 'Free models (bring your own API key)',
   '自定义 OpenAI 兼容接口…': 'Custom OpenAI-compatible endpoint…',
   '由站点自动选用可用模型：仅经本站同源代理，浏览器不直连第三方；仅发送字段名与示例值，不上传完整名单。繁忙时可能失败，可稍后重试或改选其他模型。':

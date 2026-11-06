@@ -25,7 +25,8 @@ export type AiByokProviderId =
   | 'gemini'
   | 'eomodels'
 
-export type AiProvider = 'auto' | 'custom' | AiByokProviderId
+/** 'site:<id>' = 站点提供的具名上游（GET /api/ai-design 清单中的 id） */
+export type AiProvider = 'auto' | 'custom' | AiByokProviderId | `site:${string}`
 
 export interface AiProviderPreset {
   id: AiByokProviderId
@@ -126,6 +127,7 @@ function normalizeProvider(raw: unknown, hasKey: boolean): AiProvider {
   if (raw === 'custom' || (raw == null && hasKey)) return 'custom'
   // 旧版本 'free' 迁移为 'auto'
   if (raw === 'free' || raw === 'auto') return 'auto'
+  if (typeof raw === 'string' && raw.startsWith('site:') && raw.length > 5) return raw as AiProvider
   if (typeof raw === 'string' && aiByokPreset(raw)) return raw as AiByokProviderId
   return 'auto'
 }
@@ -168,12 +170,16 @@ export function saveAiConfig(config: AiConfig): void {
   }
 }
 
-/** 本次生成实际要走的上游：站点代理 或 浏览器直连 */
+/** 本次生成实际要走的上游：站点代理（可指定具名上游） 或 浏览器直连 */
 export type AiUpstream =
-  | { mode: 'proxy' }
+  | { mode: 'proxy'; upstream?: string }
   | { mode: 'direct'; baseUrl: string; apiKey: string; model: string }
 
 export function resolveUpstream(config: AiConfig): AiUpstream {
+  if (config.provider.startsWith('site:')) {
+    const id = config.provider.slice(5)
+    return id ? { mode: 'proxy', upstream: id } : { mode: 'proxy' }
+  }
   if (config.provider === 'custom') {
     return {
       mode: 'direct',
@@ -475,13 +481,17 @@ export function freeChannelFailureReason(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
 }
 
-async function callChatFree(messages: ChatMessage[], signal?: AbortSignal): Promise<string> {
+async function callChatFree(
+  messages: ChatMessage[],
+  signal?: AbortSignal,
+  upstream?: string,
+): Promise<string> {
   let lastError = ''
   for (const attempt of FREE_ATTEMPTS) {
     try {
       return await postChat(
         attempt.url,
-        { messages, temperature: 0.6 },
+        upstream ? { messages, upstream, temperature: 0.6 } : { messages, temperature: 0.6 },
         undefined,
         withTimeout(signal, attempt.timeoutMs),
       )
@@ -652,7 +662,7 @@ export async function generateLabelDesign(
   ]
   const content =
     upstream.mode === 'proxy'
-      ? await callChatFree(messages, signal)
+      ? await callChatFree(messages, signal, upstream.upstream)
       : await callChatCustom(upstream, messages, signal)
   return sanitizeResult(extractJson(content), input)
 }

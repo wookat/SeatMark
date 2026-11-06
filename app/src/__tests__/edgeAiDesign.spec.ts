@@ -367,3 +367,115 @@ describe('第 363 轮：匿名兜底可关闭 + 502 不泄露上游模型名', (
     warn.mockRestore()
   })
 })
+
+describe('具名上游：GET 清单 + upstream 首选 + AI_UPSTREAMS 扩展', () => {
+  function get(ip: string) {
+    return new Request('https://www.seatmark.cn/api/ai-design', {
+      method: 'GET',
+      headers: { 'EO-Connecting-IP': ip },
+    })
+  }
+
+  it('GET 返回已配置 tier 的 id/label 清单，不含任何密钥或 URL', async () => {
+    const env = {
+      ...ENV,
+      DEEPSEEK_API_KEY: 'secret-ds',
+      AI_API_KEY: 'secret-glm',
+      AI_GATEWAY_API_KEY: 'secret-gw',
+      AI_UPSTREAMS: JSON.stringify([
+        { id: 'openrouter-free', label: 'OpenRouter 免费档', key: 'secret-or', baseUrl: 'https://openrouter.ai/api/v1', model: 'x:free' },
+      ]),
+    }
+    const res = await onRequest({ request: get(freshIp()), env })
+    expect(res.status).toBe(200)
+    const data = (await res.json()) as { models: Array<{ id: string; label: string }> }
+    const ids = data.models.map((m) => m.id)
+    expect(ids).toEqual(['deepseek', 'zhipu', 'eomodels', 'openrouter-free'])
+    const body = JSON.stringify(data)
+    for (const leak of ['secret-ds', 'secret-glm', 'secret-gw', 'secret-or', 'baseUrl', 'api.deepseek.com']) {
+      expect(body).not.toContain(leak)
+    }
+  })
+
+  it('GET 仅列出已配置的 tier；无密钥时 models 为空', async () => {
+    const res = await onRequest({ request: get(freshIp()), env: ENV })
+    const data = (await res.json()) as { models: Array<{ id: string }> }
+    expect(data.models).toEqual([])
+    const res2 = await onRequest({
+      request: get(freshIp()),
+      env: { ...ENV, AI_GATEWAY_API_KEY: 'k' },
+    })
+    const data2 = (await res2.json()) as { models: Array<{ id: string }> }
+    expect(data2.models.map((m) => m.id)).toEqual(['eomodels'])
+  })
+
+  it('upstream 指定已配置 tier → 优先尝试该上游，失败后仍级联', async () => {
+    const urls: string[] = []
+    globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+      const u = String(url)
+      urls.push(u)
+      if (u.includes('bigmodel.cn')) return new Response('glm down', { status: 500 })
+      return chatReply('{"fields":[]}')
+    }) as unknown as typeof fetch
+    const env: Env = { ...ENV, DEEPSEEK_API_KEY: 'k1', AI_API_KEY: 'k2' }
+    const res = await onRequest({
+      request: post({ messages, upstream: 'zhipu' }, freshIp()),
+      env,
+    })
+    expect(res.status).toBe(200)
+    // 智谱先于 DeepSeek 被尝试；智谱 500 后级联到 DeepSeek
+    expect(urls.findIndex((u) => u.includes('bigmodel.cn'))).toBe(0)
+    expect(urls.findIndex((u) => u.includes('api.deepseek.com'))).toBe(1)
+    expect((fetchMockBody(0) as { model: string }).model).toBe('glm-4-flash')
+  })
+
+  it('upstream 指向未配置的 tier → 跳过，按默认顺序走 DeepSeek', async () => {
+    const urls: string[] = []
+    globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+      urls.push(String(url))
+      return chatReply('{"fields":[]}')
+    }) as unknown as typeof fetch
+    const env: Env = { ...ENV, DEEPSEEK_API_KEY: 'k1' }
+    const res = await onRequest({
+      request: post({ messages, upstream: 'eomodels' }, freshIp()),
+      env,
+    })
+    expect(res.status).toBe(200)
+    expect(urls[0]).toContain('api.deepseek.com')
+    expect(urls.some((u) => u.includes('edgeone'))).toBe(false)
+  })
+
+  it('AI_UPSTREAMS 扩展上游参与清单与级联；非法 JSON/字段被静默丢弃', async () => {
+    globalThis.fetch = vi.fn(async () => chatReply('{"fields":[]}')) as unknown as typeof fetch
+    const env = {
+      ...ENV,
+      AI_UPSTREAMS: JSON.stringify([
+        { id: 'groq-free', label: 'Groq', key: 'gk', baseUrl: 'https://api.groq.com/openai/v1', model: 'llama-3.3' },
+        { id: 'bad' }, // 缺字段
+        'garbage',
+      ]),
+    }
+    const res = await onRequest({ request: get(freshIp()), env })
+    const data = (await res.json()) as { models: Array<{ id: string }> }
+    expect(data.models.map((m) => m.id)).toEqual(['groq-free'])
+
+    const urls: string[] = []
+    globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+      urls.push(String(url))
+      return chatReply('{"fields":[]}')
+    }) as unknown as typeof fetch
+    const res2 = await onRequest({ request: post({ messages, upstream: 'groq-free' }, freshIp()), env })
+    expect(res2.status).toBe(200)
+    expect(urls[0]).toContain('api.groq.com')
+
+    // 非法 JSON：不抛错，清单为空，POST 落到 Pollinations 兜底
+    const badEnv = { ...ENV, AI_UPSTREAMS: '{oops' }
+    const resBad = await onRequest({ request: get(freshIp()), env: badEnv })
+    expect((await resBad.json()).models).toEqual([])
+  })
+})
+
+function fetchMockBody(idx: number): unknown {
+  const calls = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls
+  return JSON.parse(String(calls[idx]![1] && (calls[idx]![1] as RequestInit).body))
+}

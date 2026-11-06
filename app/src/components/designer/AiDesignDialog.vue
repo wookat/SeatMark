@@ -80,6 +80,19 @@ let aborter: AbortController | null = null
 
 const activePreset = computed(() => aiByokPreset(config.value.provider))
 
+/** 站点提供的具名模型（GET /api/ai-design 返回已配置上游清单；获取失败则为空，仅显示自适应） */
+const siteModels = ref<Array<{ id: string; label: string }>>([])
+
+/** 具名站点模型的显示名（可 i18n 的走 t()，其余用服务端 label） */
+function siteModelLabel(m: { id: string; label: string }): string {
+  if (m.id === 'eomodels') return t('EO 内置模型')
+  return m.label
+}
+
+const isSiteServed = computed(
+  () => config.value.provider === 'auto' || config.value.provider.startsWith('site:'),
+)
+
 /** 当前选中 BYOK 预设的密钥/模型条目（不存在时创建并持久化到 config） */
 function byokEntry(id: string) {
   if (!config.value.byok[id]) config.value.byok[id] = { apiKey: '', model: '' }
@@ -88,7 +101,7 @@ function byokEntry(id: string) {
 
 const configValid = computed(() => {
   const p = config.value.provider
-  if (p === 'auto') return true
+  if (p === 'auto' || p.startsWith('site:')) return true
   if (p === 'custom') {
     return !!(config.value.baseUrl.trim() && config.value.apiKey.trim() && config.value.model.trim())
   }
@@ -107,6 +120,14 @@ watch(
     errorMsg.value = ''
     width.value = props.labelWidth
     height.value = props.labelHeight
+    fetch('/api/ai-design')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        siteModels.value = Array.isArray(d?.models) ? d.models : []
+      })
+      .catch(() => {
+        siteModels.value = []
+      })
     if (!fieldsText.value.trim()) {
       fieldsText.value = props.prefill?.trim()
         ? props.prefill
@@ -291,6 +312,11 @@ async function generate() {
         <label class="field-label">{{ t('生成模型') }}</label>
         <select v-model="config.provider" class="input-field" data-testid="ai-model-select">
           <option value="auto">{{ t('自适应 · 站点推荐（无需配置）') }}</option>
+          <optgroup v-if="siteModels.length" :label="t('站点提供（无需配置）')">
+            <option v-for="m in siteModels" :key="m.id" :value="`site:${m.id}`">
+              {{ siteModelLabel(m) }}
+            </option>
+          </optgroup>
           <optgroup :label="t('免费模型（需自己的 API Key）')">
             <option v-for="p in AI_BYOK_PRESETS" :key="p.id" :value="p.id">
               {{ t(p.name) }} · {{ t(p.freeNote) }}
@@ -299,8 +325,8 @@ async function generate() {
           <option value="custom">{{ t('自定义 OpenAI 兼容接口…') }}</option>
         </select>
 
-        <p v-if="config.provider === 'auto'" class="mt-2 text-[11px] leading-4 text-slate-600">
-          {{ t('由站点自动选用可用模型：仅经本站同源代理，浏览器不直连第三方；仅发送字段名与示例值，不上传完整名单。繁忙时可能失败，可稍后重试或改选其他模型。') }}
+        <p v-if="isSiteServed" class="mt-2 text-[11px] leading-4 text-slate-600">
+          {{ t('仅经本站同源代理调用，浏览器不直连第三方；仅发送字段名与示例值，不上传完整名单。繁忙时可能失败，可稍后重试或改选其他模型。') }}
         </p>
 
         <div

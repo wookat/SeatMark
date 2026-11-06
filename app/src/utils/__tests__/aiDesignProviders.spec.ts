@@ -90,6 +90,33 @@ describe('AI 模型选择体系', () => {
     })
   })
 
+  it('resolveUpstream：site:<id> → 走同源代理并携带具名 upstream', () => {
+    expect(resolveUpstream(config({ provider: 'site:eomodels' }))).toEqual({
+      mode: 'proxy',
+      upstream: 'eomodels',
+    })
+    // 持久化的 site: provider 重新加载不丢失
+    saveAiConfig(config({ provider: 'site:eomodels' }))
+    expect(loadAiConfig().provider).toBe('site:eomodels')
+  })
+
+  it('site: 调用：POST 同源代理且 body 带 upstream，不发直连请求', async () => {
+    fetchMock.mockResolvedValue(new Response(OK_REPLY, { status: 200 }))
+    await generateLabelDesign(config({ provider: 'site:deepseek' }), INPUT)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('/api/ai-design')
+    const body = JSON.parse(String(init.body)) as { upstream?: string }
+    expect(body.upstream).toBe('deepseek')
+  })
+
+  it('auto 调用：body 不带 upstream（服务端按默认级联）', async () => {
+    fetchMock.mockResolvedValue(new Response(OK_REPLY, { status: 200 }))
+    await generateLabelDesign(config({}), INPUT)
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect('upstream' in JSON.parse(String(init.body))).toBe(false)
+  })
+
   it('resolveUpstream：custom → 直连用户填写的三项', () => {
     const u = resolveUpstream(
       config({ provider: 'custom', baseUrl: 'https://x.com/v1/', apiKey: 'k', model: 'm' }),
