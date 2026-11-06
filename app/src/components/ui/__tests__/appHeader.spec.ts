@@ -34,13 +34,14 @@ describe('AppHeader 移动端触控热区（<md 时 ≥44×44）', () => {
     const links = wrapper.findAll('a')
     const byText = (text: string) => links.find((a) => a.text() === text)
     const logo = links[0]!
-    const lang = links.find((a) => a.attributes('aria-label') === 'Switch to English')!
+    // 语言切换为桌面端下拉按钮（hidden sm:block，移动端语言入口在抽屉内，由抽屉测试覆盖）
+    const lang = wrapper.get('[data-testid="nav-lang"]').get('button')
 
-    for (const el of [logo, byText('模板')!, byText('教程')!, lang, byText('登录')!]) {
+    for (const el of [logo, byText('模板')!, byText('教程')!, byText('登录')!]) {
       for (const cls of TAP) expect(el.classes()).toContain(cls)
     }
     expect(logo.attributes('aria-label')).toBe('返回首页')
-    expect(lang.attributes('aria-label')).toBe('Switch to English')
+    expect(lang.attributes('aria-label')).toBe('选择语言')
   })
 
   it('已登录时账号菜单按钮带 44px 热区，头像视觉仍为 32px 圆形', async () => {
@@ -113,7 +114,8 @@ describe('AppHeader 「排座」场景下拉', () => {
 })
 
 describe('第 347 轮：AppHeader <sm 汉堡抽屉导航', () => {
-  const ZH_HREFS = ['/', '/templates', '/seating', '/banquet', '/guides', '/pricing', '/vs', '/papers', '/account', '/en']
+  // 末尾 '/' 与 '/en' 为抽屉内语言列表（中文 / English 两项）
+  const ZH_HREFS = ['/', '/templates', '/seating', '/banquet', '/guides', '/pricing', '/vs', '/papers', '/account', '/', '/en']
 
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -176,6 +178,7 @@ describe('第 347 轮：AppHeader <sm 汉堡抽屉导航', () => {
       '/en/papers',
       '/en/account',
       '/',
+      '/en',
     ])
     expect(nav.get('[data-testid="nav-drawer-locale"]').text()).toContain('中文')
     expect(nav.text()).toContain('Pricing')

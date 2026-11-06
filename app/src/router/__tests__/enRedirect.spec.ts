@@ -14,7 +14,8 @@ describe('zhOnlyRedirectTarget', () => {
     )
     expect(zhOnlyRedirectTarget('/en/templates/standard')).toBe('/templates/standard')
     expect(zhOnlyRedirectTarget('/en/papers/a4-2x4')).toBe('/papers/a4-2x4')
-    expect(zhOnlyRedirectTarget('/en/vs/canva')).toBe('/vs/canva')
+    // /en/vs/canva 已有英文正文（EN_CONTENT_DETAIL_PATHS），不再重定向
+    expect(zhOnlyRedirectTarget('/en/vs/canva')).toBeNull()
   })
 
   it('/en 下专题落地页整路径映射到中文路径', () => {

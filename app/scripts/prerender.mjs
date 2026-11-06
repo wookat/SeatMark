@@ -28,6 +28,7 @@ const {
   isSitemapEligible,
   SITE_ORIGIN,
   guides,
+  enGuides,
   templateDetails,
   vsPages,
   topicPages,
@@ -181,7 +182,7 @@ for (const path of [...paths, ...shellPaths]) {
 
 // ---------- sitemap.xml（与预渲染路径同源；noindex 页不进） ----------
 const today = new Date().toISOString().slice(0, 10)
-const lastmodSources = { guides, templateDetails, vsPages, topicPages, today }
+const lastmodSources = { guides, enGuides, templateDetails, vsPages, topicPages, today }
 const priorities = (p) => (p === '/' ? '1.0' : p === '/studio' ? '0.9' : p.split('/').length > 2 ? '0.7' : '0.8')
 const sitemapEntries = (
   await Promise.all(paths.map(async (p) => ({ p, seo: await resolveSeo(p) })))
@@ -206,9 +207,13 @@ ${sitemapEntries
   .join('\n')}
 </urlset>
 `
-// 构建期断言：/en 下有独立英文正文的对比页必须进 sitemap（可索引、canonical 为自身）
+// 构建期断言：/en 下有独立英文正文的内容页必须进 sitemap（可索引、canonical 为自身）
 for (const v of vsPages.filter((v) => v.lang === 'en')) {
   const loc = `<loc>${SITE_ORIGIN}/en/vs/${v.slug}</loc>`
+  if (!sitemap.includes(loc)) throw new Error(`sitemap assertion failed: missing ${loc}`)
+}
+for (const g of enGuides) {
+  const loc = `<loc>${SITE_ORIGIN}/en/guides/${g.slug}</loc>`
   if (!sitemap.includes(loc)) throw new Error(`sitemap assertion failed: missing ${loc}`)
 }
 writeFileSync(join(distDir, 'sitemap.xml'), sitemap)
@@ -255,6 +260,16 @@ ${guides.map((g) => `- [${g.title}](${SITE_ORIGIN}/guides/${g.slug})`).join('\n'
 ${templateItems
   .slice(0, 8)
   .map((item) => `- [${item.template.name}](${SITE_ORIGIN}/templates/${item.detail.slug})`)
+  .join('\n')}
+
+## English content
+
+- [Guides (EN)](${SITE_ORIGIN}/en/guides)
+${enGuides.map((g) => `- [${g.title}](${SITE_ORIGIN}/en/guides/${g.slug})`).join('\n')}
+- [Comparisons (EN)](${SITE_ORIGIN}/en/vs)
+${vsPages
+  .filter((v) => v.lang === 'en')
+  .map((v) => `- [${v.heading}](${SITE_ORIGIN}/en/vs/${v.slug})`)
   .join('\n')}
 
 ## 补充

@@ -16,6 +16,9 @@ import {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore JS 模块无类型声明
 } from '../../../edge-functions/api/ai-design.js'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore JS 模块无类型声明
+import { SEATMARK_REV } from '../../../edge-functions/api/_rev.js'
 
 interface Env {
   SEATMARK_ALLOW_MEMORY_STORAGE?: string
@@ -327,7 +330,7 @@ describe('第 363 轮：匿名兜底可关闭 + 502 不泄露上游模型名', (
     // 不推进任何伪计时器：响应必须不依赖 setTimeout 到期
     const res = await onRequest({ request: post({ messages }, freshIp()), env })
     expect(res.status).toBe(502)
-    expect(res.headers.get('X-SeatMark-Rev')).toBe('r369')
+    expect(res.headers.get('X-SeatMark-Rev')).toBe(SEATMARK_REV)
     expect(fetchMock).toHaveBeenCalledTimes(0)
     expect(await res.text()).toBe(JSON.stringify({ error: 'AI 服务暂时不可用，请稍后再试' }))
     warn.mockRestore()

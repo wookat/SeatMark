@@ -9,9 +9,14 @@ import { useI18n } from '@/i18n'
 
 const route = useRoute()
 const router = useRouter()
-const { t, localePath } = useI18n()
+const { t, locale, localePath } = useI18n()
 
-const page = computed(() => findVsPage(String(route.params.slug ?? '')))
+/** 同 slug 可能中英各有一页：按当前 locale 取数；跨语言 slug 回退任意语言（交给下方 watch 重定向到规范路径） */
+const page = computed(() => {
+  const slug = String(route.params.slug ?? '')
+  const wanted = locale.value === 'en' ? 'en' : 'zh'
+  return findVsPage(slug, wanted) ?? findVsPage(slug)
+})
 const pageLang = computed(() => (page.value ? vsLangOf(page.value) : 'zh'))
 const highlights = computed(() => (pageLang.value === 'en' ? SEATMARK_HIGHLIGHTS_EN : SEATMARK_HIGHLIGHTS))
 

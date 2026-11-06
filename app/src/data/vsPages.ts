@@ -430,6 +430,282 @@ export const vsPages: VsPage[] = [
     ],
     researchDate: '2026-09',
   },
+  {
+    slug: 'canva',
+    lang: 'en',
+    competitorName: 'Canva',
+    heading: 'SeatMark vs Canva for name cards and place cards',
+    seoTitle: 'Canva vs SeatMark: Batch Name Cards & Print Comparison',
+    seoDescription:
+      'Canva has a huge template library but no roster batching or A4 imposition. SeatMark adds Excel batch, mm-accurate imposition, cut lines and 0.35 mm calibration.',
+    intro:
+      'Canva is a general-purpose design platform: a mature drag-and-drop editor and a massive asset library make it easy to design one beautiful card at a time. SeatMark is a dedicated batch label printing tool. When the job changes from "design one card" to "print a hundred from a list", the differences become concrete.',
+    competitorStrengths: [
+      'Large template and asset library with a polished drag-and-drop editor',
+      'General design platform: presentations, posters and other materials in one place',
+      'Free tier available; Pro subscription for advanced assets and features',
+    ],
+    dimensions: [
+      {
+        dimension: 'Excel roster batching',
+        competitor: 'Bulk Create (CSV batching) exists in the international version, gated behind paid plans',
+        seatmark: 'Upload an Excel roster and batch-generate every card in one click, free to use',
+      },
+      {
+        dimension: 'A4 imposition and cutting',
+        competitor: 'PDF export follows the canvas; no many-up imposition, cut lines or fold lines',
+        seatmark: 'Automatic many-up imposition on A4/A5/A3 with cut lines and fold lines',
+      },
+      {
+        dimension: 'Physical print accuracy',
+        competitor: 'Pixel-based canvas; no millimetre-level print precision concept',
+        seatmark: 'Millimetre units throughout; calibration wizard measured within 0.35 mm',
+      },
+      {
+        dimension: 'Batch photos on cards',
+        competitor: 'No file-name-based photo matching for rosters',
+        seatmark: 'Photos matched to the roster by file name, batch-generate photo ID cards',
+      },
+      {
+        dimension: 'Data privacy',
+        competitor: 'Cloud processing; your roster is uploaded',
+        seatmark: 'Roster and photos are processed locally in the browser, never uploaded',
+      },
+      {
+        dimension: 'Price',
+        competitor: 'Free tier usable; Pro is a paid subscription',
+        seatmark:
+          'Watermarked export free and unlimited; Pro (normally CNY 19/mo) is free for a limited time',
+      },
+    ],
+    faqs: [
+      {
+        q: 'When is Canva the better choice?',
+        a: 'When you need one visually polished card, or you also have posters, slides and other design work in the same project, Canva\'s asset library and editor are stronger.',
+      },
+      {
+        q: 'When is SeatMark the better choice?',
+        a: 'When you have an Excel roster and need dozens or hundreds of name cards, place cards or seat labels printed and cut precisely, SeatMark\'s batching, imposition, calibration and local privacy are built for exactly that.',
+      },
+      {
+        q: 'Where does this comparison come from?',
+        a: 'From our August 2026 hands-on review of Canva\'s public pages (some pages have regional access limits; we verified what we could). Features and pricing change, so check their site for the latest.',
+      },
+    ],
+    relatedGuides: [
+      { label: 'Open the studio', to: '/en/studio' },
+      { label: 'Browse label templates', to: '/en/templates' },
+      { label: 'Banquet seating planner', to: '/en/banquet' },
+    ],
+    researchDate: '2026-08',
+  },
+  {
+    slug: 'placecard-us',
+    lang: 'en',
+    competitorName: 'placecard.us',
+    heading: 'SeatMark vs placecard.us for place card printing',
+    seoTitle: 'SeatMark vs placecard.us: Place Card Maker Comparison',
+    seoDescription:
+      'placecard.us vs SeatMark compared: Excel import, paper layouts, print calibration, template scenarios, watermarks and pricing — item by item.',
+    intro:
+      'placecard.us is an online place card generator that, like SeatMark, focuses on Excel batch import and browser-local processing. The two tools are close in approach; the differences concentrate on template scenarios, print calibration and pricing.',
+    competitorStrengths: [
+      'Fully localized site with blog, guides and help center',
+      'Excel/CSV/Google Sheets import with field mapping, read locally in the browser',
+      'Multiple paper layouts including US Letter, A4 and Avery, with cut line styles',
+    ],
+    dimensions: [
+      {
+        dimension: 'Roster import',
+        competitor: 'Excel/CSV/Google Sheets import with field mapping',
+        seatmark: 'Excel/CSV multi-sheet import with format fidelity (no Google Sheets connect)',
+      },
+      {
+        dimension: 'Template scenarios',
+        competitor: 'Around 100+ templates, mostly Western wedding styles',
+        seatmark: `${TEMPLATE_COUNT} templates covering exams, meetings, campus IDs, weddings and more`,
+      },
+      {
+        dimension: 'Print calibration',
+        competitor: 'Paper layouts and cut line styles selectable; no calibration wizard',
+        seatmark: '17 paper layouts, two-way fit, plus a calibration wizard (measured within 0.35 mm)',
+      },
+      {
+        dimension: 'Photos / e-ink / seating chart',
+        competitor: 'No photo matching, no e-ink export, no seating chart linkage',
+        seatmark: 'Photo matching by file name, pixel-exact e-ink export, one-click seating chart to labels',
+      },
+      {
+        dimension: 'Offline use',
+        competitor: 'Online use',
+        seatmark: 'Installable PWA that keeps working offline',
+      },
+      {
+        dimension: 'Price and watermark',
+        competitor:
+          'Preview PDF with a full-page watermark is free; watermark-free export requires sign-in, one-time bundle from $12.9',
+        seatmark:
+          'Watermarked export free and unlimited without sign-in (small corner mark only); watermark-free export has a daily quota, Pro (normally CNY 19/mo) free for a limited time',
+      },
+    ],
+    faqs: [
+      {
+        q: 'Both say "processed locally in the browser" — is there a difference?',
+        a: 'placecard.us states Excel and CSV are read locally in the browser. SeatMark processes the roster, photos and layout end-to-end locally as a product commitment written into its privacy policy, and also works fully offline.',
+      },
+      {
+        q: 'Which should I pick for wedding place cards?',
+        a: 'If you want Western-style wedding templates, try placecard.us. If you need CJK name rendering without missing characters, table-grouped batch printing and precise cutting, SeatMark\'s banquet templates and print calibration fit better.',
+      },
+      {
+        q: 'Where does this comparison come from?',
+        a: 'From our August 2026 hands-on review of the placecard.us site. The product iterates quickly, so verify features and pricing on their site.',
+      },
+    ],
+    relatedGuides: [
+      { label: 'Banquet seating planner', to: '/en/banquet' },
+      { label: 'Browse label templates', to: '/en/templates' },
+      { label: 'Open the studio', to: '/en/studio' },
+    ],
+    researchDate: '2026-08',
+  },
+  {
+    slug: 'wps-mail-merge',
+    lang: 'en',
+    competitorName: 'WPS / Word mail merge',
+    heading: 'SeatMark vs WPS/Word mail merge for name cards',
+    seoTitle: 'WPS Mail Merge vs SeatMark: Batch Name Cards Compared',
+    seoDescription:
+      'Mail merge means a hand-built template and a wizard rerun per change. SeatMark: upload Excel, instant print page, mm-accurate imposition, calibration.',
+    intro:
+      'WPS/Word mail merge is the traditional way teachers and admins batch-produce name cards: it runs locally, needs no network, and is already installed almost everywhere. SeatMark moves the same "roster to batch cards" flow into the browser as a purpose-built tool. The differences are in steps and layout precision.',
+    competitorStrengths: [
+      'Already installed on most office machines, nothing new to learn',
+      'Documents are processed on your own device, no roster upload either',
+      'Mail merge is a general capability reusable for letters, certificates and more',
+    ],
+    dimensions: [
+      {
+        dimension: 'Workflow',
+        competitor: 'Build the template by hand (row heights, column widths, rotated text), then walk the multi-step merge wizard',
+        seatmark: 'Pick a built-in template, upload Excel, preview the print page instantly',
+      },
+      {
+        dimension: 'Roster changes',
+        competitor: 'Editing the roster means running the merge again (per WPS community guidance)',
+        seatmark: 'Edit the roster and the layout re-renders instantly, no rework',
+      },
+      {
+        dimension: 'Layout precision',
+        competitor: 'Manual row/column tuning and scaled printing drift easily',
+        seatmark: 'Millimetre imposition with cut lines; calibration wizard measured within 0.35 mm',
+      },
+      {
+        dimension: 'Batch photos',
+        competitor: 'Inserting photos via mail merge is a tedious multi-step job',
+        seatmark: 'Photos matched to the roster by file name, batch-generate photo cards',
+      },
+      {
+        dimension: 'Template resources',
+        competitor: 'Few card templates in the template store; quality ones mostly need a membership',
+        seatmark: `${TEMPLATE_COUNT} free templates covering exams, meetings, campus and wedding scenarios`,
+      },
+      {
+        dimension: 'Data privacy',
+        competitor: 'Local document processing, roster stays on your device',
+        seatmark: 'Browser-local processing, roster equally never uploaded (a tie)',
+      },
+    ],
+    faqs: [
+      {
+        q: 'I already know mail merge well. Is switching worth it?',
+        a: 'If your template is tuned and the roster is stable, mail merge is fine. When the roster changes often, you need cut lines that line up, or you want batch photos, SeatMark saves the wizard reruns and manual layout work.',
+      },
+      {
+        q: 'SeatMark needs a network connection — is my roster uploaded?',
+        a: 'No. Once the page loads, the roster and photos are parsed and laid out locally in your browser, same as WPS — data never leaves your computer, and the PWA works offline.',
+      },
+      {
+        q: 'Where does this comparison come from?',
+        a: 'From our August 2026 hands-on review of the WPS mail merge workflow and WPS community documentation. Verify current behaviour in your installed version.',
+      },
+    ],
+    relatedGuides: [
+      { label: 'Open the studio', to: '/en/studio' },
+      { label: 'Browse label templates', to: '/en/templates' },
+      { label: 'Classroom seating chart', to: '/en/seating' },
+    ],
+    researchDate: '2026-08',
+  },
+  {
+    slug: 'chuangkit',
+    lang: 'en',
+    competitorName: 'Chuangkit',
+    heading: 'SeatMark vs Chuangkit for name cards and table tents',
+    seoTitle: 'Chuangkit vs SeatMark: Batch Name Card Comparison',
+    seoDescription:
+      'Chuangkit offers polished card design and in-site print ordering; SeatMark focuses on roster-to-batch printing with imposition, cut lines and calibration.',
+    intro:
+      'Chuangkit is an online design tool with high-quality card templates, and finished designs can be sent straight to in-site print ordering. SeatMark focuses on the "roster to batch labels" print job. If you need to turn a whole guest list into printed cards yourself, the differences concentrate on batch capability and print precision.',
+    competitorStrengths: [
+      'Dozens of card templates with polished design quality',
+      'In-site print ordering: designs can be printed and shipped to you (SeatMark does not offer this)',
+      'General design capability: posters, covers and other materials too',
+    ],
+    dimensions: [
+      {
+        dimension: 'Excel roster batching',
+        competitor: 'No roster batching; cards are edited one at a time',
+        seatmark: 'Excel/CSV multi-sheet import with automatic header matching, batch-generate the whole roster',
+      },
+      {
+        dimension: 'Barrier to entry',
+        competitor: 'Requires WeChat scan sign-in to enter the editor',
+        seatmark: 'Every feature works without an account (unlimited watermarked export)',
+      },
+      {
+        dimension: 'Imposition and cutting',
+        competitor: 'No A4 many-up imposition concept for cards, no cut line support for self-printing',
+        seatmark: 'A4/A5/A3 millimetre imposition with cut lines; 17 label sheet layouts auto-fit',
+      },
+      {
+        dimension: 'Print calibration',
+        competitor: 'No calibration tool',
+        seatmark: 'Calibration wizard compensates printer offset, measured within 0.35 mm',
+      },
+      {
+        dimension: 'Data privacy',
+        competitor: 'Cloud processing',
+        seatmark: 'Roster and photos are processed locally in the browser, never uploaded',
+      },
+      {
+        dimension: 'Price',
+        competitor: 'Free exports carry a watermark; personal membership starts around CNY 139/year',
+        seatmark:
+          'Watermarked export free and unlimited; Pro (normally CNY 19/mo) is free for a limited time',
+      },
+    ],
+    faqs: [
+      {
+        q: 'When is Chuangkit the better choice?',
+        a: 'When you only need one or two design-heavy cards, or you want the design printed and shipped without printing yourself: pick a template, edit online, order printing — done.',
+      },
+      {
+        q: 'When is SeatMark the better choice?',
+        a: 'When you hold an Excel roster (exams, meetings, events) and need dozens or hundreds of cards printed and cut precisely, SeatMark\'s batching, imposition, calibration and no-sign-in free use are built for that.',
+      },
+      {
+        q: 'Where does this comparison come from?',
+        a: 'From our August 2026 hands-on review of Chuangkit\'s public pages and editor. The product keeps iterating, so verify on their site.',
+      },
+    ],
+    relatedGuides: [
+      { label: 'Open the studio', to: '/en/studio' },
+      { label: 'Browse label templates', to: '/en/templates' },
+      { label: 'Banquet seating planner', to: '/en/banquet' },
+    ],
+    researchDate: '2026-08',
+  },
 ]
 
 export function vsLangOf(page: VsPage): VsLang {

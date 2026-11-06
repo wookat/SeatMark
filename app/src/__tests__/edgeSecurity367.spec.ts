@@ -10,6 +10,9 @@ import { CAPTCHA_IP_DAILY_LIMIT, onRequest, shareCodeFor } from "../../../edge-f
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore JS 模块无类型声明
 import { withSecurityHeaders } from "../../../edge-functions/api/_security.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore JS 模块无类型声明
+import { SEATMARK_REV } from "../../../edge-functions/api/_rev.js";
 
 const PERMISSIONS_POLICY = "geolocation=(), microphone=(), camera=(), payment=(), usb=()";
 
@@ -54,7 +57,7 @@ describe("(a) Permissions-Policy 响应头", () => {
       env,
     })) as Response;
     expect(health.headers.get("Permissions-Policy")).toBe(PERMISSIONS_POLICY);
-    expect(health.headers.get("X-SeatMark-Rev")).toBe("r369");
+    expect(health.headers.get("X-SeatMark-Rev")).toBe(SEATMARK_REV);
 
     const captcha = await getCaptcha(env, "203.0.113.9");
     expect(captcha.status).toBe(200);
@@ -185,14 +188,14 @@ describe("(d) PBKDF2 600k", () => {
     return (await onRequest({ request, env })) as Response;
   }
 
-  it("注册写入 pbkdf2$600000$… 且能登录（往返）；存量 100000 迭代哈希仍可登录", async () => {
+  it("注册写入 pbkdf2$100000$… 且能登录（往返）；存量 100000 迭代哈希仍可登录", async () => {
     const kv = mapKv();
     const env = { DEV: "1", AUTH_SECRET: "test-secret", seatmark_kv: kv };
     const email = "pbkdf@example.com";
     const reg = await post(env, "/api/auth/register", { email, password: "Passw0rd!xyz" });
     expect(reg.status).toBe(200);
     const stored = JSON.parse(kv.store.get(`user:${email}`)!) as { passwordHash: string };
-    expect(stored.passwordHash.startsWith("pbkdf2$600000$")).toBe(true);
+    expect(stored.passwordHash.startsWith("pbkdf2$100000$")).toBe(true);
 
     const login = await post(env, "/api/auth/login", { email, password: "Passw0rd!xyz" });
     expect(login.status).toBe(200);

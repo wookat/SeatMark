@@ -154,12 +154,11 @@ const heroSlides = computed<HeroSlide[]>(() => {
   const slides: HeroSlide[] = [makeSlide(heroTemplate.value, heroRows.value, HERO_MAPPING)]
   const list = allTemplates.value
   if (!list) return slides
-  const en = locale.value === 'en'
   const byId = (id: string) => list.find((tpl) => tpl.id === id)
   const extras: [LabelTemplate | undefined, DataRow[], Record<string, string>, Record<string, string>?][] = [
-    [byId('meetingTent'), tentRows.value, { org: '单位', name: '姓名' }, { welcome: en ? 'WELCOME' : '欢迎莅临指导' }],
-    [byId('badge'), heroRows.value, HERO_MAPPING, { header: en ? 'GUEST' : '嘉宾证' }],
-    [byId('weddingPlace'), weddingRows.value, { name: '姓名', tableNo: '桌号' }, { greeting: en ? 'Welcome' : '诚邀' }],
+    [byId('meetingTent'), tentRows.value, { org: '单位', name: '姓名' }, { welcome: locale.value === 'en' ? 'WELCOME' : '欢迎莅临指导' }],
+    [byId('badge'), heroRows.value, HERO_MAPPING, { header: locale.value === 'en' ? 'GUEST' : '嘉宾证' }],
+    [byId('weddingPlace'), weddingRows.value, { name: '姓名', tableNo: '桌号' }, { greeting: locale.value === 'en' ? 'Welcome' : '诚邀' }],
   ]
   for (const [tpl, rows, map, consts] of extras) {
     if (tpl) slides.push(makeSlide(localizeTemplateForLocale(tpl, locale.value), rows, map, consts))
@@ -179,7 +178,7 @@ onMounted(() => {
   // 首屏先出固定幻灯；模板 chunk 延后拉取，避免阻塞 LCP，就绪后再开始轮播
   window.setTimeout(() => {
     void loadTemplates().then(() => {
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+      if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return
       heroTimer = window.setInterval(() => {
         if (!heroHover.value && !document.hidden && heroSlides.value.length > 1) {
           heroSlideIdx.value = (heroSlideIdx.value + 1) % heroSlides.value.length
