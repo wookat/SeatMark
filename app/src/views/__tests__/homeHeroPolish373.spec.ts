@@ -66,9 +66,9 @@ describe('第 373 轮：Hero 拼贴右缘渐隐 + 尺寸角标收起', () => {
   })
 
   it.each([
-    ['/', 'A4 实际排版效果 · 24 枚/页', '实际排版效果 · 24 枚/页'],
-    ['/en', 'Actual A4 layout · 24 labels per page', 'actual layout · 24 labels per page'],
-  ] as const)('%s：角标可聚焦、aria-label 为全文，可见常驻文本只有「A4」，展开层不重复纸型', async (path, full, expandedText) => {
+    ['/', 'A4 实际排版效果 · 24 枚/页', 'A4 · 实际排版效果 · 24 枚/页'],
+    ['/en', 'Actual A4 layout · 24 labels per page', 'A4 · actual layout · 24 labels per page'],
+  ] as const)('%s：角标可聚焦、aria-label 为全文，常驻文本只有「A4」，展开层绝对定位覆盖左侧模板名', async (path, full, expandedText) => {
     const wrapper = await mountHome(path)
     const badge = wrapper.get('[data-testid="hero-sheet-badge"]')
     expect(badge.attributes('tabindex')).toBe('0')
@@ -78,10 +78,11 @@ describe('第 373 轮：Hero 拼贴右缘渐隐 + 尺寸角标收起', () => {
     expect(short!.text()).toBe('A4')
     expect(expanded!.text()).toBe(expandedText)
     expect(expanded!.classes()).toEqual(
-      expect.arrayContaining(['max-w-0', 'overflow-hidden', 'opacity-0', 'group-hover:opacity-100', 'group-focus-visible:opacity-100']),
+      expect.arrayContaining(['absolute', 'max-w-0', 'overflow-hidden', 'opacity-0', 'group-hover:opacity-100', 'group-focus-visible:opacity-100']),
     )
-    // 不再是常驻 <p> 气泡
-    expect(wrapper.findAll('p').some((p) => p.text() === full)).toBe(false)
+    // 展开层不透明底，视觉上覆盖左侧的当前模板名
+    expect(expanded!.classes()).toContain('bg-slate-900/95')
+    expect(wrapper.get('[data-testid="hero-slide-name"]').text()).toBe(wrapper.findAll('[data-testid="hero-slide-nav"] button')[0]!.attributes('aria-label'))
     wrapper.unmount()
   })
 })

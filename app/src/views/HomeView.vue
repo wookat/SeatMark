@@ -497,8 +497,8 @@ const FAQS = computed(() => [
             <div
               v-for="(slide, i) in heroSlides"
               :key="slide.tpl.id"
-              class="absolute inset-x-4 top-4 transition-opacity duration-700"
-              :class="i === activeSlideIdx ? 'opacity-100' : 'pointer-events-none opacity-0'"
+              class="absolute inset-x-4 top-4 transition-all duration-700 ease-out"
+              :class="i === activeSlideIdx ? 'translate-x-0 scale-100 opacity-100' : 'pointer-events-none translate-x-8 scale-[0.985] opacity-0'"
               :aria-hidden="i !== activeSlideIdx"
             >
               <div class="relative w-fit origin-top-left" :style="{ transform: `scale(${slideScale(slide.tpl)})` }">
@@ -512,43 +512,53 @@ const FAQS = computed(() => [
               </div>
             </div>
           </div>
-          <!-- 轮播标签：每张幻灯一枚模板名 chip，点击直接切换 -->
-          <div
-            class="absolute bottom-3 left-3 flex max-w-[calc(100%-5rem)] flex-wrap items-center gap-1"
-            data-testid="hero-slide-nav"
-          >
+          <!-- 轮播圆点（左）：点击切换；激活点拉长并走自动播放进度条，悬停时进度与轮换同步暂停 -->
+          <div class="absolute bottom-3 left-3 flex items-center gap-1.5" data-testid="hero-slide-nav">
             <button
               v-for="(slide, i) in heroSlides"
               :key="slide.tpl.id"
               type="button"
-              class="cursor-pointer rounded px-2 py-1 text-[11px] font-semibold transition-colors"
-              :class="
-                i === activeSlideIdx
-                  ? 'bg-slate-900/85 text-white'
-                  : 'bg-white/85 text-slate-600 ring-1 ring-slate-200/80 backdrop-blur-xs hover:bg-white hover:text-slate-900'
-              "
+              class="relative h-2 cursor-pointer rounded-full bg-white/80 ring-1 ring-slate-300/70 transition-all duration-300"
+              :class="i === activeSlideIdx ? 'w-6' : 'w-2 hover:bg-white'"
               :aria-label="slide.name"
               :aria-current="i === activeSlideIdx ? 'true' : undefined"
               @click="heroSlideIdx = i"
             >
-              {{ slide.name }}
+              <span
+                v-if="i === activeSlideIdx && heroSlides.length > 1"
+                :key="activeSlideIdx"
+                class="absolute inset-0 overflow-hidden rounded-full"
+              >
+                <span
+                  class="hero-progress block h-full w-full origin-left rounded-full bg-brand-600 motion-reduce:hidden"
+                  :class="{ '[animation-play-state:paused]': heroHover }"
+                ></span>
+              </span>
             </button>
           </div>
-          <!-- 尺寸角标：默认只露「A4」，hover / 键盘聚焦展开完整说明；全文常驻在 aria-label 供读屏 -->
-          <span
-            class="group absolute right-3 bottom-3 inline-flex max-w-[calc(100%-1.5rem)] cursor-default items-center gap-1 rounded bg-slate-900/85 px-2 py-1 text-[11px] font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-            tabindex="0"
-            :aria-label="locale === 'en' ? `Actual ${activeSlide.paper} layout · ${activeSlide.perPage} labels per page` : `${activeSlide.paper} 实际排版效果 · ${activeSlide.perPage} 枚/页`"
-            data-testid="hero-sheet-badge"
-          >
-            <span aria-hidden="true">{{ activeSlide.paper }}</span>
+          <!-- 右下：当前模板名 + 纸型角标；角标 hover/聚焦时展开层向左滑出，覆盖模板名 -->
+          <div class="absolute right-3 bottom-3 flex items-center">
             <span
-              class="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-[max-width,opacity] duration-200 group-hover:max-w-[16rem] group-hover:opacity-100 group-focus-visible:max-w-[16rem] group-focus-visible:opacity-100"
-              aria-hidden="true"
+              class="mr-1.5 max-w-40 truncate rounded bg-slate-900/85 px-2 py-1 text-[11px] font-semibold text-white"
+              data-testid="hero-slide-name"
             >
-              {{ locale === 'en' ? `actual layout · ${activeSlide.perPage} labels per page` : `实际排版效果 · ${activeSlide.perPage} 枚/页` }}
+              {{ activeSlide.name }}
             </span>
-          </span>
+            <span
+              class="group relative inline-flex cursor-default items-center rounded bg-slate-900/85 px-2 py-1 text-[11px] font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              tabindex="0"
+              :aria-label="locale === 'en' ? `Actual ${activeSlide.paper} layout · ${activeSlide.perPage} labels per page` : `${activeSlide.paper} 实际排版效果 · ${activeSlide.perPage} 枚/页`"
+              data-testid="hero-sheet-badge"
+            >
+              <span aria-hidden="true">{{ activeSlide.paper }}</span>
+              <span
+                class="pointer-events-none absolute right-0 top-0 flex h-full max-w-0 items-center overflow-hidden whitespace-nowrap rounded bg-slate-900/95 opacity-0 transition-[max-width,opacity,padding] duration-300 group-hover:max-w-[17rem] group-hover:px-2 group-hover:opacity-100 group-focus-visible:max-w-[17rem] group-focus-visible:px-2 group-focus-visible:opacity-100"
+                aria-hidden="true"
+              >
+                {{ locale === 'en' ? `${activeSlide.paper} · actual layout · ${activeSlide.perPage} labels per page` : `${activeSlide.paper} · 实际排版效果 · ${activeSlide.perPage} 枚/页` }}
+              </span>
+            </span>
+          </div>
         </div>
       </div>
     </section>

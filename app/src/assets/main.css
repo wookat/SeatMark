@@ -39,6 +39,20 @@
   }
 }
 
+/* Hero 轮播激活圆点的自动播放进度：时长须与 HomeView HERO_ROTATE_MS 保持一致 */
+@keyframes hero-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.hero-progress {
+  animation: hero-progress 5s linear forwards;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
