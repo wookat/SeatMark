@@ -22,8 +22,8 @@ import { SEATMARK_REV } from '../../../edge-functions/api/_rev.js'
 
 interface Env {
   SEATMARK_ALLOW_MEMORY_STORAGE?: string
-  DEEPSEEK_API_KEY?: string
   AI_API_KEY?: string
+  AI_GATEWAY_API_KEY?: string
   SEATMARK_AI_ANON_FALLBACK?: string
 }
 
@@ -239,9 +239,9 @@ describe('ai-design 上游超时与截断', () => {
     warn2.mockRestore()
   })
 
-  it('第 364 轮：告警 webhook 挂住不阻塞兜底上游（DeepSeek 500 → 立即请求智谱，webhook 交给 waitUntil）', async () => {
+  it('告警 webhook 挂住不阻塞兜底上游（EO 网关 500 → 立即请求智谱，webhook 交给 waitUntil）', async () => {
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-      if (url.includes('api.deepseek.com')) return new Response('boom', { status: 500 })
+      if (url.includes('ai-gateway.edgeone.link')) return new Response('boom', { status: 500 })
       if (url.includes('hooks.example')) {
         return new Promise<Response>((_resolve, reject) => {
           init?.signal?.addEventListener('abort', () =>
@@ -256,7 +256,7 @@ describe('ai-design 上游超时与截断', () => {
     const background: Promise<unknown>[] = []
     const env: Env & { ALERT_WEBHOOK: string } = {
       ...ENV,
-      DEEPSEEK_API_KEY: 'k1',
+      AI_GATEWAY_API_KEY: 'k1',
       AI_API_KEY: 'k2',
       ALERT_WEBHOOK: 'https://hooks.example/alert',
     }
@@ -286,14 +286,14 @@ describe('ai-design 上游超时与截断', () => {
         }),
     )
     globalThis.fetch = fetchMock as unknown as typeof fetch
-    const env: Env = { ...ENV, DEEPSEEK_API_KEY: 'test-key', AI_API_KEY: 'test-key-2' }
+    const env: Env = { ...ENV, AI_GATEWAY_API_KEY: 'test-key', AI_API_KEY: 'test-key-2' }
     const pending = onRequest({ request: post({ messages }, freshIp()), env })
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
     await vi.advanceTimersByTimeAsync(AI_UPSTREAM_TIMEOUT_MS + 10)
     const res = await pending
     expect(res.status).toBe(504)
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(String(fetchMock.mock.calls[0]![0])).toContain('api.deepseek.com')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('ai-gateway.edgeone.link')
   })
 
   it('回复 content 超过 20KB 截断并标记 truncated:true', async () => {
@@ -379,7 +379,6 @@ describe('具名上游：GET 清单 + upstream 首选 + AI_UPSTREAMS 扩展', ()
   it('GET 返回已配置 tier 的 id/label 清单，不含任何密钥或 URL', async () => {
     const env = {
       ...ENV,
-      DEEPSEEK_API_KEY: 'secret-ds',
       AI_API_KEY: 'secret-glm',
       AI_GATEWAY_API_KEY: 'secret-gw',
       AI_UPSTREAMS: JSON.stringify([
@@ -390,9 +389,9 @@ describe('具名上游：GET 清单 + upstream 首选 + AI_UPSTREAMS 扩展', ()
     expect(res.status).toBe(200)
     const data = (await res.json()) as { models: Array<{ id: string; label: string }> }
     const ids = data.models.map((m) => m.id)
-    expect(ids).toEqual(['deepseek', 'zhipu', 'eomodels', 'openrouter-free'])
+    expect(ids).toEqual(['eomodels', 'zhipu', 'openrouter-free'])
     const body = JSON.stringify(data)
-    for (const leak of ['secret-ds', 'secret-glm', 'secret-gw', 'secret-or', 'baseUrl', 'api.deepseek.com']) {
+    for (const leak of ['secret-glm', 'secret-gw', 'secret-or', 'baseUrl', 'bigmodel.cn', 'edgeone']) {
       expect(body).not.toContain(leak)
     }
   })
@@ -417,31 +416,31 @@ describe('具名上游：GET 清单 + upstream 首选 + AI_UPSTREAMS 扩展', ()
       if (u.includes('bigmodel.cn')) return new Response('glm down', { status: 500 })
       return chatReply('{"fields":[]}')
     }) as unknown as typeof fetch
-    const env: Env = { ...ENV, DEEPSEEK_API_KEY: 'k1', AI_API_KEY: 'k2' }
+    const env: Env = { ...ENV, AI_GATEWAY_API_KEY: 'k1', AI_API_KEY: 'k2' }
     const res = await onRequest({
       request: post({ messages, upstream: 'zhipu' }, freshIp()),
       env,
     })
     expect(res.status).toBe(200)
-    // 智谱先于 DeepSeek 被尝试；智谱 500 后级联到 DeepSeek
+    // 智谱先于 EO 网关被尝试；智谱 500 后级联到 EO 网关
     expect(urls.findIndex((u) => u.includes('bigmodel.cn'))).toBe(0)
-    expect(urls.findIndex((u) => u.includes('api.deepseek.com'))).toBe(1)
+    expect(urls.findIndex((u) => u.includes('ai-gateway.edgeone.link'))).toBe(1)
     expect((fetchMockBody(0) as { model: string }).model).toBe('glm-4-flash')
   })
 
-  it('upstream 指向未配置的 tier → 跳过，按默认顺序走 DeepSeek', async () => {
+  it('upstream 指向未配置的 tier → 跳过，按默认顺序走智谱', async () => {
     const urls: string[] = []
     globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
       urls.push(String(url))
       return chatReply('{"fields":[]}')
     }) as unknown as typeof fetch
-    const env: Env = { ...ENV, DEEPSEEK_API_KEY: 'k1' }
+    const env: Env = { ...ENV, AI_API_KEY: 'k1' }
     const res = await onRequest({
       request: post({ messages, upstream: 'eomodels' }, freshIp()),
       env,
     })
     expect(res.status).toBe(200)
-    expect(urls[0]).toContain('api.deepseek.com')
+    expect(urls[0]).toContain('bigmodel.cn')
     expect(urls.some((u) => u.includes('edgeone'))).toBe(false)
   })
 

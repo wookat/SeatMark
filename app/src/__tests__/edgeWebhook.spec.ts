@@ -14,7 +14,7 @@ import { onRequest as aiDesignRequest } from '../../../edge-functions/api/ai-des
 interface Env {
   FEEDBACK_WEBHOOK?: string
   ALERT_WEBHOOK?: string
-  DEEPSEEK_API_KEY?: string
+  AI_GATEWAY_API_KEY?: string
   SEATMARK_ALLOW_MEMORY_STORAGE?: string
 }
 
@@ -83,7 +83,7 @@ describe('ai-design.js 告警 webhook 仅读 env.ALERT_WEBHOOK', () => {
     }) as unknown as typeof fetch
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    const env: Env = { DEEPSEEK_API_KEY: 'test-key', SEATMARK_ALLOW_MEMORY_STORAGE: '1' }
+    const env: Env = { AI_GATEWAY_API_KEY: 'test-key', SEATMARK_ALLOW_MEMORY_STORAGE: '1' }
     const response: Response = await aiDesignRequest({
       request: postJson('https://www.seatmark.cn/api/ai-design', {
         messages: [{ role: 'user', content: 'hi' }],
@@ -107,7 +107,7 @@ describe('ai-design.js 告警 webhook 仅读 env.ALERT_WEBHOOK', () => {
     }) as unknown as typeof fetch
 
     const env: Env = {
-      DEEPSEEK_API_KEY: 'test-key',
+      AI_GATEWAY_API_KEY: 'test-key',
       ALERT_WEBHOOK: 'https://example.com/alert',
       SEATMARK_ALLOW_MEMORY_STORAGE: '1',
     }

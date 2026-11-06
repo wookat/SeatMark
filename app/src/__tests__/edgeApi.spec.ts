@@ -1514,16 +1514,16 @@ describe("feedback.js 观测头 X-SeatMark-Rev", () => {
   });
 });
 
-describe("第 354 轮（第 375 轮递增）：三条边缘函数统一 X-SeatMark-Rev = r376 与公告短缓存", () => {
-  it("_rev.js 导出 r376", () => {
-    expect(SEATMARK_REV).toBe("r376");
+describe("三条边缘函数统一 X-SeatMark-Rev 与公告短缓存", () => {
+  it("_rev.js 导出格式为 r<数字>", () => {
+    expect(SEATMARK_REV).toMatch(/^r\d+$/);
   });
 
-  it("/api/announcement GET 带 r376 与 Cache-Control 短缓存", async () => {
+  it("/api/announcement GET 带 rev 与 Cache-Control 短缓存", async () => {
     const { response, data } = await call("GET", "https://www.seatmark.cn/api/announcement");
     expect(response.status).toBe(200);
     expect(data.authService).toBe("ok");
-    expect(response.headers.get("X-SeatMark-Rev")).toBe("r376");
+    expect(response.headers.get("X-SeatMark-Rev")).toBe(SEATMARK_REV);
     expect(ANNOUNCEMENT_CACHE_CONTROL).toBe(
       "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
     );
@@ -1533,10 +1533,10 @@ describe("第 354 轮（第 375 轮递增）：三条边缘函数统一 X-SeatMa
   it("其余 JSON 响应保持 no-store（不受公告缓存影响）", async () => {
     const { response } = await call("GET", "https://www.seatmark.cn/api/auth/me");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
-    expect(response.headers.get("X-SeatMark-Rev")).toBe("r376");
+    expect(response.headers.get("X-SeatMark-Rev")).toBe(SEATMARK_REV);
   });
 
-  it("/api/feedback 405 / 200 响应均带 r376", async () => {
+  it("/api/feedback 405 / 200 响应均带 rev", async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore JS 模块无类型声明
     const { onRequest: onFeedback } = await import("../../../edge-functions/api/feedback.js");
@@ -1545,7 +1545,7 @@ describe("第 354 轮（第 375 轮递增）：三条边缘函数统一 X-SeatMa
       env: withTestEnv({}),
     });
     expect(get.status).toBe(405);
-    expect(get.headers.get("X-SeatMark-Rev")).toBe("r376");
+    expect(get.headers.get("X-SeatMark-Rev")).toBe(SEATMARK_REV);
     const ok: Response = await onFeedback({
       request: new Request("http://localhost:5173/api/feedback", {
         method: "POST",
@@ -1555,10 +1555,10 @@ describe("第 354 轮（第 375 轮递增）：三条边缘函数统一 X-SeatMa
       env: withTestEnv({}),
     });
     expect(ok.status).toBe(200);
-    expect(ok.headers.get("X-SeatMark-Rev")).toBe("r376");
+    expect(ok.headers.get("X-SeatMark-Rev")).toBe(SEATMARK_REV);
   });
 
-  it("/api/ai-design 405 / 413 / 200 响应均带 r376", async () => {
+  it("/api/ai-design GET 清单 / 413 / 200 响应均带 rev", async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore JS 模块无类型声明
     const { onRequest: onAi, AI_MAX_BODY_BYTES } = await import("../../../edge-functions/api/ai-design.js");
@@ -1582,24 +1582,26 @@ describe("第 354 轮（第 375 轮递增）：三条边缘函数统一 X-SeatMa
           },
           body,
         });
-      const notAllowed: Response = await onAi({
+      // GET 现为站点模型清单（无密钥上游时为空数组）
+      const modelList: Response = await onAi({
         request: new Request("https://www.seatmark.cn/api/ai-design", { method: "GET" }),
         env,
       });
-      expect(notAllowed.status).toBe(405);
-      expect(notAllowed.headers.get("X-SeatMark-Rev")).toBe("r376");
+      expect(modelList.status).toBe(200);
+      expect(modelList.headers.get("X-SeatMark-Rev")).toBe(SEATMARK_REV);
+      expect((await modelList.json()).models).toEqual([]);
       const tooLarge: Response = await onAi({
         request: post("{}", { "Content-Length": String(AI_MAX_BODY_BYTES + 1) }),
         env,
       });
       expect(tooLarge.status).toBe(413);
-      expect(tooLarge.headers.get("X-SeatMark-Rev")).toBe("r376");
+      expect(tooLarge.headers.get("X-SeatMark-Rev")).toBe(SEATMARK_REV);
       const ok: Response = await onAi({
         request: post(JSON.stringify({ messages: [{ role: "user", content: "hi" }] })),
         env,
       });
       expect(ok.status).toBe(200);
-      expect(ok.headers.get("X-SeatMark-Rev")).toBe("r376");
+      expect(ok.headers.get("X-SeatMark-Rev")).toBe(SEATMARK_REV);
     } finally {
       globalThis.fetch = originalFetch;
     }

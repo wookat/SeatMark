@@ -7,17 +7,15 @@
  *       upstream 指定已配置的 tier id 时优先尝试该上游，之后仍按默认顺序级联；
  *       未指定或 tier 未配置时按 TIER_DEFS 顺序级联。
  *
- * 主模型：DeepSeek v4 Flash（通过环境变量 DEEPSEEK_API_KEY 配置）
- * 兜底模型：智谱 glm-4-flash（通过环境变量 AI_API_KEY 配置，永久免费）
- * 兜底模型：EdgeOne Makers Models 网关 @makers/deepseek-v4-flash
+ * 首选上游：EdgeOne Makers Models 网关 @makers/deepseek-v4-flash
  *   （AI_GATEWAY_API_KEY 或 MAKERS_MODELS_KEY 配置；Agents 模板部署时平台自动注入，
  *   Pages 项目需从控制台 Models 页获取密钥后手动配置，免费版每月 50 万 token 内置模型额度）
+ * 兜底模型：智谱 glm-4-flash（通过环境变量 AI_API_KEY 配置，永久免费）
  * 无密钥兜底：服务端代理 Pollinations 匿名接口（SEATMARK_AI_ANON_FALLBACK=0 可关闭，关闭后
  * 密钥上游全部失败即直接 502）。前端免费通道仅调本同源代理，
  * 浏览器不直连任何第三方模型接口，所有兜底都在服务端完成。
  *
  * 环境变量（EdgeOne Pages 控制台配置）：
- * - DEEPSEEK_API_KEY    主模型密钥（DeepSeek 开放平台）
  * - AI_API_KEY          兜底密钥（智谱开放平台 glm-4-flash）
  * - AI_BASE_URL         兜底接口地址，默认 https://open.bigmodel.cn/api/paas/v4
  * - AI_MODEL            兜底模型名，默认 glm-4-flash
@@ -63,9 +61,6 @@ export const AI_MAX_CONTENT_CHARS = 20 * 1024
 
 const encoder = new TextEncoder()
 
-const DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
-const DEEPSEEK_MODEL = 'deepseek-v4-flash'
-
 const FALLBACK_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4'
 const FALLBACK_MODEL = 'glm-4-flash'
 
@@ -78,11 +73,11 @@ const EO_MODELS_MODEL = '@makers/deepseek-v4-flash'
  */
 const TIER_DEFS = [
   {
-    id: 'deepseek',
-    label: 'DeepSeek V4 Flash',
-    key: (env) => env.DEEPSEEK_API_KEY,
-    base: () => DEEPSEEK_BASE_URL,
-    model: () => DEEPSEEK_MODEL,
+    id: 'eomodels',
+    label: 'EO 内置模型',
+    key: (env) => env.AI_GATEWAY_API_KEY || env.MAKERS_MODELS_KEY,
+    base: (env) => String(env.AI_GATEWAY_BASE_URL || EO_MODELS_BASE_URL),
+    model: (env) => env.AI_GATEWAY_MODEL || EO_MODELS_MODEL,
     alert: true,
   },
   {
@@ -91,13 +86,6 @@ const TIER_DEFS = [
     key: (env) => env.AI_API_KEY,
     base: (env) => String(env.AI_BASE_URL || FALLBACK_BASE_URL),
     model: (env) => env.AI_MODEL || FALLBACK_MODEL,
-  },
-  {
-    id: 'eomodels',
-    label: 'EO 内置模型',
-    key: (env) => env.AI_GATEWAY_API_KEY || env.MAKERS_MODELS_KEY,
-    base: (env) => String(env.AI_GATEWAY_BASE_URL || EO_MODELS_BASE_URL),
-    model: (env) => env.AI_GATEWAY_MODEL || EO_MODELS_MODEL,
   },
 ]
 
@@ -217,7 +205,7 @@ async function sendAlert(env, level, detail) {
 const UNAVAILABLE_ERROR = 'AI 服务暂时不可用，请稍后再试'
 
 function hasUpstreamKey(env) {
-  return !!(env && (env.DEEPSEEK_API_KEY || env.AI_API_KEY || env.AI_GATEWAY_API_KEY || env.MAKERS_MODELS_KEY))
+  return !!(env && (env.AI_API_KEY || env.AI_GATEWAY_API_KEY || env.MAKERS_MODELS_KEY))
 }
 
 function anonFallbackOn(env) {

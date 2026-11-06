@@ -102,12 +102,12 @@ describe('AI 模型选择体系', () => {
 
   it('site: 调用：POST 同源代理且 body 带 upstream，不发直连请求', async () => {
     fetchMock.mockResolvedValue(new Response(OK_REPLY, { status: 200 }))
-    await generateLabelDesign(config({ provider: 'site:deepseek' }), INPUT)
+    await generateLabelDesign(config({ provider: 'site:eomodels' }), INPUT)
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
     expect(url).toBe('/api/ai-design')
     const body = JSON.parse(String(init.body)) as { upstream?: string }
-    expect(body.upstream).toBe('deepseek')
+    expect(body.upstream).toBe('eomodels')
   })
 
   it('auto 调用：body 不带 upstream（服务端按默认级联）', async () => {
