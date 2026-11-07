@@ -33,7 +33,7 @@ export function guideBodyImages(body: string): string[] {
 }
 
 /** 已提供英文版内容的中文路径（/en 前缀镜像可被索引并互挂 hreflang） */
-const EN_LOCALIZED_BASES = ['/', '/studio', '/pricing', '/seating', '/banquet', '/about', '/terms', '/privacy'] as const
+const EN_LOCALIZED_BASES = ['/', '/studio', '/pricing', '/seating', '/banquet', '/about', '/terms', '/privacy', '/refund'] as const
 
 function enPathOf(base: string): string {
   return base === '/' ? '/en' : `/en${base}`
@@ -551,6 +551,21 @@ function resolveEnSeo(base: string): PageSeo | null {
     }
   }
 
+  if (base === '/refund') {
+    return {
+      ...common,
+      title: 'Refund Policy (English Summary) | SeatMark',
+      description:
+        'English summary of the SeatMark Refund Policy: 14-day refunds for paid plans, returned via the original payment method. The Chinese version is legally binding.',
+      jsonLd: [
+        breadcrumb([
+          { name: 'Home', path: '/en' },
+          { name: 'Refund Policy', path: '/en/refund' },
+        ]),
+      ],
+    }
+  }
+
   // base === '/banquet'
   return {
     ...common,
@@ -820,10 +835,11 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
   }
 
   if (p.startsWith('/papers/')) {
-    const { findLabelPaper } = await import('@/data/labelPapers')
+    const { findLabelPaper, sheetKeyOf, sheetOf } = await import('@/data/labelPapers')
     const slug = p.slice('/papers/'.length)
     const paper = findLabelPaper(slug)
     if (paper) {
+      const sheet = sheetOf(paper)
       return {
         title: `${paper.name}：规格参数与打印模板 - SeatMark 座签`,
         description: `${paper.description}单枚 ${paper.labelWidth}×${paper.labelHeight} mm，${paper.cols} 列×${paper.rows} 行每页 ${paper.cols * paper.rows} 枚。在线选此纸型自动对版，上传 Excel 即可批量打印。`,
@@ -837,7 +853,11 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
             description: paper.description,
             url: `${SITE_ORIGIN}/papers/${paper.slug}`,
             additionalProperty: [
-              { '@type': 'PropertyValue', name: '整张纸', value: 'A4 210×297 mm' },
+              {
+                '@type': 'PropertyValue',
+                name: '整张纸',
+                value: `${sheetKeyOf(paper)} ${sheet.width}×${sheet.height} mm`,
+              },
               {
                 '@type': 'PropertyValue',
                 name: '单枚标签',
@@ -1034,6 +1054,21 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
     }
   }
 
+  if (p === '/refund') {
+    return {
+      title: '退款政策 - SeatMark 座签',
+      description:
+        'SeatMark 座签退款政策：付费方案 14 天内未实质使用可全额退款，支付宝与国际收单均原路退回，邮件申请即可。',
+      path: '/refund',
+      jsonLd: [
+        breadcrumb([
+          { name: '首页', path: '/' },
+          { name: '退款政策', path: '/refund' },
+        ]),
+      ],
+    }
+  }
+
   // 未知路径：品牌化 404 页（noindex，预渲染为静态托管的 404.html）
   return {
     title: '页面不存在 - SeatMark 座签',
@@ -1087,6 +1122,7 @@ export async function prerenderPaths(): Promise<string[]> {
     '/about',
     '/terms',
     '/privacy',
+    '/refund',
     ...EN_LOCALIZED_BASES.map((base) => enPathOf(base)),
     // /en 内容站索引外壳：noindex，预渲染防 404 但由 isSitemapEligible 排除出 sitemap
     ...enIndexShellPaths(),

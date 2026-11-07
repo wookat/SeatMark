@@ -160,6 +160,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'privacy',
     component: () => import('@/views/PrivacyView.vue'),
   },
+  {
+    path: '/refund',
+    name: 'refund',
+    component: () => import('@/views/RefundView.vue'),
+  },
 ]
 
 /** /en 前缀英文路由：同一份组件镜像生成，meta.locale 标记语言 */
