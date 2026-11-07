@@ -45,6 +45,7 @@ import {
   type BanquetParseMode,
   type ParsedBanquetGuests,
   quickReferenceCsv,
+  seatLayout,
   snapshotTables,
   summarizeAssignments,
   removeEmptyTables,
@@ -685,6 +686,8 @@ function removeAvoidPair(index: number) {
 /** 排斥对坐到同一桌（当前安排） */
 const avoidConflictList = computed(() => findAvoidConflicts(avoidPairs.value, tables.value))
 const avoidConflictKeys = computed(() => new Set(avoidConflictList.value.map((c) => avoidPairKey([c.a, c.b]))))
+/** 「不同桌」冲突所在的桌 id（画布红框警示） */
+const conflictTableIds = computed(() => new Set(avoidConflictList.value.map((c) => c.tableId)))
 
 /** 整组移桌时可移动的成员：钉住在其他桌的成员保持原桌不动 */
 function movableGroupMembers(groupId: string, tableId: string): string[] {
@@ -859,6 +862,7 @@ const rosterGuests = computed(() =>
   guestQuery.value.trim() ? guests.value.filter((g) => hitGuestIds.value.has(g.id)) : guests.value,
 )
 const flashTableId = ref<string | null>(null)
+const flashTableIds = ref<Set<string>>(new Set())
 let flashTimer: ReturnType<typeof setTimeout> | null = null
 
 /** 滚到命中宾客所在桌并闪烁；未安排的滚到宾客池 */
@@ -881,6 +885,20 @@ watch(searchHits, (hits) => {
   const first = hits[0]
   if (first && first.tableId) focusSearchHit(first)
 })
+
+/** 「不同桌冲突」摘要点击：闪烁所有冲突桌并滚到第一桌 */
+function focusConflictTables() {
+  const ids = [...conflictTableIds.value]
+  if (!ids.length) return
+  flashTableIds.value = new Set(ids)
+  if (flashTimer) clearTimeout(flashTimer)
+  flashTimer = setTimeout(() => {
+    flashTableIds.value = new Set()
+  }, 1800)
+  canvasContainer.value
+    ?.querySelector(`[data-table-id="${ids[0]}"]`)
+    ?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+}
 
 function clearGuestQuery() {
   guestQuery.value = ''
@@ -988,6 +1006,8 @@ const dropTableId = ref<string | null>(null)
 const dropToPool = ref(false)
 let guestDragStartX = 0
 let guestDragStartY = 0
+/** 拖拽落桌后抑制紧随的 click，避免误触座位点上的「钉住」切换 */
+let suppressSeatClick = false
 
 function onGuestPointerDown(guestId: string, event: PointerEvent) {
   if (event.button !== 0 && event.pointerType === 'mouse') return
@@ -1021,14 +1041,39 @@ function onGuestPointerUp() {
   window.removeEventListener('pointermove', onGuestPointerMove)
   window.removeEventListener('pointerup', onGuestPointerUp)
   const guestId = guestDragId.value
-  if (guestDragging.value && guestId) {
+  const dragged = guestDragging.value
+  if (dragged && guestId) {
     if (dropTableId.value) moveGuestToTable(guestId, dropTableId.value)
     else if (dropToPool.value) moveGuestToPool(guestId)
+    suppressSeatClick = true
   }
   guestDragId.value = null
   guestDragging.value = false
   dropTableId.value = null
   dropToPool.value = false
+}
+
+/** 第 i 个座位点上的宾客（按 guestIds 顺序对位；缺席/溢出由视图层分别处理） */
+function seatGuestAt(t: BanquetTable, i: number): BanquetGuest | null {
+  const id = t.guestIds[i]
+  return id ? (guestById.value.get(id) ?? null) : null
+}
+
+/** 超出座位数的宾客：桌心堆叠展示（桌已标超员警示） */
+function overflowGuests(t: BanquetTable): BanquetGuest[] {
+  return t.guestIds
+    .slice(t.seats)
+    .map((id) => guestById.value.get(id))
+    .filter((g): g is BanquetGuest => !!g)
+}
+
+/** 点击座位点：拖拽落桌后的尾随 click 忽略；否则切换「钉住到本桌」 */
+function onSeatGuestClick(guest: BanquetGuest, tableId: string) {
+  if (suppressSeatClick) {
+    suppressSeatClick = false
+    return
+  }
+  togglePin(guest.id, tableId)
 }
 
 function moveGuestToTable(guestId: string, tableId: string) {
@@ -2098,7 +2143,67 @@ function toPlaceCards() {
             >
               {{ tr('未安排') }} {{ summary.unassigned }}
             </button>
+            <template v-if="avoidConflictList.length">
+              <span aria-hidden="true">·</span>
+              <button
+                type="button"
+                class="rounded px-0.5 font-bold text-red-700 transition-colors hover:bg-red-50"
+                data-testid="conflict-count"
+                :title="tr('点击查看冲突桌')"
+                @click="focusConflictTables"
+              >
+                {{ tr('不同桌冲突') }} {{ avoidConflictList.length }}
+              </button>
+            </template>
           </p>
+        </div>
+        <!-- 画布快捷动作行：加桌 / 加标记 / 自动分配（第 2/3 步的高频操作贴近画布） -->
+        <div class="mb-2 flex flex-wrap items-center gap-1.5" data-testid="canvas-quick-actions">
+          <button
+            type="button"
+            class="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600"
+            data-testid="quick-add-round"
+            @click="addTable('round')"
+          >
+            {{ tr('＋ 圆桌') }}
+          </button>
+          <button
+            type="button"
+            class="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600"
+            data-testid="quick-add-rect"
+            @click="addTable('rect')"
+          >
+            {{ tr('＋ 长桌') }}
+          </button>
+          <button
+            type="button"
+            class="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600"
+            data-testid="quick-add-marker"
+            :title="tr('添加舞台标记')"
+            @click="addMarker('stage')"
+          >
+            {{ tr('＋ 舞台') }}
+          </button>
+          <button
+            type="button"
+            class="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600"
+            data-testid="quick-add-entrance"
+            :title="tr('添加入口标记')"
+            @click="addMarker('entrance')"
+          >
+            {{ tr('＋ 入口') }}
+          </button>
+          <span class="mx-0.5 hidden h-4 w-px bg-slate-200 sm:inline-block" aria-hidden="true"></span>
+          <button
+            type="button"
+            class="rounded-md bg-brand-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+            data-testid="canvas-auto-assign"
+            :disabled="!guests.length || !tables.length"
+            :title="tr('按分组一键自动分配同桌')"
+            @click="autoAssign"
+          >
+            ⚡ {{ tr('自动分配') }}
+          </button>
         </div>
         <ul
           v-if="splitDetailsOpen && splitGroupDetails.length"
@@ -2258,7 +2363,8 @@ function toPlaceCards() {
                       'banquet-table--over': t.guestIds.length > t.seats,
                       'banquet-table--empty-hint': highlightEmptyTables && !t.guestIds.length,
                       'banquet-table--locked': t.locked,
-                      'banquet-table--flash': flashTableId === t.id,
+                      'banquet-table--flash': flashTableId === t.id || flashTableIds.has(t.id),
+                      'banquet-table--conflict': conflictTableIds.has(t.id),
                     }"
                     :style="{
                       left: `${t.x}mm`,
@@ -2289,11 +2395,12 @@ function toPlaceCards() {
                     </button>
                     <span class="banquet-table-name">{{ t.name }}</span>
                     <span class="banquet-table-count">{{ t.guestIds.length }}/{{ t.seats }}</span>
-                    <span class="banquet-table-guests">
+                    <span v-if="conflictTableIds.has(t.id)" class="banquet-table-conflict" :title="tr('有「不同桌」宾客坐在了同一桌')">⚠</span>
+                    <span v-if="overflowGuests(t).length" class="banquet-table-overflow">
                       <span
-                        v-for="g in tableGuests(t)"
+                        v-for="g in overflowGuests(t)"
                         :key="g.id"
-                        class="banquet-guest"
+                        class="banquet-guest banquet-guest--overflow"
                         :class="{
                           'banquet-guest--dragging': guestDragging && guestDragId === g.id,
                           'banquet-guest--hit': hitGuestIds.has(g.id),
@@ -2304,28 +2411,56 @@ function toPlaceCards() {
                             ? { borderColor: guestColor(g, true)!, color: guestColor(g, true)! }
                             : undefined
                         "
-                        :data-pinned="isPinnedTo(g, t.id) ? 'true' : undefined"
                         @pointerdown="onGuestPointerDown(g.id, $event)"
                       >
                         {{ g.name }}
-                        <button
-                          type="button"
-                          class="banquet-guest-pin"
-                          :class="{ 'banquet-guest-pin--on': isPinnedTo(g, t.id) }"
-                          :aria-pressed="isPinnedTo(g, t.id)"
-                          :aria-label="
-                            (isPinnedTo(g, t.id) ? tr('取消钉住 {name}') : tr('钉住 {name} 到本桌')).replace('{name}', g.name)
-                          "
-                          :title="isPinnedTo(g, t.id) ? tr('取消钉住') : tr('钉住到本桌')"
-                          data-testid="guest-pin-toggle"
-                          @pointerdown.stop
-                          @click.stop="togglePin(g.id, t.id)"
-                        >
-                          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M9.5 2.5l4 4-2.5.5-2.5 2.5.5 3-2-2-4 4 4-4-2-2 3 .5L10 6z" :fill="isPinnedTo(g, t.id) ? 'currentColor' : 'none'" />
-                          </svg>
-                        </button>
                       </span>
+                    </span>
+                    <!-- 桌缘座位点：按 seats 环布，已坐显示宾客名（点按钉住、拖拽换桌），空位虚线 -->
+                    <span
+                      v-for="(p, i) in seatLayout(t).positions"
+                      :key="i"
+                      class="banquet-seat"
+                      :class="{
+                        'banquet-seat--guest': !!seatGuestAt(t, i),
+                        'banquet-guest': !!seatGuestAt(t, i),
+                        'banquet-guest--dragging': seatGuestAt(t, i) && guestDragging && guestDragId === seatGuestAt(t, i)!.id,
+                        'banquet-guest--hit': seatGuestAt(t, i) && hitGuestIds.has(seatGuestAt(t, i)!.id),
+                        'banquet-guest--pinned': seatGuestAt(t, i) && isPinnedTo(seatGuestAt(t, i)!, t.id),
+                      }"
+                      :style="{
+                        left: `${p.x}mm`,
+                        top: `${p.y}mm`,
+                        width: `${seatLayout(t).width}mm`,
+                        height: `${seatLayout(t).height}mm`,
+                        ...(seatGuestAt(t, i) && guestColor(seatGuestAt(t, i)!, true)
+                          ? { borderColor: guestColor(seatGuestAt(t, i)!, true)!, color: guestColor(seatGuestAt(t, i)!, true)! }
+                          : {}),
+                      }"
+                      :data-pinned="seatGuestAt(t, i) && isPinnedTo(seatGuestAt(t, i)!, t.id) ? 'true' : undefined"
+                      :title="seatGuestAt(t, i) ? (isPinnedTo(seatGuestAt(t, i)!, t.id) ? tr('已钉住：点按取消') : tr('点按钉住到本桌；拖拽可换桌')) : tr('空位')"
+                      @pointerdown="seatGuestAt(t, i) && onGuestPointerDown(seatGuestAt(t, i)!.id, $event)"
+                      @click.stop="seatGuestAt(t, i) && onSeatGuestClick(seatGuestAt(t, i)!, t.id)"
+                    >
+                      <span class="banquet-seat-name">{{ seatGuestAt(t, i)?.name }}</span>
+                      <button
+                        v-if="seatGuestAt(t, i)"
+                        type="button"
+                        class="banquet-guest-pin banquet-seat-pin"
+                        :class="{ 'banquet-guest-pin--on': isPinnedTo(seatGuestAt(t, i)!, t.id) }"
+                        :aria-pressed="isPinnedTo(seatGuestAt(t, i)!, t.id)"
+                        :aria-label="
+                          (isPinnedTo(seatGuestAt(t, i)!, t.id) ? tr('取消钉住 {name}') : tr('钉住 {name} 到本桌')).replace('{name}', seatGuestAt(t, i)!.name)
+                        "
+                        :title="isPinnedTo(seatGuestAt(t, i)!, t.id) ? tr('取消钉住') : tr('钉住到本桌')"
+                        data-testid="guest-pin-toggle"
+                        @pointerdown.stop
+                        @click.stop="togglePin(seatGuestAt(t, i)!.id, t.id)"
+                      >
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M9.5 2.5l4 4-2.5.5-2.5 2.5.5 3-2-2-4 4 4-4-2-2 3 .5L10 6z" :fill="isPinnedTo(seatGuestAt(t, i)!, t.id) ? 'currentColor' : 'none'" />
+                        </svg>
+                      </button>
                     </span>
                   </div>
                 </div>
@@ -2788,11 +2923,12 @@ function toPlaceCards() {
                   }"
                 >
                   <span class="banquet-table-name">{{ t.name }}</span>
-                  <span class="banquet-table-guests">
+                  <span class="banquet-table-count">{{ t.guestIds.length }}/{{ t.seats }}</span>
+                  <span v-if="overflowGuests(t).length" class="banquet-table-overflow">
                     <span
-                      v-for="g in tableGuests(t)"
+                      v-for="g in overflowGuests(t)"
                       :key="g.id"
-                      class="banquet-guest"
+                      class="banquet-guest banquet-guest--overflow"
                       :style="
                         guestColor(g, exportColors)
                           ? { borderColor: guestColor(g, exportColors)!, color: guestColor(g, exportColors)! }
@@ -2801,6 +2937,24 @@ function toPlaceCards() {
                     >
                       {{ g.name }}
                     </span>
+                  </span>
+                  <!-- 场地图导出口径同画布：桌缘座位点，空位虚线 -->
+                  <span
+                    v-for="(p, i) in seatLayout(t).positions"
+                    :key="i"
+                    class="banquet-seat"
+                    :class="{ 'banquet-seat--guest': !!seatGuestAt(t, i), 'banquet-guest': !!seatGuestAt(t, i) }"
+                    :style="{
+                      left: `${p.x}mm`,
+                      top: `${p.y}mm`,
+                      width: `${seatLayout(t).width}mm`,
+                      height: `${seatLayout(t).height}mm`,
+                      ...(seatGuestAt(t, i) && guestColor(seatGuestAt(t, i)!, exportColors)
+                        ? { borderColor: guestColor(seatGuestAt(t, i)!, exportColors)!, color: guestColor(seatGuestAt(t, i)!, exportColors)! }
+                        : {}),
+                    }"
+                  >
+                    <span class="banquet-seat-name">{{ seatGuestAt(t, i)?.name }}</span>
                   </span>
                 </div>
               </div>
@@ -2929,12 +3083,11 @@ function toPlaceCards() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   border: 0.45mm solid #64748b;
   border-radius: 2mm;
   background: #ffffff;
   padding: 1.6mm 1.2mm;
-  overflow: hidden;
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -2942,7 +3095,90 @@ function toPlaceCards() {
 
 .banquet-table--round {
   border-radius: 50%;
+}
+
+.banquet-table-conflict {
+  font-size: 3mm;
+  line-height: 1.1;
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.banquet-table--conflict {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 0.8mm rgba(220, 38, 38, 0.16);
+}
+
+.banquet-table-overflow {
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  gap: 0.5mm;
+  margin-top: 0.5mm;
+  max-width: 96%;
+}
+
+.banquet-guest--overflow {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+/* ---------- 桌缘座位点 ---------- */
+
+.banquet-seat {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0.35mm dashed #a8b6c8;
+  border-radius: 1.5mm;
+  background: rgba(248, 250, 252, 0.92);
+  color: #94a3b8;
+  font-size: 2.3mm;
+  line-height: 1;
+  pointer-events: auto;
+}
+
+.banquet-seat--guest {
+  border-style: solid;
+  border-color: #94a3b8;
+  background: #ffffff;
+  color: #1e293b;
+  font-weight: 600;
+  cursor: grab;
+  box-shadow: 0 0.3mm 0.8mm rgba(15, 23, 42, 0.12);
+}
+
+.banquet-seat-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 0.8mm;
+}
+
+.banquet-seat-pin {
+  position: absolute;
+  right: -1.6mm;
+  top: -1.6mm;
+  width: 3.2mm;
+  height: 3.2mm;
+  margin: 0;
+  background: #fff;
+  border: 0.3mm solid #cbd5e1;
+  box-shadow: 0 0.2mm 0.5mm rgba(15, 23, 42, 0.15);
+}
+
+.banquet-guest-pin--on {
+  opacity: 1;
+  color: #4f46e5;
+  border-color: #a5b4fc;
+}
+
+.banquet-seat--guest:not(.banquet-guest--pinned):not(:hover) .banquet-seat-pin {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .banquet-table-name {

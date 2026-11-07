@@ -62,6 +62,74 @@ export const MARKER_PRESETS: Record<MarkerKind, { label: string; width: number; 
 export const VENUE_WIDTH = 420
 export const VENUE_HEIGHT = 297
 
+// ---------- 桌缘座位点 ----------
+
+/** 单个座位点（相对桌左上角的圆心坐标，mm） */
+export interface BanquetSeatPos {
+  x: number
+  y: number
+}
+
+export interface BanquetSeatLayout {
+  /** 座位点牌宽（按环形/边距自适应收窄，mm） */
+  width: number
+  /** 座位点牌高（mm） */
+  height: number
+  positions: BanquetSeatPos[]
+}
+
+const SEAT_CHIP_H = 4.6
+const SEAT_CHIP_MAX_W = 13
+const SEAT_CHIP_MIN_W = 7.5
+const SEAT_OUT_GAP = 1.6
+
+/**
+ * 桌缘座位点布局：座位牌环绕桌沿外侧排布（圆桌沿圆周、方桌沿两条长边），
+ * 空桌/小桌自动收窄牌宽；超出座位数的宾客由视图层在桌心堆叠展示。
+ * 返回相对桌左上角的坐标，直接用于画布与场地图导出（同一口径）。
+ */
+export function seatLayout(t: BanquetTable): BanquetSeatLayout {
+  const n = Math.max(0, Math.floor(t.seats))
+  if (!n) return { width: SEAT_CHIP_MAX_W, height: SEAT_CHIP_H, positions: [] }
+  const cy = SEAT_CHIP_H / 2 + SEAT_OUT_GAP
+  const positions: BanquetSeatPos[] = []
+  let width = SEAT_CHIP_MAX_W
+
+  if (t.shape === 'round') {
+    const r = Math.min(t.width, t.height) / 2 + cy
+    const arc = (2 * Math.PI * r) / n - 1.6
+    width = Math.max(SEAT_CHIP_MIN_W, Math.min(SEAT_CHIP_MAX_W, arc))
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + (i * 2 * Math.PI) / n
+      positions.push({ x: t.width / 2 + r * Math.cos(a), y: t.height / 2 + r * Math.sin(a) })
+    }
+  } else if (t.width >= t.height) {
+    // 小桌（≤3 座，如教室课桌）同桌同侧坐下边；大桌上下两边分
+    const bottom = n <= 3 ? n : Math.ceil(n / 2)
+    const top = n - bottom
+    const step = t.width / Math.max(top, bottom)
+    width = Math.max(SEAT_CHIP_MIN_W, Math.min(SEAT_CHIP_MAX_W, step - 1.6))
+    for (let i = 0; i < top; i++) {
+      positions.push({ x: (t.width * (i + 1)) / (top + 1), y: -cy })
+    }
+    for (let i = 0; i < bottom; i++) {
+      positions.push({ x: (t.width * (i + 1)) / (bottom + 1), y: t.height + cy })
+    }
+  } else {
+    const right = n <= 3 ? n : Math.ceil(n / 2)
+    const left = n - right
+    const step = t.height / Math.max(left, right)
+    width = Math.max(SEAT_CHIP_MIN_W, Math.min(SEAT_CHIP_MAX_W, step - 1.6))
+    for (let i = 0; i < left; i++) {
+      positions.push({ x: -cy, y: (t.height * (i + 1)) / (left + 1) })
+    }
+    for (let i = 0; i < right; i++) {
+      positions.push({ x: t.width + cy, y: (t.height * (i + 1)) / (right + 1) })
+    }
+  }
+  return { width, height: SEAT_CHIP_H, positions }
+}
+
 // ---------- 名单解析与去重 ----------
 
 export interface ParsedBanquetGuests {

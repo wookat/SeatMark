@@ -496,6 +496,8 @@ export type SeatingFillOrder = 'rows' | 'serpentine' | 'cols' | 'colSnake'
 export interface SeatShape {
   disabled?: ReadonlySet<string>
   podium?: ReadonlySet<number>
+  /** 「空位散布」：这些可坐格排到填充序末尾，人数不满时成为随机散布的空位（仍计容量） */
+  emptyLast?: ReadonlySet<string>
 }
 
 /** 主区禁用格的键（排、列均 1 起） */
@@ -632,6 +634,17 @@ function openCells(
   const cells = fillCells(rows, cols, fillOrder).filter(
     ([r, c]) => !shape?.disabled?.has(maskKey(r + 1, c + 1)),
   )
+  // 「空位散布」：指定格移到填充序末尾——人数不足时这些格成为散布的空位，超员时仍按末位入座
+  if (shape?.emptyLast?.size) {
+    const last: [number, number][] = []
+    const keep: [number, number][] = []
+    for (const cell of cells) {
+      if (shape.emptyLast.has(maskKey(cell[0] + 1, cell[1] + 1))) last.push(cell)
+      else keep.push(cell)
+    }
+    cells.length = 0
+    cells.push(...keep, ...last)
+  }
   if (spacing === 'spread') {
     const checker = cells.filter(([r, c]) => !isSeatBlocked(r, c, 'checker'))
     if (count <= checker.length) return checker
