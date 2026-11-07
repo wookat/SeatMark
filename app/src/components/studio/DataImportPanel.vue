@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
-import RosterEditorDialog from '@/components/studio/RosterEditorDialog.vue'
+import RosterEditorGrid from '@/components/studio/RosterEditorGrid.vue'
 import { useDragScroll } from '@/composables/useDragScroll'
 import { t } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
@@ -53,12 +53,13 @@ const viewSummary = computed(() => {
   return parts.join(' · ')
 })
 
-// ---------- 在线编辑名单（免 Excel 直接录入/修改） ----------
-const rosterEditorOpen = ref(false)
-
-// ---------- 全部数据浏览（列筛选与排序决定排版顺序） ----------
+// ---------- 名单数据弹窗（查看：筛选/排序/搜索；编辑：在线增删改） ----------
 const dataViewerOpen = ref(false)
 const dataQuery = ref('')
+/** 弹窗内模式：查看 or 编辑 */
+const rosterMode = ref<'view' | 'edit'>('view')
+/** 编辑网格懒挂载：首次切入编辑后保持挂载，来回切换不丢草稿；弹窗关闭时复位 */
+const editorMounted = ref(false)
 
 /** 在排版顺序（displayRows）基础上做仅查看用的全局搜索 */
 const viewRows = computed(() => {
@@ -70,10 +71,30 @@ const viewRows = computed(() => {
   )
 })
 
-function openDataViewer() {
+function openRosterDialog(mode: 'view' | 'edit' = 'view') {
   dataQuery.value = ''
+  rosterMode.value = mode
+  if (mode === 'edit') editorMounted.value = true
   dataViewerOpen.value = true
 }
+
+function switchRosterMode(mode: 'view' | 'edit') {
+  rosterMode.value = mode
+  if (mode === 'edit') editorMounted.value = true
+}
+
+function onEditorCancel() {
+  // 已有名单：回查看模式；空名单（录入入口进入）：直接关弹窗
+  if (workspace.excel.rows.length) rosterMode.value = 'view'
+  else dataViewerOpen.value = false
+}
+
+watch(dataViewerOpen, (open) => {
+  if (!open) {
+    rosterMode.value = 'view'
+    editorMounted.value = false
+  }
+})
 
 // ---------- 列筛选弹层（Excel 自动筛选风格） ----------
 const filterColumn = ref<string | null>(null)
@@ -362,7 +383,7 @@ async function onDownloadSample() {
           type="button"
           class="btn btn-ghost btn-sm col-span-2"
           data-testid="roster-editor-open"
-          @click="rosterEditorOpen = true"
+          @click="openRosterDialog('edit')"
         >
           {{ t('在线编辑名单（无需 Excel）') }}
         </button>
@@ -476,16 +497,13 @@ async function onDownloadSample() {
       </div>
       <div class="mt-1.5 flex items-center justify-between">
         <div class="flex items-center">
-          <button type="button" class="btn btn-ghost btn-sm -ml-2" @click="openDataViewer">
-            {{ t('查看全部数据（可筛选排序）') }}
-          </button>
           <button
             type="button"
-            class="btn btn-ghost btn-sm"
-            data-testid="roster-editor-open"
-            @click="rosterEditorOpen = true"
+            class="btn btn-ghost btn-sm -ml-2"
+            data-testid="roster-dialog-open"
+            @click="openRosterDialog('view')"
           >
-            {{ t('编辑名单') }}
+            {{ t('查看 / 编辑名单（可筛选排序）') }}
           </button>
         </div>
         <p v-if="workspace.displayRows.length > 5" class="text-[11px] text-slate-600">
@@ -493,8 +511,6 @@ async function onDownloadSample() {
         </p>
       </div>
     </template>
-
-    <RosterEditorDialog :open="rosterEditorOpen" @close="rosterEditorOpen = false" />
 
     <ModalDialog :open="pasteOpen" :title="t('粘贴名单导入')" size="md" @close="pasteOpen = false">
       <p class="text-xs text-slate-600">
@@ -608,11 +624,53 @@ async function onDownloadSample() {
 
     <ModalDialog
       :open="dataViewerOpen"
-      :title="`${t('全部数据')} · ${workspace.excel.fileName}`"
+      :title="`${t('名单数据')}${workspace.excel.fileName ? ` · ${workspace.excel.fileName}` : ''}`"
       size="xl"
       @close="dataViewerOpen = false"
     >
-      <div class="flex flex-wrap items-center gap-2">
+      <!-- 模式切换：查看（排序/筛选/搜索）⇄ 编辑（在线增删改） -->
+      <div class="mb-3 flex items-center">
+        <div
+          class="inline-flex rounded-lg bg-slate-100 p-0.5"
+          role="tablist"
+          :aria-label="t('名单数据模式')"
+        >
+          <button
+            type="button"
+            role="tab"
+            :aria-selected="rosterMode === 'view'"
+            class="rounded-md px-3 py-1 text-xs font-bold transition-colors"
+            :class="
+              rosterMode === 'view'
+                ? 'bg-white text-brand-700 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            "
+            @click="switchRosterMode('view')"
+          >
+            {{ t('查看') }}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            :aria-selected="rosterMode === 'edit'"
+            data-testid="roster-mode-edit"
+            class="rounded-md px-3 py-1 text-xs font-bold transition-colors"
+            :class="
+              rosterMode === 'edit'
+                ? 'bg-white text-brand-700 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            "
+            @click="switchRosterMode('edit')"
+          >
+            {{ t('编辑') }}
+          </button>
+        </div>
+        <span v-if="rosterMode === 'edit'" class="ml-3 text-[11px] text-slate-500">
+          {{ t('修改在保存后生效') }}
+        </span>
+      </div>
+
+      <div v-show="rosterMode === 'view'" class="flex flex-wrap items-center gap-2">
         <input
           v-model="dataQuery"
           type="text"
@@ -636,6 +694,7 @@ async function onDownloadSample() {
       </div>
 
       <div
+        v-show="rosterMode === 'view'"
         ref="viewerScroller"
         class="mt-3 max-h-[62vh] cursor-grab overflow-auto rounded-lg border border-slate-200"
       >
@@ -737,8 +796,21 @@ async function onDownloadSample() {
         </table>
       </div>
 
+      <!-- 编辑模式：懒挂载一次后保持，来回切换不丢草稿 -->
+      <RosterEditorGrid
+        v-if="editorMounted"
+        v-show="rosterMode === 'edit'"
+        @saved="dataViewerOpen = false"
+        @cancel="onEditorCancel"
+      />
+
       <template #actions>
-        <button type="button" class="btn btn-secondary btn-md" @click="dataViewerOpen = false">
+        <button
+          v-if="rosterMode === 'view'"
+          type="button"
+          class="btn btn-secondary btn-md"
+          @click="dataViewerOpen = false"
+        >
           {{ t('关闭') }}
         </button>
       </template>

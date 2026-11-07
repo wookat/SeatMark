@@ -227,3 +227,40 @@ export async function loadPhotoFiles(
 
   return result
 }
+
+// ---------- ZIP 照片包解压 ----------
+
+/** zip 内可导入的图片扩展名（前置粗筛；最终仍以文件头魔数校验为准） */
+const ZIP_IMAGE_EXT = /\.(jpe?g|png|gif|bmp|webp|heic|heif|avif|svg)$/i
+/** 单个 zip 最多取出的文件数 */
+export const ZIP_MAX_FILES = 500
+/** 单文件解压字节上限（防超大文件撑爆内存） */
+export const ZIP_MAX_FILE_BYTES = 40 * 1024 * 1024
+/** 整个包累计解压字节上限（防解压炸弹） */
+export const ZIP_MAX_TOTAL_BYTES = 300 * 1024 * 1024
+
+/**
+ * 解压 .zip 照片包为 File[]：跳过目录、__MACOSX 元数据、点开头文件与非图片扩展名；
+ * 文件名取路径末段作为匹配依据（嵌套文件夹里「photos/张伟.jpg」按「张伟.jpg」匹配）。
+ * 数量/单文件/总量超限即截断，与多选上传走同一套按列匹配。
+ */
+export async function extractZipPhotos(file: File): Promise<File[]> {
+  const { default: JSZip } = await import('jszip')
+  const zip = await JSZip.loadAsync(file)
+  const out: File[] = []
+  let total = 0
+  for (const [path, entry] of Object.entries(zip.files)) {
+    if (entry.dir) continue
+    if (path.startsWith('__MACOSX/')) continue
+    const base = path.split('/').filter(Boolean).pop() ?? ''
+    if (!base || base.startsWith('.')) continue
+    if (!ZIP_IMAGE_EXT.test(base)) continue
+    const blob = await entry.async('blob')
+    if (blob.size > ZIP_MAX_FILE_BYTES) continue
+    total += blob.size
+    if (total > ZIP_MAX_TOTAL_BYTES) break
+    out.push(new File([blob], base, { type: blob.type || 'application/octet-stream' }))
+    if (out.length >= ZIP_MAX_FILES) break
+  }
+  return out
+}

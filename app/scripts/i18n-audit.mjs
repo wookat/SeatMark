@@ -184,13 +184,16 @@ function skipLine(line) {
   return false
 }
 
+/** 豁免词按长度降序应用：先吃长词（如「使用部门」），避免短词（「部门」）先截断留下残字误判 */
+const ALLOWLIST_BY_LENGTH = [...ALLOWLIST].sort((a, b) => b.length - a.length)
+
 function isAllowed(line) {
   // 同一行内已有 locale 三元分支（英文分支存在）
   if (/locale(?:\.value)? [!=]== 'en'/.test(line)) return true
   let rest = line
   // 行内 // 注释（不含 URL 的 :// 场景）
   rest = rest.replace(/(^|[^:])\/\/.*$/, '$1')
-  for (const item of ALLOWLIST) {
+  for (const item of ALLOWLIST_BY_LENGTH) {
     rest = rest.split(item).join('')
   }
   return !CJK_RE.test(rest)

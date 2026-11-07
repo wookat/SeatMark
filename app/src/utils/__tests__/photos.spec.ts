@@ -4,6 +4,7 @@ import {
   PHOTO_MAX_EDGE,
   type PhotoResizer,
   detectPhotoKind,
+  extractZipPhotos,
   fitWithinMaxEdge,
   loadPhotoDataUrl,
   loadPhotoFiles,
@@ -252,5 +253,43 @@ describe('照片导入降采样（r361）', () => {
       createElement.mockRestore()
       vi.unstubAllGlobals()
     }
+  })
+})
+
+describe('extractZipPhotos（ZIP 照片包）', () => {
+  async function buildZip(files: Record<string, Uint8Array | string>): Promise<File> {
+    const { default: JSZip } = await import('jszip')
+    const zip = new JSZip()
+    for (const [name, content] of Object.entries(files)) zip.file(name, content)
+    const blob = await zip.generateAsync({ type: 'blob' })
+    return new File([blob], 'photos.zip', { type: 'application/zip' })
+  }
+
+  const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0])
+  const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47])
+
+  it('嵌套目录取末段文件名；跳过 __MACOSX / 点开头文件 / 非图片扩展名', async () => {
+    const file = await buildZip({
+      'photos/张伟.jpg': JPEG,
+      'photos/sub/王芳.png': PNG,
+      'photos/readme.txt': 'not an image',
+      'photos/.hidden.jpg': JPEG,
+      '__MACOSX/photos/._张伟.jpg': JPEG,
+    })
+    const out = await extractZipPhotos(file)
+    expect(out.map((f) => f.name).sort()).toEqual(['张伟.jpg', '王芳.png'])
+  })
+
+  it('解出的文件可直接交给 loadPhotoFiles 按列匹配', async () => {
+    const file = await buildZip({ '2026061001.jpg': JPEG, '张伟.png': PNG })
+    const out = await extractZipPhotos(file)
+    const result = await loadPhotoFiles(out, new Set(['2026061001', '张伟']))
+    expect(result.matched).toBe(2)
+    expect(result.unmatched).toBe(0)
+  })
+
+  it('空包 / 无图片返回空数组', async () => {
+    const file = await buildZip({ 'a.txt': 'x', 'b/b.docx': 'y' })
+    expect(await extractZipPhotos(file)).toEqual([])
   })
 })

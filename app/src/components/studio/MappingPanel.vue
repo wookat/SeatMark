@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import { t, useI18n } from '@/i18n'
+import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import {
   headerOptionLabel,
@@ -14,9 +15,15 @@ import {
 import { missingDetailText } from '@/utils/missingDetail'
 
 const workspace = useWorkspaceStore()
+const toast = useToastStore()
 const { locale } = useI18n()
 
 const photoInput = ref<HTMLInputElement | null>(null)
+const photoDirInput = ref<HTMLInputElement | null>(null)
+const photoZipInput = ref<HTMLInputElement | null>(null)
+
+/** 文件夹/zip 导入前的扩展名粗筛（最终仍以文件头魔数为准），跳过 .DS_Store 等杂项 */
+const PHOTO_EXT = /\.(jpe?g|png|gif|bmp|webp|heic|heif|avif|svg)$/i
 
 /** 下拉中「自定义组合」选项的哨兵值（不会与真实表头冲突） */
 const COMPOSITE_OPTION = '__composite__'
@@ -138,6 +145,24 @@ function onPhotoFiles(event: Event) {
   const files = input.files ? Array.from(input.files) : []
   input.value = ''
   if (files.length) void workspace.importPhotos(files)
+}
+
+function onPhotoFolder(event: Event) {
+  const input = event.target as HTMLInputElement
+  const files = input.files ? Array.from(input.files).filter((f) => PHOTO_EXT.test(f.name)) : []
+  input.value = ''
+  if (!files.length) {
+    toast.warning(t('文件夹中没有可导入的图片'), t('支持 jpg / png / webp 等常见格式'))
+    return
+  }
+  void workspace.importPhotos(files)
+}
+
+function onPhotoZip(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (file) void workspace.importPhotoZip(file)
 }
 </script>
 
@@ -326,7 +351,7 @@ function onPhotoFiles(event: Event) {
     <div v-if="workspace.hasMatchedImageField" class="mt-4 border-t border-slate-100 pt-4">
       <h3 class="text-xs font-bold text-slate-700">{{ t('照片匹配') }}</h3>
       <p class="mt-1 text-[11px] leading-4 text-slate-600">
-        {{ t('照片文件名与所选列的值一致或包含该值即可匹配。例如「张伟2023010101.jpg」，按姓名列或学号列都能匹配；完全一致的文件优先。') }}
+        {{ t('照片文件名与所选列的值一致或包含该值即可匹配。例如「张伟2023010101.jpg」，按姓名列或学号列都能匹配；完全一致的文件优先。可多选、选整个文件夹或上传 ZIP 压缩包批量导入。') }}
       </p>
       <div class="mt-2 grid gap-2">
         <div>
@@ -337,14 +362,34 @@ function onPhotoFiles(event: Event) {
             @update:model-value="workspace.setPhotoColumn($event)"
           />
         </div>
-        <button
-          type="button"
-          class="btn btn-secondary btn-md"
-          :disabled="!workspace.photoColumn"
-          @click="photoInput?.click()"
-        >
-          {{ t('上传照片文件（可多选）') }}
-        </button>
+        <div class="grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            class="btn btn-secondary btn-md col-span-2"
+            :disabled="!workspace.photoColumn"
+            @click="photoInput?.click()"
+          >
+            {{ t('上传照片文件（可多选）') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            :disabled="!workspace.photoColumn"
+            data-testid="photo-folder-open"
+            @click="photoDirInput?.click()"
+          >
+            {{ t('选择整个文件夹') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            :disabled="!workspace.photoColumn"
+            data-testid="photo-zip-open"
+            @click="photoZipInput?.click()"
+          >
+            {{ t('上传 ZIP 压缩包') }}
+          </button>
+        </div>
         <input
           ref="photoInput"
           type="file"
@@ -352,6 +397,22 @@ function onPhotoFiles(event: Event) {
           multiple
           class="hidden"
           @change="onPhotoFiles"
+        />
+        <input
+          ref="photoDirInput"
+          type="file"
+          webkitdirectory
+          class="hidden"
+          :aria-label="t('选择照片文件夹')"
+          @change="onPhotoFolder"
+        />
+        <input
+          ref="photoZipInput"
+          type="file"
+          accept=".zip,application/zip"
+          class="hidden"
+          :aria-label="t('上传 ZIP 照片包')"
+          @change="onPhotoZip"
         />
         <p v-if="workspace.photoStats.totalPhotos > 0" class="text-xs text-slate-600">
           {{ t('已导入') }} {{ workspace.photoStats.totalPhotos }} {{ t('张照片，匹配') }}

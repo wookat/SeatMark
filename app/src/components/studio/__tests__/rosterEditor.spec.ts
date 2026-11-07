@@ -3,11 +3,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
-import RosterEditorDialog from '@/components/studio/RosterEditorDialog.vue'
+import RosterEditorGrid from '@/components/studio/RosterEditorGrid.vue'
 import { setLocale } from '@/i18n'
 import { useWorkspaceStore } from '@/stores/workspace'
 
-const CJK = /[\u4e00-\u9fff]/
+const CJK = /[一-鿿]/
 
 function queryAll<T extends Element = HTMLElement>(sel: string): T[] {
   return Array.from(document.body.querySelectorAll<T>(sel))
@@ -20,15 +20,12 @@ async function setInput(input: HTMLInputElement, value: string) {
 }
 
 async function mountEditor() {
-  const wrapper = mount(RosterEditorDialog, {
-    props: { open: true },
-    attachTo: document.body,
-  })
+  const wrapper = mount(RosterEditorGrid, { attachTo: document.body })
   await wrapper.vm.$nextTick()
   return wrapper
 }
 
-describe('RosterEditorDialog 在线编辑名单', () => {
+describe('RosterEditorGrid 在线编辑名单', () => {
   beforeEach(async () => {
     localStorage.clear()
     setActivePinia(createPinia())
@@ -78,6 +75,18 @@ describe('RosterEditorDialog 在线编辑名单', () => {
     wrapper.unmount()
   })
 
+  it('保存后 emit saved（弹窗据此关闭）', async () => {
+    const workspace = useWorkspaceStore()
+    const wrapper = await mountEditor()
+    const firstRowInputs = queryAll<HTMLInputElement>('tbody tr')[0]!.querySelectorAll('input')
+    await setInput(firstRowInputs[0]!, '测试甲')
+    document.body.querySelector<HTMLButtonElement>('[data-testid="roster-save"]')!.click()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.emitted('saved')).toBeTruthy()
+    expect(workspace.excel.rows.length).toBe(1)
+    wrapper.unmount()
+  })
+
   it('加行/删行/加列保持网格一致', async () => {
     const wrapper = await mountEditor()
     const btnByText = (s: string) =>
@@ -103,6 +112,7 @@ describe('RosterEditorDialog 在线编辑名单', () => {
     document.body.querySelector<HTMLButtonElement>('[data-testid="roster-save"]')!.click()
     await wrapper.vm.$nextTick()
     expect(workspace.excel.rows.length).toBe(0)
+    expect(wrapper.emitted('saved')).toBeFalsy()
     wrapper.unmount()
   })
 
@@ -110,7 +120,7 @@ describe('RosterEditorDialog 在线编辑名单', () => {
     await setLocale('en')
     const wrapper = await mountEditor()
     for (const b of queryAll<HTMLElement>('button')) expect(CJK.test(b.textContent ?? '')).toBe(false)
-    expect(document.body.textContent).toContain('Online roster editor')
+    expect(document.body.textContent).toContain('Save roster')
     wrapper.unmount()
   })
 })

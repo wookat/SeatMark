@@ -25,7 +25,7 @@ import { compareCellText, parseExcelFile } from '@/utils/excel'
 import { stackSortRows } from '@/utils/cutSort'
 import { summarizeDuplicateRows, type DuplicateRowsSummary } from '@/utils/duplicateRows'
 import { chunkRows, cloneTemplate, labelsPerPage } from '@/utils/layout'
-import { loadPhotoFiles } from '@/utils/photos'
+import { extractZipPhotos, loadPhotoFiles } from '@/utils/photos'
 
 export type MappingTone = 'muted' | 'success' | 'warning'
 
@@ -780,24 +780,49 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     photoColumn.value = column
   }
 
+  /** 按匹配列批量匹配照片并合并入库（多选 / 文件夹 / zip 共用） */
+  async function ingestPhotoFiles(files: File[]) {
+    const matchValues = new Set(
+      excel.rows.map((row) => String(row[photoColumn.value] ?? '')).filter(Boolean),
+    )
+    const result = await loadPhotoFiles(files, matchValues)
+    const merged = new Map(photos.value)
+    result.photos.forEach((dataUrl, key) => merged.set(key, dataUrl))
+    photos.value = merged
+    photoErrors.value = result.errors
+    toast.success(
+      '照片已加载',
+      `本次匹配 ${result.matched} 张，当前覆盖率 ${photoStats.value.coverage}%`,
+    )
+  }
+
+  function requirePhotoColumn(): boolean {
+    if (photoColumn.value) return true
+    toast.warning('请先选择匹配列', '照片文件名需等于或包含该列的值，如「张伟2023010101.jpg」')
+    return false
+  }
+
   async function importPhotos(files: File[]) {
-    if (!photoColumn.value) {
-      toast.warning('请先选择匹配列', '照片文件名需等于或包含该列的值，如「张伟2023010101.jpg」')
-      return
-    }
-    await withLoading(`正在加载 ${files.length} 张照片...`, async () => {
-      const matchValues = new Set(
-        excel.rows.map((row) => String(row[photoColumn.value] ?? '')).filter(Boolean),
-      )
-      const result = await loadPhotoFiles(files, matchValues)
-      const merged = new Map(photos.value)
-      result.photos.forEach((dataUrl, key) => merged.set(key, dataUrl))
-      photos.value = merged
-      photoErrors.value = result.errors
-      toast.success(
-        '照片已加载',
-        `本次匹配 ${result.matched} 张，当前覆盖率 ${photoStats.value.coverage}%`,
-      )
+    if (!requirePhotoColumn()) return
+    await withLoading(`正在加载 ${files.length} 张照片...`, () => ingestPhotoFiles(files))
+  }
+
+  /** ZIP 照片包：解压出图片文件后走同一套按列匹配 */
+  async function importPhotoZip(file: File) {
+    if (!requirePhotoColumn()) return
+    await withLoading('正在解压照片包…', async () => {
+      let files: File[]
+      try {
+        files = await extractZipPhotos(file)
+      } catch {
+        toast.warning('压缩包解压失败', '请确认文件是有效的 .zip 压缩包')
+        return
+      }
+      if (!files.length) {
+        toast.warning('压缩包中没有可导入的图片', '支持 jpg / png / webp 等常见格式，文件名按匹配列匹配')
+        return
+      }
+      await ingestPhotoFiles(files)
     })
   }
 
@@ -906,6 +931,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     setMappingValue,
     setPhotoColumn,
     importPhotos,
+    importPhotoZip,
     clearPhotos,
     rowOverrides,
     overrideCount,

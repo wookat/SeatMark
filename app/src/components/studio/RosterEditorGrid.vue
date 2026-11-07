@@ -1,19 +1,17 @@
 <script setup lang="ts">
 /**
- * 在线编辑名单：免 Excel 直接录入 / 修改名单的表格编辑器。
- * 打开时载入当前已导入名单（可整体改），空数据则按当前模板的可映射
- * 字段预置列名，保存后自动映射命中率最高。
+ * 在线编辑名单（表格体）：免 Excel 直接录入 / 修改名单。
+ * 由名单数据弹窗的「编辑」模式挂载；挂载时载入当前已导入名单（可整体改），
+ * 空数据则按当前模板的可映射字段预置列名，保存后自动映射命中率最高。
  */
-import { ref, watch } from 'vue'
+import { onMounted, ref } from 'vue'
 
-import ModalDialog from '@/components/ui/ModalDialog.vue'
 import { t } from '@/i18n'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { DataRow } from '@/types/template'
 
-const props = defineProps<{ open: boolean }>()
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ saved: []; cancel: [] }>()
 
 const workspace = useWorkspaceStore()
 const toast = useToastStore()
@@ -26,26 +24,22 @@ const SEED_ROWS = 5
 const headers = ref<string[]>([])
 const grid = ref<string[][]>([])
 
-watch(
-  () => props.open,
-  (open) => {
-    if (!open) return
-    if (workspace.excel.rows.length) {
-      headers.value = [...workspace.excel.headers]
-      grid.value = workspace.excel.rows.map((row) =>
-        headers.value.map((h) => String(row[h] ?? '')),
-      )
-    } else {
-      const seed = [...new Set(workspace.mappableFields.map((f) => f.label).filter(Boolean))].slice(
-        0,
-        MAX_COLS,
-      )
-      headers.value = seed.length ? seed : [t('姓名')]
-      grid.value = Array.from({ length: SEED_ROWS }, () => headers.value.map(() => ''))
-    }
-  },
-  { immediate: true },
-)
+/** 挂载即初始化：有名单载入现有数据，空名单按模板字段播种 */
+onMounted(() => {
+  if (workspace.excel.rows.length) {
+    headers.value = [...workspace.excel.headers]
+    grid.value = workspace.excel.rows.map((row) =>
+      headers.value.map((h) => String(row[h] ?? '')),
+    )
+  } else {
+    const seed = [...new Set(workspace.mappableFields.map((f) => f.label).filter(Boolean))].slice(
+      0,
+      MAX_COLS,
+    )
+    headers.value = seed.length ? seed : [t('姓名')]
+    grid.value = Array.from({ length: SEED_ROWS }, () => headers.value.map(() => ''))
+  }
+})
 
 function addRow() {
   if (grid.value.length >= MAX_ROWS) {
@@ -112,12 +106,14 @@ function save() {
   )
   workspace.applyDataset(t('在线编辑名单'), finalHeaders, dataRows, { suggestTemplate: true })
   toast.success(t('名单已更新'), `${dataRows.length} ${t('条')}`)
-  emit('close')
+  emit('saved')
 }
+
+defineExpose({ save })
 </script>
 
 <template>
-  <ModalDialog :open="open" :title="t('在线编辑名单')" size="xl" @close="emit('close')">
+  <div>
     <p class="text-xs text-slate-600">
       {{ t('直接录入或修改名单：点单元格编辑，行尾按钮可上下移动 / 删除；保存后立即用于排版，数据不出浏览器。') }}
     </p>
@@ -207,10 +203,10 @@ function save() {
     </div>
 
     <div class="mt-4 flex justify-end gap-2">
-      <button type="button" class="btn btn-ghost btn-sm" @click="emit('close')">{{ t('取消') }}</button>
+      <button type="button" class="btn btn-ghost btn-sm" @click="emit('cancel')">{{ t('取消') }}</button>
       <button type="button" class="btn btn-primary btn-sm" data-testid="roster-save" @click="save">
         {{ t('保存名单') }}
       </button>
     </div>
-  </ModalDialog>
+  </div>
 </template>

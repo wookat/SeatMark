@@ -349,8 +349,8 @@ export const en: Record<string, string> = {
   '照片批量核验': 'Batch photo matching',
   '照片文件名与 Excel 中某一列的值一致、或包含该值即可，例如「张伟2023010101.jpg」用姓名列或学号列都能匹配。上传后工具会自动完成匹配并统计覆盖率。':
     'A photo filename just needs to equal or contain a value from one of your columns — e.g. "JaneDoe2023010101.jpg" matches by name or ID column. Matching and coverage stats run automatically after upload.',
-  '照片文件名与所选列的值一致或包含该值即可匹配。例如「张伟2023010101.jpg」，按姓名列或学号列都能匹配；完全一致的文件优先。':
-    'A photo matches when its filename equals or contains the value in the selected column — e.g. "JaneDoe2023010101.jpg" matches by name or ID column; exact matches take priority.',
+  '照片文件名与所选列的值一致或包含该值即可匹配。例如「张伟2023010101.jpg」，按姓名列或学号列都能匹配；完全一致的文件优先。可多选、选整个文件夹或上传 ZIP 压缩包批量导入。':
+    'A photo matches when its filename equals or contains the value in the selected column — e.g. "JaneDoe2023010101.jpg" matches by name or ID column; exact matches take priority. Multi-select, pick a whole folder, or upload a ZIP archive for bulk import.',
   '照片模板怎么用？': 'How do photo templates work?',
   '用户协议': 'Terms of Service',
   '用演示数据先试试': 'Try demo data first',
@@ -1525,6 +1525,17 @@ export const en: Record<string, string> = {
   '至少需要一列': 'At least one column is required',
   '至少需要一行数据': 'At least one row of data is required',
   '上限 {r} 行 {c} 列': 'limit: {r} rows, {c} columns',
+  '名单数据': 'Roster data',
+  '名单数据模式': 'Roster data mode',
+  '查看': 'View',
+  '修改在保存后生效': 'Changes apply after saving',
+  '查看 / 编辑名单（可筛选排序）': 'View / edit roster (filter & sort)',
+  '选择整个文件夹': 'Choose a folder',
+  '选择照片文件夹': 'Choose a photo folder',
+  '上传 ZIP 压缩包': 'Upload ZIP archive',
+  '上传 ZIP 照片包': 'Upload ZIP photo archive',
+  '文件夹中没有可导入的图片': 'No importable images in this folder',
+  '支持 jpg / png / webp 等常见格式': 'Supports common formats like jpg / png / webp',
   '意见反馈': 'Send feedback',
   '功能建议': 'Feature request',
   '问题反馈': 'Bug report',
