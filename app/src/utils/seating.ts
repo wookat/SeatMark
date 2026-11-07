@@ -10,6 +10,10 @@ export interface SeatingEntry {
   gender?: SeatingGender
   /** 名单「考场」列的值（列模式识别到考场列时才有），用于按考场筛选 */
   room?: string
+  /** 名单「考号/准考证号/学号/序号/座号」列原值（考试排位用） */
+  orderNo?: string
+  /** 名单「成绩/分数」列的数值（按成绩排座用；非数字留空） */
+  score?: number
 }
 
 const GENDER_TOKENS: Record<string, SeatingGender> = {
@@ -48,6 +52,10 @@ const NAME_HEADER = /姓名|名字$|^(?:student[ _-]?)?name$|^students?$/i
 const GENDER_HEADER = /性别|^gender$|^sex$/i
 /** 列模式下的考场列表头（仅在识别到表头行时生效，无表头不猜测） */
 const ROOM_HEADER = /考场|考场号|试室|^room$|^exam ?room$/i
+/** 列模式下的考号/序号列表头：考试排位「按序号列」排序的来源 */
+const ORDER_HEADER = /考号|准考证|学号|序号|座号|^no\.?$|^id$|exam|seat ?no|student ?no/i
+/** 列模式下的成绩列表头：「按成绩」排序的来源 */
+const SCORE_HEADER = /成绩|分数|总分|^score$|^marks?$/i
 /** 考场原始值本身已带「考场/试室/room」字样（如「考场01」「Room 1」），展示时不应再加前缀 */
 export function roomIdHasLabel(id: string): boolean {
   return /考场|试室|room/i.test(id)
@@ -69,6 +77,10 @@ export interface ParsedSeatingRoster {
   columnMode: boolean
   /** 识别到考场列时按出现顺序去重的考场号及人数；无考场列为空数组 */
   rooms: SeatingRoomCount[]
+  /** 是否识别到考号/序号列（考试排位「按序号列排序」可用） */
+  orderColumn: boolean
+  /** 是否识别到成绩列（「按成绩排序」可用） */
+  scoreColumn: boolean
 }
 
 export interface SeatingRoomCount {
@@ -91,6 +103,8 @@ export function parseSeatingRosterDetailed(text: string): ParsedSeatingRoster {
     genderColumn: false,
     columnMode: false,
     rooms: [],
+    orderColumn: false,
+    scoreColumn: false,
   }
   const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '')
   if (!lines.length) return plain
@@ -133,9 +147,20 @@ export function parseSeatingRosterDetailed(text: string): ParsedSeatingRoster {
   const roomIdx = headerDetected
     ? headers.findIndex((h, i) => i !== nameIdx && i !== genderIdx && ROOM_HEADER.test(h))
     : -1
+  const orderIdx = headerDetected
+    ? headers.findIndex(
+        (h, i) => i !== nameIdx && i !== genderIdx && i !== roomIdx && ORDER_HEADER.test(h),
+      )
+    : -1
+  const scoreIdx = headerDetected
+    ? headers.findIndex(
+        (h, i) =>
+          i !== nameIdx && i !== genderIdx && i !== roomIdx && i !== orderIdx && SCORE_HEADER.test(h),
+      )
+    : -1
   const extraIdx = headers
     .map((_, i) => i)
-    .filter((i) => i !== nameIdx && i !== genderIdx && i !== roomIdx)
+    .filter((i) => i !== nameIdx && i !== genderIdx && i !== roomIdx && i !== orderIdx && i !== scoreIdx)
   // 无表头且所有附属列都像姓名（无数字/班级词）：视为从 Excel 复制的多列姓名网格，全部展开
   const nameGrid =
     !headerDetected &&
@@ -150,6 +175,8 @@ export function parseSeatingRosterDetailed(text: string): ParsedSeatingRoster {
     genderColumn: genderIdx >= 0,
     columnMode: true,
     rooms: [],
+    orderColumn: orderIdx >= 0,
+    scoreColumn: scoreIdx >= 0,
   }
   const roomCounts = new Map<string, number>()
   for (const row of rows) {
@@ -174,6 +201,14 @@ export function parseSeatingRosterDetailed(text: string): ParsedSeatingRoster {
     if (room) {
       entry.room = room
       roomCounts.set(room, (roomCounts.get(room) ?? 0) + 1)
+    }
+    if (orderIdx >= 0) {
+      const orderNo = cells[orderIdx] ?? ''
+      if (orderNo) entry.orderNo = orderNo
+    }
+    if (scoreIdx >= 0) {
+      const score = Number(cells[scoreIdx] ?? '')
+      if (Number.isFinite(score)) entry.score = score
     }
     out.entries.push(entry)
   }
@@ -446,7 +481,53 @@ export function summarizeGenderMix(arranged: readonly SeatingEntry[]): GenderMix
 
 // ---------- 座位网格与视角镜像 ----------
 
-export type SeatingFillOrder = 'rows' | 'serpentine'
+/**
+ * 填充顺序：rows 按排从左到右；serpentine 按排蛇形（偶数排从右向左）；
+ * cols 按列从上到下逐列；colSnake 按列蛇形（偶数列从下到上，考试考场主流走位）。
+ */
+export type SeatingFillOrder = 'rows' | 'serpentine' | 'cols' | 'colSnake'
+
+/**
+ * 自定义座位形状：disabled 为主区（rows×cols 外框）里被禁用格的键「排,列」（1 起）——
+ * 用于每排座位数不等（如 7788）、删角等不规则形状；podium 为讲台排（第 0 排）启用的
+ * 物理列号集（1 起）——讲台左右「护法位」、监考位等。两者与填充顺序、间隔正交：
+ * 主区座位按填充序铺完后，讲台排座位按列号升序接在座位号末尾。
+ */
+export interface SeatShape {
+  disabled?: ReadonlySet<string>
+  podium?: ReadonlySet<number>
+}
+
+/** 主区禁用格的键（排、列均 1 起） */
+export function maskKey(row: number, col: number): string {
+  return `${row},${col}`
+}
+
+/**
+ * 按填充顺序展开主区全部物理格（0 起的 [排,列]）：
+ * rows/serpentine 为排主序，cols/colSnake 为列主序（蛇形在偶数排/列反向）。
+ */
+export function fillCells(
+  rows: number,
+  cols: number,
+  fillOrder: SeatingFillOrder,
+): [number, number][] {
+  const out: [number, number][] = []
+  if (fillOrder === 'cols' || fillOrder === 'colSnake') {
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        out.push([fillOrder === 'colSnake' && c % 2 === 1 ? rows - 1 - r : r, c])
+      }
+    }
+    return out
+  }
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      out.push([r, fillOrder === 'serpentine' && r % 2 === 1 ? cols - 1 - c : c])
+    }
+  }
+  return out
+}
 /**
  * 座位间隔：none 全坐；skipCol 隔位（每排 1 起的奇数列留空）；skipRow 隔排（1 起的偶数排留空，
  * 首排靠讲台照常坐）；checker 棋盘错位（相邻排的空位互相错开）；spread 尽量散开（按人数自动拉开
@@ -537,34 +618,59 @@ export function isSeatBlocked(
 }
 
 /**
+ * 主区可坐格数：外框减去禁用格，再按间隔扣留空。spread 档在「可坐格」上按填充序
+ * 均匀取 count 个（禁用格不参与），等价无掩码时的 spreadBlockedSet 口径。
+ */
+function openCells(
+  rows: number,
+  cols: number,
+  fillOrder: SeatingFillOrder,
+  spacing: SeatingSpacing,
+  count: number,
+  shape?: SeatShape,
+): [number, number][] {
+  const cells = fillCells(rows, cols, fillOrder).filter(
+    ([r, c]) => !shape?.disabled?.has(maskKey(r + 1, c + 1)),
+  )
+  if (spacing === 'spread') {
+    const checker = cells.filter(([r, c]) => !isSeatBlocked(r, c, 'checker'))
+    if (count <= checker.length) return checker
+    const skipCol = cells.filter(([r, c]) => !isSeatBlocked(r, c, 'skipCol'))
+    if (count <= skipCol.length) return skipCol
+    if (count >= cells.length) return cells
+    const open = new Set<number>()
+    for (let k = 0; k < count; k++) open.add(Math.floor((k * cells.length) / count))
+    return cells.filter((_, i) => open.has(i))
+  }
+  return cells.filter(([r, c]) => !isSeatBlocked(r, c, spacing))
+}
+
+/**
  * rows×cols 教室在给定间隔下的可坐座位数（溢出、进度、演示名单都按这个口径）；
  * spread 档按 count（要入座的人数）计：坐得下时为退化档的容量，否则为 min(count, 座位总数)。
+ * shape 提供自定义座位形状：主区禁用格不计，讲台排启用格列号去重后计入。
  */
 export function seatCapacity(
   rows: number,
   cols: number,
   spacing: SeatingSpacing = 'none',
   count = 0,
+  shape?: SeatShape,
 ): number {
   if (rows <= 0 || cols <= 0) return 0
-  if (spacing === 'none') return rows * cols
-  if (spacing === 'spread') {
-    const fallback = spreadFallback(rows, cols, count)
-    return fallback ? seatCapacity(rows, cols, fallback) : Math.min(count, rows * cols)
-  }
-  let n = 0
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) if (!isSeatBlocked(r, c, spacing)) n++
-  }
-  return n
+  const podium = shape?.podium ? [...shape.podium].filter((c) => c >= 1 && c <= cols).length : 0
+  return openCells(rows, cols, 'rows', spacing, count, shape).length + podium
 }
 
 export interface Seat {
+  /** 物理排号（1 起）；0 为讲台排（讲台两侧护法位等附加座位） */
   row: number
   col: number
   seatNo: number
   name: string
   gender?: SeatingGender
+  /** 座位副标（考号/序号列原值，考试排位显示用） */
+  sub?: string
 }
 
 export interface SeatingDisplayCell {
@@ -585,23 +691,26 @@ export function buildSeats(
   fillOrder: SeatingFillOrder,
   spacing: SeatingSpacing = 'none',
   count = entries.length,
+  shape?: SeatShape,
 ): Seat[] {
   const out: Seat[] = []
-  const spreadBlocked = spacing === 'spread' ? spreadBlockedSet(rows, cols, count, fillOrder) : null
   let idx = 0
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const col = fillOrder === 'serpentine' && r % 2 === 1 ? cols - 1 - c : c
-      if (spreadBlocked ? spreadBlocked.has(r * cols + col) : isSeatBlocked(r, col, spacing)) continue
-      const entry = entries[idx]
-      out.push({
-        row: r + 1,
-        col: col + 1,
-        seatNo: idx + 1,
-        name: entry?.name ?? '',
-        gender: entry?.gender,
-      })
-      idx++
+  const put = (r: number, c: number) => {
+    const entry = entries[idx]
+    out.push({
+      row: r + 1,
+      col: c + 1,
+      seatNo: idx + 1,
+      name: entry?.name ?? '',
+      gender: entry?.gender,
+      sub: entry?.orderNo,
+    })
+    idx++
+  }
+  for (const [r, c] of openCells(rows, cols, fillOrder, spacing, count, shape)) put(r, c)
+  if (shape?.podium) {
+    for (const c of [...shape.podium].sort((a, b) => a - b)) {
+      if (c >= 1 && c <= cols) put(-1, c - 1)
     }
   }
   return out
@@ -617,8 +726,9 @@ export function unseatedEntries(
   cols: number,
   spacing: SeatingSpacing = 'none',
   count = entries.length,
+  shape?: SeatShape,
 ): SeatingEntry[] {
-  return entries.slice(seatCapacity(rows, cols, spacing, count)).filter((e) => e.name)
+  return entries.slice(seatCapacity(rows, cols, spacing, count, shape)).filter((e) => e.name)
 }
 
 /**
@@ -647,13 +757,21 @@ export function unseatedSummary(
   return labels.template.replace('{n}', String(unseated.length)).replace('{names}', list)
 }
 
-/** 按物理行列索引摆放座位（渲染网格用） */
+/** 按物理行列索引摆放座位（渲染网格用）；讲台排（row=0）不进主网格，用 podiumSeatsOf 单独取 */
 export function buildSeatGrid(seats: readonly Seat[], rows: number, cols: number): (Seat | null)[][] {
   const grid: (Seat | null)[][] = Array.from({ length: rows }, () =>
     Array.from({ length: cols }, () => null),
   )
-  for (const seat of seats) grid[seat.row - 1]![seat.col - 1] = seat
+  for (const seat of seats) {
+    if (seat.row < 1 || seat.row > rows) continue
+    grid[seat.row - 1]![seat.col - 1] = seat
+  }
   return grid
+}
+
+/** 讲台排座位（row=0），按物理列号升序；学生视角渲染时再左右翻转即可 */
+export function podiumSeatsOf(seats: readonly Seat[]): Seat[] {
+  return seats.filter((s) => s.row === 0).sort((a, b) => a.col - b.col)
 }
 
 /**
@@ -717,6 +835,110 @@ export interface SeatingHandoff {
   roomNo?: string
   rows: DataRow[]
 }
+
+// ---------- 考试排位：排序规则 / 联排过道 / 布局预设 ----------
+
+/**
+ * 考试排序规则：roster 名单原序；order 按考号/序号列升序；score 按成绩列高到低；
+ * random 随机打乱；manual 按用户给的顺序名单（applyManualOrder）。
+ */
+export type ExamSortRule = 'roster' | 'order' | 'score' | 'random' | 'manual'
+
+/** 数值感知的序号比较：「2」<「10」、A-2 < A-12；都非纯数字时按地区化字典序 */
+function compareOrderNo(a: string, b: string): number {
+  return a.localeCompare(b, 'zh-Hans-CN', { numeric: true })
+}
+
+/**
+ * 按考试规则给名单排序（不改原数组）：
+ * order——有考号的按考号升序在前，无考号的按原顺序沉底；
+ * score——成绩高到低，无成绩沉底，同分按姓名稳定；
+ * random——洗牌；roster/manual 原样返回副本。
+ */
+export function sortExamEntries(
+  entries: readonly SeatingEntry[],
+  rule: ExamSortRule,
+  rand: () => number = Math.random,
+): SeatingEntry[] {
+  if (rule === 'random') return shuffleEntries([...entries], rand)
+  if (rule === 'score') {
+    return [...entries].sort(
+      (a, b) =>
+        (b.score ?? Number.NEGATIVE_INFINITY) - (a.score ?? Number.NEGATIVE_INFINITY) ||
+        a.name.localeCompare(b.name, 'zh-Hans-CN'),
+    )
+  }
+  if (rule === 'order') {
+    return entries
+      .map((entry, i) => ({ entry, i }))
+      .sort((a, b) => {
+        const oa = a.entry.orderNo
+        const ob = b.entry.orderNo
+        if (oa && ob) return compareOrderNo(oa, ob) || a.i - b.i
+        if (oa) return -1
+        if (ob) return 1
+        return a.i - b.i
+      })
+      .map((x) => x.entry)
+  }
+  return [...entries]
+}
+
+/**
+ * 按用户给的顺序名单重排：orderedKeys 每行一个姓名或考号（先匹配考号再匹配姓名，
+ * 首个命中位置即排位）；未列出的学生按原顺序接在末尾。返回新数组。
+ */
+export function applyManualOrder(
+  entries: readonly SeatingEntry[],
+  orderedKeys: readonly string[],
+): SeatingEntry[] {
+  if (!orderedKeys.length) return [...entries]
+  const rank = new Map<string, number>()
+  orderedKeys.forEach((key, i) => {
+    const k = key.trim()
+    if (k && !rank.has(k)) rank.set(k, i)
+  })
+  if (!rank.size) return [...entries]
+  const idxOf = (entry: SeatingEntry): number => {
+    if (entry.orderNo && rank.has(entry.orderNo)) return rank.get(entry.orderNo)!
+    if (rank.has(entry.name)) return rank.get(entry.name)!
+    return Number.MAX_SAFE_INTEGER
+  }
+  return entries
+    .map((entry, i) => ({ entry, i }))
+    .sort((a, b) => idxOf(a.entry) - idxOf(b.entry) || a.i - b.i)
+    .map((x) => x.entry)
+}
+
+/**
+ * 联排过道：每 groupSize 列一条过道（如 2 人联排 → 第 2/4/6… 列后），
+ * 返回「第 n 列之后有过道」的物理列号集（1 起）；groupSize < 1 视为手动模式返回空集。
+ */
+export function autoAisles(cols: number, groupSize: number): Set<number> {
+  const out = new Set<number>()
+  if (groupSize < 1) return out
+  for (let n = groupSize; n < cols; n += groupSize) out.add(n)
+  return out
+}
+
+/** 考场布局预设（国标/主流走法，均可再改）：行列、填充序、间隔、禁用格 */
+export interface ExamLayoutPreset {
+  id: 'exam30_5x6' | 'exam30_7788' | 'exam15_gap'
+  rows: number
+  cols: number
+  fillOrder: SeatingFillOrder
+  spacing: SeatingSpacing
+  disabled: string[]
+}
+
+export const EXAM_LAYOUT_PRESETS: readonly ExamLayoutPreset[] = [
+  // 30 人标准场：5 列 × 6 排，按列蛇形（第 1 列从上到下 1-6，第 2 列从下到上 7-12…）
+  { id: 'exam30_5x6', rows: 6, cols: 5, fillOrder: 'colSnake', spacing: 'none', disabled: [] },
+  // 30 人 7788：4 列 × 8 排，末排只坐第 3/4 列（各列 7/7/8/8 人），按列蛇形
+  { id: 'exam30_7788', rows: 8, cols: 4, fillOrder: 'colSnake', spacing: 'none', disabled: ['8,1', '8,2'] },
+  // 15 人隔位场：5 列 × 6 排棋盘坐（30 位坐 15，前后左右不相邻），按列蛇形
+  { id: 'exam15_gap', rows: 6, cols: 5, fillOrder: 'colSnake', spacing: 'checker', disabled: [] },
+]
 
 /** 读取并清除座位表带入的名单（仅消费一次） */
 export function takeSeatingHandoff(): SeatingHandoff | null {

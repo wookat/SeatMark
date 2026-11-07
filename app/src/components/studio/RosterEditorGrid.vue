@@ -11,7 +11,18 @@ import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { DataRow } from '@/types/template'
 
-const emit = defineEmits<{ saved: []; cancel: [] }>()
+const emit = defineEmits<{
+  saved: []
+  cancel: []
+  /** external 模式的保存：不回写 workspace，由父组件自行处理（如排座名单文本框） */
+  save: [payload: { headers: string[]; rows: string[][] }]
+}>()
+
+/** external 模式：父组件提供初始表头与数据（排座等不走 workspace 的场景） */
+const props = withDefaults(
+  defineProps<{ external?: { headers: string[]; rows: string[][] } | null }>(),
+  { external: null },
+)
 
 const workspace = useWorkspaceStore()
 const toast = useToastStore()
@@ -24,8 +35,16 @@ const SEED_ROWS = 5
 const headers = ref<string[]>([])
 const grid = ref<string[][]>([])
 
-/** 挂载即初始化：有名单载入现有数据，空名单按模板字段播种 */
+/** 挂载即初始化：external 用父组件数据；有名单载入现有数据，空名单按模板字段播种 */
 onMounted(() => {
+  if (props.external) {
+    headers.value = props.external.headers.length ? [...props.external.headers] : [t('姓名')]
+    const seed = props.external.rows.map((row) => headers.value.map((_, i) => row[i] ?? ''))
+    grid.value = seed.length
+      ? seed
+      : Array.from({ length: SEED_ROWS }, () => headers.value.map(() => ''))
+    return
+  }
   if (workspace.excel.rows.length) {
     headers.value = [...workspace.excel.headers]
     grid.value = workspace.excel.rows.map((row) =>
@@ -99,6 +118,10 @@ function save() {
     .filter((cells) => cells.some((c) => c))
   if (!rows.length) {
     toast.warning(t('至少需要一行数据'))
+    return
+  }
+  if (props.external) {
+    emit('save', { headers: finalHeaders, rows })
     return
   }
   const dataRows: DataRow[] = rows.map((cells) =>

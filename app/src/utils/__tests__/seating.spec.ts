@@ -144,17 +144,18 @@ describe('parseSeatingRoster', () => {
 })
 
 describe('parseSeatingRosterDetailed（Excel 多列粘贴）', () => {
-  it('「姓名\t性别\t学号」表头 + 3 行 → 3 人且性别正确，学号列被忽略', () => {
+  it('「姓名\t性别\t学号」表头 + 3 行 → 3 人且性别正确，学号列捕获为序号', () => {
     const r = parseSeatingRosterDetailed('姓名\t性别\t学号\n张伟\t男\t2021001\n王芳\t女\t2021002\n李娜\t女\t2021003')
     expect(r.entries).toEqual([
-      { name: '张伟', gender: '男' },
-      { name: '王芳', gender: '女' },
-      { name: '李娜', gender: '女' },
+      { name: '张伟', gender: '男', orderNo: '2021001' },
+      { name: '王芳', gender: '女', orderNo: '2021002' },
+      { name: '李娜', gender: '女', orderNo: '2021003' },
     ])
     expect(r.columnMode).toBe(true)
     expect(r.headerSkipped).toEqual(['姓名', '性别', '学号'])
-    expect(r.ignoredColumns).toEqual(['学号'])
+    expect(r.ignoredColumns).toEqual([])
     expect(r.genderColumn).toBe(true)
+    expect(r.orderColumn).toBe(true)
   })
 
   it('无表头 3 列 3 行（张伟\t男\t2021001）→ 3 人，学号不当人名', () => {
@@ -175,13 +176,14 @@ describe('parseSeatingRosterDetailed（Excel 多列粘贴）', () => {
     expect(r.entries.some((e) => e.name === '姓名')).toBe(false)
   })
 
-  it('表头列序不固定：姓名列不在首列也能识别，班级/学号忽略', () => {
+  it('表头列序不固定：姓名列不在首列也能识别，学号列捕获为序号、班级忽略', () => {
     const r = parseSeatingRosterDetailed('学号\t姓名\t班级\t性别\n1\t张伟\t高一(1)班\t男\n2\t王芳\t高一(1)班\t女')
     expect(r.entries).toEqual([
-      { name: '张伟', gender: '男' },
-      { name: '王芳', gender: '女' },
+      { name: '张伟', gender: '男', orderNo: '1' },
+      { name: '王芳', gender: '女', orderNo: '2' },
     ])
-    expect(r.ignoredColumns).toEqual(['学号', '班级'])
+    expect(r.ignoredColumns).toEqual(['班级'])
+    expect(r.orderColumn).toBe(true)
   })
 
   it('无表头多列姓名网格（无数字/班级词）仍全部展开', () => {
@@ -253,13 +255,14 @@ describe('第 357 轮：单列「Student1…」序号名单首行不再被误判
     expect(r.entries.map((e) => e.name)).toContain('Student1')
   })
 
-  it('多列表头「Student Name」列仍被识别为姓名列（不在首列）', () => {
+  it('多列表头「Student Name」列仍被识别为姓名列（不在首列），ID 列捕获为序号', () => {
     const r = parseSeatingRosterDetailed('ID\tStudent Name\tGender\n1\tTom\tM\n2\tAmy\tF')
     expect(r.entries).toEqual([
-      { name: 'Tom', gender: '男' },
-      { name: 'Amy', gender: '女' },
+      { name: 'Tom', gender: '男', orderNo: '1' },
+      { name: 'Amy', gender: '女', orderNo: '2' },
     ])
-    expect(r.ignoredColumns).toEqual(['ID'])
+    expect(r.ignoredColumns).toEqual([])
+    expect(r.orderColumn).toBe(true)
   })
 })
 
@@ -350,12 +353,12 @@ describe('第 348 轮：seatingRosterTextFromTable（Excel 文件 → 名单文�
     const parsed = parseSeatingRosterDetailed(text)
     expect(parsed.columnMode).toBe(true)
     expect(parsed.headerSkipped).toEqual(['学号', '姓名', '性别'])
-    expect(parsed.ignoredColumns).toEqual(['学号'])
+    expect(parsed.ignoredColumns).toEqual([])
     expect(parsed.genderColumn).toBe(true)
     expect(parsed.entries).toEqual([
-      { name: '张三', gender: '男' },
-      { name: '李四', gender: '女' },
-      { name: '王五', gender: '男' },
+      { name: '张三', gender: '男', orderNo: '2024001' },
+      { name: '李四', gender: '女', orderNo: '2024002' },
+      { name: '王五', gender: '男', orderNo: '2024003' },
     ])
   })
 

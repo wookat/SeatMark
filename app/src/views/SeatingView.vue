@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 
 import MobilePreviewJump from '@/components/MobilePreviewJump.vue'
 import NextStepBar, { type NextStep } from '@/components/NextStepBar.vue'
+import RosterEditorGrid from '@/components/studio/RosterEditorGrid.vue'
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
 import NumberField from '@/components/ui/NumberField.vue'
@@ -26,14 +27,19 @@ import { warmUpExportModules } from '@/utils/pdfExport'
 import { pushExportFailureToast } from '@/utils/exportFailureToast'
 import { printAndWaitUntilDone } from '@/utils/printing'
 import {
+  applyManualOrder,
+  autoAisles,
   buildDisplayGrid,
   buildSeatGrid,
   buildSeats,
   dedupeSeatingEntries,
+  EXAM_LAYOUT_PRESETS,
   findSeatsByName,
   interleaveByGender,
   isSeatingSpacing,
+  maskKey,
   parseSeatingRosterDetailed,
+  podiumSeatsOf,
   reconcileArranged,
   roomIdHasLabel,
   roomsFitIndividually,
@@ -42,14 +48,18 @@ import {
   seatingExportFileName,
   seatingRosterTextFromTable,
   shuffleEntries,
+  sortExamEntries,
   summarizeGenderMix,
   unseatedEntries,
   unseatedSummary,
+  type ExamLayoutPreset,
+  type ExamSortRule,
   type Seat,
   type SeatingDuplicatePolicy,
   type SeatingEntry,
   type SeatingFillOrder,
   type SeatingHandoff,
+  type SeatShape,
   type SeatingSpacing,
   type SeatingViewMode,
 } from '@/utils/seating'
@@ -86,6 +96,20 @@ interface SeatingPersistedState {
   arrangedByRoom?: Record<string, SeatingEntry[]>
   /** 当前座次来自「男女混排」（含之后的手工微调）：预览中标出同性相邻座位供人工复核 */
   genderMixed?: boolean
+  /** 场景模式：class 班级教室 / exam 考场排位；旧状态无此字段 = class */
+  mode?: 'class' | 'exam'
+  /** 主区禁用格键「排,列」（1 起） */
+  disabled?: string[]
+  /** 讲台排启用的物理列号（1 起） */
+  podiumCols?: number[]
+  /** 联排分组（0/缺省 = 手动指定过道） */
+  groupSize?: number
+  /** 考试排序规则（exam 模式生效） */
+  examSort?: ExamSortRule
+  /** 手动顺序名单（examSort=manual 时用，每行一个姓名或考号） */
+  manualOrderText?: string
+  /** 座位显示内容 */
+  seatLabel?: 'name' | 'nameNo' | 'no'
 }
 
 function sanitizeArrangedByRoom(raw: unknown): Record<string, SeatingEntry[]> {
@@ -122,9 +146,125 @@ const spacing = ref<SeatingSpacing>(isSeatingSpacing(persisted?.spacing) ? persi
 const aisles = ref(new Set<number>(persisted?.aisles ?? []))
 const namesText = ref(persisted?.namesText ?? '')
 
+// ---------- 场景模式与自定义座位形状 ----------
+/** class 班级教室（男女混排、过道联排）；exam 考场排位（排序规则、考场预设、座位副标） */
+const seatingMode = ref<'class' | 'exam'>(persisted?.mode === 'exam' ? 'exam' : 'class')
+/** 主区禁用格：每排座位数不等 / 删角等不规则形状 */
+const disabledSeats = ref(new Set<string>(persisted?.disabled ?? []))
+/** 讲台排启用的列号（护法位等） */
+const podiumCols = ref(new Set<number>((persisted?.podiumCols ?? []).filter((n) => Number.isInteger(n) && n >= 1)))
+/** 座位形状编辑态（预览里点格子增删座位；不持久化开关本身） */
+const editingMap = ref(false)
+/** 联排分组：0 = 手动指定过道；2/3/4 = 每 n 列自动一条过道 */
+const groupSize = ref<number>(typeof persisted?.groupSize === 'number' ? persisted.groupSize : 0)
+const seatShape = computed<SeatShape>(() => ({ disabled: disabledSeats.value, podium: podiumCols.value }))
+const effAisles = computed(() =>
+  groupSize.value > 0 ? autoAisles(cols.value, groupSize.value) : aisles.value,
+)
+const hasCustomShape = computed(() => disabledSeats.value.size > 0 || podiumCols.value.size > 0)
+
+function toggleMainCell(r: number, c: number) {
+  const next = new Set(disabledSeats.value)
+  const key = maskKey(r, c)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  disabledSeats.value = next
+}
+function togglePodiumCell(c: number) {
+  const next = new Set(podiumCols.value)
+  if (next.has(c)) next.delete(c)
+  else next.add(c)
+  podiumCols.value = next
+}
+/** 讲台两侧护法位快捷添加：最左 + 最右列各一个 */
+function addPodiumPair() {
+  const next = new Set(podiumCols.value)
+  next.add(1)
+  next.add(cols.value)
+  podiumCols.value = next
+  toast.success(tr('讲台两侧已各加 1 座'), tr('再点格子可微调，或继续加中间的座位'))
+}
+function resetSeatShape() {
+  disabledSeats.value = new Set()
+  podiumCols.value = new Set()
+  toast.info(tr('已还原为矩形座位'))
+}
+/** 行列数变化后裁剪越界的禁用格与讲台位 */
+watch([rows, cols], () => {
+  const next = new Set<string>()
+  for (const key of disabledSeats.value) {
+    const [r, c] = key.split(',').map(Number)
+    if (r! <= rows.value && c! <= cols.value) next.add(key)
+  }
+  if (next.size !== disabledSeats.value.size) disabledSeats.value = next
+  const podium = [...podiumCols.value].filter((c) => c <= cols.value)
+  if (podium.length !== podiumCols.value.size) podiumCols.value = new Set(podium)
+})
+
+// ---------- 考试排位：排序规则 / 布局预设 / 座位显示 ----------
+const EXAM_SORTS: readonly ExamSortRule[] = ['roster', 'order', 'score', 'random', 'manual']
+const examSort = ref<ExamSortRule>(
+  persisted?.examSort && (EXAM_SORTS as readonly string[]).includes(persisted.examSort)
+    ? persisted.examSort
+    : 'order',
+)
+const manualOrderText = ref(typeof persisted?.manualOrderText === 'string' ? persisted.manualOrderText : '')
+type SeatLabel = 'name' | 'nameNo' | 'no'
+const seatLabel = ref<SeatLabel>(
+  persisted?.seatLabel === 'nameNo' || persisted?.seatLabel === 'no' ? persisted.seatLabel : 'name',
+)
+const manualTokens = computed(() =>
+  manualOrderText.value.split(/\r?\n/).map((s) => s.trim()).filter(Boolean),
+)
+const hasOrderColumn = computed(() => parsedRoster.value.orderColumn)
+const hasScoreColumn = computed(() => parsedRoster.value.scoreColumn)
+/** 考试模式下名单先按规则排序，再进入填充（手工排座 arranged 始终优先） */
+const examSortedEntries = computed<SeatingEntry[]>(() => {
+  if (seatingMode.value !== 'exam') return parsedEntries.value
+  if (examSort.value === 'manual') return applyManualOrder(parsedEntries.value, manualTokens.value)
+  return sortExamEntries(parsedEntries.value, examSort.value)
+})
+const EXAM_SORT_OPTIONS = computed<SelectOption[]>(() => [
+  { value: 'roster', label: tr('名单原序'), hint: tr('按名单粘贴/导入的顺序') },
+  { value: 'order', label: tr('按序号列'), hint: tr('考号 / 学号 / 序号列升序，无该列按原序') },
+  { value: 'score', label: tr('按成绩列'), hint: tr('成绩从高到低，无该列按原序') },
+  { value: 'random', label: tr('完全随机'), hint: tr('打乱名单顺序进入排位') },
+  { value: 'manual', label: tr('手动顺序名单'), hint: tr('按下方给定名单的顺序排位') },
+])
+const SEAT_LABEL_OPTIONS = computed<SelectOption[]>(() => [
+  { value: 'name', label: tr('姓名'), hint: tr('只显示姓名') },
+  { value: 'nameNo', label: tr('姓名 + 序号'), hint: tr('姓名下方小字显示考号/序号') },
+  { value: 'no', label: tr('仅序号'), hint: tr('只显示考号/序号（无序号回退姓名）') },
+])
+const EXAM_PRESET_LABELS = computed<Record<ExamLayoutPreset['id'], string>>(() => ({
+  exam30_5x6: tr('30 人 · 5列6行'),
+  exam30_7788: tr('30 人 · 7788'),
+  exam15_gap: tr('15 人 · 棋盘隔位'),
+}))
+function applyExamPreset(preset: ExamLayoutPreset) {
+  rows.value = preset.rows
+  cols.value = preset.cols
+  fillOrder.value = preset.fillOrder
+  spacing.value = preset.spacing
+  disabledSeats.value = new Set(preset.disabled)
+  podiumCols.value = new Set()
+  selectedSeat.value = null
+  selectedRow.value = null
+  toast.success(tr('已应用考场布局预设'), tr('行列、走位与间隔已就位，仍可继续微调'))
+}
+
+const GROUP_OPTIONS = computed<SelectOption[]>(() => [
+  { value: '0', label: tr('手动指定过道'), hint: tr('点下方列间按钮加过道') },
+  { value: '2', label: tr('2 人联排'), hint: tr('每 2 列一条过道（双人桌分组）') },
+  { value: '3', label: tr('3 人联排'), hint: tr('每 3 列一条过道（三人桌分组）') },
+  { value: '4', label: tr('4 人联排'), hint: tr('每 4 列一条过道') },
+])
+
 const FILL_OPTIONS = computed<SelectOption[]>(() => [
   { value: 'rows', label: tr('按行填充'), hint: tr('从讲台侧第一排，自左向右') },
   { value: 'serpentine', label: tr('S 形蛇形填充'), hint: tr('奇数排向右、偶数排向左') },
+  { value: 'cols', label: tr('按列填充'), hint: tr('自左向右逐列，每列自上而下') },
+  { value: 'colSnake', label: tr('S 形列蛇形'), hint: tr('第 1 列向下、第 2 列向上，考场主流走位') },
 ])
 /** 座位间隔分段选项：与填充顺序正交，留空位不算座位 */
 const SPACING_OPTIONS = computed<{ value: SeatingSpacing; label: string; hint: string }[]>(() => [
@@ -212,6 +352,8 @@ const rosterHints = computed(() => {
     )
   }
   if (r.genderColumn) hints.push(tr('识别到性别列，可用男女混排'))
+  if (r.orderColumn) hints.push(tr('识别到序号列，可排序并在座位上显示'))
+  if (r.scoreColumn) hints.push(tr('识别到成绩列，可按成绩排座'))
   return hints
 })
 
@@ -254,6 +396,38 @@ const rosterFile = useGuestFileImport({
 function onRosterFileChange(event: Event) {
   pendingRosterFileName = (event.target as HTMLInputElement).files?.[0]?.name ?? ''
   return rosterFile.onFileChange(event)
+}
+
+/**
+ * 表格编辑名单：复用工坊名单网格（external 模式），把名单文本转成 姓名/性别/考号/成绩 列，
+ * 保存时回写为 TSV（表头固定中文列名保证解析命中），实现免 Excel 的在线增删改。
+ */
+const rosterEditorOpen = ref(false)
+const rosterGridSeed = computed(() => {
+  const r = parsedRoster.value
+  const withGender = r.genderColumn || r.entries.some((e) => e.gender)
+  const headers = ['姓名']
+  if (withGender) headers.push('性别')
+  if (r.orderColumn) headers.push('考号')
+  if (r.scoreColumn) headers.push('成绩')
+  const rows = r.entries.map((e) => {
+    const row = [e.name]
+    if (withGender) row.push(e.gender ?? '')
+    if (r.orderColumn) row.push(e.orderNo ?? '')
+    if (r.scoreColumn) row.push(e.score != null ? String(e.score) : '')
+    return row
+  })
+  return { headers, rows }
+})
+function onRosterGridSave(payload: { headers: string[]; rows: string[][] }) {
+  const lines = payload.rows.map((cells) => cells.join('\t'))
+  const head = payload.headers.join('\t')
+  namesText.value = [head, ...lines].join('\n')
+  rosterEditorOpen.value = false
+  toast.success(
+    tr('名单已更新'),
+    tr('已写回名单输入框，共 {n} 人').replace('{n}', String(payload.rows.length)),
+  )
 }
 
 /**
@@ -447,7 +621,11 @@ watch(activeRoom, (room, prev) => {
 })
 
 watch(
-  [title, roomNo, rows, cols, podium, fillOrder, spacing, aisles, namesText, arranged, keepDuplicates, roomFilter, arrangedByRoom, genderMixed],
+  [
+    title, roomNo, rows, cols, podium, fillOrder, spacing, aisles, namesText, arranged,
+    keepDuplicates, roomFilter, arrangedByRoom, genderMixed, seatingMode, disabledSeats,
+    podiumCols, groupSize, examSort, manualOrderText, seatLabel,
+  ],
   () => {
     try {
       const state: SeatingPersistedState = {
@@ -465,6 +643,13 @@ watch(
         roomFilter: roomFilter.value,
         arrangedByRoom: arrangedByRoom.value,
         genderMixed: genderMixed.value,
+        mode: seatingMode.value,
+        disabled: [...disabledSeats.value],
+        podiumCols: [...podiumCols.value],
+        groupSize: groupSize.value,
+        examSort: examSort.value,
+        manualOrderText: manualOrderText.value,
+        seatLabel: seatLabel.value,
       }
       localStorage.setItem(SEATING_STATE_KEY, JSON.stringify(state))
     } catch {
@@ -473,14 +658,15 @@ watch(
   },
   { deep: true },
 )
-watch([rows, cols, fillOrder, spacing], () => {
+/** 座位序变化（行列 / 填充 / 间隔 / 形状 / 排序）后选中下标不再对应同一座位，统一清除 */
+watch([rows, cols, fillOrder, spacing, disabledSeats, podiumCols, examSort, manualOrderText, seatingMode], () => {
   selectedSeat.value = null
 })
 watch(arranged, (v) => {
   if (!v) genderMixed.value = false
 })
 
-const entries = computed<SeatingEntry[]>(() => arranged.value ?? parsedEntries.value)
+const entries = computed<SeatingEntry[]>(() => arranged.value ?? examSortedEntries.value)
 const filledCount = computed(() => entries.value.filter((e) => e.name).length)
 const hasGender = computed(() => parsedEntries.value.some((e) => e.gender))
 
@@ -562,19 +748,51 @@ function restoreOrder() {
 
 // ---------- 座位计算 ----------
 const seats = computed<Seat[]>(() =>
-  buildSeats(entries.value, rows.value, cols.value, fillOrder.value, spacing.value, entries.value.length),
+  buildSeats(
+    entries.value,
+    rows.value,
+    cols.value,
+    fillOrder.value,
+    spacing.value,
+    entries.value.length,
+    seatShape.value,
+  ),
 )
 
-/** 按物理行列索引取座位（渲染网格用） */
+/** 按物理行列索引取座位（渲染网格用；讲台排座位不进主网格） */
 const seatGrid = computed(() => buildSeatGrid(seats.value, rows.value, cols.value))
+
+/** 讲台排座位格：cols 个槽位，启用列放座位；学生视角与主网格同向左右镜像 */
+const podiumCells = computed<(Seat | null)[]>(() => {
+  const byCol = new Map(podiumSeatsOf(seats.value).map((s) => [s.col, s]))
+  const cells = Array.from({ length: cols.value }, (_, i) => byCol.get(i + 1) ?? null)
+  return viewMode.value === 'student' ? cells.reverse() : cells
+})
 
 // ---------- 视角切换（教师视角 / 学生视角左右镜像） ----------
 const viewMode = ref<SeatingViewMode>('teacher')
 
 /** 展示网格：学生视角对每排做左右镜像，过道位置随之翻转 */
 const displayGrid = computed(() =>
-  buildDisplayGrid(seatGrid.value, cols.value, aisles.value, viewMode.value),
+  buildDisplayGrid(seatGrid.value, cols.value, effAisles.value, viewMode.value),
 )
+
+/** 讲台排展示格：与主网格同一镜像/过道口径（复用 buildDisplayGrid） */
+const podiumDisplayCells = computed(
+  () => buildDisplayGrid([podiumCells.value], cols.value, effAisles.value, viewMode.value)[0] ?? [],
+)
+const podiumRowVisible = computed(() => podiumCells.value.some((s) => s))
+
+/** 座位主文案：seatLabel=no 且有序号时显示序号，否则姓名；空座 — */
+function seatMainText(seat: Seat | null | undefined): string {
+  if (!seat) return '—'
+  if (seatLabel.value === 'no' && seat.sub) return seat.sub
+  return seat.name || '—'
+}
+/** 座位副标行：seatLabel=nameNo 时在姓名下小字显示序号 */
+function seatSubText(seat: Seat | null | undefined): string {
+  return seatLabel.value === 'nameNo' && seat?.sub ? seat.sub : ''
+}
 
 // ---------- 座位交换（点选互换 + 拖拽互换，含整排交换） ----------
 const selectedSeat = ref<number | null>(null)
@@ -754,9 +972,9 @@ function onDragPointerUp() {
   dropRowTarget.value = null
 }
 
-/** 可坐座位数（间隔留空的位置不算）：溢出、进度、演示名单都按这个口径 */
+/** 可坐座位数（间隔留空与自定义禁用格都不算）：溢出、进度、演示名单都按这个口径 */
 const seatCount = computed(() =>
-  seatCapacity(rows.value, cols.value, spacing.value, entries.value.length),
+  seatCapacity(rows.value, cols.value, spacing.value, entries.value.length, seatShape.value),
 )
 
 // ---------- 底部「下一步」操作条（只做导航，不碰数据） ----------
@@ -786,7 +1004,14 @@ const nextStepProgress = computed(
 const nextStepProgressCompact = computed(() => `${filledCount.value}/${seatCount.value}`)
 /** 排不进座位的学生（按填充顺序座位数之后的非空姓名）及其在名单序中的位置，点姓名可与选中座位互换 */
 const unseated = computed(() =>
-  unseatedEntries(entries.value, rows.value, cols.value, spacing.value, entries.value.length),
+  unseatedEntries(
+    entries.value,
+    rows.value,
+    cols.value,
+    spacing.value,
+    entries.value.length,
+    seatShape.value,
+  ),
 )
 const unseatedItems = computed(() => {
   const items: { entry: SeatingEntry; index: number }[] = []
@@ -881,6 +1106,11 @@ const findHitSeatNos = computed(() => new Set(findHits.value.map((s) => s.seatNo
 const FIND_HINT_MAX = 3
 
 function seatPositionText(seat: Seat): string {
+  if (seat.row === 0) {
+    return tr('讲台排 第 {c} 列 · 座位号 {n}')
+      .replace('{c}', String(seat.col))
+      .replace('{n}', String(seat.seatNo))
+  }
   return tr('第 {r} 排 第 {c} 列 · 座位号 {n}')
     .replace('{r}', String(seat.row))
     .replace('{c}', String(seat.col))
@@ -1068,7 +1298,7 @@ function toDeskLabels() {
     rows: filled.map((s) => ({
       姓名: s.name,
       座位号: String(s.seatNo),
-      排: String(s.row),
+      排: s.row === 0 ? tr('讲台') : String(s.row),
       列: String(s.col),
       班级: title.value,
       ...(room ? { 考场: room } : {}),
@@ -1105,6 +1335,41 @@ function toDeskLabels() {
     <div class="mt-6 grid items-start gap-5 lg:grid-cols-[380px_minmax(0,1fr)]">
       <!-- 设置面板 -->
       <aside class="no-print flex min-w-0 flex-col gap-4">
+        <div
+          class="grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm"
+          role="tablist"
+          :aria-label="tr('排座模式')"
+          data-testid="seating-mode-tabs"
+        >
+          <button
+            type="button"
+            role="tab"
+            :aria-selected="seatingMode === 'class'"
+            class="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold transition-colors"
+            :class="seatingMode === 'class' ? 'bg-brand-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
+            data-testid="seating-mode-class"
+            @click="seatingMode = 'class'"
+          >
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 10h18M3 10v8a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-8M3 10l2-5h14l2 5M9 14h6" />
+            </svg>
+            {{ tr('教室排座') }}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            :aria-selected="seatingMode === 'exam'"
+            class="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold transition-colors"
+            :class="seatingMode === 'exam' ? 'bg-brand-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
+            data-testid="seating-mode-exam"
+            @click="seatingMode = 'exam'"
+          >
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 5h6M9 5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 7 2 2 4-4" />
+            </svg>
+            {{ tr('考试排位') }}
+          </button>
+        </div>
         <section ref="basicSection" class="panel-card scroll-mt-16">
           <h2 class="section-title"><span class="step-chip">1</span>{{ tr('基本信息') }}</h2>
           <div class="mt-3 grid grid-cols-2 gap-2.5">
@@ -1185,25 +1450,123 @@ function toDeskLabels() {
                 @update:model-value="podium = $event ? 'top' : 'none'"
               />
             </div>
+            <div class="col-span-2">
+              <label class="field-label">{{ tr('联排分组') }}</label>
+              <SelectField
+                :model-value="String(groupSize)"
+                :options="GROUP_OPTIONS"
+                @update:model-value="groupSize = Number($event)"
+              />
+            </div>
+            <div class="col-span-2">
+              <label class="field-label">{{ tr('座位形状') }}</label>
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  :aria-pressed="editingMap"
+                  data-testid="seating-map-edit"
+                  @click="editingMap = !editingMap"
+                >
+                  {{ editingMap ? tr('完成编辑') : tr('自定义座位') }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-sm"
+                  data-testid="seating-podium-add"
+                  @click="addPodiumPair"
+                >
+                  {{ tr('讲台两侧加座') }}
+                </button>
+                <button
+                  v-if="hasCustomShape"
+                  type="button"
+                  class="btn btn-ghost btn-sm"
+                  data-testid="seating-map-reset"
+                  @click="resetSeatShape"
+                >
+                  {{ tr('还原矩形座位') }}
+                </button>
+                <span
+                  v-if="hasCustomShape && !editingMap"
+                  class="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700"
+                  data-testid="seating-map-badge"
+                >{{ tr('已自定义') }}</span>
+              </div>
+              <p class="mt-1 text-[11px] leading-4 text-slate-500">
+                {{ tr('讲台两侧护法位、末排少坐、7788 型考场等不规则座位：点「自定义座位」后在预览里点格子增删。') }}
+              </p>
+            </div>
+            <template v-if="seatingMode === 'exam'">
+              <div class="col-span-2">
+                <label class="field-label">{{ tr('考场布局预设') }}</label>
+                <div class="flex flex-wrap gap-1.5" data-testid="exam-presets">
+                  <button
+                    v-for="preset in EXAM_LAYOUT_PRESETS"
+                    :key="preset.id"
+                    type="button"
+                    class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-600"
+                    :title="preset.id === 'exam30_7788' ? tr('4 列 7/7/8/8 人，按列蛇形') : preset.id === 'exam15_gap' ? tr('30 位坐 15，按列蛇形') : tr('5 列 6 排坐满，按列蛇形')"
+                    :data-preset="preset.id"
+                    @click="applyExamPreset(preset)"
+                  >
+                    {{ EXAM_PRESET_LABELS[preset.id] }}
+                  </button>
+                </div>
+              </div>
+              <div class="col-span-2">
+                <label class="field-label" for="exam-sort">{{ tr('排位顺序') }}</label>
+                <SelectField id="exam-sort" v-model="examSort" :options="EXAM_SORT_OPTIONS" />
+                <p v-if="examSort === 'order' && !hasOrderColumn" class="mt-1 text-[11px] leading-4 text-amber-600">
+                  {{ tr('名单未识别到序号列：加一列「考号/学号/序号」即可按序号排位，当前按名单原序') }}
+                </p>
+                <p v-else-if="examSort === 'score' && !hasScoreColumn" class="mt-1 text-[11px] leading-4 text-amber-600">
+                  {{ tr('名单未识别到成绩列：加一列「成绩/分数」即可按成绩排位，当前按名单原序') }}
+                </p>
+              </div>
+              <div v-if="examSort === 'manual'" class="col-span-2">
+                <label class="field-label" for="manual-order">{{ tr('顺序名单（每行一个姓名或考号）') }}</label>
+                <textarea
+                  id="manual-order"
+                  v-model="manualOrderText"
+                  rows="4"
+                  class="input-field h-auto resize-y py-2 text-xs leading-5"
+                  :placeholder="tr('例：\n103\n101\n张小明\n…未列出的按原顺序排在末尾')"
+                  data-testid="manual-order-text"
+                ></textarea>
+              </div>
+              <div class="col-span-2">
+                <label class="field-label" for="seat-label">{{ tr('座位显示') }}</label>
+                <SelectField id="seat-label" v-model="seatLabel" :options="SEAT_LABEL_OPTIONS" />
+              </div>
+            </template>
           </div>
           <div class="mt-3">
-            <label class="field-label">{{ tr('过道位置（点击列间隙切换）') }}</label>
-            <div ref="aisleRow" class="flex flex-wrap gap-1.5" data-testid="aisle-row">
-              <button
-                v-for="n in Math.max(cols - 1, 0)"
-                :key="n"
-                type="button"
-                class="rounded-md border px-2.5 py-1 text-[11px] font-bold transition-colors"
-                :class="
-                  aisles.has(n)
-                    ? 'border-brand-600 bg-brand-600 text-white'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600'
-                "
-                @click="toggleAisle(n)"
-              >
-                {{ tr('列间') }} {{ n }}-{{ n + 1 }}
-              </button>
-            </div>
+            <template v-if="groupSize > 0">
+              <label class="field-label">{{ tr('过道位置') }}</label>
+              <p class="text-[11px] leading-4 text-slate-500" data-testid="aisle-auto-hint">
+                {{ tr('已按 {n} 人联排自动留出过道（第 {list} 列后）').replace('{n}', String(groupSize)).replace('{list}', listJoin([...effAisles].map(String))) }}
+              </p>
+            </template>
+            <template v-else>
+              <label class="field-label">{{ tr('过道位置（点击列间隙切换）') }}</label>
+              <div ref="aisleRow" class="flex flex-wrap gap-1.5" data-testid="aisle-row">
+                <button
+                  v-for="n in Math.max(cols - 1, 0)"
+                  :key="n"
+                  type="button"
+                  class="rounded-md border px-2.5 py-1 text-[11px] font-bold transition-colors"
+                  :class="
+                    aisles.has(n)
+                      ? 'border-brand-600 bg-brand-600 text-white'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600'
+                  "
+                  @click="toggleAisle(n)"
+                >
+                  {{ tr('列间') }} {{ n }}-{{ n + 1 }}
+                </button>
+              </div>
+            </template>
           </div>
         </section>
 
@@ -1229,6 +1592,14 @@ function toDeskLabels() {
                 :aria-label="tr('上传 TXT / CSV / Excel 名单文件')"
                 @change="onRosterFileChange"
               />
+              <button
+                type="button"
+                class="btn btn-secondary btn-sm"
+                data-testid="seating-roster-edit"
+                @click="rosterEditorOpen = true"
+              >
+                {{ tr('表格编辑名单') }}
+              </button>
               <button type="button" class="btn btn-ghost btn-sm" @click="loadDemoNames">
                 {{ tr('用演示名单') }}
               </button>
@@ -1545,6 +1916,14 @@ function toDeskLabels() {
           </p>
         </div>
         <div
+          v-if="editingMap"
+          class="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs leading-5 text-brand-800"
+          data-testid="seating-map-hint"
+        >
+          <span class="font-bold">{{ tr('正在编辑座位形状') }}</span>
+          <span>{{ tr('点亮格为座位、灰格为无座；首行讲台排可设护法位。完成后点左侧「完成编辑」。') }}</span>
+        </div>
+        <div
           v-if="!filledCount"
           class="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-500"
           data-testid="seating-empty-cta"
@@ -1603,7 +1982,76 @@ function toDeskLabels() {
                 <div class="sheet-page seating-sheet">
                   <h2 class="seating-title">{{ title || tr('教室座位表') }}</h2>
                   <div v-if="podium === 'top'" class="seating-podium">{{ tr('讲　台') }}</div>
-                  <div class="seating-grid">
+                  <!-- 讲台排：护法位等附加座位，过道/镜像与主网格同口径；形状编辑态由编辑网格内的讲台行接管 -->
+                  <div v-if="podiumRowVisible && !editingMap" class="seating-row seating-row--podium" data-testid="seating-podium-row">
+                    <span class="seating-row-handle seating-row-handle--static" aria-hidden="true"></span>
+                    <template v-for="(cell, i) in podiumDisplayCells" :key="`p-${i}`">
+                      <div v-if="!cell.seat" class="seating-seat seating-seat--spacer" aria-hidden="true"></div>
+                      <div
+                        v-else
+                        class="seating-seat"
+                        :class="{
+                          'seating-seat--empty': !cell.seat.name,
+                          'seating-seat--selected': selectedSeat === cell.seat.seatNo - 1,
+                          'seating-seat--boy': cell.seat.gender === '男',
+                          'seating-seat--girl': cell.seat.gender === '女',
+                          'seating-seat--drop-target':
+                            dragging && dropSeatTarget === cell.seat.seatNo - 1,
+                          'seating-seat--found': findHitSeatNos.has(cell.seat.seatNo),
+                          'seating-seat--gender-review ring-1 ring-dashed ring-amber-400':
+                            genderReviewSeatNos.has(cell.seat.seatNo - 1),
+                        }"
+                        role="button"
+                        tabindex="0"
+                        :data-seat-no="cell.seat.seatNo"
+                        @click="onSeatClick(cell.seat)"
+                        @keydown.enter.prevent="onSeatClick(cell.seat)"
+                        @pointerdown="onSeatPointerDown(cell.seat, $event)"
+                      >
+                        <span class="seating-seat-no">{{ cell.seat.seatNo }}</span>
+                        <span class="seating-seat-name">{{ seatMainText(cell.seat) }}</span>
+                        <span v-if="seatSubText(cell.seat)" class="seating-seat-sub">{{ seatSubText(cell.seat) }}</span>
+                      </div>
+                      <div v-if="cell.aisleAfter" class="seating-aisle" aria-hidden="true"></div>
+                    </template>
+                  </div>
+                  <!-- 座位形状编辑态：点亮格为座位、灰格为无座；首行为讲台排（护法位） -->
+                  <div v-if="editingMap" class="seating-grid" data-testid="seating-map-editor">
+                    <div class="seating-row">
+                      <span class="seating-row-handle seating-row-handle--static" aria-hidden="true">{{ tr('台') }}</span>
+                      <template v-for="c in cols" :key="`ep-${c}`">
+                        <button
+                          type="button"
+                          class="seating-seat seating-seat--editor"
+                          :class="podiumCols.has(c) ? 'seating-seat--editor-on' : 'seating-seat--editor-off'"
+                          :aria-pressed="podiumCols.has(c)"
+                          :title="tr('讲台排第 {c} 列：点击增删座位').replace('{c}', String(c))"
+                          @click="togglePodiumCell(c)"
+                        >
+                          <span class="seating-seat-name">{{ podiumCols.has(c) ? tr('座') : '+' }}</span>
+                        </button>
+                        <div v-if="effAisles.has(c) && c < cols" class="seating-aisle" aria-hidden="true"></div>
+                      </template>
+                    </div>
+                    <div v-for="r in rows" :key="`er-${r}`" class="seating-row">
+                      <span class="seating-row-handle seating-row-handle--static" aria-hidden="true">{{ r }}</span>
+                      <template v-for="c in cols" :key="`e-${r}-${c}`">
+                        <button
+                          type="button"
+                          class="seating-seat seating-seat--editor"
+                          :class="disabledSeats.has(maskKey(r, c)) ? 'seating-seat--editor-off' : 'seating-seat--editor-on'"
+                          :aria-pressed="!disabledSeats.has(maskKey(r, c))"
+                          :title="tr('第 {r} 排第 {c} 列：点击增删座位').replace('{r}', String(r)).replace('{c}', String(c))"
+                          :data-cell="`${r},${c}`"
+                          @click="toggleMainCell(r, c)"
+                        >
+                          <span class="seating-seat-name">{{ disabledSeats.has(maskKey(r, c)) ? '—' : '✓' }}</span>
+                        </button>
+                        <div v-if="effAisles.has(c) && c < cols" class="seating-aisle" aria-hidden="true"></div>
+                      </template>
+                    </div>
+                  </div>
+                  <div v-else class="seating-grid">
                     <div v-for="(rowCells, r) in displayGrid" :key="r" class="seating-row">
                       <button
                         type="button"
@@ -1650,7 +2098,8 @@ function toDeskLabels() {
                           @pointerdown="onSeatPointerDown(cell.seat, $event)"
                         >
                           <span class="seating-seat-no">{{ cell.seat?.seatNo }}</span>
-                          <span class="seating-seat-name">{{ cell.seat?.name || '—' }}</span>
+                          <span class="seating-seat-name">{{ seatMainText(cell.seat) }}</span>
+                          <span v-if="seatSubText(cell.seat)" class="seating-seat-sub">{{ seatSubText(cell.seat) }}</span>
                         </div>
                         <div v-if="cell.aisleAfter" class="seating-aisle" aria-hidden="true"></div>
                       </template>
@@ -1662,7 +2111,7 @@ function toDeskLabels() {
                     data-testid="seating-preview-unseated"
                   >{{ unseatedFootnote }}</p>
                   <p class="seating-footnote">
-                    {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} ·
+                    {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }}<template v-if="hasCustomShape"> {{ tr('· 自定义 {n} 座').replace('{n}', String(seatCount)) }}</template> ·
                     <template v-if="spacing !== 'none'">{{ spacingLabel }} · </template>{{ filledCount }} {{ personUnit }} ·
                     {{ viewMode === 'teacher' ? tr('教师视角') : tr('学生视角') }} · {{ tr('seatmark.cn 生成') }}
                   </p>
@@ -1673,6 +2122,21 @@ function toDeskLabels() {
         </div>
       </div>
     </div>
+
+    <!-- 表格编辑名单：免 Excel 在线增删改，保存写回名单文本框 -->
+    <ModalDialog
+      :open="rosterEditorOpen"
+      :title="tr('表格编辑名单')"
+      size="lg"
+      @close="rosterEditorOpen = false"
+    >
+      <RosterEditorGrid
+        v-if="rosterEditorOpen"
+        :external="rosterGridSeed"
+        @save="onRosterGridSave"
+        @cancel="rosterEditorOpen = false"
+      />
+    </ModalDialog>
 
     <!-- 导出方式选择：带水印免费不限次 / 无水印计配额（口径同 /studio 与 /banquet） -->
     <ModalDialog
@@ -1700,6 +2164,17 @@ function toDeskLabels() {
         <div ref="exportHost" class="sheet-page seating-sheet" data-testid="seating-export-sheet">
           <h2 class="seating-title">{{ title || tr('教室座位表') }}</h2>
           <div v-if="podium === 'top'" class="seating-podium">{{ tr('讲　台') }}</div>
+          <div v-if="podiumRowVisible" class="seating-row seating-row--podium">
+            <template v-for="(cell, i) in podiumDisplayCells" :key="`p-${i}`">
+              <div v-if="!cell.seat" class="seating-seat seating-seat--spacer" aria-hidden="true"></div>
+              <div v-else class="seating-seat" :class="{ 'seating-seat--empty': !cell.seat.name }">
+                <span class="seating-seat-no">{{ cell.seat.seatNo }}</span>
+                <span class="seating-seat-name">{{ seatMainText(cell.seat) }}</span>
+                <span v-if="seatSubText(cell.seat)" class="seating-seat-sub">{{ seatSubText(cell.seat) }}</span>
+              </div>
+              <div v-if="cell.aisleAfter" class="seating-aisle" aria-hidden="true"></div>
+            </template>
+          </div>
           <div class="seating-grid">
             <div v-for="(rowCells, r) in displayGrid" :key="r" class="seating-row">
               <template v-for="(cell, i) in rowCells" :key="`${r}-${i}`">
@@ -1710,7 +2185,8 @@ function toDeskLabels() {
                 ></div>
                 <div v-else class="seating-seat" :class="{ 'seating-seat--empty': !cell.seat?.name }">
                   <span class="seating-seat-no">{{ cell.seat?.seatNo }}</span>
-                  <span class="seating-seat-name">{{ cell.seat?.name || '—' }}</span>
+                  <span class="seating-seat-name">{{ seatMainText(cell.seat) }}</span>
+                  <span v-if="seatSubText(cell.seat)" class="seating-seat-sub">{{ seatSubText(cell.seat) }}</span>
                 </div>
                 <div v-if="cell.aisleAfter" class="seating-aisle" aria-hidden="true"></div>
               </template>
@@ -1722,7 +2198,7 @@ function toDeskLabels() {
             data-testid="seating-export-unseated"
           >{{ unseatedFootnote }}</p>
           <p class="seating-footnote">
-            {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }} ·
+            {{ rows }} {{ tr('排') }} × {{ cols }} {{ tr('列') }}<template v-if="hasCustomShape"> {{ tr('· 自定义 {n} 座').replace('{n}', String(seatCount)) }}</template> ·
             <template v-if="spacing !== 'none'">{{ spacingLabel }} · </template>{{ filledCount }} {{ personUnit }} ·
             {{ viewMode === 'teacher' ? tr('教师视角') : tr('学生视角') }} · {{ tr('seatmark.cn 生成') }}
           </p>
@@ -1941,5 +2417,58 @@ function toDeskLabels() {
 
 .seating-footnote--unseated + .seating-footnote {
   margin-top: 1mm;
+}
+
+/* 讲台排（护法位等附加座位）：紧贴讲台下沿，与主网格拉开一档 */
+.seating-row--podium {
+  margin-top: 2.5mm;
+  margin-bottom: 1mm;
+}
+
+/* 非交互的排号/讲台把手（编辑态与讲台排对齐用） */
+.seating-row-handle--static {
+  cursor: default;
+}
+
+/* 讲台排未启用的槽位：留位不画框 */
+.seating-seat--spacer {
+  border-color: transparent;
+  background: transparent;
+  cursor: default;
+}
+
+/* 座位副标（考号/序号）：姓名下方小字 */
+.seating-seat-sub {
+  max-width: 100%;
+  font-size: 2.4mm;
+  line-height: 1.2;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 座位形状编辑态：点亮 = 有座，虚线灰格 = 无座 */
+.seating-seat--editor {
+  cursor: pointer;
+}
+
+.seating-seat--editor-on {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+.seating-seat--editor-on .seating-seat-name {
+  color: #4338ca;
+}
+
+.seating-seat--editor-off {
+  border-style: dashed;
+  border-color: #cbd5e1;
+  background: transparent;
+}
+
+.seating-seat--editor-off .seating-seat-name {
+  color: #94a3b8;
 }
 </style>

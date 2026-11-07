@@ -12,16 +12,18 @@ export function seatingCsvHasGender(seats: readonly Seat[]): boolean {
 }
 
 /** 表头按 locale 固定（共享键「排/列」在英文里是 rows/cols 计数语境，不适合做列名） */
-function csvHeader(withGender: boolean): string[] {
+function csvHeader(withGender: boolean, withSub: boolean): string[] {
   const header =
     currentLocale() === 'en' ? ['Row', 'Column', 'Seat No.', 'Name'] : ['排', '列', '座位号', '姓名']
+  if (withSub) header.push(currentLocale() === 'en' ? 'Exam No.' : '考号')
   if (withGender) header.push(currentLocale() === 'en' ? 'Gender' : '性别')
   return header
 }
 
-/** 「未排座」段表头：序号/姓名[/性别] */
-function unseatedHeader(withGender: boolean): string[] {
+/** 「未排座」段表头：序号/姓名[/考号][/性别] */
+function unseatedHeader(withGender: boolean, withSub: boolean): string[] {
   const header = currentLocale() === 'en' ? ['No.', 'Name'] : ['序号', '姓名']
+  if (withSub) header.push(currentLocale() === 'en' ? 'Exam No.' : '考号')
   if (withGender) header.push(currentLocale() === 'en' ? 'Gender' : '性别')
   return header
 }
@@ -33,18 +35,26 @@ function unseatedHeader(withGender: boolean): string[] {
  */
 export function seatingRosterCsv(seats: readonly Seat[], unseated: readonly SeatingEntry[] = []): string {
   const withGender = seatingCsvHasGender(seats) || unseated.some((e) => e.name && e.gender)
-  const lines = [csvHeader(withGender).join(',')]
+  const withSub = seats.some((s) => s.name && s.sub)
+  const lines = [csvHeader(withGender, withSub).join(',')]
   for (const seat of seats) {
     if (!seat.name) continue
-    const cells = [String(seat.row), String(seat.col), String(seat.seatNo), seat.name]
+    const cells = [
+      seat.row === 0 ? t('讲台') : String(seat.row),
+      String(seat.col),
+      String(seat.seatNo),
+      seat.name,
+    ]
+    if (withSub) cells.push(seat.sub ?? '')
     if (withGender) cells.push(seat.gender ? t(seat.gender) : '')
     lines.push(cells.map(csvCell).join(','))
   }
   const pending = unseated.filter((e) => e.name)
   if (pending.length) {
-    lines.push('', csvCell(t('未排座')), unseatedHeader(withGender).join(','))
+    lines.push('', csvCell(t('未排座')), unseatedHeader(withGender, withSub).join(','))
     pending.forEach((entry, i) => {
       const cells = [String(i + 1), entry.name]
+      if (withSub) cells.push(entry.orderNo ?? '')
       if (withGender) cells.push(entry.gender ? t(entry.gender) : '')
       lines.push(cells.map(csvCell).join(','))
     })
