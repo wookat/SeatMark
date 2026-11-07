@@ -25,18 +25,20 @@ const base = {
   showLabelBorder: false,
 }
 
-const svg = (w: number, h: number, body: string) =>
+export const svg = (w: number, h: number, body: string) =>
   `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${body}</svg>`
 
-function spec(slug: string) {
+export function spec(slug: string) {
   const s = findLabelPaper(slug)
   if (!s) throw new Error(`defaultTemplatesPaperSeries: 未知纸型 ${slug}`)
   return s
 }
 
+export { FONT, FONT_EN }
+
 /** 纸型专用模板构造：几何随纸型库规格生成，规格修订自动生效。
  * rotated=true 生成横向进纸版式（纸型旋转 90°，单格宽高互换） */
-function pp(
+export function pp(
   paperSlug: string,
   template: Omit<
     LabelTemplate,

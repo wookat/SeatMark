@@ -17,7 +17,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'exam-desk',
       name: '考场布置',
-      templateIds: [
+      templateIds: ['ppExam15', 'ppExamDesk8r', 'ppExamDesk8ro',
         'standard',
         'seatOnly',
         'minimal',
@@ -70,7 +70,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'teaching-desk',
       name: '教室桌贴',
-      templateIds: [
+      templateIds: ['ppName14', 'ppName15', 'ppName16', 'ppName20', 'ppName24', 'ppName27', 'ppName12n', 'ppName14r', 'ppName16r', 'ppName18r', 'ppName21r', 'ppName22r', 'ppName33', 'ppSid32r', 'ppSidName21', 'ppEngName24r', 'ppEngName30',
         'deskName',
         'infoStrip',
         'trainingDesk',
@@ -89,7 +89,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'teaching-class',
       name: '班级管理',
-      templateIds: [
+      templateIds: ['ppItemTag12', 'ppSlogan5', 'ppDoorSignA4h', 'ppClassDoor2r', 'ppClassTag24r',
         'studentCard',
         'studentIdCard',
         'classDoor',
@@ -122,7 +122,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'teaching-library',
       name: '图书阅览',
-      templateIds: ['shelfCategory', 'libraryCall', 'readingSeat', 'bookshelfRange', 'ppBookLabel12n', 'ppShelfSide6H', 'ppBookTag12nH', 'ppLibZone6'],
+      templateIds: ['ppBookZone6r', 'ppBookTag30r', 'ppBookTag30','shelfCategory', 'libraryCall', 'readingSeat', 'bookshelfRange', 'ppBookLabel12n', 'ppShelfSide6H', 'ppBookTag12nH', 'ppLibZone6'],
     },
     {
       id: 'teaching-lab',
@@ -144,7 +144,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'kids-name',
       name: '姓名与物品',
-      templateIds: [
+      templateIds: ['ppName30r', 'ppName32r', 'ppName40r', 'ppName68', 'ppPencil24n', 'ppPencil30', 'ppNameCart21', 'ppNameCart24r', 'ppNameCart40', 'ppName44r', 'ppName48r', 'ppPencil48r', 'ppName56m', 'ppName65r', 'ppPencil65r', 'ppName40', 'ppItemTag40r',
         'kidsName',
         'kidsAnimal',
         'kidsCandy',
@@ -183,14 +183,14 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'kids-class',
       name: '班级环创',
-      templateIds: ['kidsBirthday', 'kidsHelper', 'kidsCorner', 'kidsGrowth', 'macaronBirthday'],
+      templateIds: ['ppToyBin6r', 'ppToyTag8','kidsBirthday', 'kidsHelper', 'kidsCorner', 'kidsGrowth', 'macaronBirthday'],
     },
   ],
   event: [
     {
       id: 'event-tent',
       name: '桌牌席卡',
-      templateIds: [
+      templateIds: ['ppTallCard2v', 'ppTraining8', 'ppDeskCard8r90', 'ppTent5302b', 'ppTent5305b', 'ppTent5309b',
         'signage',
         'deskHalf',
         'meetingTent',
@@ -228,7 +228,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'event-badge',
       name: '证件胸牌',
-      templateIds: [
+      templateIds: ['ppBadge5390a', 'ppVisitor5390', 'ppBadge5392a', 'ppStaff5392', 'ppNameStrip10', 'ppBadge5395b', 'ppBadge5395staff',
         'eventBadge',
         'expoBadgeH',
         'expoBadgeV',
@@ -245,7 +245,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'event-guide',
       name: '签到引导',
-      templateIds: ['checkinZone', 'checkinDesk', 'guideArrow', 'subvenueDoor', 'volunteerPoint', 'ppZoneA4x2', 'ppDoorSignA4x2H'],
+      templateIds: ['ppZoneCard4','checkinZone', 'checkinDesk', 'guideArrow', 'subvenueDoor', 'volunteerPoint', 'ppZoneA4x2', 'ppDoorSignA4x2H'],
     },
     {
       id: 'event-ticket',
@@ -263,7 +263,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'event-culture',
       name: '文体现场',
-      templateIds: [
+      templateIds: ['ppEventPosterA4',
         'calligraphySeat',
         'chessTableNo',
         'esportsSeat',
@@ -278,7 +278,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'wedding-seat',
       name: '席位桌号',
-      templateIds: [
+      templateIds: ['ppWeddingCard10', 'ppTentWedding5302',
         'weddingPlace',
         'weddingTableNo',
         'tableNoStand',
@@ -307,14 +307,14 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'wedding-gift',
       name: '礼品甜品',
-      templateIds: ['dessertLabel', 'weddingCandy', 'weddingThanks', 'ppSealWedding119'],
+      templateIds: ['ppCandySeal60','dessertLabel', 'weddingCandy', 'weddingThanks', 'ppSealWedding119'],
     },
   ],
   life: [
     {
       id: 'life-office',
       name: '办公职场',
-      templateIds: [
+      templateIds: ['ppFileTab20', 'ppFileBox12b', 'ppSpine120b', 'ppAddr24', 'ppAddr33', 'ppAddr21', 'ppAddrEn5160', 'ppReturn5160', 'ppCode24n', 'ppCode40', 'ppCode44r', 'ppCode56', 'ppCode68', 'ppItemTag14',
         'staffIdCard',
         'officeDesk',
         'meetingRoomDoor',
@@ -349,7 +349,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'life-food',
       name: '餐饮门店',
-      templateIds: [
+      templateIds: ['ppBakerySeal60', 'ppDateSeal119', 'ppBrandSeal119', 'ppSpice21', 'ppDate21r',
         'reservedTable',
         'privateRoomDoor',
         'takeoutShelf',
@@ -367,7 +367,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'life-storage',
       name: '仓储物流',
-      templateIds: [
+      templateIds: ['ppZoneCard2r', 'ppShelfTag16', 'ppBoxTag8', 'ppBinTag12sq', 'ppShelfCat6', 'ppShelfStrip6', 'ppShipping5163', 'ppStorage5164', 'ppItemTag8ro',
         'warehouseShelf',
         'inventoryCount',
         'parcelShelf',
@@ -387,7 +387,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'life-service',
       name: '生活服务',
-      templateIds: [
+      templateIds: ['ppPrice10g', 'ppPrice10ro',
         'gymLocker',
         'gymClassDoor',
         'spaHook',
@@ -408,7 +408,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'life-community',
       name: '社区家庭',
-      templateIds: [
+      templateIds: ['ppSpiceDate18', 'ppOpenDate18b', 'ppDate24r', 'ppNoticeA3b', 'ppNoticeA5b', 'ppTallGuide2v', 'ppItemTag27',
         'bookLabel',
         'dormDoor',
         'mailboxLabel',

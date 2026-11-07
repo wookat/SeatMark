@@ -5,6 +5,7 @@ import { deluxeTemplates } from './defaultTemplatesDeluxe'
 import { eventTemplates } from './defaultTemplatesEvent'
 import { lifeTemplates } from './defaultTemplatesLife'
 import { paperSeriesTemplates } from './defaultTemplatesPaperSeries'
+import { paperSeries2Templates } from './defaultTemplatesPaperSeries2'
 import { round4Templates } from './defaultTemplatesRound4'
 import { styleSeriesTemplates } from './defaultTemplatesStyleSeries'
 import {
@@ -8313,6 +8314,7 @@ export const defaultTemplates: LabelTemplate[] = [
   ...round4Templates,
   ...styleSeriesTemplates,
   ...paperSeriesTemplates,
+  ...paperSeries2Templates,
 ]
 
 /** 设计器“新建空白模板”的起点 */
