@@ -35,7 +35,7 @@ export function guideBodyImages(body: string): string[] {
 }
 
 /** 已提供英文版内容的中文路径（/en 前缀镜像可被索引并互挂 hreflang） */
-const EN_LOCALIZED_BASES = ['/', '/studio', '/pricing', '/seating', '/banquet', '/about', '/terms', '/privacy', '/refund'] as const
+const EN_LOCALIZED_BASES = ['/', '/studio', '/pricing', '/seating', '/banquet', '/about', '/terms', '/privacy', '/refund', '/updates'] as const
 
 function enPathOf(base: string): string {
   return base === '/' ? '/en' : `/en${base}`
@@ -568,6 +568,21 @@ function resolveEnSeo(base: string): PageSeo | null {
     }
   }
 
+  if (base === '/updates') {
+    return {
+      ...common,
+      title: 'Changelog — Release Notes & Updates | SeatMark',
+      description:
+        'SeatMark changelog: features, improvements and fixes grouped by date — generated from repository commits so every entry maps to shipped code.',
+      jsonLd: [
+        breadcrumb([
+          { name: 'Home', path: '/en' },
+          { name: 'Changelog', path: '/en/updates' },
+        ]),
+      ],
+    }
+  }
+
   // base === '/banquet'
   return {
     ...common,
@@ -1071,6 +1086,21 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
     }
   }
 
+  if (p === '/updates') {
+    return {
+      title: '更新记录 - SeatMark 座签',
+      description:
+        'SeatMark 座签更新记录：新功能、改进与修复按日期归档，内容由仓库提交记录直接生成，看到的每条记录都对应真实合入的代码。',
+      path: '/updates',
+      jsonLd: [
+        breadcrumb([
+          { name: '首页', path: '/' },
+          { name: '更新记录', path: '/updates' },
+        ]),
+      ],
+    }
+  }
+
   // 未知路径：品牌化 404 页（noindex，预渲染为静态托管的 404.html）
   return {
     title: '页面不存在 - SeatMark 座签',
@@ -1125,6 +1155,7 @@ export async function prerenderPaths(): Promise<string[]> {
     '/terms',
     '/privacy',
     '/refund',
+    '/updates',
     ...EN_LOCALIZED_BASES.map((base) => enPathOf(base)),
     // /en 内容站索引外壳：noindex，预渲染防 404 但由 isSitemapEligible 排除出 sitemap
     ...enIndexShellPaths(),

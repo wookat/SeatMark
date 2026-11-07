@@ -165,6 +165,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'refund',
     component: () => import('@/views/RefundView.vue'),
   },
+  {
+    path: '/updates',
+    name: 'updates',
+    component: () => import('@/views/ChangelogView.vue'),
+  },
 ]
 
 /** /en 前缀英文路由：同一份组件镜像生成，meta.locale 标记语言 */

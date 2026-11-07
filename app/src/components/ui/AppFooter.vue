@@ -41,6 +41,7 @@ const GROUPS = computed(() => [
       { label: t('使用流程'), to: localePath('/#how') },
       { label: t('功能特性'), to: localePath('/#features') },
       { label: t('常见问题'), to: localePath('/#faq') },
+      { label: t('更新记录'), to: localePath('/updates') },
       { label: t('用户协议'), to: localePath('/terms') },
       { label: t('隐私政策'), to: localePath('/privacy') },
       { label: t('退款政策'), to: localePath('/refund') },

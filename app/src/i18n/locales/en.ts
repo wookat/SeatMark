@@ -2507,4 +2507,9 @@ export const en: Record<string, string> = {
     '{n} free built-in templates for exam seat labels, candidate-number stickers, desk name tags, conference place cards, passes, student and staff badges — including designs made for specific adhesive sheet layouts, all laid out to the millimetre. Open any template for details or start generating right away.',
   '收录国产电商常见的不干胶分切规格：A4 满切与圆角模切、A3/A5 整版，以及美标 Letter 的 Avery 兼容纸型，共 {n} 种。每种版型配专用模板，选好纸型上传名单即打即贴，详情页可下单同款纸包或定制模板。':
     'A library of {n} pre-cut label sheets — common Chinese A4 self-adhesive die-cuts, A3/A5 full sheets, plus US Letter Avery-compatible stock. Every layout ships with dedicated templates: pick a sheet, upload your list, print and peel; order matching stock or custom templates on the detail page.',
+  '更新记录': 'Changelog',
+  '本页内容直接由仓库提交记录生成：每次代码合入后按 conventional commit 归类为新功能、改进与修复，按日期排列。':
+    'This page is generated straight from repository commits: each merge is classified as a feature, improvement or fix by its conventional-commit type and listed by date.',
+  '提交哈希用于内部溯源；仅统计 feat / fix / perf / refactor 类型的提交，文档、构建与运维类合入不在此列。':
+    'Commit hashes are for internal traceability; only feat / fix / perf / refactor commits are listed — docs, build and ops merges are excluded.',
 }
