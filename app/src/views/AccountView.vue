@@ -2,7 +2,8 @@
 import { computed, onMounted, ref, watch } from 'vue'
 
 import { localePath, t } from '@/i18n'
-import { isServiceUnavailableError, useAuthStore } from '@/stores/auth'
+import { isServiceUnavailableError, pendingInviteCode, useAuthStore } from '@/stores/auth'
+import { trackEvent } from '@/utils/analytics'
 import { QUOTA_ANON_DAILY, QUOTA_USER_DAILY, useQuotaStore } from '@/stores/quota'
 import { isValidTemplate, useTemplateLibrary } from '@/stores/templateLibrary'
 import { sanitizeTemplateForImport } from '@/utils/templateValidate'
@@ -158,13 +159,17 @@ async function onSubmit() {
   submitting.value = true
   try {
     if (mode.value === 'register') {
+      const invited = pendingInviteCode() !== ''
       await auth.register(emailValue, password.value, captchaInput())
+      trackEvent({ event: 'sign_up', category: 'auth', params: { method: 'password', invited } })
       toast.success(t('注册成功'), t('已赠送 7 天专业版试用：无水印导出不限次与云端模板同步已生效'))
     } else if (mode.value === 'reset') {
       await auth.resetPassword(emailValue, resetCode.value.trim(), password.value)
+      trackEvent({ event: 'password_reset', category: 'auth' })
       toast.success(t('密码已重置'), t('新密码已生效，已为你自动登录'))
     } else {
       await auth.login(emailValue, password.value, captchaInput())
+      trackEvent({ event: 'login', category: 'auth', params: { method: 'password' } })
       toast.success(t('登录成功'), t('无水印导出额度与云端模板同步已生效'))
     }
     password.value = ''
@@ -267,6 +272,7 @@ const shareLink = computed(() =>
 async function copyShareLink() {
   try {
     await navigator.clipboard.writeText(shareLink.value)
+    trackEvent({ event: 'share_copy', category: 'share', label: 'link' })
     toast.success(t('分享链接已复制'), t('发给同事或群聊，每被点开 1 次即得 1 次无水印导出'))
   } catch {
     toast.warning(t('复制失败'), t('请手动复制上方链接'))
@@ -281,6 +287,7 @@ const shareCopyText = computed(
 async function copyShareText() {
   try {
     await navigator.clipboard.writeText(shareCopyText.value)
+    trackEvent({ event: 'share_copy', category: 'share', label: 'text' })
     toast.success(t('推荐文案已复制'), t('含你的专属链接，直接粘贴到群聊或朋友圈即可'))
   } catch {
     toast.warning(t('复制失败'), t('请手动复制分享链接'))
@@ -303,6 +310,7 @@ async function onRedeem() {
   try {
     const result = await auth.redeem(code)
     redeemCode.value = ''
+    trackEvent({ event: 'redeem', category: 'pay', value: result.days })
     if (result.already) {
       toast.success(t('兑换码已生效'), t('该兑换码此前已兑换到你的账号'))
     } else {

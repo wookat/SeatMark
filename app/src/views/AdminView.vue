@@ -14,6 +14,12 @@ interface Overview {
   trialUsers: number
   activeTrialToday: number
   shareBonusToday: number
+  /** 自建访客统计（IP+日去重）：旧版边缘函数可能不下发，判空渲染 */
+  visitorsToday?: {
+    total: number
+    countries: { cc: string; count: number }[]
+    pages: { path: string; count: number }[]
+  }
   reservationCount: number
   feedbackCount: number
   storage: 'kv' | 'blob' | 'memory'
@@ -250,6 +256,41 @@ const FEEDBACK_LABEL: Record<string, string> = {
   other: '其他',
 }
 
+/** 访客国家码展示名：常见国家给中文名，其余直接显示两字母码 */
+const CC_LABEL: Record<string, string> = {
+  XX: '未知/本地',
+  CN: '中国大陆',
+  HK: '中国香港',
+  TW: '中国台湾',
+  MO: '中国澳门',
+  US: '美国',
+  GB: '英国',
+  JP: '日本',
+  KR: '韩国',
+  SG: '新加坡',
+  MY: '马来西亚',
+  TH: '泰国',
+  VN: '越南',
+  PH: '菲律宾',
+  ID: '印尼',
+  IN: '印度',
+  AU: '澳大利亚',
+  NZ: '新西兰',
+  CA: '加拿大',
+  DE: '德国',
+  FR: '法国',
+  IT: '意大利',
+  ES: '西班牙',
+  NL: '荷兰',
+  SE: '瑞典',
+  CH: '瑞士',
+  RU: '俄罗斯',
+  BR: '巴西',
+  MX: '墨西哥',
+  AE: '阿联酋',
+  SA: '沙特',
+}
+
 onMounted(() => {
   if (auth.ready) void loadAll()
 })
@@ -324,6 +365,52 @@ watch(
           <p class="mt-1 text-2xl font-bold text-slate-900">{{ overview.shareBonusToday }}</p>
         </div>
       </div>
+
+      <!-- 今日访客地域分布（自建统计：不受广告拦截/GFW 影响；同一 NAT 出口只计一次，实际访客 ≥ 此值） -->
+      <section
+        v-if="overview.visitorsToday"
+        class="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-card"
+      >
+        <h2 class="text-sm font-bold text-slate-900">
+          今日访客（IP+日去重，共 {{ overview.visitorsToday.total }} 人）
+        </h2>
+        <p class="mt-1 text-xs text-slate-600">
+          自建统计通道：国内海外都拦不到；同一 NAT 出口只计一次，实际访客数 ≥ 显示值。
+        </p>
+        <div class="mt-4 grid gap-6 sm:grid-cols-2">
+          <div>
+            <p class="text-xs font-semibold text-slate-700">国家 / 地区分布</p>
+            <ul v-if="overview.visitorsToday.countries.length" class="mt-2 space-y-1.5">
+              <li
+                v-for="c in overview.visitorsToday.countries"
+                :key="c.cc"
+                class="flex items-center justify-between text-xs"
+              >
+                <span class="text-slate-700">
+                  {{ CC_LABEL[c.cc] ?? c.cc }}
+                  <span class="ml-1 font-mono text-slate-400">{{ c.cc }}</span>
+                </span>
+                <span class="font-semibold text-slate-900">{{ c.count }}</span>
+              </li>
+            </ul>
+            <p v-else class="mt-2 text-xs text-slate-500">今日暂无访客记录</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-slate-700">落地页分布（一级目录）</p>
+            <ul v-if="overview.visitorsToday.pages.length" class="mt-2 space-y-1.5">
+              <li
+                v-for="p in overview.visitorsToday.pages"
+                :key="p.path"
+                class="flex items-center justify-between text-xs"
+              >
+                <span class="font-mono text-slate-700">/{{ p.path === 'home' ? '' : p.path }}</span>
+                <span class="font-semibold text-slate-900">{{ p.count }}</span>
+              </li>
+            </ul>
+            <p v-else class="mt-2 text-xs text-slate-500">今日暂无访客记录</p>
+          </div>
+        </div>
+      </section>
 
       <!-- 环境健康检查 -->
       <section v-if="health" class="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-card">

@@ -16,6 +16,7 @@ import { useCalibrationStore } from '@/stores/calibration'
 import { QUOTA_USER_DAILY, useQuotaStore } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { trackEvent } from '@/utils/analytics'
 import { dismissStudioGuide, markStudioExported } from '@/utils/firstVisit'
 import { labelPosition, labelsPerPage, MM_TO_PX } from '@/utils/layout'
 import { matchPaperPreset, paperLabel, setPrintPageSize } from '@/utils/paper'
@@ -765,6 +766,7 @@ async function doExportPdf() {
         workspace.setLoading(true, t('已完成 {done}/{total} 页，正在写入 PDF...').replace('{done}', String(done)).replace('{total}', String(total)), cancel),
     })
     await consumeQuotaAfterSuccess()
+    trackEvent({ event: 'export', category: 'export', label: 'pdf', value: pageCount, params: { watermark: withWatermark.value } })
     toast.push(
       'success',
       t('图片版 PDF 已生成'),
@@ -906,6 +908,7 @@ async function doExportPng() {
         ),
     })
     await consumeQuotaAfterSuccess()
+    trackEvent({ event: 'export', category: 'export', label: 'png', value: pageCount, params: { watermark: withWatermark.value } })
     const exactW = pngPreset.value?.width ?? pngExactWidth.value
     const unitCount = perLabel ? (range.indices?.length ?? pngTotalLabels.value) : pageCount
     const unitWord = perLabel ? t('张标签') : t('页')
@@ -967,6 +970,7 @@ async function doPrint() {
   await printAndWaitUntilDone()
   unmountHost()
   await consumeQuotaAfterSuccess()
+  trackEvent({ event: 'export', category: 'export', label: 'print', value: workspace.totalPages, params: { watermark: withWatermark.value } })
   toast.info(
     t('已调起浏览器打印'),
     t('彩色打印三步：勾选「背景图形」、颜色选「彩色」、打印机首选项关闭灰度/省墨；目标打印机选「另存为 PDF」即可导出矢量 PDF；直接打印请用 {paper} 纸张、无边距、缩放 100%').replace('{paper}', currentPaperLabel.value),
@@ -1012,6 +1016,7 @@ async function doMobilePrint() {
       return
     }
     await consumeQuotaAfterSuccess()
+    trackEvent({ event: 'export', category: 'export', label: 'print_mobile', value: pageCount, params: { watermark: withWatermark.value } })
     toast.push(
       'success',
       t('打印 PDF 已生成'),

@@ -17,6 +17,7 @@
  *   POST /api/quota/consume      消耗一次无水印导出配额（登录用户，服务端计数）
  *   GET  /api/share/mine         我的分享码与裂变进度
  *   POST /api/share/visit        分享链接访问上报（IP+日去重，为分享者赠送次数）
+ *   POST /api/analytics/pv       访客统计上报（IP+日去重，按国家/一级页面计数，自建口径不受拦截影响）
  *   POST /api/share/tpl          模板短码寄存（微信扫码短链，内容寻址）
  *   GET  /api/share/tpl          按短码取回模板负载
  *   POST /api/redeem             兑换码开通会员（登录用户，IP 限频防枚举）
@@ -155,6 +156,9 @@ const tplshareTtl = { expirationTtl: TPLSHARE_TTL_SECONDS }
 /** 团队版预订意向存档保留 365 天（销售跟进窗口），到期自动清除，避免 reserve: 前缀无限堆积 */
 export const RESERVE_ARCHIVE_TTL_SECONDS = 365 * 24 * 3600
 const reserveTtl = { expirationTtl: RESERVE_ARCHIVE_TTL_SECONDS }
+/** 访客统计日计数保留 90 天（管理端可回看近三月趋势），到期自动清除 */
+const ANA_KEY_TTL_SECONDS = 90 * 24 * 3600
+const anaTtl = { expirationTtl: ANA_KEY_TTL_SECONDS }
 /**
  * 管理端存档列表只看「最新 N 条」：键名以时间戳开头，字典序即时间序，需用 listAllKeys 翻到尾再取末尾；
  * 翻页到 maxPages 上限仍未完时响应附 truncated: true，管理端据此提示「仅展示最近 N 条」。
@@ -201,6 +205,7 @@ export const MEMORY_UNSAFE_ROUTES = {
   '/api/quota/consume': ['POST'],
   '/api/redeem': ['POST'],
   '/api/share/visit': ['POST'],
+  '/api/analytics/pv': ['POST'],
   '/api/share/tpl': ['POST'],
   '/api/team/reserve': ['POST'],
   '/api/pay/order': ['POST'],
@@ -467,6 +472,22 @@ async function getCounter(kv, key) {
   const raw = await kv.get(key)
   const n = Number(raw)
   return Number.isFinite(n) ? n : 0
+}
+
+/** 访客国家码：EdgeOne 注入 request.eo.geo（文档存在 countryCodeAlpha2 / country / countryCode 等写法，
+ *  依次尝试并统一大写）；本地 dev / 缺失 / 非两字母值归 'XX' */
+function pvCountryCode(request) {
+  const geo = request?.eo?.geo
+  const cc = geo?.countryCodeAlpha2 ?? geo?.country ?? geo?.countryCode
+  return typeof cc === 'string' && /^[A-Za-z]{2}$/.test(cc) ? cc.toUpperCase() : 'XX'
+}
+
+/** 上报路径归一化为一级目录键（基数受控）：'/'→'home'，'/templates/foo'→'templates' */
+function pvPageKey(raw) {
+  if (typeof raw !== 'string') return 'home'
+  const seg = raw.split('?')[0].split('#')[0].split('/').filter(Boolean)[0] || ''
+  const clean = seg.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32)
+  return clean || 'home'
 }
 
 /**
@@ -1951,6 +1972,32 @@ async function handleRequest(context) {
     return json({ ok: true, payload }, 200, storageHeader)
   }
 
+  // ----- 访客统计（自建口径：IP+日去重，按国家/一级页面计数，不受广告拦截与 GFW 影响） -----
+  if (path === '/api/analytics/pv' && method === 'POST') {
+    // IP + 日去重：同客户端当日重复上报只计一次（NAT 共享出口会低估，与 share/visit 同口径）
+    const ipHash = await sha256Hex(clientIp(request))
+    const dedupeKey = `pvdedupe:${ipHash}:${today()}`
+    if (await kv.get(dedupeKey)) {
+      return json({ ok: true, counted: false }, 200, storageHeader)
+    }
+    await kv.put(dedupeKey, '1', dailyTtl)
+
+    const cc = pvCountryCode(request)
+    const page = pvPageKey((await readBody())?.path)
+    const date = today()
+    await deferWrite(async () => {
+      for (const key of [
+        `ana:pv:${date}:total`,
+        `ana:pv:${date}:cc:${cc}`,
+        `ana:pv:${date}:p:${page}`,
+      ]) {
+        const n = await getCounter(kv, key)
+        await kv.put(key, String(n + 1), anaTtl)
+      }
+    })
+    return json({ ok: true, counted: true, country: cc }, 200, storageHeader)
+  }
+
   // ----- 团队版预订 -----
   if (path === '/api/team/reserve' && method === 'POST') {
     const body = await readBody()
@@ -2081,6 +2128,27 @@ async function handleRequest(context) {
         bonusToday += bonus
       }
 
+      // 今日访客统计（自建上报）：国家与一级页面分布
+      const pvList = await kv.list({ prefix: `ana:pv:${date}:`, limit: 512 }).catch(() => {
+        storagePartial = true
+        return { keys: [] }
+      })
+      const pvEntries = await mapConcurrent(pvList.keys, 8, async (k) => ({
+        name: k.name,
+        n: await getCounter(kv, k.name).catch(() => 0),
+      }))
+      const countries = []
+      const pages = []
+      let pvTotal = 0
+      for (const { name, n } of pvEntries) {
+        const suffix = name.slice(`ana:pv:${date}:`.length)
+        if (suffix.startsWith('p:')) pages.push({ path: suffix.slice(2), count: n })
+        else if (suffix.startsWith('cc:')) countries.push({ cc: suffix.slice(3), count: n })
+        else if (suffix === 'total') pvTotal += n
+      }
+      countries.sort((a, b) => b.count - a.count)
+      pages.sort((a, b) => b.count - a.count)
+
       const reservations = await kv.list({ prefix: 'reserve:', limit: 256 }).catch(() => {
         storagePartial = true
         return { keys: [] }
@@ -2100,6 +2168,11 @@ async function handleRequest(context) {
           trialUsers: users.length,
           activeTrialToday,
           shareBonusToday: bonusToday,
+          visitorsToday: {
+            total: pvTotal,
+            countries: countries.slice(0, 12),
+            pages: pages.slice(0, 12),
+          },
           reservationCount: reservations.keys.length,
           feedbackCount: feedback.keys.length,
           storage,

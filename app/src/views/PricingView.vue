@@ -9,6 +9,7 @@ import { PRICING_FAQS, faqMentionsAccountBonus } from '@/data/seo'
 import { useAuthStore } from '@/stores/auth'
 import { QUOTA_ANON_DAILY, QUOTA_USER_DAILY } from '@/stores/quota'
 import { useToastStore } from '@/stores/toast'
+import { trackEvent } from '@/utils/analytics'
 import { apiFetch, ApiError } from '@/utils/api'
 import { AUTH_MAINTENANCE_HINT } from '@/utils/maintenanceCopy'
 
@@ -122,6 +123,7 @@ async function startPay(plan: string) {
       method: 'POST',
       body: { plan },
     })
+    trackEvent({ event: 'begin_checkout', category: 'pay', label: plan, params: { currency: 'CNY' } })
     if (w) {
       w.document.write(data.paymentHtml)
       w.document.close()

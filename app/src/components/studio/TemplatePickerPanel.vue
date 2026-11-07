@@ -14,6 +14,7 @@ import { sanitizeTemplateForImport } from '@/utils/templateValidate'
 import { useToastStore } from '@/stores/toast'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { LabelTemplate, TemplateCategory } from '@/types/template'
+import { trackEvent } from '@/utils/analytics'
 import { uid } from '@/utils/id'
 import { matchLabelPaper } from '@/utils/labelPaper'
 import { evaluatePaperFit, rankTemplatesForPaper, type PaperFit } from '@/utils/paperFit'
@@ -219,6 +220,7 @@ async function showShareQr() {
       const shortUrl = `${location.origin}/?${SHARE_SHORT_PARAM}=${short}${refCode ? `&ref=${refCode}` : ''}`
       shareQrIsShort.value = true
       shareQrSvg.value = qrToSvg(shortUrl, 'M')
+      trackEvent({ event: 'share_qr', category: 'share', label: 'short' })
       return
     }
     // 短码服务自动重试后仍不可用：弹窗内给出「重试」，长链二维码仅作最终兜底
@@ -246,6 +248,7 @@ async function useLongLinkQr() {
     shareQrShortFailed.value = false
     shareQrIsShort.value = false
     shareQrSvg.value = qrToSvg(url, 'L')
+    trackEvent({ event: 'share_qr', category: 'share', label: 'long' })
   } catch {
     closeShareQr()
     toast.danger(tr('生成二维码失败'), tr('请改用「复制分享链接」'))
@@ -263,6 +266,7 @@ async function shareCurrentTemplate() {
       return
     }
     if (await copyToClipboard(url)) {
+      trackEvent({ event: 'share_copy', category: 'share', label: 'template' })
       toast.success(tr('分享链接已复制'), tr('对方打开链接即可导入该模板（数据不经过服务器）'))
     } else {
       toast.danger(tr('复制失败'), tr('请改用「导出 JSON」分享文件'))

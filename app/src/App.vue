@@ -14,6 +14,7 @@ import WeChatGuideOverlay from '@/components/ui/WeChatGuideOverlay.vue'
 import { useI18n } from '@/i18n'
 import { INVITE_REF_KEY, useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { trackEvent } from '@/utils/analytics'
 import { apiFetch } from '@/utils/api'
 import { clearLandingQuery } from '@/utils/landing'
 import {
@@ -45,6 +46,7 @@ onMounted(() => {
   void (refCode ? auth.refresh() : auth.bootstrap())
   if (refCode && /^[0-9a-f]{8}$/.test(refCode)) {
     void apiFetch('/api/share/visit', { method: 'POST', body: { code: refCode } }).catch(() => {})
+    trackEvent({ event: 'share_landing', category: 'share' })
     shareWelcomeOpen.value = true
     // 邀请归属：留存邀请码，新用户注册时双方各赠专业版天数
     try {
@@ -59,6 +61,20 @@ onMounted(() => {
 
   if (refCode != null || short != null) {
     void clearLandingQuery(router)
+  }
+
+  // 访客地域统计（服务端 IP+日去重）：每浏览器每日只发一次，失败静默不影响使用
+  try {
+    const today = new Date().toISOString().slice(0, 10)
+    if (localStorage.getItem('sm-pv') !== today) {
+      localStorage.setItem('sm-pv', today)
+      void apiFetch('/api/analytics/pv', {
+        method: 'POST',
+        body: { path: location.pathname },
+      }).catch(() => {})
+    }
+  } catch {
+    // 隐私模式等存储异常：跳过上报
   }
 
   if (short) {

@@ -17,6 +17,7 @@ import { currentLocale, localePath, t as tr } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useQuotaStore } from '@/stores/quota'
+import { trackEvent } from '@/utils/analytics'
 import { fitScale, MM_TO_PX } from '@/utils/layout'
 import { listJoin } from '@/utils/listJoin'
 import { setPrintPageSize } from '@/utils/paper'
@@ -930,6 +931,7 @@ async function doPrint() {
   await printAndWaitUntilDone()
   renderHost.value = false
   printPending.value = false
+  trackEvent({ event: 'export', category: 'export', label: 'seating_print' })
 }
 
 // ---------- 导出 PNG（发群 / 贴 PPT）：离屏宿主 + html2canvas，口径同 /banquet ----------
@@ -1009,6 +1011,7 @@ async function runPngExport() {
       ),
     })
     if (!withWatermark.value) await quota.tryConsume()
+    trackEvent({ event: 'export', category: 'export', label: 'seating_png', value: 1, params: { watermark: withWatermark.value } })
     toast.success(
       tr('PNG 已导出'),
       viewMode.value === 'student' ? tr('当前为学生视角（镜像），与屏幕预览一致') : tr('当前为教师视角，与屏幕预览一致'),

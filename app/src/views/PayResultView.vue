@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 
 import { localePath, t } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
+import { trackEvent } from '@/utils/analytics'
 import { apiFetch, ApiError } from '@/utils/api'
 
 const route = useRoute()
@@ -74,6 +75,23 @@ onMounted(() => {
     pollCount.value += 1
     void refresh()
   }, 3000)
+})
+
+// 到账只上报一次 purchase（轮询/手动刷新会多次取回同一订单）
+let purchaseTracked = false
+watch(paid, (isPaid) => {
+  if (!isPaid || purchaseTracked) return
+  const o = order.value
+  if (!o) return
+  purchaseTracked = true
+  const amount = Number(o.amount)
+  trackEvent({
+    event: 'purchase',
+    category: 'pay',
+    label: o.plan,
+    value: Number.isFinite(amount) ? amount : undefined,
+    params: { transaction_id: o.no, currency: 'CNY' },
+  })
 })
 
 // 会话可能晚于组件挂载完成（直接由支付宝回跳落地本页）：auth ready 后补一次查询
