@@ -6,6 +6,7 @@
 import { computed } from 'vue'
 
 import BrandMark from '@/components/ui/BrandMark.vue'
+import { PAPER_COUNT, TEMPLATE_COUNT } from '@/data/templateMeta'
 import { localePath, useI18n } from '@/i18n'
 
 const { locale } = useI18n()
@@ -15,16 +16,16 @@ const CAPABILITIES = computed(() =>
   isEn.value
     ? [
         { icon: 'M4 5h16v14H4z M4 9h16 M9 9v10', title: 'Roster to print layout', desc: 'Upload an Excel file, paste a list, or type names directly in the editor — SeatMark maps columns to label fields and lays them out at real mm sizes.' },
-        { icon: 'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z', title: '226 built-in templates', desc: 'Seat labels, table tents, door signs, badges and ID cards — all customizable in the template designer.' },
-        { icon: 'M3 8l9-5 9 5-9 5-9-5z M3 8v8l9 5 9-5V8', title: 'Paper-accurate imposition', desc: 'A4 / A5 / A3 sheets with rows, columns, margins and cut marks computed from the physical label size. Print at 100% scale for exact alignment.' },
+        { icon: 'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z', title: `${TEMPLATE_COUNT} built-in templates`, desc: 'Seat labels, table tents, door signs, badges and ID cards — including designs made for specific adhesive sheet layouts, all customizable in the template designer.' },
+        { icon: 'M3 8l9-5 9 5-9 5-9-5z M3 8v8l9 5 9-5V8', title: 'Two ways to print', desc: `Plain A4/A5/A3 with crop marks for print-and-cut, or ${PAPER_COUNT} die-cut adhesive sheet layouts that auto-fit and support portrait/landscape feed — print at 100% scale, peel and stick.` },
         { icon: 'M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', title: 'Seating chart tools', desc: 'Classroom seating and banquet table planners that carry the same roster into printable charts and matching labels.' },
         { icon: 'M12 3v3 M12 18v3 M3 12h3 M18 12h3 M5.6 5.6l2.1 2.1 M16.3 16.3l2.1 2.1 M18.4 5.6l-2.1 2.1 M7.7 16.3l-2.1 2.1', title: 'AI-assisted design', desc: 'Describe the style you want and let the AI draft a template — site-hosted models need no API key, custom OpenAI-compatible endpoints are supported.' },
         { icon: 'M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3z', title: 'Local-first privacy', desc: 'Rosters, photos and layouts are processed entirely in your browser and never uploaded. Optional features (account, AI, payment) are clearly separated.' },
       ]
     : [
         { icon: 'M4 5h16v14H4z M4 9h16 M9 9v10', title: '名单到打印排版', desc: '上传 Excel、粘贴名单或在编辑器里直接录入——自动把列映射到标签字段，按实际毫米尺寸排版。' },
-        { icon: 'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z', title: '226 款内置模板', desc: '考场座签、会议桌牌、门贴门牌、证卡胸卡全部覆盖，模板设计器可继续自定义。' },
-        { icon: 'M3 8l9-5 9 5-9 5-9-5z M3 8v8l9 5 9-5V8', title: '按纸张实际尺寸排版', desc: 'A4 / A5 / A3 纸型按标签物理尺寸计算行列、边距与裁切参考线，100% 缩放打印不偏位。' },
+        { icon: 'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z', title: `${TEMPLATE_COUNT} 款内置模板`, desc: '考场座签、会议桌牌、门贴门牌、证卡胸卡全部覆盖，含按不干胶版型设计的专用模板，模板设计器可继续自定义。' },
+        { icon: 'M3 8l9-5 9 5-9 5-9-5z M3 8v8l9 5 9-5V8', title: '两种纸都能打', desc: `普通 A4/A5/A3 带裁切参考线自裁，或 ${PAPER_COUNT} 种不干胶版型自动对版、横竖进纸皆可，打印后撕下即贴，100% 缩放不偏位。` },
         { icon: 'M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', title: '排座工具', desc: '教室座位表与宴会排桌工具：同一份名单既生成可打印的座位图，也直接产出配套桌签。' },
         { icon: 'M12 3v3 M12 18v3 M3 12h3 M18 12h3 M5.6 5.6l2.1 2.1 M16.3 16.3l2.1 2.1 M18.4 5.6l-2.1 2.1 M7.7 16.3l-2.1 2.1', title: 'AI 辅助设计', desc: '描述想要的风格即可让 AI 起草模板——站点托管模型开箱即用，也支持自定义 OpenAI 兼容接口。' },
         { icon: 'M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3z', title: '数据本地处理', desc: '名单、照片、排版全部在浏览器内完成，不上传服务器；账号、AI、付费等可选功能边界清晰。' },
@@ -53,8 +54,8 @@ const SCENARIOS = computed(() =>
     <p class="mt-4 max-w-2xl text-sm leading-7 text-slate-600">
       {{
         isEn
-          ? 'SeatMark turns a name list into print-ready seat labels, table tents, door signs and badges. Everything from spreadsheet parsing to PDF export happens locally on your device — fast, private, and accurate to the millimetre.'
-          : 'SeatMark 座签把一份名单变成可直接打印的座签、桌牌席卡、门贴与证卡。从 Excel 解析到 PDF 导出全部在你自己的设备上完成——快、私密，且精确到毫米。'
+          ? 'SeatMark turns a name list into print-ready seat labels, table tents, door signs and badges — on plain paper with crop marks or die-cut adhesive sheets. Everything from spreadsheet parsing to PDF export happens locally on your device: fast, private, and accurate to the millimetre.'
+          : 'SeatMark 座签把一份名单变成可直接打印的座签、桌牌席卡、门贴与证卡——普通纸沿裁切线自裁，或不干胶版型即打即贴。从 Excel 解析到 PDF 导出全部在你自己的设备上完成，快、私密，且精确到毫米。'
       }}
     </p>
     <div class="mt-6 flex flex-wrap gap-2.5">
@@ -98,8 +99,8 @@ const SCENARIOS = computed(() =>
         <p class="mt-1.5 text-xs leading-5.5 text-slate-600">
           {{
             isEn
-              ? 'Core generation and printing are free. A Pro plan raises export quotas and unlocks higher AI design limits — see pricing for current terms.'
-              : '核心生成与打印免费；专业版提升导出水印配额与 AI 设计额度。详见定价页当前说明。'
+              ? 'Core generation and printing are free. A Pro plan raises export quotas and unlocks higher AI design limits; adhesive sheets and paper-specific template customization are also offered — see pricing for current terms.'
+              : '核心生成与打印免费；专业版提升导出水印配额与 AI 设计额度，另有纸型售卖与按纸型定制模板服务。详见定价页当前说明。'
           }}
         </p>
         <RouterLink :to="localePath('/pricing')" class="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700">

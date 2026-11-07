@@ -6,6 +6,8 @@
  */
 
 
+import { PAPER_COUNT } from './templateMeta'
+
 export const SITE_ORIGIN = 'https://www.seatmark.cn'
 export const SITE_NAME = 'SeatMark 座签'
 
@@ -47,12 +49,12 @@ const EN_INDEX_SHELL_SEO: Record<string, { title: string; description: string }>
   '/templates': {
     title: 'Label Templates: Place Cards, Table Tents & Badges | SeatMark',
     description:
-      'Free built-in templates for place cards, table tents, seat labels, name badges and ID cards. Pick one, upload your spreadsheet and batch-print with mm-accurate layout.',
+      'Free built-in templates for place cards, table tents, badges and IDs — including designs for adhesive sheet layouts. Upload a spreadsheet and batch-print at mm accuracy.',
   },
   '/papers': {
     title: 'A4 Label Sheet Library: Auto-Fit Layouts | SeatMark',
     description:
-      'Common A4 self-adhesive label sheet sizes (2×4, 3×7, 3×10, rounded corners). Pick a sheet and rows, columns, margins and gaps lock in automatically for aligned printing.',
+      'Common A4 self-adhesive label sheet sizes (2×4, 3×7, 3×10, rounded corners), each with dedicated templates. Pick a sheet and the layout locks in automatically.',
   },
 }
 
@@ -93,7 +95,7 @@ const SOFTWARE_APP_JSONLD_EN: Record<string, unknown> = {
   alternateName: 'Seating chart, place card & name tag batch generator',
   url: `${SITE_ORIGIN}/en`,
   description:
-    'Free online seating chart maker and place card generator: upload an Excel guest list to batch-create wedding seating charts, place cards, table tent cards, name tags, badges and classroom seating labels. Millimetre-accurate print layouts (A4/A5/A3), visual template designer, PDF export — all data processed locally in your browser, no sign-up required.',
+    'Free online label maker: upload an Excel list to batch-create seating charts, place cards, table tent cards, name tags and badges. Print on plain paper and cut along crop marks, or pick a die-cut adhesive sheet layout for peel-and-stick labels. Millimetre-accurate layouts (A4/A5/A3), visual template designer, PDF export — all data processed locally in your browser, no sign-up required.',
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web',
   inLanguage: 'en',
@@ -107,7 +109,7 @@ const SOFTWARE_APP_JSONLD: Record<string, unknown> = {
   alternateName: '座签·桌牌席卡·门贴证卡批量生成',
   url: `${SITE_ORIGIN}/`,
   description:
-    '免费的 Excel 批量标签生成工具：上传名单即可制作考场座签、课桌桌贴、考号贴、会议桌牌、桌签、台签、席卡、门贴门牌、学生证、工作证、胸卡和出入证等，支持照片核验、可视化模板设计与 PDF 导出，数据全程本地处理。',
+    '免费的 Excel 批量标签生成工具：上传名单即可制作考场座签、课桌桌贴、考号贴、会议桌牌、桌签、台签、席卡、门贴门牌、学生证、工作证、胸卡和出入证等，支持照片核验、可视化模板设计与 PDF 导出；普通 A4 沿裁切线自裁，或不干胶版型自动对版、即打即贴，数据全程本地处理。',
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web',
   inLanguage: 'zh-CN',
@@ -195,7 +197,7 @@ export function faqMentionsAccountBonus(answer: string): boolean {
 }
 
 const guideListDescription =
-  '考场座位标签怎么批量打印？Excel 怎么生成桌牌？SeatMark 教程中心提供座签、桌牌、席位卡、证卡制作与打印的完整中文教程，问答式讲解，免费实用。'
+  '考场座位标签怎么批量打印？Excel 怎么生成桌牌？不干胶纸怎么选版型？SeatMark 教程中心提供座签、桌牌、席位卡、证卡制作与打印的中文教程，问答式讲解，免费实用。'
 
 // 模板/教程/纸型大数据按路由分支懒加载，避免非相关页面（如首页）拉取全量数据 chunk
 export async function resolveSeo(path: string): Promise<PageSeo> {
@@ -449,7 +451,7 @@ function resolveEnSeo(base: string): PageSeo | null {
       ...common,
       title: 'Seating Chart Maker & Place Card Generator | SeatMark',
       description:
-        'Free seating chart maker & place card generator. Upload an Excel list to batch-print wedding seating charts, place cards and name tags. Data stays in your browser.',
+        'Free place card & label maker. Upload a list to batch-print seating charts, place cards and name tags — plain A4 or adhesive sheets. Data stays in your browser.',
       jsonLd: [SOFTWARE_APP_JSONLD_EN],
     }
   }
@@ -459,7 +461,7 @@ function resolveEnSeo(base: string): PageSeo | null {
       ...common,
       title: 'Make Place Cards, Table Tents & Name Tags Online | SeatMark',
       description:
-        'Pick a template, upload your Excel list and batch-generate print-ready place cards, table tents and name tags. A4/A5/A3, PDF export, all local in your browser.',
+        'Pick a template, upload a list and batch-print place cards, table tents and name tags — plain A4 or adhesive sheets. PDF export, all local in your browser.',
       jsonLd: [SOFTWARE_APP_JSONLD_EN],
     }
   }
@@ -598,7 +600,7 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
     return {
       title: '座签·桌牌席卡·门贴证卡批量生成 - SeatMark 座签 | Excel 批量打印',
       description:
-        'SeatMark 座签是一款免费的 Excel 批量标签生成工具：上传名单即可制作考场座签、课桌桌贴、考号贴、会议桌牌、桌签、台签、席卡、门贴门牌、学生证、工作证、胸卡和出入证等，支持照片核验、可视化模板设计、裁切线与 PDF 导出，A4/A5/A3 精准排版。数据全程本地处理，无需注册安装。',
+        `SeatMark 座签：上传 Excel 名单批量生成座签、桌牌席卡、门贴证卡与不干胶标签。普通 A4 打印沿裁切线自裁，或选 ${PAPER_COUNT} 种不干胶版型自动对版、即打即贴；支持纸型选购与按纸型定制模板，数据全程本地处理，无需注册。`,
       path: '/',
       jsonLd: [SOFTWARE_APP_JSONLD],
     }
@@ -608,7 +610,7 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
     return {
       title: '标签工坊：座签·台签·席卡·桌签在线制作 - SeatMark 座签',
       description:
-        '免费在线制作台签、席卡、桌签、座签与证卡：选择模板、上传 Excel 名单即批量生成打印页，坐席卡、座位背签也能做，支持 A4/A5/A3 与 PDF 导出，数据全程在浏览器本地处理。',
+        `免费在线制作台签、席卡、桌签、座签与证卡：选择模板、上传 Excel 名单即批量生成打印页，普通 A4 自裁或 ${PAPER_COUNT} 种不干胶版型自动对版、横竖进纸皆可，支持 PDF 导出，数据全程在浏览器本地处理。`,
       path: '/studio',
       jsonLd: [SOFTWARE_APP_JSONLD],
     }
@@ -618,7 +620,7 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
     return {
       title: '定价：专业版 ¥5.9/30 天，带水印导出不限次 - SeatMark 座签',
       description:
-        'SeatMark 座签定价：带水印导出/打印不限次数；无水印导出每日有免费次数；专业版 ¥5.9/30 天（原价 ¥19/月）、团队版 ¥19.9/30 天（原价 ¥49/月），支持支付宝在线支付；专业版还支持兑换码开通。数据不出浏览器。',
+        'SeatMark 座签定价：带水印导出/打印不限次数；无水印导出每日有免费次数；专业版 ¥5.9/30 天（原价 ¥19/月）、团队版 ¥19.9/30 天（原价 ¥49/月），支持支付宝在线支付；专业版还支持兑换码开通。另有年度会员、纸型售卖与按纸型定制模板服务。数据不出浏览器。',
       path: '/pricing',
       jsonLd: [
         {
@@ -757,7 +759,7 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
     const { templateDetails } = await import('@/data/templateDetails')
     return {
       title: '标签模板库：座签·桌牌·证卡免费模板 - SeatMark 座签',
-      description: `SeatMark 内置 ${templateDetails.length} 款免费标签模板：考场座签、考号贴、课桌姓名贴、会议桌牌、出入证、学生证、工作证等，毫米级排版，选择模板上传 Excel 即可批量生成打印页。`,
+      description: `SeatMark 内置 ${templateDetails.length} 款免费标签模板：考场座签、考号贴、课桌姓名贴、会议桌牌、出入证、学生证、工作证等，含按不干胶版型设计的专用模板；毫米级排版，选择模板上传 Excel 即可批量生成打印页。`,
       path: '/templates',
       jsonLd: [
         {
@@ -811,7 +813,7 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
     const { labelPapers } = await import('@/data/labelPapers')
     return {
       title: '不干胶纸型库：选型号自动对版 - SeatMark 座签',
-      description: `收录 ${labelPapers.length} 种不干胶分切规格：国产常见 A4 版式与美标 Letter 的 Avery 兼容纸型。选好纸型，行列数、边距与间距自动锁定，标签打印即对版免调参。`,
+      description: `收录 ${labelPapers.length} 种不干胶分切规格：国产常见 A4 版式与美标 Letter 的 Avery 兼容纸型。选好纸型行列边距自动锁定、即打即贴，每种版型配专用模板，详情页可下单同款纸包或定制模板。`,
       path: '/papers',
       jsonLd: [
         {

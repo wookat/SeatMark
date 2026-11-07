@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
+import { TEMPLATE_COUNT } from '@/data/templateMeta'
 import { setLocale } from '@/i18n'
 import AboutView from '@/views/AboutView.vue'
 
@@ -27,7 +28,7 @@ describe('AboutView 产品介绍页', () => {
     const w = await mountAbout()
     const text = w.text()
     expect(text).toContain('关于 SeatMark')
-    expect(text).toContain('226 款内置模板')
+    expect(text).toContain(`${TEMPLATE_COUNT} 款内置模板`)
     expect(text).toContain('联系我们')
     expect(text).toContain('wookat@qq.com')
     expect(text).toContain('HERUOZAI')
@@ -40,7 +41,7 @@ describe('AboutView 产品介绍页', () => {
     const w = await mountAbout()
     const text = w.text()
     expect(text).toContain('About SeatMark')
-    expect(text).toContain('226 built-in templates')
+    expect(text).toContain(`${TEMPLATE_COUNT} built-in templates`)
     expect(text).toContain('WeChat')
     expect(text).not.toMatch(CJK)
     w.unmount()

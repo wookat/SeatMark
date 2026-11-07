@@ -19,7 +19,7 @@ import { labelPaperGeometry } from '@/utils/labelPaper'
 const { t, locale, localePath } = useI18n()
 
 /** /en 下列表区的英文替代块：主题说明 + 精选入口（英文标题，指向中文纸型页） */
-const EN_INTRO = `A library of ${labelPapers.length} pre-cut label sheets — common Chinese A4 self-adhesive die-cuts, A3/A5 full sheets, plus US Letter Avery-compatible stock (5390, 5392, 5395, 5160, 5163, 5164). Pick a sheet in the Studio and the rows, columns, margins and gaps lock in automatically so the print lines up without manual tuning. Sheet details are in Chinese for now.`
+const EN_INTRO = `A library of ${labelPapers.length} pre-cut label sheets — common Chinese A4 self-adhesive die-cuts, A3/A5 full sheets, plus US Letter Avery-compatible stock (5390, 5392, 5395, 5160, 5163, 5164). Every layout ships with dedicated templates and portrait/landscape feed support: pick a sheet, upload your list, print and peel. Sheet details are in Chinese for now.`
 const EN_FEATURED: EnIndexFeatured[] = [
   {
     title: 'Avery 5390 badge inserts (8-up, US Letter)',
@@ -141,7 +141,7 @@ function cells(spec: (typeof labelPapers)[number]) {
         {{ t('不干胶纸型库') }}
       </h1>
       <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-        {{ t('收录国产电商常见的不干胶分切规格：A4 满切与圆角模切、A3/A5 整版，以及美标 Letter 的 Avery 兼容纸型，共 {n} 种。支持按纸张、版式、切角与每页枚数筛选，也可直接搜索型号、尺寸或用途。').replace('{n}', String(labelPapers.length)) }}
+        {{ t('收录国产电商常见的不干胶分切规格：A4 满切与圆角模切、A3/A5 整版，以及美标 Letter 的 Avery 兼容纸型，共 {n} 种。每种版型配专用模板，选好纸型上传名单即打即贴，详情页可下单同款纸包或定制模板。').replace('{n}', String(labelPapers.length)) }}
       </p>
       <ZhOnlyNotice />
     </div>

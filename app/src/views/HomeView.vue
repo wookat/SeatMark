@@ -4,7 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref, shallowRef, type Directive }
 import LabelSheet from '@/components/label/LabelSheet.vue'
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import { useElementSize } from '@/composables/useElementSize'
-import { TEMPLATE_COUNT } from '@/data/templateMeta'
+import { PAPER_COUNT, TEMPLATE_COUNT } from '@/data/templateMeta'
 import { standardTemplate } from '@/data/templateStandard'
 import type { DataRow, LabelTemplate } from '@/types/template'
 import { localePath, t, useI18n } from '@/i18n'
@@ -280,8 +280,8 @@ const heroHeight = computed(() => {
 const STEPS = computed(() => [
   {
     num: 1,
-    title: t('选择标签类型'),
-    desc: t('从座签、桌贴、桌牌、门贴、证卡模板开始，也可自定义'),
+    title: t('选纸与模板'),
+    desc: t('普通 A4 打印自裁，或选一种不干胶版型配专用模板'),
     icon: 'M4 5h7v7H4zM13 5h7v4h-7zM13 12h7v7h-7zM4 15h7v4H4z',
   },
   {
@@ -293,7 +293,7 @@ const STEPS = computed(() => [
   {
     num: 3,
     title: t('预览并打印'),
-    desc: t('检查裁切线、页数和排版，下载 PDF 或直接打印'),
+    desc: t('沿裁切线裁开粘贴，或不干胶撕下即贴；也可下载 PDF'),
     icon: 'M12 4v12m0 0 5-5m-5 5-5-5M4 20h16',
   },
 ])
@@ -320,8 +320,11 @@ const FEATURES = computed(() => [
     icon: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z',
   },
   {
-    title: t('多纸张打印精度'),
-    desc: t('A4 / A5 / A3 横竖向都能排，尺寸按毫米计算，自带裁切参考线，张贴、摆放、裁剪不跑偏。'),
+    title: t('不干胶版型自动对版'),
+    desc: t('{n} 种常见不干胶纸型一键选用：行列、边距、间距自动锁定并给出适配度评分，尺寸按毫米计算，横放竖放都能排，打印 100% 缩放不偏位。').replace(
+      '{n}',
+      String(PAPER_COUNT),
+    ),
     icon: 'M12 2v4M12 18v4M2 12h4M18 12h4M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
   },
   {
@@ -356,8 +359,12 @@ const FAQS = computed(() => [
     a: t('照片文件名与 Excel 中某一列的值一致、或包含该值即可，例如「张伟2023010101.jpg」用姓名列或学号列都能匹配。上传后工具会自动完成匹配并统计覆盖率。'),
   },
   {
+    q: t('手上的不干胶标签纸可以直接打吗？'),
+    a: t('可以。在工坊或纸型库选择对应型号，行列、边距与间距即按模切位自动对版，同一版型竖放横放都能排；纸型不在列表里时，可手动输入尺寸与行列完全自定义。'),
+  },
+  {
     q: t('最终输出是什么？'),
-    a: t('一份按所选纸张（A4 / A5 / A3）排版的 PDF 文件，可直接打印；也可以调起浏览器打印（矢量输出，文字更锐利）。每页标签数量由模板决定。'),
+    a: t('一份按所选纸张排版的 PDF，可直接打印或调起浏览器打印（矢量输出，文字更锐利）。普通 A4 沿裁切线裁开使用；选不干胶版型则按模切位对版，打印后撕下即贴。'),
   },
 ])
 </script>
@@ -408,12 +415,12 @@ const FAQS = computed(() => [
           </h1>
           <p class="mt-4 max-w-lg text-base leading-7 text-slate-600" data-testid="hero-steps">
             <template v-if="locale === 'en'">
-              <span class="block">Upload Excel or paste a name list → preview → export print-ready pages.</span>
-              <span class="block">{{ TEMPLATE_COUNT }} templates · Your list never leaves this device — everything stays in your browser.</span>
+              <span class="block">Paste a name list → pick paper and template → export print-ready pages.</span>
+              <span class="block">{{ TEMPLATE_COUNT }} templates for plain A4 print-and-cut or {{ PAPER_COUNT }} die-cut adhesive sheets — peel and stick. Your list never leaves this device.</span>
             </template>
             <template v-else>
-              <span class="block">把 Excel 名单粘进来 → 先看预览 → 导出可打印页。</span>
-              <span class="block">{{ TEMPLATE_COUNT }} 款模板覆盖座签、桌牌、门贴、证卡；名单不出浏览器。</span>
+              <span class="block">把 Excel 名单粘进来 → 选好纸和模板 → 导出可打印页。</span>
+              <span class="block">{{ TEMPLATE_COUNT }} 款模板覆盖座签、桌牌、门贴、证卡：普通 A4 打印沿裁切线自裁，或选 {{ PAPER_COUNT }} 种不干胶版型即打即贴；名单不出浏览器。</span>
             </template>
           </p>
           <div class="mt-7 flex flex-wrap gap-3">
@@ -472,7 +479,7 @@ const FAQS = computed(() => [
           </div>
           <div class="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-xs font-semibold text-slate-600">
             <span
-              v-for="mark in [t('Excel 批量导入'), t('PDF / 直接打印'), 'A4 · A5 · A3']"
+              v-for="mark in [t('Excel 批量导入'), t('PDF / 直接打印'), 'A4 · A5 · A3', locale === 'en' ? `${PAPER_COUNT} adhesive layouts` : `${PAPER_COUNT} 种不干胶版型`]"
               :key="mark"
               class="flex items-center gap-1"
             >
@@ -650,11 +657,12 @@ const FAQS = computed(() => [
         <p class="section-sub">
           <template v-if="locale === 'en'">
             {{ TEMPLATE_COUNT }} built-in templates cover seating charts, place cards, desk labels,
-            name badges, door signs and more — or start from a blank canvas in the designer
+            name badges, door signs and more — including designs made for specific adhesive sheet
+            layouts — or start from a blank canvas in the designer
           </template>
           <template v-else>
             {{ TEMPLATE_COUNT }} 套内置模板覆盖座位标签、考场桌贴、考号贴、桌牌、学生证 /
-            工作证、胸卡出入证、门贴门牌等场景，也可以在设计器中从零开始
+            工作证、胸卡出入证、门贴门牌等场景，含按不干胶版型设计的专用模板，也可以在设计器中从零开始
           </template>
         </p>
       </div>
@@ -797,8 +805,100 @@ const FAQS = computed(() => [
       </div>
     </section>
 
+    <!-- 纸 × 模板：同一份名单的两种打印路径 -->
+    <section id="papers" class="scroll-mt-16 border-b border-slate-200 bg-slate-50/70">
+      <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
+        <div v-reveal class="text-center">
+          <p class="section-eyebrow">{{ locale === 'en' ? 'Paper × Template' : '纸 × 模板' }}</p>
+          <h2 class="section-heading">{{ t('一份名单，两种贴法') }}</h2>
+          <p class="section-sub">
+            {{
+              t('先决定用什么纸，再挑模板——两条路都从同一份 Excel 名单批量生成，排版都精确到毫米')
+            }}
+          </p>
+        </div>
+        <div class="mt-8 grid gap-5 md:grid-cols-2">
+          <div
+            v-reveal
+            class="flex flex-col rounded-lg border border-slate-200 bg-white p-6 shadow-card"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="text-base font-bold text-slate-900">
+                {{ t('普通 A4 纸 · 打印自裁') }}
+              </h3>
+              <span
+                class="rounded bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-100"
+              >
+                {{ t('零额外耗材') }}
+              </span>
+            </div>
+            <p class="mt-2 text-xs leading-5 text-pretty text-slate-600">
+              {{
+                t('任意打印机加普通复印纸就能开始：导出页面自带裁切参考线，剪刀或裁纸刀裁开，胶带、图钉或插袋固定。适合门贴、公示、桌牌与席位卡。')
+              }}
+            </p>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span
+                v-for="chip in ['A4 · A5 · A3', t('裁切参考线'), t('横竖排版')]"
+                :key="chip"
+                class="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600"
+              >
+                {{ chip }}
+              </span>
+            </div>
+            <RouterLink
+              :to="localePath('/studio')"
+              class="group mt-auto inline-flex items-center gap-1 pt-4 text-sm font-bold text-brand-600 hover:text-brand-700"
+            >
+              {{ t('开始制作') }}
+              <svg class="size-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10m-4-4 4 4-4 4" /></svg>
+            </RouterLink>
+          </div>
+          <div
+            v-reveal="90"
+            class="flex flex-col rounded-lg border border-brand-200 bg-white p-6 shadow-card ring-1 ring-brand-100"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="text-base font-bold text-slate-900">
+                {{ t('A4 不干胶纸 · 即打即贴') }}
+              </h3>
+              <span
+                class="rounded bg-brand-50 px-2 py-0.5 text-[11px] font-bold text-brand-700 ring-1 ring-brand-100"
+              >
+                {{ t('撕下即贴 · 免裁剪') }}
+              </span>
+            </div>
+            <p class="mt-2 text-xs leading-5 text-pretty text-slate-600">
+              {{
+                t('市面常见的 {n} 种不干胶版型全部收录：选型号即锁定行列、边距与间距，每种版型配专用模板，竖放横放都能排。打印后撕下即贴，不用裁剪。').replace(
+                  '{n}',
+                  String(PAPER_COUNT),
+                )
+              }}
+            </p>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span
+                v-for="chip in [t('版型自动对版'), t('专用模板'), t('横竖双排版'), t('同款纸型可购')]"
+                :key="chip"
+                class="rounded bg-brand-50 px-1.5 py-0.5 text-[11px] font-semibold text-brand-700"
+              >
+                {{ chip }}
+              </span>
+            </div>
+            <RouterLink
+              :to="localePath('/papers')"
+              class="group mt-auto inline-flex items-center gap-1 pt-4 text-sm font-bold text-brand-600 hover:text-brand-700"
+            >
+              {{ t('浏览纸型库') }}
+              <svg class="size-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10m-4-4 4 4-4 4" /></svg>
+            </RouterLink>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 特性 -->
-    <section id="features" class="scroll-mt-16 border-y border-slate-200 bg-white">
+    <section id="features" class="scroll-mt-16 border-b border-slate-200 bg-white">
       <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
         <div v-reveal class="text-center">
           <p class="section-eyebrow">Features</p>
@@ -995,7 +1095,7 @@ const FAQS = computed(() => [
         <div class="relative">
           <h2 class="text-xl font-bold text-white sm:text-2xl">{{ t('开始生成你的标签') }}</h2>
           <p class="mt-1.5 text-sm text-brand-100">
-            {{ t('选择模板、上传 Excel 名单，导出一批座签、门贴或证卡。不用注册，免费开始。') }}
+            {{ t('选好纸、挑模板、传名单——普通 A4 自裁或不干胶即打即贴。不用注册，免费开始。') }}
           </p>
         </div>
         <RouterLink

@@ -2466,4 +2466,45 @@ export const en: Record<string, string> = {
   '免费、不用注册：上传名单 → 预览 → 打印或导出 PDF。':
     'Free, no sign-up: upload the list → preview → print or export PDF.',
   '相关模板与教程': 'Related templates and guides',
+
+  // 纸 × 模板双产品线叙事（首页双路径区块 / 纸型库 / 页脚）
+  '选纸与模板': 'Pick paper & template',
+  '普通 A4 打印自裁，或选一种不干胶版型配专用模板':
+    'Plain A4 print-and-cut, or a die-cut adhesive sheet with dedicated templates',
+  '沿裁切线裁开粘贴，或不干胶撕下即贴；也可下载 PDF':
+    'Cut along crop marks and stick, or peel adhesive labels — PDF download also available',
+  '一份名单，两种贴法': 'One list, two ways to stick',
+  '先决定用什么纸，再挑模板——两条路都从同一份 Excel 名单批量生成，排版都精确到毫米':
+    'Decide on paper first, then a template — both paths batch-generate from the same Excel list, at true millimetre sizes',
+  '普通 A4 纸 · 打印自裁': 'Plain A4 · print & cut',
+  '零额外耗材': 'No extra supplies',
+  '任意打印机加普通复印纸就能开始：导出页面自带裁切参考线，剪刀或裁纸刀裁开，胶带、图钉或插袋固定。适合门贴、公示、桌牌与席位卡。':
+    'Any printer plus plain copy paper is enough: exported pages carry crop marks — cut with scissors or a paper trimmer, then fix with tape, pins or a holder. Good for door signs, notices, table tents and place cards.',
+  '裁切参考线': 'Crop marks',
+  '横竖排版': 'Portrait & landscape',
+  'A4 不干胶纸 · 即打即贴': 'A4 adhesive sheets · peel & stick',
+  '撕下即贴 · 免裁剪': 'Peel & stick, no cutting',
+  '市面常见的 {n} 种不干胶版型全部收录：选型号即锁定行列、边距与间距，每种版型配专用模板，竖放横放都能排。打印后撕下即贴，不用裁剪。':
+    'All {n} common adhesive layouts are built in: picking a model locks rows, margins and gaps, every layout ships with dedicated templates and works in portrait or landscape. Print, peel, stick — no cutting.',
+  '版型自动对版': 'Auto-fit die-cuts',
+  '专用模板': 'Dedicated templates',
+  '横竖双排版': 'Both orientations',
+  '同款纸型可购': 'Matching stock available',
+  '浏览纸型库': 'Browse the sheet library',
+  '不干胶版型自动对版': 'Auto-fit adhesive layouts',
+  '{n} 种常见不干胶纸型一键选用：行列、边距、间距自动锁定并给出适配度评分，尺寸按毫米计算，横放竖放都能排，打印 100% 缩放不偏位。':
+    '{n} common adhesive sheet layouts ready to use: rows, margins and gaps lock automatically with a fit score — sized in millimetres, portrait or landscape feed, prints at 100% scale without drift.',
+  '手上的不干胶标签纸可以直接打吗？': 'Can I print on adhesive label sheets I already have?',
+  '可以。在工坊或纸型库选择对应型号，行列、边距与间距即按模切位自动对版，同一版型竖放横放都能排；纸型不在列表里时，可手动输入尺寸与行列完全自定义。':
+    'Yes. Pick the matching model in the Studio or the sheet library and rows, margins and gaps snap to the die-cut; the same sheet works in portrait or landscape. If your sheet is not listed, enter sizes and grid manually for a fully custom layout.',
+  '一份按所选纸张排版的 PDF，可直接打印或调起浏览器打印（矢量输出，文字更锐利）。普通 A4 沿裁切线裁开使用；选不干胶版型则按模切位对版，打印后撕下即贴。':
+    'A PDF laid out for your chosen paper — print directly or via the browser (vector output, sharper text). On plain A4, cut along crop marks; on an adhesive layout the die-cut positions align, so just print, peel and stick.',
+  '选好纸、挑模板、传名单——普通 A4 自裁或不干胶即打即贴。不用注册，免费开始。':
+    'Pick paper, choose a template, upload your list — print-and-cut on plain A4 or peel-and-stick on adhesive sheets. No sign-up, free to start.',
+  '考场座签、桌牌席卡、门贴证卡与不干胶标签的在线批量生成工具。上传 Excel 名单，普通 A4 沿裁切线自裁或选不干胶版型自动对版，打印 100% 缩放不偏位。':
+    'An online batch generator for seating labels, table tents, door signs, badges and adhesive labels. Upload an Excel list — print-and-cut on plain A4 or auto-fit adhesive layouts at exact 100% scale.',
+  '{n} 款免费内置模板覆盖考场座签、考号贴、课桌姓名贴、会议桌牌、出入证、学生证、工作证等场景，含按不干胶版型设计的专用模板，全部以毫米为单位精确排版，点击任意模板查看详情，或直接开始生成。':
+    '{n} free built-in templates for exam seat labels, candidate-number stickers, desk name tags, conference place cards, passes, student and staff badges — including designs made for specific adhesive sheet layouts, all laid out to the millimetre. Open any template for details or start generating right away.',
+  '收录国产电商常见的不干胶分切规格：A4 满切与圆角模切、A3/A5 整版，以及美标 Letter 的 Avery 兼容纸型，共 {n} 种。每种版型配专用模板，选好纸型上传名单即打即贴，详情页可下单同款纸包或定制模板。':
+    'A library of {n} pre-cut label sheets — common Chinese A4 self-adhesive die-cuts, A3/A5 full sheets, plus US Letter Avery-compatible stock. Every layout ships with dedicated templates: pick a sheet, upload your list, print and peel; order matching stock or custom templates on the detail page.',
 }

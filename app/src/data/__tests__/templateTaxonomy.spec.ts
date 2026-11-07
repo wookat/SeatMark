@@ -2,13 +2,19 @@ import { describe, expect, it } from 'vitest'
 
 import { defaultTemplates } from '../defaultTemplates'
 import { guides } from '../guides'
+import { labelPapers } from '../labelPapers'
 import { templateDetails } from '../templateDetails'
-import { TEMPLATE_COUNT } from '../templateMeta'
+import { PAPER_COUNT, PAPER_TEMPLATE_COUNT, TEMPLATE_COUNT } from '../templateMeta'
 import { TEMPLATE_SUBCATEGORIES, subcategoryOf } from '../templateTaxonomy'
 
 describe('templateMeta', () => {
   it('TEMPLATE_COUNT 与内置模板实际数量一致', () => {
     expect(TEMPLATE_COUNT).toBe(defaultTemplates.length)
+  })
+
+  it('PAPER_COUNT / PAPER_TEMPLATE_COUNT 与纸型库、专用模板实际数量一致', () => {
+    expect(PAPER_COUNT).toBe(labelPapers.length)
+    expect(PAPER_TEMPLATE_COUNT).toBe(defaultTemplates.filter((t) => t.designedForPaper).length)
   })
 
   it('第 355 轮：guides / templateDetails 正文不再写死「200 多款」，模板数量统一插值 TEMPLATE_COUNT', () => {

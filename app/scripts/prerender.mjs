@@ -243,7 +243,7 @@ const templateItems = templateDetails
   .filter((item) => !!item.template)
 
 // 配额与定价文案单一来源：QUOTA_* 来自 stores/quota.ts，PRICING_SUMMARY 来自 entry-server.ts
-const SITE_INTRO = `> SeatMark（${SITE_ORIGIN}）是一款免费的在线批量标签生成工具：上传 Excel 名单即可批量生成考场座位标签（座签/桌贴）、考号贴、会议桌牌/台签/席卡、门贴门牌、学生证、工作证、胸卡出入证等打印页。毫米级精确排版（A4/A5/A3），支持照片核验、可视化模板设计器与 PDF 导出。所有数据仅在用户浏览器本地处理，不上传服务器，可离线使用，无需注册。${PRICING_SUMMARY}。`
+const SITE_INTRO = `> SeatMark（${SITE_ORIGIN}）是一款免费的在线批量标签生成工具：上传 Excel 名单即可批量生成考场座位标签（座签/桌贴）、考号贴、会议桌牌/台签/席卡、门贴门牌、学生证、工作证、胸卡出入证等打印页。输出可用普通 A4 纸沿裁切线自裁，或选 56 种常见不干胶模切版型自动对版、即打即贴（每种版型配专用模板，详情页可下单同款纸包或定制模板）。毫米级精确排版（A4/A5/A3），支持照片核验、可视化模板设计器与 PDF 导出。所有数据仅在用户浏览器本地处理，不上传服务器，可离线使用，无需注册。${PRICING_SUMMARY}。`
 
 const llmsTxt = `# SeatMark 座签
 
