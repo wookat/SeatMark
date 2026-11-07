@@ -20,6 +20,8 @@ export const PAPER_PRESETS: PaperPreset[] = [
   { id: 'a5-landscape', label: 'A5 横向', width: 210, height: 148 },
   { id: 'a3-portrait', label: 'A3 纵向', width: 297, height: 420 },
   { id: 'a3-landscape', label: 'A3 横向', width: 420, height: 297 },
+  { id: 'letter-portrait', label: 'Letter 纵向', width: 215.9, height: 279.4 },
+  { id: 'letter-landscape', label: 'Letter 横向', width: 279.4, height: 215.9 },
 ]
 
 /** 根据页面尺寸匹配预设 id；非标准尺寸返回 null */

@@ -106,6 +106,36 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/TopicLandingView.vue'),
   },
   {
+    path: '/en/place-card-generator',
+    name: 'topic-en-place-card-generator',
+    component: () => import('@/views/TopicLandingView.vue'),
+  },
+  {
+    path: '/en/name-badge-generator',
+    name: 'topic-en-name-badge-generator',
+    component: () => import('@/views/TopicLandingView.vue'),
+  },
+  {
+    path: '/en/tent-card-generator',
+    name: 'topic-en-tent-card-generator',
+    component: () => import('@/views/TopicLandingView.vue'),
+  },
+  {
+    path: '/en/table-plan-maker',
+    name: 'topic-en-table-plan-maker',
+    component: () => import('@/views/TopicLandingView.vue'),
+  },
+  {
+    path: '/en/seating-chart-maker',
+    name: 'topic-en-seating-chart-maker',
+    component: () => import('@/views/TopicLandingView.vue'),
+  },
+  {
+    path: '/en/classroom-label-maker',
+    name: 'topic-en-classroom-label-maker',
+    component: () => import('@/views/TopicLandingView.vue'),
+  },
+  {
     path: '/seating',
     name: 'seating',
     component: () => import('@/views/SeatingView.vue'),

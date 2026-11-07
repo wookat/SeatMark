@@ -24,9 +24,10 @@ export async function applySeo(path: string): Promise<void> {
   setMeta('property', 'og:title', seo.title)
   setMeta('property', 'og:description', seo.description)
   setMeta('property', 'og:url', `${SITE_ORIGIN}${seo.path}`)
-  setMeta('property', 'og:image', `${SITE_ORIGIN}/og-image.png`)
+  const ogImage = `${SITE_ORIGIN}${seo.image ?? '/og-image.png'}`
+  setMeta('property', 'og:image', ogImage)
   setMeta('name', 'twitter:title', seo.title)
-  setMeta('name', 'twitter:image', `${SITE_ORIGIN}/og-image.png`)
+  setMeta('name', 'twitter:image', ogImage)
   setMeta('name', 'twitter:description', seo.description)
 
   let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')

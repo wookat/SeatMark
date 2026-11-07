@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { EN_CONTENT_DETAIL_PATHS, isEnContentDetailPath } from '@/data/enContentPaths'
 import { enGuides } from '@/data/guidesEn'
 import { isSitemapEligible, prerenderPaths, resolveSeo } from '@/data/seo'
+import { topicPages } from '@/data/topicPages'
 import { findVsPage, vsLangOf, vsPagePath, vsPages, vsPagesFor } from '@/data/vsPages'
 import { zhOnlyRedirectTarget } from '@/router'
 
@@ -55,6 +56,7 @@ describe('vsPages 语言分流', () => {
     const expected = [
       ...vsPagesFor('en').map(vsPagePath),
       ...enGuides.map((g) => `/en/guides/${g.slug}`),
+      ...topicPages.filter((t) => t.lang === 'en').map((t) => t.path),
     ]
     expect([...EN_CONTENT_DETAIL_PATHS].sort()).toEqual(expected.sort())
     expect(isEnContentDetailPath('/en/vs/prismm-alternative')).toBe(true)

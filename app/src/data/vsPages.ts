@@ -373,7 +373,7 @@ export const vsPages: VsPage[] = [
         competitor:
           'Account required. Creating new Prismm events is being phased out ahead of the October 1, 2026 view-only date; ongoing use means a Cvent Event Diagramming account, priced by Cvent',
         seatmark:
-          'Every feature works without an account. Watermarked export is free and unlimited; watermark-free export has a daily quota, and Pro (normally CNY 19/mo) is free for a limited time',
+          'Every feature works without an account. Watermarked export is free and unlimited; watermark-free export has a free daily quota, and all Pro features are free during the launch period',
       },
       {
         dimension: 'Where your data lives',
@@ -475,7 +475,7 @@ export const vsPages: VsPage[] = [
         dimension: 'Price',
         competitor: 'Free tier usable; Pro is a paid subscription',
         seatmark:
-          'Watermarked export free and unlimited; Pro (normally CNY 19/mo) is free for a limited time',
+          'Watermarked export free and unlimited; all Pro features are free during the launch period',
       },
     ],
     faqs: [
@@ -545,7 +545,7 @@ export const vsPages: VsPage[] = [
         competitor:
           'Preview PDF with a full-page watermark is free; watermark-free export requires sign-in, one-time bundle from $12.9',
         seatmark:
-          'Watermarked export free and unlimited without sign-in (small corner mark only); watermark-free export has a daily quota, Pro (normally CNY 19/mo) free for a limited time',
+          'Watermarked export free and unlimited without sign-in (small corner mark only); watermark-free export has a free daily quota and all Pro features are free during launch',
       },
     ],
     faqs: [
@@ -682,7 +682,7 @@ export const vsPages: VsPage[] = [
         dimension: 'Price',
         competitor: 'Free exports carry a watermark; personal membership starts around CNY 139/year',
         seatmark:
-          'Watermarked export free and unlimited; Pro (normally CNY 19/mo) is free for a limited time',
+          'Watermarked export free and unlimited; all Pro features are free during the launch period',
       },
     ],
     faqs: [

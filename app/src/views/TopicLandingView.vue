@@ -4,7 +4,9 @@ import { useRoute } from 'vue-router'
 
 import NotFoundView from '@/views/NotFoundView.vue'
 import { findTopicPage, topicStepsHeading } from '@/data/topicPages'
+import { useI18n } from '@/i18n'
 
+const { t } = useI18n()
 const route = useRoute()
 const page = computed(() => findTopicPage(route.path))
 const stepsHeading = computed(() => (page.value ? topicStepsHeading(page.value) : ''))
@@ -42,7 +44,7 @@ const stepsHeading = computed(() => (page.value ? topicStepsHeading(page.value) 
           {{ page.secondaryCta.label }}
         </RouterLink>
       </div>
-      <p class="mt-3 text-xs text-slate-500">不用注册；名单只在你的浏览器里解析，关闭页面即清除</p>
+      <p class="mt-3 text-xs text-slate-500">{{ t('不用注册；名单只在你的浏览器里解析，关闭页面即清除') }}</p>
     </header>
 
     <!-- 分步用法 -->
@@ -69,7 +71,7 @@ const stepsHeading = computed(() => (page.value ? topicStepsHeading(page.value) 
 
     <!-- 能力要点 -->
     <section class="mt-12">
-      <h2 class="text-center text-xl font-bold tracking-tight text-slate-900">为什么用 SeatMark</h2>
+      <h2 class="text-center text-xl font-bold tracking-tight text-slate-900">{{ t('为什么用 SeatMark') }}</h2>
       <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div
           v-for="f in page.features"
@@ -84,7 +86,7 @@ const stepsHeading = computed(() => (page.value ? topicStepsHeading(page.value) 
 
     <!-- FAQ -->
     <section class="mt-12">
-      <h2 class="text-center text-xl font-bold tracking-tight text-slate-900">常见问答</h2>
+      <h2 class="text-center text-xl font-bold tracking-tight text-slate-900">{{ t('常见问答') }}</h2>
       <div class="mt-5 grid gap-3">
         <div
           v-for="faq in page.faqs"
@@ -102,8 +104,8 @@ const stepsHeading = computed(() => (page.value ? topicStepsHeading(page.value) 
       class="mt-12 flex flex-col items-center justify-between gap-4 rounded-lg bg-brand-700 px-6 py-6 text-center sm:flex-row sm:text-left"
     >
       <div>
-        <h2 class="text-base font-bold text-white">现在就把名单变成打印页</h2>
-        <p class="mt-1 text-sm text-brand-100">免费、不用注册：上传名单 → 预览 → 打印或导出 PDF。</p>
+        <h2 class="text-base font-bold text-white">{{ t('现在就把名单变成打印页') }}</h2>
+        <p class="mt-1 text-sm text-brand-100">{{ t('免费、不用注册：上传名单 → 预览 → 打印或导出 PDF。') }}</p>
       </div>
       <RouterLink
         :to="page.cta.to"
@@ -115,7 +117,7 @@ const stepsHeading = computed(() => (page.value ? topicStepsHeading(page.value) 
 
     <!-- 相关内链 -->
     <section class="mt-10">
-      <h2 class="text-base font-bold text-slate-900">相关模板与教程</h2>
+      <h2 class="text-base font-bold text-slate-900">{{ t('相关模板与教程') }}</h2>
       <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <RouterLink
           v-for="rel in page.relatedLinks"

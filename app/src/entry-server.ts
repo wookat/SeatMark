@@ -20,7 +20,7 @@ export {
   PRO_ORIGINAL_PRICE,
   TEAM_ORIGINAL_PRICE,
 } from '@/data/pricingSummary'
-export { appShellPaths, isSitemapEligible, prerenderPaths, resolveSeo, SITE_ORIGIN } from '@/data/seo'
+export { appShellPaths, guideBodyImages, isSitemapEligible, prerenderPaths, resolveSeo, SITE_ORIGIN } from '@/data/seo'
 export { templateDetails } from '@/data/templateDetails'
 export { topicPages } from '@/data/topicPages'
 export { vsPages } from '@/data/vsPages'

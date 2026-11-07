@@ -744,6 +744,8 @@ export const en: Record<string, string> = {
   'A5 横向': 'A5 landscape',
   'A3 纵向': 'A3 portrait',
   'A3 横向': 'A3 landscape',
+  'Letter 纵向': 'US Letter portrait',
+  'Letter 横向': 'US Letter landscape',
   '图片': 'Image',
   '照片': 'Photo',
   '设置': 'Settings',
@@ -1882,6 +1884,14 @@ export const en: Record<string, string> = {
   'A4 不干胶纸型库': 'A4 label paper library',
   '收录国产电商常见的 A4 不干胶分切规格：2×4、3×7、3×10、圆角模切等 {n} 种。在标签工坊选好纸型，行列数、边距与间距自动锁定，打印即对版，免手动调参。':
     '{n} A4 self-adhesive label sheet layouts common in Chinese stationery stores: 2×4, 3×7, 3×10, rounded die-cuts and more. Pick a sheet in the Studio and rows, columns, margins and gaps lock in automatically so prints line up.',
+  '收录国产电商常见的 A4 不干胶分切规格与美标 Letter 的 Avery 兼容纸型（5390、5392、5395、5160、5163、5164），共 {n} 种。在标签工坊选好纸型，行列数、边距与间距自动锁定，打印即对版，免手动调参。':
+    '{n} label sheet layouts: common Chinese A4 self-adhesive die-cuts plus US Letter Avery-compatible stock (5390, 5392, 5395, 5160, 5163, 5164). Pick a sheet in the Studio and rows, columns, margins and gaps lock in automatically so prints line up.',
+  'Avery 5390 证卡内页（2¼×3½，8 格）': 'Avery 5390 badge inserts (2¼×3½, 8-up)',
+  'Avery 5392 大号证卡内页（3×4，6 格）': 'Avery 5392 large badge inserts (3×4, 6-up)',
+  'Avery 5395 自粘姓名贴（2⅓×3⅜，8 格）': 'Avery 5395 adhesive name badges (2⅓×3⅜, 8-up)',
+  'Avery 5160 地址标签（1×2⅝，30 格）': 'Avery 5160 address labels (1×2⅝, 30-up)',
+  'Avery 5163 货运标签（2×4，10 格）': 'Avery 5163 shipping labels (2×4, 10-up)',
+  'Avery 5164 大号货运标签（3⅓×4，6 格）': 'Avery 5164 shipping labels (3⅓×4, 6-up)',
   '切角': 'Corners',
   '直角': 'Square',
   '圆角': 'Rounded',
@@ -2371,4 +2381,11 @@ export const en: Record<string, string> = {
   '缺少订单号': 'Missing order number',
   '查询失败，请稍后再试': 'Query failed — please try again later',
   '查询中…': 'Checking…',
+  '不用注册；名单只在你的浏览器里解析，关闭页面即清除':
+    'No sign-up — your list is parsed in your browser and cleared when you close the tab',
+  '为什么用 SeatMark': 'Why SeatMark',
+  '现在就把名单变成打印页': 'Turn your list into print-ready pages now',
+  '免费、不用注册：上传名单 → 预览 → 打印或导出 PDF。':
+    'Free, no sign-up: upload the list → preview → print or export PDF.',
+  '相关模板与教程': 'Related templates and guides',
 }

@@ -136,6 +136,10 @@ export const guides: Guide[] = [
 <li><strong>裁切线</strong>：开启裁切线后页面上会沿标签边缘打印贯穿的细参考线，裁纸更整齐；</li>
 <li><strong>缺项高亮</strong>：打开「高亮缺失项」，凡是有字段为空的标签会被标出，避免贴出空白标签。</li>
 </ul>
+<figure>
+  <img src="/guides/exam-seat-labels-preview.png" alt="标签工坊预览区：标准考场版座签按 A4 一页 24 枚排版，含姓名、考场与准考证号" width="932" height="863" loading="lazy" />
+  <figcaption>标准考场版座签的整页预览：一页 24 枚、三列八行，裁切后即贴。</figcaption>
+</figure>
 
 <h2>第五步：导出 PDF 或直接打印</h2>
 <p>两种输出方式都可以：</p>
@@ -510,6 +514,10 @@ export const guides: Guide[] = [
 <li><strong>思路 A：双面打印</strong>——每页排多枚桌牌，正面打一遍、背面对应位置再打一遍，裁开即得双面牌。适合插入亚克力桌牌座的平片；</li>
 <li><strong>思路 B：单面打印 + 背对背粘合</strong>——每人打两份相同的单面牌，背对背粘起来后对折或插座，<strong>不依赖打印机双面功能，最不容易出错</strong>。</li>
 </ul>
+<figure>
+  <img src="/guides/zh-tent-cards-preview.png" alt="会议大桌牌模板预览：半页桌牌按页排版，姓名大字居中" width="932" height="863" loading="lazy" />
+  <figcaption>会议大桌牌模板的整页预览：姓名大字居中，字体与字段位置可在设计器中统一调整。</figcaption>
+</figure>
 
 <h2>思路 B：单面两份背对背（最稳妥）</h2>
 <p>做法非常直白：在 <a href="/studio">SeatMark</a> 里用 <a href="/templates/deskHalf">A4 半页大桌牌</a>或<a href="/templates/fullPage">整页名牌</a>正常生成一份 PDF，打印<strong>两份</strong>；裁开后把同一个人的两张背对背用胶棒粘合，再沿中线对折立起（或直接插入桌牌座）。两面天然都是正立方向，不存在翻转设置问题。</p>

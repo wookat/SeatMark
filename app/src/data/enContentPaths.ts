@@ -12,6 +12,21 @@ export const EN_CONTENT_DETAIL_PATHS = [
   '/en/guides/wedding-seating-chart-from-excel',
   '/en/guides/print-place-cards-from-excel',
   '/en/guides/name-badges-from-spreadsheet',
+  '/en/guides/place-cards-from-google-sheets',
+  '/en/guides/double-sided-name-tents',
+  '/en/guides/desk-name-tags-from-class-list',
+  '/en/guides/wedding-table-numbers-printable',
+  '/en/guides/escort-cards-vs-place-cards',
+  '/en/guides/holiday-dinner-place-cards',
+  '/en/guides/eventbrite-attendee-badges',
+  '/en/guides/wedding-table-plan-uk',
+  '/en/guides/print-avery-tent-cards',
+  '/en/place-card-generator',
+  '/en/name-badge-generator',
+  '/en/tent-card-generator',
+  '/en/table-plan-maker',
+  '/en/seating-chart-maker',
+  '/en/classroom-label-maker',
 ] as const
 
 export function isEnContentDetailPath(path: string): boolean {

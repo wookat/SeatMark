@@ -1,4 +1,4 @@
-import { LABEL_PAPER_SHEET, labelPapers, type LabelPaperSpec } from '@/data/labelPapers'
+import { labelPapers, sheetOf, type LabelPaperSpec } from '@/data/labelPapers'
 import type { LabelTemplate, PageSpec } from '@/types/template'
 import { round1 } from '@/utils/layout'
 
@@ -6,7 +6,7 @@ export interface LabelPaperGeometry {
   /** 标签阵列总宽/高（mm） */
   contentWidth: number
   contentHeight: number
-  /** 居中排版推导出的左右/上下边距（mm） */
+  /** 居中排版推导出的左右/上下边距（mm）；显式边距纸型为规格值 */
   marginX: number
   marginY: number
   /** 每页枚数 */
@@ -15,17 +15,19 @@ export interface LabelPaperGeometry {
 
 /**
  * 由纸型规格推导整页几何：
- * 阵列尺寸 = 枚数 × 标签尺寸 + 间距之和；边距 = (纸面 - 阵列) / 2（居中）。
+ * 阵列尺寸 = 枚数 × 标签尺寸 + 间距之和；
+ * 边距优先取规格显式值（Avery 等不对称模切），否则 (纸面 - 阵列) / 2（居中）。
  * 数值按 0.1mm 取整，与排版引擎的毫米精度一致。
  */
 export function labelPaperGeometry(spec: LabelPaperSpec): LabelPaperGeometry {
+  const sheet = sheetOf(spec)
   const contentWidth = round1(spec.cols * spec.labelWidth + (spec.cols - 1) * spec.gapX)
   const contentHeight = round1(spec.rows * spec.labelHeight + (spec.rows - 1) * spec.gapY)
   return {
     contentWidth,
     contentHeight,
-    marginX: round1(Math.max((LABEL_PAPER_SHEET.width - contentWidth) / 2, 0)),
-    marginY: round1(Math.max((LABEL_PAPER_SHEET.height - contentHeight) / 2, 0)),
+    marginX: spec.marginLeft ?? round1(Math.max((sheet.width - contentWidth) / 2, 0)),
+    marginY: spec.marginTop ?? round1(Math.max((sheet.height - contentHeight) / 2, 0)),
     perPage: spec.cols * spec.rows,
   }
 }
@@ -42,10 +44,30 @@ export function isFullPageTemplate(template: LabelTemplate): boolean {
   return paperArea > 0 && labelArea >= paperArea * 0.5
 }
 
-/** 模板与纸型是否兼容：整页/折叠模板只允许每页 1 枚的整版纸型 */
+/** 模板与纸型是否兼容：整页/折叠模板只允许每页 1 枚的整版纸型，
+ * 或带折线语义的对折纸型（每格自身是一整枚折叠卡，镜像字段在格内生效） */
 export function isPaperCompatible(template: LabelTemplate, spec: LabelPaperSpec): boolean {
   if (!isFullPageTemplate(template)) return true
-  return spec.cols * spec.rows === 1
+  return spec.cols * spec.rows === 1 || spec.fold != null
+}
+
+/**
+ * 对折纸型的压痕坐标（mm）：fold='horizontal' 返回各折线 y 坐标，
+ * 'vertical' 返回各折线 x 坐标（每格中线）；非对折纸型返回空数组。
+ */
+export function foldOffsets(spec: LabelPaperSpec): number[] {
+  const g = labelPaperGeometry(spec)
+  if (spec.fold === 'horizontal') {
+    return Array.from({ length: spec.rows }, (_, r) =>
+      round1(g.marginY + r * (spec.labelHeight + spec.gapY) + spec.labelHeight / 2),
+    )
+  }
+  if (spec.fold === 'vertical') {
+    return Array.from({ length: spec.cols }, (_, c) =>
+      round1(g.marginX + c * (spec.labelWidth + spec.gapX) + spec.labelWidth / 2),
+    )
+  }
+  return []
 }
 
 /**
@@ -55,19 +77,20 @@ export function isPaperCompatible(template: LabelTemplate, spec: LabelPaperSpec)
  * 内容仍落在标签内（字号超框时由 LabelCard 自适应兜底）。
  */
 export function applyLabelPaper(template: LabelTemplate, spec: LabelPaperSpec): void {
+  const sheet = sheetOf(spec)
   const geo = labelPaperGeometry(spec)
   const page = template.page
   scaleTemplateFields(template, spec.labelWidth, spec.labelHeight)
-  page.paperWidth = LABEL_PAPER_SHEET.width
-  page.paperHeight = LABEL_PAPER_SHEET.height
+  page.paperWidth = sheet.width
+  page.paperHeight = sheet.height
   page.cols = spec.cols
   page.rows = spec.rows
   page.gapX = spec.gapX
   page.gapY = spec.gapY
   page.marginLeft = geo.marginX
-  page.marginRight = geo.marginX
+  page.marginRight = spec.marginRight ?? geo.marginX
   page.marginTop = geo.marginY
-  page.marginBottom = geo.marginY
+  page.marginBottom = spec.marginBottom ?? geo.marginY
   template.label.width = spec.labelWidth
   template.label.height = spec.labelHeight
   template.label.radius = spec.corner === 'rounded' ? (spec.cornerRadius ?? 2) : 0
@@ -114,10 +137,11 @@ export function matchLabelPaper(
   const eq = (a: number, b: number) => Math.abs(a - b) <= 0.15
   return (
     labelPapers.find((spec) => {
+      const sheet = sheetOf(spec)
       const geo = labelPaperGeometry(spec)
       return (
-        eq(page.paperWidth, LABEL_PAPER_SHEET.width) &&
-        eq(page.paperHeight, LABEL_PAPER_SHEET.height) &&
+        eq(page.paperWidth, sheet.width) &&
+        eq(page.paperHeight, sheet.height) &&
         page.cols === spec.cols &&
         page.rows === spec.rows &&
         eq(page.gapX, spec.gapX) &&

@@ -3,24 +3,24 @@ import { computed, ref } from 'vue'
 
 import EnIndexShell, { type EnIndexFeatured } from '@/components/ui/EnIndexShell.vue'
 import ZhOnlyNotice from '@/components/ui/ZhOnlyNotice.vue'
-import { LABEL_PAPER_SHEET, labelPapers } from '@/data/labelPapers'
+import { labelPapers, sheetOf } from '@/data/labelPapers'
 import { useI18n } from '@/i18n'
 import { labelPaperGeometry } from '@/utils/labelPaper'
 
 const { t, locale, localePath } = useI18n()
 
 /** /en 下列表区的英文替代块：主题说明 + 精选入口（英文标题，指向中文纸型页） */
-const EN_INTRO = `A library of ${labelPapers.length} pre-cut A4 self-adhesive label sheets sold by Chinese stationery shops — 2×4, 3×7, 3×10, rounded-corner die-cuts and more. Pick a sheet in the Studio and the rows, columns, margins and gaps lock in automatically so the print lines up without manual tuning. Sheet details are in Chinese for now.`
+const EN_INTRO = `A library of ${labelPapers.length} pre-cut label sheets — common Chinese A4 self-adhesive die-cuts plus US Letter Avery-compatible stock (5390, 5392, 5395, 5160, 5163, 5164). Pick a sheet in the Studio and the rows, columns, margins and gaps lock in automatically so the print lines up without manual tuning. Sheet details are in Chinese for now.`
 const EN_FEATURED: EnIndexFeatured[] = [
   {
-    title: 'A4 2-up (1 × 2, 210 × 148.5 mm)',
-    summary: 'A4 split in half (A5 size) — for exam-room door signs, venue wayfinding and oversized desk labels.',
-    to: '/papers/a4-2up',
+    title: 'Avery 5390 badge inserts (8-up, US Letter)',
+    summary: 'The standard 2¼ × 3½ badge insert sheet — conference badges and visitor tags that slide straight into holders.',
+    to: '/papers/avery-5390',
   },
   {
-    title: 'A4 8-up rounded corners (99.1 × 67.7 mm)',
-    summary: 'The Avery L7165-compatible 8-up die-cut: no-cut exam desk labels, asset tags and large name stickers.',
-    to: '/papers/a4-8up-round',
+    title: 'Avery 5395 adhesive name badges (8-up, US Letter)',
+    summary: 'Peel-and-stick name badges 2⅓ × 3⅜ — check-in table and event-floor staple.',
+    to: '/papers/avery-5395',
   },
   {
     title: 'A4 21-up (3 × 7, 70 × 42.4 mm)',
@@ -60,10 +60,10 @@ function cells(spec: (typeof labelPapers)[number]) {
     <div class="text-center">
       <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Label Papers</p>
       <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-        {{ t('A4 不干胶纸型库') }}
+        {{ t('不干胶纸型库') }}
       </h1>
       <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-        {{ t('收录国产电商常见的 A4 不干胶分切规格：2×4、3×7、3×10、圆角模切等 {n} 种。在标签工坊选好纸型，行列数、边距与间距自动锁定，打印即对版，免手动调参。').replace('{n}', String(labelPapers.length)) }}
+        {{ t('收录国产电商常见的 A4 不干胶分切规格与美标 Letter 的 Avery 兼容纸型（5390、5392、5395、5160、5163、5164），共 {n} 种。在标签工坊选好纸型，行列数、边距与间距自动锁定，打印即对版，免手动调参。').replace('{n}', String(labelPapers.length)) }}
       </p>
       <ZhOnlyNotice />
     </div>
@@ -103,7 +103,7 @@ function cells(spec: (typeof labelPapers)[number]) {
         <div class="flex items-start gap-4">
           <svg
             class="w-16 shrink-0 rounded-sm border border-slate-200 bg-slate-50"
-            :viewBox="`0 0 ${LABEL_PAPER_SHEET.width} ${LABEL_PAPER_SHEET.height}`"
+            :viewBox="`0 0 ${sheetOf(p).width} ${sheetOf(p).height}`"
             role="img"
             :aria-label="`${p.name} ${t('版式示意')}`"
           >

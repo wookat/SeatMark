@@ -33,6 +33,7 @@ const {
   vsPages,
   topicPages,
   defaultTemplates,
+  guideBodyImages,
   QUOTA_ANON_DAILY,
   QUOTA_USER_DAILY,
   PRICING_SUMMARY,
@@ -99,6 +100,15 @@ function applyHead(html, seo) {
       // 首屏启动骨架文案（JS 接管前可见）
       .replace('aria-label="页面加载中"', 'aria-label="Loading"')
       .replace('SeatMark 座签加载中…', 'Loading SeatMark…')
+  }
+
+  if (seo.image) {
+    const imageUrl = `${SITE_ORIGIN}${seo.image}`
+    out = out
+      .replace(/<meta property="og:image"[^>]*\/>/, `<meta property="og:image" content="${imageUrl}" />`)
+      .replace(/<meta property="og:image:width"[^>]*\/>/, '<meta property="og:image:width" content="932" />')
+      .replace(/<meta property="og:image:height"[^>]*\/>/, '<meta property="og:image:height" content="863" />')
+      .replace(/<meta name="twitter:image"[^>]*\/>/, `<meta name="twitter:image" content="${imageUrl}" />`)
   }
 
   if (seo.robots) {
@@ -187,8 +197,12 @@ const priorities = (p) => (p === '/' ? '1.0' : p === '/studio' ? '0.9' : p.split
 const sitemapEntries = (
   await Promise.all(paths.map(async (p) => ({ p, seo: await resolveSeo(p) })))
 ).filter(({ seo }) => isSitemapEligible(seo))
+// 教程页正文配图 → image:image 站点图片索引
+const pageImages = new Map()
+for (const g of guides) pageImages.set(`/guides/${g.slug}`, guideBodyImages(g.body))
+for (const g of enGuides) pageImages.set(`/en/guides/${g.slug}`, guideBodyImages(g.body))
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${sitemapEntries
   .map(({ p, seo }) => {
     const alternates = (seo.alternates ?? [])
@@ -197,11 +211,14 @@ ${sitemapEntries
           `\n    <xhtml:link rel="alternate" hreflang="${alt.hreflang}" href="${SITE_ORIGIN}${alt.path === '/' ? '/' : alt.path}" />`,
       )
       .join('')
+    const images = [...new Set(pageImages.get(p) ?? [])]
+      .map((img) => `\n    <image:image><image:loc>${SITE_ORIGIN}${img}</image:loc></image:image>`)
+      .join('')
     return `  <url>
     <loc>${SITE_ORIGIN}${p === '/' ? '/' : p}</loc>
     <lastmod>${resolveLastmod(p, lastmodSources)}</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>${priorities(p)}</priority>${alternates}
+    <priority>${priorities(p)}</priority>${alternates}${images}
   </url>`
   })
   .join('\n')}
@@ -263,6 +280,8 @@ ${templateItems
   .join('\n')}
 
 ## English content
+
+> SeatMark is a free online batch label generator: upload a spreadsheet (Excel, Google Sheets or CSV) to batch-create printable place cards, table tents, escort cards, wedding table numbers, desk name tags, name badges and ID cards. Millimeter-accurate layouts on A4/A5/A3 and US Letter, including Avery-compatible sheets (5390, 5392, 5395, 5160, 5163, 5164). A visual template designer, photo matching for badges, and PDF export are included. All data is processed locally in the browser — nothing is uploaded, no account required.
 
 - [Guides (EN)](${SITE_ORIGIN}/en/guides)
 ${enGuides.map((g) => `- [${g.title}](${SITE_ORIGIN}/en/guides/${g.slug})`).join('\n')}

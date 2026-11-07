@@ -5,9 +5,9 @@ import { useRoute } from 'vue-router'
 import ChineseOnlyNotice from '@/components/ChineseOnlyNotice.vue'
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import { defaultTemplates } from '@/data/defaultTemplates'
-import { findLabelPaper, LABEL_PAPER_SHEET, labelPapers } from '@/data/labelPapers'
+import { findLabelPaper, labelPapers, sheetOf } from '@/data/labelPapers'
 import { findTemplateDetail } from '@/data/templateDetails'
-import { labelPaperGeometry } from '@/utils/labelPaper'
+import { foldOffsets, labelPaperGeometry } from '@/utils/labelPaper'
 import NotFoundView from '@/views/NotFoundView.vue'
 
 const route = useRoute()
@@ -44,16 +44,44 @@ const cellRects = computed(() => {
   return out
 })
 
+/** 对折纸型的折线线段（示意 SVG 内，覆盖在标签格上） */
+const foldLines = computed(() => {
+  const p = paper.value
+  if (!p?.fold) return []
+  const offsets = foldOffsets(p)
+  return cellRects.value.map((cell, i) => {
+    const mid = offsets[Math.floor(i / p.cols)] ?? 0
+    return p.fold === 'horizontal'
+      ? { x1: cell.x + 0.6, y1: mid, x2: cell.x + p.labelWidth - 0.6, y2: mid }
+      : { x1: offsets[i % p.cols] ?? 0, y1: cell.y + 0.6, x2: offsets[i % p.cols] ?? 0, y2: cell.y + p.labelHeight - 0.6 }
+  })
+})
+
 const specRows = computed(() => {
   const p = paper.value
   const g = geo.value
   if (!p || !g) return []
+  const sheet = sheetOf(p)
+  const sheetName = sheet.width === 215.9 ? 'US Letter' : 'A4'
+  const right = p.marginRight ?? g.marginX
+  const bottom = p.marginBottom ?? g.marginY
+  const marginText =
+    right === g.marginX && bottom === g.marginY
+      ? `左右 ${g.marginX} mm · 上下 ${g.marginY} mm`
+      : `左 ${g.marginX} / 右 ${right} mm · 上 ${g.marginY} / 下 ${bottom} mm`
+  const foldText =
+    p.fold === 'horizontal'
+      ? `每枚中线横向压痕，对折成型约 ${p.labelWidth} × ${Math.round(p.labelHeight / 2)} mm`
+      : p.fold === 'vertical'
+        ? `每枚中线纵向压痕，对折成型约 ${Math.round(p.labelWidth / 2)} × ${p.labelHeight} mm`
+        : null
   return [
-    { name: '整张纸', value: `A4（${LABEL_PAPER_SHEET.width} × ${LABEL_PAPER_SHEET.height} mm）` },
+    { name: '整张纸', value: `${sheetName}（${sheet.width} × ${sheet.height} mm）` },
     { name: '单枚标签', value: `${p.labelWidth} × ${p.labelHeight} mm` },
     { name: '排列', value: `${p.cols} 列 × ${p.rows} 行，每页 ${g.perPage} 枚` },
     { name: '标签间距', value: `横向 ${p.gapX} mm · 纵向 ${p.gapY} mm` },
-    { name: '页边距', value: `左右 ${g.marginX} mm · 上下 ${g.marginY} mm` },
+    { name: '页边距', value: marginText },
+    ...(foldText ? [{ name: '折线', value: foldText }] : []),
     {
       name: '切角',
       value: p.corner === 'rounded' ? `圆角（半径约 ${p.cornerRadius ?? 2} mm）` : '直角满切',
@@ -81,7 +109,7 @@ const specRows = computed(() => {
       >
         <svg
           class="mx-auto w-full max-w-[260px] rounded-sm border border-slate-300 bg-white shadow-card"
-          :viewBox="`0 0 ${LABEL_PAPER_SHEET.width} ${LABEL_PAPER_SHEET.height}`"
+          :viewBox="`0 0 ${sheetOf(paper).width} ${sheetOf(paper).height}`"
           role="img"
           :aria-label="`${paper.name} 版式示意图`"
         >
@@ -97,6 +125,17 @@ const specRows = computed(() => {
             stroke="#6366f1"
             stroke-width="0.6"
           />
+          <line
+            v-for="(seg, i) in foldLines"
+            :key="`fold-${i}`"
+            :x1="seg.x1"
+            :y1="seg.y1"
+            :x2="seg.x2"
+            :y2="seg.y2"
+            stroke="#f59e0b"
+            stroke-width="0.8"
+            stroke-dasharray="3 2"
+          />
         </svg>
         <p class="mt-4 text-center text-[11px] font-semibold text-slate-600">
           按毫米比例绘制的整页版式示意
@@ -106,7 +145,7 @@ const specRows = computed(() => {
       <!-- 规格信息 -->
       <div>
         <span class="rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-bold text-brand-600">
-          A4 不干胶纸型
+          {{ sheetOf(paper).width === 215.9 ? 'US Letter 纸型' : 'A4 不干胶纸型' }}
         </span>
         <h1 class="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
           {{ paper.name }}

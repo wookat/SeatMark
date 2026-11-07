@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import { defaultTemplates } from '@/data/defaultTemplates'
-import { LABEL_PAPER_SHEET, labelPapers } from '@/data/labelPapers'
+import { labelPapers, sheetOf } from '@/data/labelPapers'
 import { templateDetails } from '@/data/templateDetails'
 import {
   applyLabelPaper,
+  foldOffsets,
   isFullPageTemplate,
   isPaperCompatible,
   labelPaperGeometry,
@@ -20,13 +21,12 @@ describe('纸型库几何计算', () => {
     expect(new Set(labelPapers.map((p) => p.name)).size).toBe(labelPapers.length)
   })
 
-  it('每种纸型的阵列均不超出 A4 纸面，边距非负', () => {
+  it('每种纸型的阵列均不超出纸面，边距非负', () => {
     for (const spec of labelPapers) {
+      const sheet = sheetOf(spec)
       const geo = labelPaperGeometry(spec)
-      expect(geo.contentWidth, `${spec.slug} 横向`).toBeLessThanOrEqual(LABEL_PAPER_SHEET.width + 0.01)
-      expect(geo.contentHeight, `${spec.slug} 纵向`).toBeLessThanOrEqual(
-        LABEL_PAPER_SHEET.height + 0.01,
-      )
+      expect(geo.contentWidth, `${spec.slug} 横向`).toBeLessThanOrEqual(sheet.width + 0.01)
+      expect(geo.contentHeight, `${spec.slug} 纵向`).toBeLessThanOrEqual(sheet.height + 0.01)
       expect(geo.marginX, `${spec.slug} marginX`).toBeGreaterThanOrEqual(0)
       expect(geo.marginY, `${spec.slug} marginY`).toBeGreaterThanOrEqual(0)
       expect(geo.perPage).toBe(spec.cols * spec.rows)
@@ -91,9 +91,28 @@ describe('纸型库几何计算', () => {
     for (const t of [vTent, fullPage]) {
       for (const spec of labelPapers) {
         const compatible = isPaperCompatible(t, spec)
-        expect(compatible, `${t.id} × ${spec.slug}`).toBe(spec.cols * spec.rows === 1)
+        expect(compatible, `${t.id} × ${spec.slug}`).toBe(
+          spec.cols * spec.rows === 1 || spec.fold != null,
+        )
       }
     }
+  })
+
+  it('对折纸型（avery-5302/5305/5309）几何与折线坐标正确', () => {
+    const a5302 = labelPapers.find((p) => p.slug === 'avery-5302')!
+    const a5305 = labelPapers.find((p) => p.slug === 'avery-5305')!
+    const a5309 = labelPapers.find((p) => p.slug === 'avery-5309')!
+    expect(foldOffsets(a5302)).toEqual([82.6, 196.9])
+    expect(foldOffsets(a5305)).toEqual([76.2, 203.2])
+    expect(foldOffsets(a5309)).toEqual([108])
+    expect(a5302.fold).toBe('horizontal')
+    expect(a5309.fold).toBe('vertical')
+    // 对折后的成型尺寸
+    expect(a5302.labelHeight / 2).toBeCloseTo(50.8)
+    expect(a5309.labelWidth / 2).toBeCloseTo(88.9)
+    // 非对折纸型不产出折线
+    const plain = labelPapers.find((p) => !p.fold)!
+    expect(foldOffsets(plain)).toEqual([])
   })
 
   it('普通多格模板与所有纸型兼容', () => {

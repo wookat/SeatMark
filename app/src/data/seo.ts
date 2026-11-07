@@ -23,6 +23,13 @@ export interface PageSeo {
   lang?: 'en'
   /** hreflang 备选链接（含自身与 x-default） */
   alternates?: { hreflang: string; path: string }[]
+  /** 页面级 og:image / twitter:image 路径（以 / 开头），默认 /og-image.png */
+  image?: string
+}
+
+/** 从教程正文 HTML 提取全部 /guides/ 配图路径（供 Article image、og:image、image sitemap 使用） */
+export function guideBodyImages(body: string): string[] {
+  return [...body.matchAll(/src="(\/guides\/[^"]+)"/g)].map((m) => m[1])
 }
 
 /** 已提供英文版内容的中文路径（/en 前缀镜像可被索引并互挂 hreflang） */
@@ -259,6 +266,7 @@ async function resolveEnContentSeo(p: string): Promise<PageSeo | null> {
     const guide = findEnGuide(p.slice('/en/guides/'.length))
     if (!guide) return null
     const path = `/en/guides/${guide.slug}`
+    const firstImage = guideBodyImages(guide.body)[0]
     const jsonLd: Record<string, unknown>[] = [
       {
         '@context': 'https://schema.org',
@@ -272,6 +280,7 @@ async function resolveEnContentSeo(p: string): Promise<PageSeo | null> {
         publisher: { '@type': 'Organization', name: 'SeatMark', url: `${SITE_ORIGIN}/en` },
         mainEntityOfPage: `${SITE_ORIGIN}${path}`,
         keywords: guide.keywords.join(','),
+        ...(firstImage ? { image: `${SITE_ORIGIN}${firstImage}` } : {}),
       },
       breadcrumb([
         { name: 'Home', path: '/en' },
@@ -290,6 +299,7 @@ async function resolveEnContentSeo(p: string): Promise<PageSeo | null> {
         { hreflang: 'en', path },
         { hreflang: 'x-default', path },
       ],
+      image: firstImage,
       jsonLd,
     }
   }
@@ -328,39 +338,70 @@ async function resolveEnContentSeo(p: string): Promise<PageSeo | null> {
     }
   }
 
-  if (!p.startsWith('/en/vs/')) return null
-  const { findVsPage } = await import('@/data/vsPages')
-  const page = findVsPage(p.slice('/en/vs/'.length), 'en')
-  if (!page) return null
-  const path = `/en/vs/${page.slug}`
-  return {
-    title: `${page.seoTitle} | SeatMark`,
-    description: page.seoDescription,
-    path,
-    lang: 'en',
-    alternates: [
-      { hreflang: 'en', path },
-      { hreflang: 'x-default', path },
-    ],
-    jsonLd: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'Article',
-        headline: page.heading,
+  if (p.startsWith('/en/vs/')) {
+    const { findVsPage } = await import('@/data/vsPages')
+    const page = findVsPage(p.slice('/en/vs/'.length), 'en')
+    if (page) {
+      const path = `/en/vs/${page.slug}`
+      return {
+        title: `${page.seoTitle} | SeatMark`,
         description: page.seoDescription,
-        inLanguage: 'en',
-        author: { '@type': 'Organization', name: 'SeatMark', url: `${SITE_ORIGIN}/en` },
-        publisher: { '@type': 'Organization', name: 'SeatMark', url: `${SITE_ORIGIN}/en` },
-        mainEntityOfPage: `${SITE_ORIGIN}${path}`,
-      },
-      faqJsonLd(page.faqs),
-      breadcrumb([
-        { name: 'Home', path: '/en' },
-        { name: 'Compare', path: '/en/vs' },
-        { name: `vs ${page.competitorName}`, path },
-      ]),
-    ],
+        path,
+        lang: 'en',
+        alternates: [
+          { hreflang: 'en', path },
+          { hreflang: 'x-default', path },
+        ],
+        jsonLd: [
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Article',
+            headline: page.heading,
+            description: page.seoDescription,
+            inLanguage: 'en',
+            author: { '@type': 'Organization', name: 'SeatMark', url: `${SITE_ORIGIN}/en` },
+            publisher: { '@type': 'Organization', name: 'SeatMark', url: `${SITE_ORIGIN}/en` },
+            mainEntityOfPage: `${SITE_ORIGIN}${path}`,
+          },
+          faqJsonLd(page.faqs),
+          breadcrumb([
+            { name: 'Home', path: '/en' },
+            { name: 'Compare', path: '/en/vs' },
+            { name: `vs ${page.competitorName}`, path },
+          ]),
+        ],
+      }
+    }
   }
+
+  // 英文长尾词专题落地页（/en/place-card-generator 等）：英文原生，可索引，无中文对应页
+  {
+    const { findTopicPage } = await import('@/data/topicPages')
+    const topic = findTopicPage(p)
+    if (topic?.lang === 'en') {
+      return {
+        title: `${topic.seoTitle} | SeatMark`,
+        description: topic.seoDescription,
+        path: topic.path,
+        lang: 'en',
+        alternates: [
+          { hreflang: 'en', path: topic.path },
+          { hreflang: 'x-default', path: topic.path },
+        ],
+        jsonLd: [
+          SOFTWARE_APP_JSONLD,
+          howToJsonLd(topic.howToName, topic.steps, 'en'),
+          faqJsonLd(topic.faqs),
+          breadcrumb([
+            { name: 'Home', path: '/en' },
+            { name: topic.shortName, path: topic.path },
+          ]),
+        ],
+      }
+    }
+  }
+
+  return null
 }
 
 /** 已英文化核心页的英文 SEO 数据；内容站索引外壳与账号/管理壳页仅提供英文 title（noindex） */
@@ -663,6 +704,7 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
     const slug = p.slice('/guides/'.length)
     const guide = findGuide(slug)
     if (guide) {
+      const firstImage = guideBodyImages(guide.body)[0]
       const jsonLd: Record<string, unknown>[] = [
         {
           '@context': 'https://schema.org',
@@ -676,6 +718,7 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
           publisher: { '@type': 'Organization', name: SITE_NAME, url: `${SITE_ORIGIN}/` },
           mainEntityOfPage: `${SITE_ORIGIN}/guides/${guide.slug}`,
           keywords: guide.keywords.join(','),
+          ...(firstImage ? { image: `${SITE_ORIGIN}${firstImage}` } : {}),
         },
         breadcrumb([
           { name: '首页', path: '/' },
@@ -689,6 +732,7 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
         title: `${guide.title} - SeatMark 座签`,
         description: guide.description,
         path: `/guides/${guide.slug}`,
+        image: firstImage,
         jsonLd,
       }
     }
@@ -751,14 +795,14 @@ async function resolveZhSeo(p: string): Promise<PageSeo> {
   if (p === '/papers') {
     const { labelPapers } = await import('@/data/labelPapers')
     return {
-      title: 'A4 不干胶纸型库：选型号自动对版 - SeatMark 座签',
-      description: `收录 ${labelPapers.length} 种国产常见 A4 不干胶分切规格：2×4、3×7、3×10、圆角模切等。选好纸型，行列数、边距与间距自动锁定，标签打印即对版免调参。`,
+      title: '不干胶纸型库：选型号自动对版 - SeatMark 座签',
+      description: `收录 ${labelPapers.length} 种不干胶分切规格：国产常见 A4 版式与美标 Letter 的 Avery 兼容纸型。选好纸型，行列数、边距与间距自动锁定，标签打印即对版免调参。`,
       path: '/papers',
       jsonLd: [
         {
           '@context': 'https://schema.org',
           '@type': 'CollectionPage',
-          name: 'A4 不干胶纸型库 - SeatMark 座签',
+          name: '不干胶纸型库 - SeatMark 座签',
           url: `${SITE_ORIGIN}/papers`,
           inLanguage: 'zh-CN',
           hasPart: labelPapers.map((paper) => ({

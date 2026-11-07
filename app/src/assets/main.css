@@ -225,6 +225,22 @@
     @apply bg-slate-50;
   }
 
+  .article-body figure {
+    @apply mt-6;
+  }
+
+  .article-body figure img {
+    @apply w-full rounded-lg border border-slate-200;
+  }
+
+  .article-body figcaption {
+    @apply mt-2 text-center text-xs leading-5 text-slate-500;
+  }
+
+  .article-body img {
+    @apply my-4 w-full rounded-lg border border-slate-200;
+  }
+
   .section-title {
     @apply flex items-center gap-2 text-sm font-bold tracking-tight text-slate-900;
   }

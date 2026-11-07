@@ -1,11 +1,11 @@
 /**
- * 国产常见 A4 不干胶分切纸型库（单一数据源）：
+ * 不干胶/模切分切纸型库（单一数据源）：
  * - /studio 纸张设置「按纸型选择」：选型号自动锁定行列/尺寸/边距/间距；
  * - /papers 与 /papers/:slug SEO 落地页：规格参数 + 适用模板推荐；
- * - 几何换算见 src/utils/labelPaper.ts（边距由居中排版推导，单测覆盖）。
+ * - 几何换算见 src/utils/labelPaper.ts（边距由居中排版推导或按规格显式值，单测覆盖）。
  *
- * 规格说明：均为 A4（210 × 297 mm）整张分切；直角规格多为无间距满切，
- * 圆角规格参照国内电商与 Avery 兼容模切的通行尺寸。
+ * 规格说明：多数为 A4（210 × 297 mm）整张分切；avery-* 系列为 US Letter
+ * （215.9 × 279.4 mm）美标模切，边距/间距按 Avery 官方模切数据。
  */
 
 export type PaperCorner = 'square' | 'rounded'
@@ -25,6 +25,19 @@ export interface LabelPaperSpec {
   /** 标签间距（mm），满切规格为 0 */
   gapX: number
   gapY: number
+  /** 纸张尺寸（mm），缺省为 A4；美标 Avery 规格为 Letter 215.9×279.4 */
+  sheetWidth?: number
+  sheetHeight?: number
+  /**
+   * 显式边距（mm）：缺省时由居中排版推导；
+   * Avery 等模切纸的左右/上下不对称边距必须显式给出以对版
+   */
+  marginLeft?: number
+  marginRight?: number
+  marginTop?: number
+  marginBottom?: number
+  /** 对折纸型的压痕方向：horizontal=每格中线横向压痕；vertical=每格中线纵向压痕（Avery 对折桌牌用） */
+  fold?: 'horizontal' | 'vertical'
   corner: PaperCorner
   /** 圆角半径（mm），仅圆角规格 */
   cornerRadius?: number
@@ -37,6 +50,14 @@ export interface LabelPaperSpec {
 }
 
 export const LABEL_PAPER_SHEET = { width: 210, height: 297 } as const
+
+/** 美标 Letter 纸尺寸（8.5 × 11 in） */
+export const LETTER_PAPER_SHEET = { width: 215.9, height: 279.4 } as const
+
+/** 纸型实际用纸尺寸：缺省 A4 */
+export function sheetOf(spec: LabelPaperSpec): { width: number; height: number } {
+  return { width: spec.sheetWidth ?? LABEL_PAPER_SHEET.width, height: spec.sheetHeight ?? LABEL_PAPER_SHEET.height }
+}
 
 export const labelPapers: LabelPaperSpec[] = [
   {
@@ -298,6 +319,190 @@ export const labelPapers: LabelPaperSpec[] = [
     description: '国际通行 38.1×21.2 mm 65格圆角模切，一页 65 枚，超小标签密度之最。',
     uses: ['小件物品贴', '价格/编号贴', '幼儿姓名小贴'],
     recommendedTemplates: ['kidsName', 'minimal', 'seatOnly'],
+  },
+  // ============ 美标 Letter（8.5×11 in）Avery 兼容规格 ============
+  // 边距/间距按 Avery 官方模切数据标注，Letter 纸张上按 100% 打印即对版
+  {
+    slug: 'avery-5390',
+    name: 'Avery 5390 证卡内页（2¼×3½，8 格）',
+    aliases: ['Avery 5390 compatible', 'badge insert 8-up letter', '5383 / 74461 / 74549 兼容'],
+    cols: 2,
+    rows: 4,
+    labelWidth: 88.9,
+    labelHeight: 56.36,
+    gapX: 0,
+    gapY: 0,
+    sheetWidth: LETTER_PAPER_SHEET.width,
+    sheetHeight: LETTER_PAPER_SHEET.height,
+    corner: 'square',
+    description: 'Avery 5390 兼容证卡内页版式：Letter 纸 2 列 × 4 行无边距模切（88.9×56.4 mm），插进卡套即用的会议证卡。',
+    uses: ['会议证卡内页', '访客胸牌', '展会吊牌'],
+    recommendedTemplates: ['withPhoto', 'detailed', 'standard'],
+  },
+  {
+    slug: 'avery-5392',
+    name: 'Avery 5392 大号证卡内页（3×4，6 格）',
+    aliases: ['Avery 5392 compatible', '3×4 badge insert', '35392 / 5384 / 5393 / 78619 兼容'],
+    cols: 2,
+    rows: 3,
+    labelWidth: 101.6,
+    labelHeight: 76.2,
+    gapX: 0,
+    gapY: 0,
+    sheetWidth: LETTER_PAPER_SHEET.width,
+    sheetHeight: LETTER_PAPER_SHEET.height,
+    corner: 'square',
+    description: 'Avery 5392 兼容大号证卡版式：Letter 纸 2 列 × 3 行（4×3 in），大号访客证卡与展会胸牌的标准尺寸。',
+    uses: ['大号访客证卡', '展会胸牌', '仓储大标签'],
+    recommendedTemplates: ['withPhoto', 'standard', 'large'],
+  },
+  {
+    slug: 'avery-5395',
+    name: 'Avery 5395 自粘姓名贴（2⅓×3⅜，8 格）',
+    aliases: ['Avery 5395 compatible', 'adhesive name badges', '8395 / 25395 / 45395 兼容'],
+    cols: 2,
+    rows: 4,
+    labelWidth: 85.72,
+    labelHeight: 59.27,
+    gapX: 9.5,
+    gapY: 4.2,
+    sheetWidth: LETTER_PAPER_SHEET.width,
+    sheetHeight: LETTER_PAPER_SHEET.height,
+    corner: 'square',
+    description: 'Avery 5395 兼容自粘姓名贴版式：Letter 纸 2 列 × 4 行（3⅜×2⅓ in），会议签到与活动现场直接贴身的通行规格。',
+    uses: ['会议签到姓名贴', '活动现场贴纸', '班级姓名贴'],
+    recommendedTemplates: ['minimal', 'standard', 'deskName'],
+  },
+  {
+    slug: 'avery-5160',
+    name: 'Avery 5160 地址标签（1×2⅝，30 格）',
+    aliases: ['Avery 5160 compatible', 'address labels 30-up', '8160 / 5260 / 5960 / L7160 兼容'],
+    cols: 3,
+    rows: 10,
+    labelWidth: 66.68,
+    labelHeight: 25.4,
+    gapX: 3.17,
+    gapY: 0,
+    sheetWidth: LETTER_PAPER_SHEET.width,
+    sheetHeight: LETTER_PAPER_SHEET.height,
+    corner: 'rounded',
+    cornerRadius: 1.5,
+    description: 'Avery 5160 兼容地址标签：Letter 纸 3 列 × 10 行（2⅝×1 in），全球最通行的标签版式，小尺寸座位号与物品贴同样适用。',
+    uses: ['地址/回寄标签', '物品编号贴', '座位号小贴'],
+    recommendedTemplates: ['minimal', 'seatOnly', 'examNo'],
+  },
+  {
+    slug: 'avery-5163',
+    name: 'Avery 5163 货运标签（2×4，10 格）',
+    aliases: ['Avery 5163 compatible', 'shipping labels 10-up', '8163 / 5263 / 5963 兼容'],
+    cols: 2,
+    rows: 5,
+    labelWidth: 101.6,
+    labelHeight: 50.8,
+    gapX: 3.97,
+    gapY: 0,
+    sheetWidth: LETTER_PAPER_SHEET.width,
+    sheetHeight: LETTER_PAPER_SHEET.height,
+    marginLeft: 3.97,
+    marginRight: 4.76,
+    marginTop: 12.7,
+    marginBottom: 12.7,
+    corner: 'rounded',
+    cornerRadius: 1.5,
+    description: 'Avery 5163 兼容货运标签：Letter 纸 2 列 × 5 行（4×2 in），物料箱贴、包裹贴与中大号信息条的经典版式。',
+    uses: ['货运/包裹标签', '物料箱贴', '中大号信息条'],
+    recommendedTemplates: ['standard', 'infoStrip', 'warehouseShelf'],
+  },
+  {
+    slug: 'avery-5164',
+    name: 'Avery 5164 大号货运标签（3⅓×4，6 格）',
+    aliases: ['Avery 5164 compatible', 'shipping labels 6-up', '8164 / 5264 / 5524 兼容'],
+    cols: 2,
+    rows: 3,
+    labelWidth: 101.6,
+    labelHeight: 84.67,
+    gapX: 3.97,
+    gapY: 0,
+    sheetWidth: LETTER_PAPER_SHEET.width,
+    sheetHeight: LETTER_PAPER_SHEET.height,
+    marginLeft: 3.97,
+    marginRight: 4.76,
+    marginTop: 12.7,
+    marginBottom: 12.7,
+    corner: 'rounded',
+    cornerRadius: 1.5,
+    description: 'Avery 5164 兼容大号标签：Letter 纸 2 列 × 3 行（4×3⅓ in），大号箱贴、设备牌与展示标识的高可见度版式。',
+    uses: ['大号箱贴/货架贴', '设备标识牌', '展示信息贴'],
+    recommendedTemplates: ['standard', 'large', 'detailed'],
+  },
+  {
+    slug: 'avery-5302',
+    name: 'Avery 5302 小号对折席卡（2 列 × 2 行）',
+    aliases: ['Avery 5302 Small Tent Cards', 'Avery 5812 / 5913 兼容', 'tent cards 3.5×2 in', 'seat place card paper'],
+    cols: 2,
+    rows: 2,
+    labelWidth: 88.9,
+    labelHeight: 101.6,
+    gapX: 12.7,
+    gapY: 12.7,
+    sheetWidth: LETTER_PAPER_SHEET.width,
+    sheetHeight: LETTER_PAPER_SHEET.height,
+    marginLeft: 12.7,
+    marginRight: 12.7,
+    marginTop: 31.75,
+    marginBottom: 31.75,
+    fold: 'horizontal',
+    corner: 'square',
+    description:
+      'Avery 5302 兼容对折席卡：Letter 纸每张 4 枚，沿每枚中线压痕对折成 88.9×50.8 mm 站立桌牌，婚宴席卡与会议姓名牌的标准小规格。',
+    uses: ['婚宴/宴会席卡', '会议姓名桌牌', '自助餐菜品标签'],
+    recommendedTemplates: ['meetingTent', 'vTent', 'tentBilingual'],
+  },
+  {
+    slug: 'avery-5305',
+    name: 'Avery 5305 中号对折席卡（1 列 × 2 行）',
+    aliases: ['Avery 5305 Medium Embossed Tent Cards', 'Avery 25305 / 5914 兼容', 'tent cards 8.5×2.5 in'],
+    cols: 1,
+    rows: 2,
+    labelWidth: 215.9,
+    labelHeight: 127,
+    gapX: 0,
+    gapY: 0,
+    sheetWidth: LETTER_PAPER_SHEET.width,
+    sheetHeight: LETTER_PAPER_SHEET.height,
+    marginLeft: 0,
+    marginRight: 0,
+    marginTop: 12.7,
+    marginBottom: 12.7,
+    fold: 'horizontal',
+    corner: 'square',
+    description:
+      'Avery 5305 兼容对折席卡：Letter 纸每张 2 枚横向满幅，沿中线压痕对折成 215.9×63.5 mm 大桌牌，适合主席台与长姓名台签。',
+    uses: ['主席台/讲台桌牌', '长姓名与头衔台签', '迎宾指示桌牌'],
+    recommendedTemplates: ['meetingTent', 'vTent', 'tentBilingual'],
+  },
+  {
+    slug: 'avery-5309',
+    name: 'Avery 5309 大号对折席卡（整页 1 枚）',
+    aliases: ['Avery 5309 Large Embossed Tent Cards', 'Avery 5915 兼容', 'tent card 3.5×11 in'],
+    cols: 1,
+    rows: 1,
+    labelWidth: 177.8,
+    labelHeight: 279.4,
+    gapX: 0,
+    gapY: 0,
+    sheetWidth: LETTER_PAPER_SHEET.width,
+    sheetHeight: LETTER_PAPER_SHEET.height,
+    marginLeft: 19.05,
+    marginRight: 19.05,
+    marginTop: 0,
+    marginBottom: 0,
+    fold: 'vertical',
+    corner: 'square',
+    description:
+      'Avery 5309 兼容大号对折席卡：Letter 整页 1 枚，撕去两侧边条后沿纵向中线压痕对折成 279.4×88.9 mm 站立桌牌。',
+    uses: ['宴会主桌台签', '演讲者/嘉宾大号名牌', '签到台展示桌牌'],
+    recommendedTemplates: ['vTent', 'meetingTent'],
   },
 ]
 
