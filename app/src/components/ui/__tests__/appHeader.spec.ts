@@ -115,7 +115,7 @@ describe('AppHeader 「排座」场景下拉', () => {
 
 describe('第 347 轮：AppHeader <sm 汉堡抽屉导航', () => {
   // 末尾 '/' 与 '/en' 为抽屉内语言列表（中文 / English 两项）
-  const ZH_HREFS = ['/', '/templates', '/seating', '/banquet', '/guides', '/pricing', '/about', '/vs', '/papers', '/account', '/', '/en']
+  const ZH_HREFS = ['/', '/templates', '/papers', '/seating', '/banquet', '/guides', '/pricing', '/about', '/vs', '/account', '/', '/en']
 
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -170,13 +170,13 @@ describe('第 347 轮：AppHeader <sm 汉堡抽屉导航', () => {
     expect(nav.findAll('a').map((a) => a.attributes('href'))).toEqual([
       '/en',
       '/en/templates',
+      '/en/papers',
       '/en/seating',
       '/en/banquet',
       '/en/guides',
       '/en/pricing',
       '/en/about',
       '/en/vs',
-      '/en/papers',
       '/en/account',
       '/',
       '/en',

@@ -254,6 +254,8 @@ const FEEDBACK_LABEL: Record<string, string> = {
   bug: 'Bug',
   suggestion: '建议',
   other: '其他',
+  order: '购买意向',
+  custom: '定制需求',
 }
 
 /** 访客国家码展示名：常见国家给中文名，其余直接显示两字母码 */

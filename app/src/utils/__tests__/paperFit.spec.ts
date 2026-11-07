@@ -110,8 +110,15 @@ describe('paperFit 排序', () => {
     }
   })
 
-  it('纸型深链门槛依据：staffIdCard 竖版卡 + a4-8up 横格适配度低于「可用」', () => {
+  it('纸型深链门槛依据：staffIdCard 竖版卡可横向进纸适配 a4-8up', () => {
+    // 纸可横竖两向进纸：竖版工作证配横放的 74.25×105 竖格，宽高比吻合评推荐档
     const fit = evaluatePaperFit(byId('staffIdCard'), findLabelPaper('a4-8up')!)
+    expect(['recommended', 'usable']).toContain(fit.level)
+    expect(fit.reason).toContain('横向进纸')
+  })
+
+  it('纸型深链门槛依据：整页模板 × 多格小纸型仍判不适配', () => {
+    const fit = evaluatePaperFit(byId('examDoor'), findLabelPaper('a4-65up-round')!)
     expect(['marginal', 'incompatible']).toContain(fit.level)
   })
 })

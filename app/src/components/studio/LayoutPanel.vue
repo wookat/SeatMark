@@ -15,6 +15,7 @@ import {
   applyLabelPaper,
   isPaperCompatible,
   matchLabelPaper,
+  matchLabelPaperEx,
   releaseLabelPaper,
 } from '@/utils/labelPaper'
 import {
@@ -68,6 +69,13 @@ const paperId = computed({
 const isCustomPaper = computed(() => paperId.value === 'custom')
 
 /** 不干胶纸型选择：选型号后自动锁定行列数、标签尺寸、边距与间距 */
+/** 当前排版是否按纸型横向进纸（旋转 90°）锁定 */
+const paperFeedRotated = computed(
+  () =>
+    matchLabelPaperEx(workspace.template.page, workspace.template.label)?.orientation ===
+    'rotated',
+)
+
 const labelPaperSlug = computed({
   get: () =>
     matchLabelPaper(workspace.template.page, workspace.template.label)?.slug ?? 'none',
@@ -99,15 +107,19 @@ const labelPaperSlug = computed({
       )
       return
     }
+    // 应用后按实际排版回报（模板为竖版格设计时会自动横向进纸）
+    const applied = workspace.template
+    const isRotated = applied.page.paperWidth > applied.page.paperHeight
     toast.info(
       t('已按纸型锁定排版'),
-      t('{paper}：{cols} 列 × {rows} 行，每页 {n} 枚（{w} × {h} mm）')
+      t('{paper}：{cols} 列 × {rows} 行，每页 {n} 枚（{w} × {h} mm）{feed}')
         .replace('{paper}', spec.name)
-        .replace('{cols}', String(spec.cols))
-        .replace('{rows}', String(spec.rows))
-        .replace('{n}', String(spec.cols * spec.rows))
-        .replace('{w}', String(spec.labelWidth))
-        .replace('{h}', String(spec.labelHeight)),
+        .replace('{cols}', String(applied.page.cols))
+        .replace('{rows}', String(applied.page.rows))
+        .replace('{n}', String(applied.page.cols * applied.page.rows))
+        .replace('{w}', String(applied.label.width))
+        .replace('{h}', String(applied.label.height))
+        .replace('{feed}', isRotated ? t('（横向进纸）') : ''),
     )
   },
 })
@@ -226,6 +238,9 @@ function onCenterLayout() {
           </RouterLink>
         </label>
         <SelectField v-model="labelPaperSlug" :options="labelPaperOptions" />
+        <p v-if="paperFeedRotated" class="mt-1 text-[11px] leading-4 text-slate-500">
+          {{ t('当前按横向进纸排版（纸型旋转 90°），打印时请横放该纸型') }}
+        </p>
         <p
           v-if="recommendedPaper && labelPaperSlug !== recommendedPaper.spec.slug"
           class="mt-1.5 flex items-start gap-1 text-[11px] leading-4 text-slate-600"

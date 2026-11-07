@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { TEMPLATE_COUNT } from '@/data/templateMeta'
+import { labelPapers } from '@/data/labelPapers'
 
 import { currentLocale, localePath, t } from '@/i18n'
 import { PRICING_FAQS, faqMentionsAccountBonus } from '@/data/seo'
@@ -285,6 +286,87 @@ async function startPay(plan: string) {
     <p class="mt-6 text-center text-xs text-slate-600">
       {{ t('专业版与团队版均支持支付宝在线支付，会员天数发放到当前登录账号；专业版还可用兑换码开通，天数可叠加。') }}
     </p>
+
+    <!-- 纸型售卖 / 定制服务 / 年度会员套餐 -->
+    <section class="mt-12">
+      <h2 class="text-center text-2xl font-bold tracking-tight text-slate-900">
+        {{ t('纸型与定制服务') }}
+      </h2>
+      <p class="mx-auto mt-3 max-w-xl text-center text-sm leading-6 text-slate-600">
+        {{ t('除模板工具外，我们还提供不干胶纸型售卖与按纸型定制模板的人工服务。') }}
+      </p>
+      <div class="mt-8 grid gap-5 md:grid-cols-3">
+        <div class="flex flex-col rounded-lg border border-slate-200 bg-white p-6 shadow-card">
+          <h3 class="text-base font-bold text-slate-900">{{ t('同款纸型售卖') }}</h3>
+          <p class="mt-2 flex-1 text-sm leading-6 text-slate-600">
+            {{
+              t('{n} 种模切规格，铜版纸 / 牛皮纸 / 防水 PET 多材质可选，满 5 包起享团购价；在纸型详情页提交购买意向，客服报价确认后发货。').replace(
+                '{n}',
+                String(labelPapers.length),
+              )
+            }}
+          </p>
+          <RouterLink :to="localePath('/papers')" class="btn btn-secondary btn-md mt-5 w-full">
+            {{ t('浏览纸型库选购') }}
+          </RouterLink>
+        </div>
+        <div class="flex flex-col rounded-lg border border-slate-200 bg-white p-6 shadow-card">
+          <h3 class="text-base font-bold text-slate-900">{{ t('按纸型定制模板') }}</h3>
+          <p class="mt-2 flex-1 text-sm leading-6 text-slate-600">
+            {{ t('设计师按你手上的纸型模切格 1:1 出稿：字段对应 Excel 表头，上传名单即批量出图。3 个工作日交付初稿，在各纸型详情页提交定制需求。') }}
+          </p>
+          <RouterLink :to="localePath('/papers')" class="btn btn-secondary btn-md mt-5 w-full">
+            {{ t('选纸型提需求') }}
+          </RouterLink>
+        </div>
+        <div class="flex flex-col rounded-lg border border-brand-300 bg-brand-50/40 p-6 shadow-card">
+          <div class="flex items-baseline justify-between gap-2">
+            <h3 class="text-base font-bold text-slate-900">{{ t('年度会员 · 含定制') }}</h3>
+            <span class="text-2xl font-bold tracking-tight text-slate-900">{{ t('¥199') }}</span>
+          </div>
+          <ul class="mt-3 flex-1 space-y-2 text-sm text-slate-600">
+            <li class="flex items-start gap-2">
+              <span class="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand-500"></span>
+              {{ t('含专业版全部功能（365 天）') }}
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand-500"></span>
+              {{ t('纸型专属模板定制 ×1（人工服务，3 个工作日交付）') }}
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand-500"></span>
+              {{ t('纸型与耗材团购会员价') }}
+            </li>
+          </ul>
+          <button
+            v-if="!auth.serviceUnavailable && auth.user"
+            type="button"
+            class="btn btn-primary btn-md mt-5 w-full"
+            data-testid="pricing-annual-cta"
+            :disabled="paying"
+            @click="startPay('pro-365')"
+          >
+            {{ paying ? t('正在创建订单…') : t('在线支付开通 · ¥199/365 天') }}
+          </button>
+          <RouterLink
+            v-else-if="!auth.serviceUnavailable"
+            :to="localePath('/account')"
+            class="btn btn-primary btn-md mt-5 w-full"
+            data-testid="pricing-annual-cta"
+          >
+            {{ t('登录后开通') }}
+          </RouterLink>
+          <RouterLink
+            v-else
+            :to="localePath('/studio')"
+            class="btn btn-primary btn-md mt-5 w-full"
+            data-testid="pricing-annual-cta-degraded"
+          >
+            {{ t('先用带水印导出') }}
+          </RouterLink>
+        </div>
+      </div>
+    </section>
 
     <!-- FAQ -->
     <section class="mx-auto mt-14 max-w-3xl">

@@ -1609,6 +1609,10 @@ export const en: Record<string, string> = {
     'Cell {size} ({cols} cols × {rows} rows) is the closest match to this template’s design size {design}',
   '单格 {size} 与模板设计尺寸 {design} 相近，等比微调后可用':
     'Cell {size} is close to the design size {design}; usable after proportional fine-tuning',
+  '单格 {size}（横向进纸 {cols} 列 × {rows} 行）与本模板设计尺寸 {design} 最接近':
+    'Cell {size} ({cols} cols × {rows} rows, landscape feed) is the closest match to this template’s design size {design}',
+  '单格 {size}（横向进纸）与模板设计尺寸 {design} 相近，等比微调后可用':
+    'Cell {size} (landscape feed) is close to the design size {design}; usable after proportional fine-tuning',
   '单格仅 {size}，模板需整体缩小约 {k} 倍，文字可能过小难以辨认':
     'Cell is only {size}; the template would shrink about {k}×, so text may become too small to read',
   '单格 {size} 远大于模板设计尺寸 {design}（约放大 {k} 倍），版面会明显松散失真':
@@ -1841,6 +1845,9 @@ export const en: Record<string, string> = {
   '{reason}；建议改用「{paper}」': '{reason}; "{paper}" is recommended instead',
   '已按纸型锁定排版': 'Layout locked to paper',
   '{paper}：{cols} 列 × {rows} 行，每页 {n} 枚（{w} × {h} mm）': '{paper}: {cols} columns × {rows} rows, {n} per page ({w} × {h} mm)',
+  '{paper}：{cols} 列 × {rows} 行，每页 {n} 枚（{w} × {h} mm）{feed}': '{paper}: {cols} columns × {rows} rows, {n} per page ({w} × {h} mm){feed}',
+  '（横向进纸）': ' (landscape feed)',
+  '当前按横向进纸排版（纸型旋转 90°），打印时请横放该纸型': 'Layout uses landscape feed (paper rotated 90°); feed the sheet sideways when printing',
   '没有匹配「{query}」的字体': 'No fonts match "{query}"',
   '生成二维码失败': 'Failed to generate QR code',
   '请改用「复制分享链接」': 'Use "Copy share link" instead',

@@ -9,7 +9,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { defaultTemplates } from '@/data/defaultTemplates'
 import { labelPapers } from '@/data/labelPapers'
-import { applyLabelPaper } from '@/utils/labelPaper'
+import { applyLabelPaper, matchLabelPaper } from '@/utils/labelPaper'
 import { evaluatePaperFit } from '@/utils/paperFit'
 
 const templateById = (id: string) => {
@@ -31,19 +31,20 @@ describe('workspace 切换模板纸型沿用门槛', () => {
     setActivePinia(createPinia())
   })
 
-  it('适配度勉强/不适配的纸型不跨模板沿用（badge 的 A4 4格 → weddingPlace）', () => {
+  it('适配度勉强/不适配的纸型不跨模板沿用（badge 的 A4 4格 → examDoor 整页模板）', () => {
     const workspace = useWorkspaceStore()
     const paper = paperBySlug('a4-4up')
     workspace.selectTemplate(templateById('badge'), { silent: true })
     applyLabelPaper(workspace.template, paper)
 
-    const wedding = templateById('weddingPlace')
-    const fit = evaluatePaperFit(wedding, paper)
+    // 整页门贴与多格纸型两个进纸方向都不兼容，沿用门槛应恢复默认排版
+    const door = templateById('examDoor')
+    const fit = evaluatePaperFit(door, paper)
     expect(['marginal', 'incompatible']).toContain(fit.level)
 
-    workspace.selectTemplate(wedding, { silent: true })
-    expect(workspace.template.label.width).toBe(wedding.label.width)
-    expect(workspace.template.label.height).toBe(wedding.label.height)
+    workspace.selectTemplate(door, { silent: true })
+    expect(workspace.template.label.width).toBe(door.label.width)
+    expect(workspace.template.label.height).toBe(door.label.height)
   })
 
   it('适配度可用以上的纸型继续沿用，免去重选', () => {
@@ -59,7 +60,9 @@ describe('workspace 切换模板纸型沿用门槛', () => {
     expect(compatible).toBeTruthy()
 
     workspace.selectTemplate(compatible!, { silent: true })
-    expect(workspace.template.label.width).toBe(paper.labelWidth)
-    expect(workspace.template.label.height).toBe(paper.labelHeight)
+    // 沿用后几何与该纸型一致（竖放或横向进纸均可被 matchLabelPaper 反查）
+    expect(matchLabelPaper(workspace.template.page, workspace.template.label)?.slug).toBe(
+      'a4-4up',
+    )
   })
 })

@@ -6,7 +6,9 @@ import ChineseOnlyNotice from '@/components/ChineseOnlyNotice.vue'
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 import { defaultTemplates } from '@/data/defaultTemplates'
+import { findLabelPaper } from '@/data/labelPapers'
 import { findTemplateDetail, TEMPLATE_STEPS, templateDetails } from '@/data/templateDetails'
+import { FIT_LEVEL_LABELS, rankPapersForTemplate } from '@/utils/paperFit'
 import { paperName } from '@/utils/paperName'
 
 const route = useRoute()
@@ -21,6 +23,21 @@ const paperText = computed(() => {
   const size = `${page.paperWidth} × ${page.paperHeight} mm`
   const name = paperName(page)
   return name === size ? size : `${name} · ${size}`
+})
+
+/** 适配纸型：专用纸型置顶，其余按适配度取推荐/可用档（去重、最多 3 款） */
+const fitPapers = computed(() => {
+  const tpl = template.value
+  if (!tpl) return { dedicated: null, ranked: [] as ReturnType<typeof rankPapersForTemplate> }
+  const dedicated = tpl.designedForPaper ? (findLabelPaper(tpl.designedForPaper) ?? null) : null
+  const ranked = rankPapersForTemplate(tpl)
+    .filter(
+      (r) =>
+        (r.fit.level === 'recommended' || r.fit.level === 'usable') &&
+        r.spec.slug !== dedicated?.slug,
+    )
+    .slice(0, dedicated ? 2 : 3)
+  return { dedicated, ranked }
 })
 
 /** 同类推荐：模板库里除自己外取 3 款 */
@@ -159,6 +176,80 @@ const others = computed(() => {
         更多打印技巧见<RouterLink to="/guides" class="font-semibold text-brand-600 hover:underline">教程中心</RouterLink>，
         如<RouterLink to="/guides/label-print-troubleshooting" class="font-semibold text-brand-600 hover:underline">打印常见问题排查</RouterLink>。
       </p>
+    </section>
+
+    <!-- 适配纸型 -->
+    <section
+      v-if="fitPapers.dedicated || fitPapers.ranked.length"
+      class="mt-10"
+    >
+      <h2 class="text-xl font-bold tracking-tight text-slate-900">适配不干胶纸型</h2>
+      <p class="mt-1.5 text-sm text-slate-600">
+        手上有成品不干胶标签纸？以下纸型与本模板尺寸匹配，选用后打印即对版。
+      </p>
+      <div class="mt-4 grid gap-3 sm:grid-cols-3">
+        <div
+          v-if="fitPapers.dedicated"
+          class="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3.5"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <RouterLink
+              :to="`/papers/${fitPapers.dedicated.slug}`"
+              class="truncate text-sm font-bold text-slate-900 hover:text-brand-600"
+            >
+              {{ fitPapers.dedicated.name }}
+            </RouterLink>
+            <span class="shrink-0 rounded bg-emerald-100 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700">
+              专用
+            </span>
+          </div>
+          <p class="mt-1 text-xs text-slate-600">
+            {{ fitPapers.dedicated.labelWidth }} × {{ fitPapers.dedicated.labelHeight }} mm ·
+            每页 {{ fitPapers.dedicated.cols * fitPapers.dedicated.rows }} 枚 ·
+            本模板按此纸型设计
+          </p>
+          <RouterLink
+            :to="`/studio?template=${detail!.slug}&paper=${fitPapers.dedicated.slug}`"
+            class="btn btn-secondary btn-sm mt-2.5 w-full"
+          >
+            配此纸型使用
+          </RouterLink>
+        </div>
+        <div
+          v-for="r in fitPapers.ranked"
+          :key="r.spec.slug"
+          class="rounded-lg border border-slate-200 bg-white p-3.5"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <RouterLink
+              :to="`/papers/${r.spec.slug}`"
+              class="truncate text-sm font-bold text-slate-900 hover:text-brand-600"
+            >
+              {{ r.spec.name }}
+            </RouterLink>
+            <span
+              class="shrink-0 rounded px-1.5 py-0.5 text-[11px] font-bold"
+              :class="
+                r.fit.level === 'recommended'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-slate-100 text-slate-600'
+              "
+            >
+              {{ r.fit.level === 'recommended' ? FIT_LEVEL_LABELS.recommended : FIT_LEVEL_LABELS.usable }}
+            </span>
+          </div>
+          <p class="mt-1 text-xs text-slate-600">
+            {{ r.spec.labelWidth }} × {{ r.spec.labelHeight }} mm ·
+            每页 {{ r.spec.cols * r.spec.rows }} 枚
+          </p>
+          <RouterLink
+            :to="`/studio?template=${detail!.slug}&paper=${r.spec.slug}`"
+            class="btn btn-ghost btn-sm mt-2.5 w-full"
+          >
+            配此纸型使用
+          </RouterLink>
+        </div>
+      </div>
     </section>
 
     <!-- 常见问题 -->

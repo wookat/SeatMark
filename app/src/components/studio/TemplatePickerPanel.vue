@@ -52,6 +52,11 @@ function fitOf(t: LabelTemplate): PaperFit | null {
   return currentPaper.value ? evaluatePaperFit(t, currentPaper.value) : null
 }
 
+/** 纸型专用模板：designedForPaper 指向当前已锁定纸型（几何与模切一致，天然满分配适） */
+function isDedicated(t: LabelTemplate): boolean {
+  return !!currentPaper.value && t.designedForPaper === currentPaper.value.slug
+}
+
 /** 已选纸型时按适配度降序（同分保持原顺序），未选纸型时保持原顺序 */
 function sortByFit(list: LabelTemplate[]): LabelTemplate[] {
   const paper = currentPaper.value
@@ -413,7 +418,13 @@ function confirmDelete() {
               </h3>
               <span class="flex shrink-0 gap-1">
                 <span
-                  v-if="fitOf(t)?.level === 'recommended'"
+                  v-if="isDedicated(t)"
+                  class="rounded bg-brand-100 px-1.5 py-0.5 text-[11px] font-bold text-brand-700"
+                >
+                  {{ tr('专用') }}
+                </span>
+                <span
+                  v-else-if="fitOf(t)?.level === 'recommended'"
                   class="rounded bg-emerald-100 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700"
                 >
                   {{ tr('适配') }}
@@ -674,7 +685,13 @@ function confirmDelete() {
             </h3>
             <span class="flex shrink-0 gap-1">
               <span
-                v-if="fitOf(t)?.level === 'recommended'"
+                v-if="isDedicated(t)"
+                class="rounded bg-brand-100 px-1.5 py-0.5 text-[11px] font-bold text-brand-700"
+              >
+                {{ tr('专用') }}
+              </span>
+              <span
+                v-else-if="fitOf(t)?.level === 'recommended'"
                 class="rounded bg-emerald-100 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700"
               >
                 {{ tr('适配') }}

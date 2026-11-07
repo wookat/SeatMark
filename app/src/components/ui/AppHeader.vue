@@ -88,13 +88,13 @@ const drawerRef = ref<HTMLElement | null>(null)
 const DRAWER_LINKS = computed(() => [
   { to: '/', name: 'home', label: t('首页') },
   { to: '/templates', name: 'templates', label: t('模板') },
+  { to: '/papers', name: 'papers', label: t('不干胶纸型库') },
   { to: '/seating', name: 'seating', label: t('教室座位表') },
   { to: '/banquet', name: 'banquet', label: t('宴会排桌') },
   { to: '/guides', name: 'guides', label: t('教程') },
   { to: '/pricing', name: 'pricing', label: t('定价') },
   { to: '/about', name: 'about', label: t('关于') },
   { to: '/vs', name: 'vs-index', label: t('工具对比选型') },
-  { to: '/papers', name: 'papers', label: t('不干胶纸型库') },
 ])
 
 function onDocClick(event: MouseEvent) {
@@ -196,6 +196,16 @@ async function onLogout() {
           }"
         >
           {{ t('模板') }}
+        </RouterLink>
+        <RouterLink
+          :to="localePath('/papers')"
+          class="btn btn-ghost btn-sm hidden md:inline-flex"
+          :class="{
+            'bg-slate-100 text-brand-600':
+              routeName === 'papers' || routeName === 'paper-detail',
+          }"
+        >
+          {{ t('纸型') }}
         </RouterLink>
         <div
           ref="seatingRef"

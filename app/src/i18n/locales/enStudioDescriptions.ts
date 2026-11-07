@@ -440,4 +440,169 @@ export const enTemplateDescriptions: Record<string, string> = {
     '90×55 mm place card with line-drawn olive foliage around the name. Fresh and elegant for outdoor weddings.',
   '70×45 mm 铭牌，叶脉角饰 + 学名俗名双行与养护要点，植物园研学与阳台花园都好用。':
     '70×45 mm nameplate with leaf-vein corners, scientific and common names and care tips for gardens and field trips.',
+  // 纸型专用模板系列
+  '210×297 mm 整版背胶，大标题配多行正文与落款，适合公告栏、教室门与电梯间告示。':
+    '210×297 mm full-sheet adhesive with a large title, multi-line body and footer. For notice boards, classroom doors and elevator notices.',
+  '210×297 mm 整版背胶，考场号超大字 + 科目时间 + 考生须知，撕下即贴考场门口。':
+    '210×297 mm full-sheet adhesive with an oversized room number, subject time and exam notes. Peel and stick on the exam room door.',
+  '297×420 mm A3 整版背胶，大标题配分栏正文与落款，适合大厅公示栏与活动背景板。':
+    '297×420 mm A3 full-sheet adhesive with a large title, sectioned body and footer. For lobby boards and event backdrops.',
+  '148×210 mm A5 整版背胶，标题、短正文与落款齐全，适合设备旁、前台与小型公告位。':
+    '148×210 mm A5 full-sheet adhesive with title, short body and footer. For equipment, front desks and small notice spots.',
+  '210×148.5 mm 对开大格，区域名超大字 + 说明行，贴会场入口、分会场门与签到桌。':
+    '210×148.5 mm half-sheet cell with an oversized zone name and a note line. For venue entrances, breakout room doors and check-in tables.',
+  '105×148.5 mm 四分格，班级名大字配班主任与口号，贴教室前门或活动室门口。':
+    '105×148.5 mm quarter cell with a large class name, homeroom teacher and motto. For classroom and activity room doors.',
+  '192×54 mm 横条格，类目名大字配编号，贴货架层板、库房分区与展柜。':
+    '192×54 mm strip cell with a large category name and code. For shelf edges, warehouse zones and display cases.',
+  '210×48 mm 宽横条，名称居左 + 编号居右，贴抽屉面板、层板前沿与文件架。':
+    '210×48 mm wide strip with the name on the left and code on the right. For drawer fronts, shelf edges and file racks.',
+  '40×120 mm 竖条格，类目 / 年度 / 编号自上而下排列，贴档案盒与文件夹脊背。':
+    '40×120 mm vertical strip with category, year and code stacked top-down. For archive box and binder spines.',
+  '105×99 mm 六分格，物品名大字 + 类别与编号，贴储物箱、玩具筐与库房周转箱。':
+    '105×99 mm 6-up cell with a large item name plus category and code. For storage boxes, toy bins and warehouse crates.',
+  '105×74.25 mm 八分格，座位号反白超大字 + 姓名与考场，贴课桌角一眼可辨。':
+    '105×74.25 mm 8-up cell with a reversed oversized seat number plus name and room. Instantly readable on desk corners.',
+  '99.1×67.7 mm 圆角八格，物品名大字 + 归属班级与数量，贴教具箱、图书角与运动器材。':
+    '99.1×67.7 mm rounded 8-up with a large item name plus owner class and quantity. For teaching-aid boxes, book corners and sports gear.',
+  '90×72 mm 圆角八格，品名、规格、生产日期与售价分区排布，适合手工产品与散装商品贴。':
+    '90×72 mm rounded 8-up with product name, spec, production date and price. For handmade and bulk goods.',
+  '105×59.4 mm 十分格，品名 + 大字售价 + 规格单位，贴货架、展柜与市集摊位。':
+    '105×59.4 mm 10-up with product name, a large price and unit spec. For shelves, display cases and market stalls.',
+  '99.1×57.7 mm 圆角十格，姓名大字配单位职务，作签到贴纸名牌或席位平卡。':
+    '99.1×57.7 mm rounded 10-up with a large name plus org and title. Works as a check-in sticker badge or flat place card.',
+  '105×49.5 mm 十二格，类别、年度、编号三段式，贴文件盒侧面与资料袋。':
+    '105×49.5 mm 12-up with category, year and code in three sections. For file box sides and document pouches.',
+  '70×67.7 mm 方格，物品名居中大字配归属班级，贴学具筐、美工区与图书角。':
+    '70×67.7 mm square cell with a centered item name and owner class. For supply bins, craft corners and book corners.',
+  '96.5×42.3 mm 窄格，分类号 + 书名 + 架位，贴班级图书角与资料室书脊底。':
+    '96.5×42.3 mm narrow cell with call number, book title and shelf slot. For class book corners and archive spine bases.',
+  '99.1×38.1 mm 圆角横贴，姓名大字 + 班级，贴课本封面、水杯与储物柜。':
+    '99.1×38.1 mm rounded strip with a large name and class. For textbook covers, bottles and lockers.',
+  '99.1×33.8 mm 圆角十六格，左侧色块 + 姓名与班级，贴文具盒与幼儿物品。':
+    '99.1×33.8 mm rounded 16-up with a left color block plus name and class. For pencil cases and kids’ belongings.',
+  '63.5×46.6 mm 圆角格，品名、开封日期与备注，贴调料瓶罐与自制食品。':
+    '63.5×46.6 mm rounded cell with product name, opened-on date and note. For spice jars and homemade food.',
+  '70×42.4 mm 二十一格，姓名大字 + 学号与班级，开学贴课桌与储物柜。':
+    '70×42.4 mm 21-up with a large name plus student ID and class. Stick on desks and lockers at term start.',
+  '63.5×38.1 mm 圆角二十一格，座号反白 + 姓名考场，标准考试密排桌贴。':
+    '63.5×38.1 mm rounded 21-up with reversed seat number plus name and room. Dense standard exam desk labels.',
+  '96×25.5 mm 圆角窄格，品名 + 制作日期一行排开，贴烘焙包装与果酱瓶。':
+    '96×25.5 mm rounded narrow cell with product name and made-on date in one row. For bakery packaging and jam jars.',
+  '63.5×33.9 mm 圆角二十四格，粉彩底纹衬托姓名班级，贴水杯、蜡笔盒与书包牌。':
+    '63.5×33.9 mm rounded 24-up with a pastel background plus name and class. For bottles, crayon boxes and bag tags.',
+  '52.5×29.7 mm 四十格，姓名 + 班级两行，贴文具、餐具与幼儿日用品。':
+    '52.5×29.7 mm 40-up with name and class on two lines. For stationery, tableware and kids’ daily items.',
+  '70×29.7 mm 三十格，姓名 + 班级两行紧凑排版，贴铅笔盒、尺子与课本角。':
+    '70×29.7 mm 30-up with name and class in two compact lines. For pencil cases, rulers and textbook corners.',
+  '48.5×25.4 mm 圆角小贴，纯姓名大字，贴铅笔、橡皮与小件文具。':
+    '48.5×25.4 mm rounded mini sticker with just the name in large type. For pencils, erasers and small stationery.',
+  '45.7×21.2 mm 圆角密排小贴，纯姓名一行，适合铅笔杆、蜡笔与细窄物品。':
+    '45.7×21.2 mm rounded dense sticker with a single-line name. For pencil barrels, crayons and narrow items.',
+  '52.5×21.2 mm 五十六格密排，编号大字配类别小字，贴设备、图书与资产卡片。':
+    '52.5×21.2 mm dense 56-up with a large code and small category. For equipment, books and asset cards.',
+  '38.1×21.2 mm 圆角小贴，纯姓名紧凑排版，适合防水款贴水杯与餐具。':
+    '38.1×21.2 mm rounded sticker with a compact name. Works well on waterproof stock for bottles and tableware.',
+  'Φ60 mm 圆贴，「手工制作 · 谢谢品尝」环绕品名，封烘焙袋、果酱瓶与伴手礼。':
+    '60 mm round sticker with "HANDMADE · ENJOY" around the product name. Seals bakery bags, jam jars and gifts.',
+  'Φ60 mm 圆贴，品名居中 + 制作日期与保质期，贴罐盖、餐盒与分装瓶。':
+    '60 mm round sticker with the product name centered plus made-on and best-before dates. For jar lids, meal boxes and refill bottles.',
+  'Φ119 mm 大圆贴，囍字居中 + 新人名与日期，贴喜糖盒、伴手礼与回礼包。':
+    '119 mm large round sticker with a centered double-happiness mark plus the couple’s names and date. For favor boxes and gift bags.',
+  '215.9×127 mm 对折卡，下幅姓名大字 + 单位职务，上幅镜像印刷，对折后双面可读。':
+    '215.9×127 mm fold-over card: large name plus org and title on the lower half, mirrored upper half, readable both sides when folded.',
+  '88.9×101.6 mm 对折小卡，下幅姓名 + 桌号，上幅镜像，每页四枚婚宴席卡。':
+    '88.9×101.6 mm small fold-over card: name and table on the lower half, mirrored upper half, four wedding place cards per page.',
+  '177.8×279.4 mm 竖折卡，沿纵向中线对折后成 279.4 mm 长条桌牌，姓名沿长边大字、双面可读。':
+    '177.8×279.4 mm side-fold card: fold along the vertical center into a 279.4 mm long tent; name runs large along the edge, readable both sides.',
+  '66.68×25.4 mm 三十格，收件人 + 地址 + 电话三行，贴信封、包裹与回邮。':
+    '66.68×25.4 mm 30-up with recipient, address and phone on three lines. For envelopes, parcels and return mail.',
+  '101.6×50.8 mm 十格，收件人信息区 + 寄件人小字，贴包裹与外箱。':
+    '101.6×50.8 mm 10-up with a recipient block and small sender line. For parcels and outer boxes.',
+  '101.6×84.67 mm 六格大贴，物品名 + 类别 + 日期与备注，贴周转箱与搬家纸箱。':
+    '101.6×84.67 mm large 6-up with item name, category, date and note. For crates and moving boxes.',
+  '85.72×59.27 mm 八格，顶部色带 + 姓名大字 + 单位职务，作会议签到贴纸名牌。':
+    '85.72×59.27 mm 8-up with a top color band, large name plus org and title. Serves as a check-in sticker badge at meetings.',
+  '297×210 mm 横向进纸整版背胶，宽幅标题与多行正文，适合走廊公告栏与横贴门幅。':
+    '297×210 mm landscape-fed full sheet: wide title plus multi-line body, for corridor boards and horizontal door banners.',
+  '420×297 mm 横向进纸 A3 整版，超大标题横贯版面，适合大厅公示栏与活动横幅背贴。':
+    '420×297 mm landscape-fed A3 sheet: oversized title spanning the page, for lobby boards and event banners.',
+  '210×148 mm 横向进纸 A5 整版，横幅小告示贴前台、收银台与设备旁。':
+    '210×148 mm landscape-fed A5 sheet: banner-style notice for counters, checkouts and equipment.',
+  '148.5×210 mm 竖向大格（横向进纸），区域名竖排大字 + 动线指引，贴门柱与墙面。':
+    '148.5×210 mm portrait cell (landscape feed): large zone name plus direction guide, for pillars and walls.',
+  '148.5×105 mm 横向大格（横向进纸），班名大字横贯门牌，贴教室门与功能室。':
+    '148.5×105 mm landscape cell (landscape feed): class name across the sign, for classroom and function-room doors.',
+  '54×192 mm 竖长条（横向进纸），竖排四字标语，贴走廊立柱、书架侧与门柱。':
+    '54×192 mm vertical strip (landscape feed): stacked four-character slogan for corridor pillars and door posts.',
+  '48×210 mm 竖长条（横向进纸），竖排类目名，贴书架侧面与文件柜立柱。':
+    '48×210 mm vertical strip (landscape feed): stacked category name for shelf sides and cabinet posts.',
+  '120×40 mm 横短条（横向进纸），档案题名 + 年度编号，贴档案盒正面。':
+    '120×40 mm horizontal strip (landscape feed): archive title plus year and code, for file box fronts.',
+  '99×105 mm 竖向大格（横向进纸），物品名置顶大字，类别日期备注依次排列。':
+    '99×105 mm portrait cell (landscape feed): large item name on top, category, date and note stacked below.',
+  '74.25×105 mm 竖向单格（横向进纸），座位号反白置顶 + 姓名考场竖排，贴课桌中央。':
+    '74.25×105 mm portrait cell (landscape feed): reversed seat number on top, name and room below, for desk centers.',
+  '67.7×99.1 mm 竖向圆角格（横向进纸），物品名置顶，班级与数量在下，贴教具柜与器材袋。':
+    '67.7×99.1 mm portrait rounded cell (landscape feed): item name on top, class and qty below, for cabinets and gear bags.',
+  '72×90 mm 竖向格（横向进纸），品名、规格、产地与价格纵向排布，贴包装与样品袋。':
+    '72×90 mm portrait cell (landscape feed): name, spec, origin and price stacked, for pouches and sample bags.',
+  '59.4×105 mm 竖长价签（横向进纸），品名置顶、价格居中超大字，作吊牌与展架竖签。':
+    '59.4×105 mm tall price tag (landscape feed): name on top, oversized price centered; hang tags and stand signs.',
+  '57.7×99.1 mm 竖向圆角格（横向进纸），姓名居中大字，单位桌次在下，作立式席位签。':
+    '57.7×99.1 mm portrait rounded cell (landscape feed): large centered name, org and table below; standing place card.',
+  '49.5×105 mm 竖向格（横向进纸），类别题名 + 年度与编号，贴文件盒窄面与抽屉。':
+    '49.5×105 mm portrait cell (landscape feed): category title plus year and code, for file box narrow sides.',
+  '42.3×96.5 mm 竖窄格（横向进纸），书名竖向排布 + 著者分类号，贴图书封底。':
+    '42.3×96.5 mm narrow portrait cell (landscape feed): book title stacked plus author and call number, for back covers.',
+  '38.1×99.1 mm 竖长格（横向进纸），姓名竖排居中，班级园名在底，贴水壶与储物柜侧面。':
+    '38.1×99.1 mm tall cell (landscape feed): vertical name centered, class and school at bottom, for bottles and lockers.',
+  '33.8×99.1 mm 竖长格（横向进纸），姓名竖排醒目，贴幼儿书包侧袋与水杯。':
+    '33.8×99.1 mm tall cell (landscape feed): bold vertical name, for backpack pockets and cups.',
+  '46.6×63.5 mm 竖向格（横向进纸），品名置顶、开封与保质日期在下，贴调料瓶窄面。':
+    '46.6×63.5 mm portrait cell (landscape feed): name on top, opened and best-before dates below, for spice jars.',
+  '42.4×70 mm 竖向格（横向进纸），姓名竖排居中 + 班级在底，贴课桌侧边与文具盒。':
+    '42.4×70 mm portrait cell (landscape feed): vertical name centered, class at bottom, for desk sides and pencil boxes.',
+  '38.1×63.5 mm 竖向圆角格（横向进纸），座位号色块置顶 + 姓名竖排，贴课桌角。':
+    '38.1×63.5 mm portrait rounded cell (landscape feed): seat number band on top, vertical name, for desk corners.',
+  '25.5×96 mm 竖长条（横向进纸），品名与开封日期竖向排列，贴瓶身侧面与酱料罐。':
+    '25.5×96 mm tall strip (landscape feed): product name and open date stacked, for bottle sides and jam jars.',
+  '33.9×63.5 mm 竖向圆角格（横向进纸），姓名竖排 + 班级在底，贴课本侧边与笔袋。':
+    '33.9×63.5 mm portrait rounded cell (landscape feed): vertical name plus class, for book edges and pencil cases.',
+  '29.7×70 mm 竖长格（横向进纸），姓名竖排 + 班级一行，贴水杯、蜡笔盒与小物件。':
+    '29.7×70 mm tall cell (landscape feed): vertical name plus class line, for cups, crayon boxes and small items.',
+  '29.7×52.5 mm 竖向小格（横向进纸），姓名竖排简短醒目，贴铅笔盒与学具侧面。':
+    '29.7×52.5 mm small portrait cell (landscape feed): short vertical name, for pencil boxes and school supplies.',
+  '25.4×48.5 mm 竖向迷你格（横向进纸），姓名竖排贴橡皮、尺子与小文具。':
+    '25.4×48.5 mm mini portrait cell (landscape feed): vertical name for erasers, rulers and small stationery.',
+  '21.2×45.7 mm 竖向细格（横向进纸），姓名竖排贴铅笔杆、水彩笔与细文具。':
+    '21.2×45.7 mm slim portrait cell (landscape feed): vertical name for pencils, markers and thin supplies.',
+  '21.2×52.5 mm 竖向细格（横向进纸），编号竖排贴设备侧面与档案盒背脊。':
+    '21.2×52.5 mm slim portrait cell (landscape feed): vertical serial for equipment sides and box spines.',
+  '21.2×38.1 mm 竖向迷你格（横向进纸），姓名竖排贴铅笔、橡皮与餐具柄。':
+    '21.2×38.1 mm mini portrait cell (landscape feed): vertical name for pencils, erasers and cutlery handles.',
+  '25.4×66.68 mm 竖长格（横向进纸），收件人或卷宗题名竖排，贴文件夹侧边。':
+    '25.4×66.68 mm tall cell (landscape feed): vertical title or recipient, for folder spines.',
+  '50.8×101.6 mm 竖向格（横向进纸），收件人姓名 + 地址电话竖排，贴包裹窄边。':
+    '50.8×101.6 mm portrait cell (landscape feed): recipient, address and phone stacked, for parcel edges.',
+  '84.67×101.6 mm 竖向大格（横向进纸），物品名置顶，类别日期备注依次排列。':
+    '84.67×101.6 mm portrait cell (landscape feed): item name on top, category, date and note below.',
+  '59.27×85.72 mm 竖向格（横向进纸），姓名居中大字 + 单位职务，作立式签到名牌。':
+    '59.27×85.72 mm portrait cell (landscape feed): large centered name plus org and title; standing badge.',
+  '70×42.4 mm 二一格，左侧学号色块 + 姓名班级并列，贴课桌与作业本。':
+    '70×42.4 mm 21-up: student-number color block beside name and class, for desks and exercise books.',
+  '105×74.25 mm 八分格，单位眉题 + 姓名大字 + 职务，作培训与会议桌面立牌。':
+    '105×74.25 mm 8-up: org eyebrow, large name and title; training and meeting table cards.',
+  '63.5×33.9 mm 圆角格，班级色条在左、姓名班级右排，贴课本封面与作业本。':
+    '63.5×33.9 mm rounded cell: class color band on the left, name and class on the right; for book covers.',
+  '70×29.7 mm 三十格，姓名靠左 + 学号靠右 + 班级在下，贴文具盒与学具袋。':
+    '70×29.7 mm 30-up: name left, student number right, class below; for supply pouches.',
+  '66.68×25.4 mm 三十格，收件人 + 地址 + 电话三行紧凑排，贴信封与包裹。':
+    '66.68×25.4 mm 30-up: recipient, address and phone on three compact lines, for envelopes and parcels.',
+  '105×99 mm 六格，分区名超大字 + 规则一句话，贴图书角与教具柜格口。':
+    '105×99 mm 6-up: oversized zone name plus a one-line rule, for book-corner cubbies.',
+  '105×59.4 mm 十格，姓名大字 + 桌次身份，平放于婚宴与宴会席位。':
+    '105×59.4 mm 10-up: large name plus table and role; flat place cards for weddings and banquets.',
+  '63.5×46.6 mm 圆角格，开封日期大字 + 限用期限，贴护肤品、药品与食品罐。':
+    '63.5×46.6 mm rounded cell: bold open date plus use-by period, for skincare, medicine and food jars.',
 }

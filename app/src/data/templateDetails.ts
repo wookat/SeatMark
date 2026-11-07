@@ -6,6 +6,7 @@
 import { templateDetailsRound2 } from './templateDetailsRound2'
 import { templateDetailsRound3 } from './templateDetailsRound3'
 import { templateDetailsRound4 } from './templateDetailsRound4'
+import { paperSeriesDetails } from './templateDetailsPaperSeries'
 
 export interface TemplateDetail {
   /** 与 defaultTemplates 中的模板 id 一致 */
@@ -1002,6 +1003,7 @@ export const templateDetails: TemplateDetail[] = [
   ...templateDetailsRound2,
   ...templateDetailsRound3,
   ...templateDetailsRound4,
+  ...paperSeriesDetails,
 ]
 
 export function findTemplateDetail(slug: string): TemplateDetail | undefined {

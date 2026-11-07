@@ -10,7 +10,12 @@ import {
   isPaperCompatible,
   labelPaperGeometry,
   matchLabelPaper,
+  matchLabelPaperEx,
+  paperLabelForTemplate,
+  paperOrientationOf,
+  paperPageForTemplate,
   releaseLabelPaper,
+  rotatedPaperSpec,
 } from '@/utils/labelPaper'
 import { cloneTemplate, labelsPerPage, layoutOverflow } from '@/utils/layout'
 
@@ -72,12 +77,13 @@ describe('纸型库几何计算', () => {
       if (!isPaperCompatible(base, spec)) continue
       const template = cloneTemplate(base)
       applyLabelPaper(template, spec)
+      // 应用后单格可能是横向进纸尺寸（竖版设计会旋转 90°），断言以实际单格为准
       for (const field of template.fields) {
         expect(field.x + field.width, `${spec.slug} ${field.id} 横向`).toBeLessThanOrEqual(
-          spec.labelWidth + 0.5,
+          template.label.width + 0.5,
         )
         expect(field.y + field.height, `${spec.slug} ${field.id} 纵向`).toBeLessThanOrEqual(
-          spec.labelHeight + 0.5,
+          template.label.height + 0.5,
         )
       }
     }
@@ -154,5 +160,78 @@ describe('纸型库几何计算', () => {
         expect(slugs.has(id), `${spec.slug} -> ${id}`).toBe(true)
       }
     }
+  })
+
+  it('designedForPaper 专用模板：几何与该纸型完全一致且可反查', () => {
+    const dedicated = defaultTemplates.filter((t) => t.designedForPaper)
+    expect(dedicated.length).toBeGreaterThan(0)
+    const specBySlug = new Map(labelPapers.map((p) => [p.slug, p]))
+    for (const template of dedicated) {
+      const spec = specBySlug.get(template.designedForPaper!)
+      expect(spec, `${template.id} -> ${template.designedForPaper}`).toBeDefined()
+      // 模板几何即纸型几何（竖放或横向进纸两向之一）：尺寸、行列、间距、边距一致
+      const orientation = paperOrientationOf(template.page, template.label, spec!)
+      expect(orientation, `${template.id} 应对齐 ${spec!.slug} 的竖放或横放几何`).not.toBeNull()
+      const target = orientation === 'rotated' ? rotatedPaperSpec(spec!)! : spec!
+      expect(template.label.width, template.id).toBeCloseTo(target.labelWidth, 2)
+      expect(template.label.height, template.id).toBeCloseTo(target.labelHeight, 2)
+      expect(template.page.cols, template.id).toBe(target.cols)
+      expect(template.page.rows, template.id).toBe(target.rows)
+      // 可被 matchLabelPaper 反查出同一纸型（0.15mm 容差内唯一命中）
+      expect(matchLabelPaper(template.page, template.label)?.slug, template.id).toBe(spec!.slug)
+      // 专用模板与自己设计的纸型天然兼容（含对开/半页这类占版比 ≥ 0.5 的场景）
+      expect(isPaperCompatible(template, spec!), template.id).toBe(true)
+    }
+  })
+
+  it('rotatedPaperSpec：行列/单格/间距/纸面/边距整体旋转，对折纸型不旋转', () => {
+    const spec = labelPapers.find((p) => p.slug === 'a4-8up')!
+    const rotated = rotatedPaperSpec(spec)!
+    expect(rotated.cols).toBe(spec.rows)
+    expect(rotated.rows).toBe(spec.cols)
+    expect(rotated.labelWidth).toBe(spec.labelHeight)
+    expect(rotated.labelHeight).toBe(spec.labelWidth)
+    const sheet = sheetOf(rotated)
+    expect(sheet.width).toBe(297)
+    expect(sheet.height).toBe(210)
+    // 旋转规格仍能推导合法整页几何
+    const geo = labelPaperGeometry(rotated)
+    expect(geo.perPage).toBe(spec.cols * spec.rows)
+    // 对折纸型旋转后折线语义改变，不提供旋转规格
+    for (const fold of labelPapers.filter((p) => p.fold)) {
+      expect(rotatedPaperSpec(fold), fold.slug).toBeNull()
+    }
+  })
+
+  it('横向进纸排版可被 matchLabelPaperEx 识别为同一纸型', () => {
+    const spec = labelPapers.find((p) => p.slug === 'a4-8up')!
+    const page = paperPageForTemplate(spec, true)
+    const label = paperLabelForTemplate(spec, true)
+    const match = matchLabelPaperEx(page, label)
+    expect(match?.spec.slug).toBe('a4-8up')
+    expect(match?.orientation).toBe('rotated')
+    // 竖版格专用模板与其纸型兼容（横放页面尺寸 297×210 的整版类也兼容）
+    const full = labelPapers.find((p) => p.slug === 'a4-1up')!
+    const fullPage = paperPageForTemplate(full, true)
+    const fullLabel = paperLabelForTemplate(full, true)
+    expect(matchLabelPaperEx(fullPage, fullLabel)?.orientation).toBe('rotated')
+  })
+
+  it('applyLabelPaper 按模板单格方向自动选择进纸方向', () => {
+    const spec = labelPapers.find((p) => p.slug === 'a4-8up')!
+    // 横版格设计（105×74.25）→ 保持竖放
+    const wide = structuredClone(defaultTemplates.find((t) => t.id === 'ppExamDesk8')!)
+    applyLabelPaper(wide, spec)
+    expect(wide.page.paperWidth).toBe(210)
+    expect(wide.page.cols).toBe(2)
+    // 竖版格设计（74.25×105）→ 自动横向进纸
+    const tall = structuredClone(defaultTemplates.find((t) => t.id === 'ppExamDesk8H')!)
+    applyLabelPaper(tall, spec)
+    expect(tall.page.paperWidth).toBe(297)
+    expect(tall.page.paperHeight).toBe(210)
+    expect(tall.page.cols).toBe(4)
+    expect(tall.page.rows).toBe(2)
+    expect(tall.label.width).toBeCloseTo(74.25, 2)
+    expect(tall.label.height).toBeCloseTo(105, 2)
   })
 })

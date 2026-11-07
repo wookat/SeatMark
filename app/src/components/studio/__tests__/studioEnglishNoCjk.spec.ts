@@ -92,7 +92,11 @@ describe('en 工坊：模板选择器与字段映射面板不含 CJK', () => {
     expect([...new Set(offenders)]).toEqual([])
   })
 
-  it('模板缩略图（LabelCard sample-mode）在 en 下样例文字无 CJK（模板自带固定文字除外）', () => {
+  // 全量模板逐个 mount 渲染，模板数增长后并行环境下已贴近默认 5s 上限，放宽到 30s
+  it(
+    '模板缩略图（LabelCard sample-mode）在 en 下样例文字无 CJK（模板自带固定文字除外）',
+    { timeout: 30000 },
+    () => {
     const offenders: string[] = []
     for (const template of defaultTemplates) {
       const wrapper = mount(LabelCard, { props: { template, sampleMode: true } })
@@ -102,5 +106,6 @@ describe('en 工坊：模板选择器与字段映射面板不含 CJK', () => {
       wrapper.unmount()
     }
     expect([...new Set(offenders)]).toEqual([])
-  })
+    },
+  )
 })

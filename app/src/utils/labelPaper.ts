@@ -44,11 +44,84 @@ export function isFullPageTemplate(template: LabelTemplate): boolean {
   return paperArea > 0 && labelArea >= paperArea * 0.5
 }
 
-/** 模板与纸型是否兼容：整页/折叠模板只允许每页 1 枚的整版纸型，
- * 或带折线语义的对折纸型（每格自身是一整枚折叠卡，镜像字段在格内生效） */
+/**
+ * 同一SKU的旋转90°进纸等价规格：纸没有方向，
+ * 竖放是 rows×cols 的格阵，横过来就是 cols×rows、
+ * 单格宽高互换的另一种合法排版。边距按顺时针旋转映射
+ * （新上=旧左、新右=旧上、新下=旧右、新左=旧下），
+ * 对称居中纸型旋转后数值不变。
+ * 对折纸型旋转后折线方向语义改变（横折变竖折是另一种产品），返回 null。
+ */
+export function rotatedPaperSpec(spec: LabelPaperSpec): LabelPaperSpec | null {
+  if (spec.fold != null) return null
+  const sheet = sheetOf(spec)
+  const geo = labelPaperGeometry(spec)
+  const marginLeft = spec.marginLeft ?? geo.marginX
+  const marginRight = spec.marginRight ?? geo.marginX
+  const marginTop = spec.marginTop ?? geo.marginY
+  const marginBottom = spec.marginBottom ?? geo.marginY
+  return {
+    ...spec,
+    sheetWidth: sheet.height,
+    sheetHeight: sheet.width,
+    cols: spec.rows,
+    rows: spec.cols,
+    labelWidth: spec.labelHeight,
+    labelHeight: spec.labelWidth,
+    gapX: spec.gapY,
+    gapY: spec.gapX,
+    marginLeft: marginBottom,
+    marginTop: marginLeft,
+    marginRight: marginTop,
+    marginBottom: marginRight,
+  }
+}
+
+/** 当前页面/标签几何是否与指定纸型完全一致（0.15mm 容差） */
+function geometryMatchesSpec(
+  page: PageSpec,
+  label: { width: number; height: number },
+  spec: LabelPaperSpec,
+): boolean {
+  const eq = (a: number, b: number) => Math.abs(a - b) <= 0.15
+  const sheet = sheetOf(spec)
+  const geo = labelPaperGeometry(spec)
+  return (
+    eq(page.paperWidth, sheet.width) &&
+    eq(page.paperHeight, sheet.height) &&
+    page.cols === spec.cols &&
+    page.rows === spec.rows &&
+    eq(page.gapX, spec.gapX) &&
+    eq(page.gapY, spec.gapY) &&
+    eq(page.marginLeft, geo.marginX) &&
+    eq(page.marginTop, geo.marginY) &&
+    eq(label.width, spec.labelWidth) &&
+    eq(label.height, spec.labelHeight)
+  )
+}
+
+/** 纸型进纸方向：按规格书竖放 / 旋转 90° 横放 */
+export type PaperOrientation = 'normal' | 'rotated'
+
+/** 当前页面/标签几何与纸型匹配的进纸方向；两个方向都不匹配返回 null */
+export function paperOrientationOf(
+  page: PageSpec,
+  label: { width: number; height: number },
+  spec: LabelPaperSpec,
+): PaperOrientation | null {
+  if (geometryMatchesSpec(page, label, spec)) return 'normal'
+  const rotated = rotatedPaperSpec(spec)
+  if (rotated && geometryMatchesSpec(page, label, rotated)) return 'rotated'
+  return null
+}
+
+/** 模板与纸型是否兼容：整页/折叠模板只允许每页 1 枚的整版纸型、
+ * 带折线语义的对折纸型（每格自身是一整枚折叠卡，镜像字段在格内生效），
+ * 或与该纸型几何完全一致的模板（纸型专用模板按其模切格设计，天然兼容） */
 export function isPaperCompatible(template: LabelTemplate, spec: LabelPaperSpec): boolean {
   if (!isFullPageTemplate(template)) return true
-  return spec.cols * spec.rows === 1 || spec.fold != null
+  if (spec.cols * spec.rows === 1 || spec.fold != null) return true
+  return paperOrientationOf(template.page, template.label, spec) != null
 }
 
 /**
@@ -71,29 +144,49 @@ export function foldOffsets(spec: LabelPaperSpec): number[] {
 }
 
 /**
- * 应用纸型到模板：锁定纸张为 A4 纵向，行列数、标签尺寸、
- * 间距与边距全部按纸型几何设置；圆角规格同步标签圆角。
+ * 模板应使用的进纸方向规格：几何已匹配某方向时保持该方向；
+ * 否则按模板单格宽高比与两个方向单格的接近度自动选取
+ * （竖版设计配竖放格、横版设计配横放格），对折纸型恒为竖放。
+ */
+function preferredSpecFor(template: LabelTemplate, spec: LabelPaperSpec): LabelPaperSpec {
+  const rotated = rotatedPaperSpec(spec)
+  if (!rotated) return spec
+  const orientation = paperOrientationOf(template.page, template.label, spec)
+  if (orientation === 'rotated') return rotated
+  if (orientation === 'normal') return spec
+  const closeness = (s: LabelPaperSpec) => {
+    const ta = template.label.width / template.label.height
+    const pa = s.labelWidth / s.labelHeight
+    return ta > 0 && pa > 0 ? Math.min(ta, pa) / Math.max(ta, pa) : 0
+  }
+  return closeness(rotated) > closeness(spec) ? rotated : spec
+}
+
+/**
+ * 应用纸型到模板：按模板方向自动选择竖放/横向进纸，行列数、
+ * 标签尺寸、间距与边距全部按纸型几何设置；圆角规格同步标签圆角。
  * 字段坐标/尺寸/字号按新旧标签尺寸等比缩放，保证换纸型后
  * 内容仍落在标签内（字号超框时由 LabelCard 自适应兜底）。
  */
 export function applyLabelPaper(template: LabelTemplate, spec: LabelPaperSpec): void {
-  const sheet = sheetOf(spec)
-  const geo = labelPaperGeometry(spec)
+  const target = preferredSpecFor(template, spec)
+  const sheet = sheetOf(target)
+  const geo = labelPaperGeometry(target)
   const page = template.page
-  scaleTemplateFields(template, spec.labelWidth, spec.labelHeight)
+  scaleTemplateFields(template, target.labelWidth, target.labelHeight)
   page.paperWidth = sheet.width
   page.paperHeight = sheet.height
-  page.cols = spec.cols
-  page.rows = spec.rows
-  page.gapX = spec.gapX
-  page.gapY = spec.gapY
+  page.cols = target.cols
+  page.rows = target.rows
+  page.gapX = target.gapX
+  page.gapY = target.gapY
   page.marginLeft = geo.marginX
-  page.marginRight = spec.marginRight ?? geo.marginX
+  page.marginRight = target.marginRight ?? geo.marginX
   page.marginTop = geo.marginY
-  page.marginBottom = spec.marginBottom ?? geo.marginY
-  template.label.width = spec.labelWidth
-  template.label.height = spec.labelHeight
-  template.label.radius = spec.corner === 'rounded' ? (spec.cornerRadius ?? 2) : 0
+  page.marginBottom = target.marginBottom ?? geo.marginY
+  template.label.width = target.labelWidth
+  template.label.height = target.labelHeight
+  template.label.radius = target.corner === 'rounded' ? (target.cornerRadius ?? 2) : 0
 }
 
 /**
@@ -129,28 +222,68 @@ function scaleTemplateFields(template: LabelTemplate, newWidth: number, newHeigh
   }
 }
 
-/** 判断当前页面/标签几何是否与某纸型一致（0.15mm 容差） */
+/**
+ * 由纸型规格生成模板的页面排版（与 applyLabelPaper 写出的几何一致）：
+ * 供「纸型专用模板」数据直接绑定纸型模切参数，规格更新时随纸型库一起生效。
+ * rotated=true 生成横向进纸（旋转 90°）的页面排版。
+ */
+export function paperPageForTemplate(spec: LabelPaperSpec, rotated = false): PageSpec {
+  const s = rotated ? (rotatedPaperSpec(spec) ?? spec) : spec
+  const sheet = sheetOf(s)
+  const geo = labelPaperGeometry(s)
+  return {
+    paperWidth: sheet.width,
+    paperHeight: sheet.height,
+    rows: s.rows,
+    cols: s.cols,
+    marginTop: geo.marginY,
+    marginBottom: s.marginBottom ?? geo.marginY,
+    marginLeft: geo.marginX,
+    marginRight: s.marginRight ?? geo.marginX,
+    gapX: s.gapX,
+    gapY: s.gapY,
+  }
+}
+
+/** 由纸型规格生成模板的单枚标签规格（宽高与圆角，与 applyLabelPaper 一致） */
+export function paperLabelForTemplate(
+  spec: LabelPaperSpec,
+  rotated = false,
+): {
+  width: number
+  height: number
+  radius: number
+} {
+  const s = rotated ? (rotatedPaperSpec(spec) ?? spec) : spec
+  return {
+    width: s.labelWidth,
+    height: s.labelHeight,
+    radius: s.corner === 'rounded' ? (s.cornerRadius ?? 2) : 0,
+  }
+}
+
+export interface LabelPaperMatch {
+  spec: LabelPaperSpec
+  /** 命中的进纸方向：规格书竖放 / 旋转 90° 横放 */
+  orientation: PaperOrientation
+}
+
+/** 判断当前页面/标签几何与哪个纸型一致（0.15mm 容差），并给出进纸方向 */
+export function matchLabelPaperEx(
+  page: PageSpec,
+  label: { width: number; height: number },
+): LabelPaperMatch | null {
+  for (const spec of labelPapers) {
+    const orientation = paperOrientationOf(page, label, spec)
+    if (orientation) return { spec, orientation }
+  }
+  return null
+}
+
+/** 判断当前页面/标签几何是否与某纸型一致（0.15mm 容差，两个进纸方向都算） */
 export function matchLabelPaper(
   page: PageSpec,
   label: { width: number; height: number },
 ): LabelPaperSpec | null {
-  const eq = (a: number, b: number) => Math.abs(a - b) <= 0.15
-  return (
-    labelPapers.find((spec) => {
-      const sheet = sheetOf(spec)
-      const geo = labelPaperGeometry(spec)
-      return (
-        eq(page.paperWidth, sheet.width) &&
-        eq(page.paperHeight, sheet.height) &&
-        page.cols === spec.cols &&
-        page.rows === spec.rows &&
-        eq(page.gapX, spec.gapX) &&
-        eq(page.gapY, spec.gapY) &&
-        eq(page.marginLeft, geo.marginX) &&
-        eq(page.marginTop, geo.marginY) &&
-        eq(label.width, spec.labelWidth) &&
-        eq(label.height, spec.labelHeight)
-      )
-    }) ?? null
-  )
+  return matchLabelPaperEx(page, label)?.spec ?? null
 }

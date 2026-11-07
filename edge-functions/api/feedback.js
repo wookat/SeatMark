@@ -2,7 +2,8 @@
  * 用户反馈收集（EdgeOne Pages Edge Function）
  *
  * 路由：POST /api/feedback
- * 请求体：{ type: 'bug'|'suggestion'|'other', content: string, contact?: string }
+ * 请求体：{ type: 'bug'|'suggestion'|'other'|'order'|'custom', content: string, contact?: string }
+ *   order / custom 为纸型购买意向与定制需求单（纸型详情页提交），与反馈同通道存档推送
  *
  * 环境变量（EdgeOne Pages 控制台配置）：
  * - FEEDBACK_WEBHOOK  可选，飞书/钉钉/企业微信机器人 webhook URL（按域名选消息结构：
@@ -83,7 +84,7 @@ async function handleRequest(context) {
   const content = payload && typeof payload.content === 'string' ? payload.content.trim() : ''
   const contact = payload && typeof payload.contact === 'string' ? payload.contact.trim() : ''
 
-  const validTypes = ['bug', 'suggestion', 'other']
+  const validTypes = ['bug', 'suggestion', 'other', 'order', 'custom']
   if (!validTypes.includes(type)) return json({ error: '反馈类型无效' }, 400, revHeader)
   if (!content || content.length > 2000) return json({ error: '请填写反馈内容（不超过 2000 字）' }, 400, revHeader)
   if (contact.length > 200) return json({ error: '联系方式过长' }, 400, revHeader)
@@ -138,7 +139,13 @@ async function handleRequest(context) {
   if (!webhook) {
     console.warn('[seatmark-feedback] webhook not configured')
   } else {
-    const typeLabel = { bug: '问题', suggestion: '建议', other: '其他' }[type]
+    const typeLabel = {
+      bug: '问题',
+      suggestion: '建议',
+      other: '其他',
+      order: '购买意向',
+      custom: '定制需求',
+    }[type]
     const text = [
       `【用户反馈】${typeLabel}`,
       `内容：${content}`,

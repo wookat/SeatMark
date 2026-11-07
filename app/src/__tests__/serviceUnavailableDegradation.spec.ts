@@ -278,11 +278,12 @@ describe('第 365 轮：定价页「分享送次数」维护期注记', () => {
     expect(cards[0]!.findAll('[data-testid="pricing-maintenance-hint"]')).toHaveLength(0)
     expect(freeBullets).toHaveLength(6)
 
-    const faqBoxes = wrapper.findAll('h3').map((h) => h.element.parentElement!)
+    // FAQ 条目卡只统计 FAQ 区块内的 h3（纸型服务区块的卡片标题不参与）
+    const faqSection = wrapper.findAll('h2').find((h) => h.text() === '定价常见问题')!.element.parentElement!
+    const faqBoxes = Array.from(faqSection.querySelectorAll('h3')).map((h) => h.parentElement!)
     for (const box of faqBoxes) {
       expect(box.querySelectorAll('[data-testid="pricing-maintenance-hint"]')).toHaveLength(0)
     }
-    const faqSection = wrapper.findAll('h2').find((h) => h.text() === '定价常见问题')!.element.parentElement!
     const faqHints = faqSection.querySelectorAll('[data-testid="pricing-maintenance-hint"]')
     expect(faqHints).toHaveLength(1)
     expect(faqHints[0]!.textContent?.trim()).toBe(NEUTRAL)

@@ -4,10 +4,13 @@ import { useRoute } from 'vue-router'
 
 import ChineseOnlyNotice from '@/components/ChineseOnlyNotice.vue'
 import TemplateThumb from '@/components/label/TemplateThumb.vue'
+import PaperCommerceSection from '@/components/paper/PaperCommerceSection.vue'
 import { defaultTemplates } from '@/data/defaultTemplates'
-import { findLabelPaper, labelPapers, sheetOf } from '@/data/labelPapers'
-import { findTemplateDetail } from '@/data/templateDetails'
+import { findLabelPaper, labelPapers, sheetKeyOf, sheetOf } from '@/data/labelPapers'
+import { findTemplateDetail, type TemplateDetail } from '@/data/templateDetails'
+import type { LabelTemplate } from '@/types/template'
 import { foldOffsets, labelPaperGeometry } from '@/utils/labelPaper'
+import { rankTemplatesForPaper } from '@/utils/paperFit'
 import NotFoundView from '@/views/NotFoundView.vue'
 
 const route = useRoute()
@@ -16,14 +19,39 @@ const slug = computed(() => String(route.params.slug ?? ''))
 const paper = computed(() => findLabelPaper(slug.value))
 const geo = computed(() => (paper.value ? labelPaperGeometry(paper.value) : null))
 
-const recommended = computed(() =>
-  (paper.value?.recommendedTemplates ?? [])
-    .map((id) => ({
-      detail: findTemplateDetail(id),
-      template: defaultTemplates.find((t) => t.id === id),
-    }))
-    .filter((x) => x.detail && x.template),
-)
+/** 该纸型的专用模板（designedForPaper 指向本纸型 slug，几何与模切一致） */
+const dedicated = computed(() => {
+  const slug = paper.value?.slug
+  if (!slug) return []
+  return defaultTemplates.filter((t) => t.designedForPaper === slug)
+})
+
+/** 推荐列表：专用模板 → 人工推荐 → 按适配度实时补足到 6 款（均需有详情页） */
+const recommended = computed(() => {
+  const p = paper.value
+  if (!p) return []
+  const seen = new Set<string>()
+  const out: { detail: TemplateDetail; template: LabelTemplate; dedicated: boolean }[] = []
+  const push = (template: LabelTemplate | undefined, dedicated: boolean) => {
+    if (!template || seen.has(template.id)) return
+    const d = findTemplateDetail(template.id)
+    if (!d) return
+    seen.add(template.id)
+    out.push({ detail: d, template, dedicated })
+  }
+  for (const t of dedicated.value) push(t, true)
+  for (const id of p.recommendedTemplates) {
+    push(defaultTemplates.find((t) => t.id === id), false)
+  }
+  if (out.length < 6) {
+    for (const { template, fit } of rankTemplatesForPaper(defaultTemplates, p)) {
+      if (out.length >= 6) break
+      if (fit.level === 'incompatible' || fit.level === 'marginal') continue
+      push(template, false)
+    }
+  }
+  return out
+})
 
 const others = computed(() => labelPapers.filter((p) => p.slug !== slug.value).slice(0, 4))
 
@@ -62,7 +90,7 @@ const specRows = computed(() => {
   const g = geo.value
   if (!p || !g) return []
   const sheet = sheetOf(p)
-  const sheetName = sheet.width === 215.9 ? 'US Letter' : 'A4'
+  const sheetName = sheetKeyOf(p)
   const right = p.marginRight ?? g.marginX
   const bottom = p.marginBottom ?? g.marginY
   const marginText =
@@ -145,7 +173,7 @@ const specRows = computed(() => {
       <!-- 规格信息 -->
       <div>
         <span class="rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-bold text-brand-600">
-          {{ sheetOf(paper).width === 215.9 ? 'US Letter 纸型' : 'A4 不干胶纸型' }}
+          {{ sheetKeyOf(paper) === 'US Letter' ? 'US Letter 纸型' : `${sheetKeyOf(paper)} 不干胶纸型` }}
         </span>
         <h1 class="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
           {{ paper.name }}
@@ -223,27 +251,43 @@ const specRows = computed(() => {
     <section class="mt-14">
       <h2 class="text-xl font-bold tracking-tight text-slate-900">适用模板推荐</h2>
       <p class="mt-1.5 text-sm text-slate-600">
-        以下内置模板与该纸型的标签尺寸匹配良好，选模板后再在纸张设置里选择此纸型即可对版。
+        「专用」模板按此纸型的模切格设计，其余模板与该纸型的标签尺寸匹配良好；点「直接用」会同时载入模板并锁定此纸型。
       </p>
       <div class="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <RouterLink
+        <article
           v-for="item in recommended"
-          :key="item.detail!.slug"
-          :to="`/templates/${item.detail!.slug}`"
-          class="group rounded-lg border border-slate-200 bg-white p-4 shadow-card transition-shadow hover:shadow-lg"
+          :key="item.detail.slug"
+          class="group relative rounded-lg border border-slate-200 bg-white p-4 shadow-card transition-shadow hover:shadow-lg"
         >
-          <div class="rounded-md bg-slate-50 p-3">
-            <TemplateThumb :template="item.template!" defer />
-          </div>
-          <h3 class="mt-3 text-sm font-bold text-slate-900 group-hover:text-brand-600">
-            {{ item.template!.name }}
-          </h3>
-          <p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">
-            {{ item.template!.description }}
-          </p>
-        </RouterLink>
+          <span
+            v-if="item.dedicated"
+            class="absolute right-3 top-3 z-10 rounded bg-emerald-100 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700"
+          >
+            专用
+          </span>
+          <RouterLink :to="`/templates/${item.detail.slug}`">
+            <div class="rounded-md bg-slate-50 p-3">
+              <TemplateThumb :template="item.template" defer />
+            </div>
+            <h3 class="mt-3 text-sm font-bold text-slate-900 group-hover:text-brand-600">
+              {{ item.template.name }}
+            </h3>
+            <p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">
+              {{ item.template.description }}
+            </p>
+          </RouterLink>
+          <RouterLink
+            :to="`/studio?paper=${paper.slug}&template=${item.detail.slug}`"
+            class="btn btn-secondary btn-sm mt-3 w-full"
+          >
+            用此模板 + 纸型排版
+          </RouterLink>
+        </article>
       </div>
     </section>
+
+    <!-- 购买与定制 -->
+    <PaperCommerceSection :spec="paper" />
 
     <!-- 其他纸型 -->
     <section class="mt-14">

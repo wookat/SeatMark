@@ -1,7 +1,7 @@
 import { labelPapers, type LabelPaperSpec } from '@/data/labelPapers'
 import { t } from '@/i18n'
 import type { LabelTemplate } from '@/types/template'
-import { isFullPageTemplate, isPaperCompatible } from '@/utils/labelPaper'
+import { isFullPageTemplate, isPaperCompatible, rotatedPaperSpec } from '@/utils/labelPaper'
 
 /**
  * 模板 × 纸型适配度评估（纯函数）：
@@ -44,12 +44,30 @@ function formatSize(w: number, h: number): string {
   return `${fmt(w)}×${fmt(h)}mm`
 }
 
-/** 宽高比接近度 0–1：两者比例的 min/max */
+/** 宽高比接近度 0–1：两者比例的 min/max；
+ * 纸可横竖两向进纸，取模板与竖放格、横放格中更吻合的一侧 */
 function aspectCloseness(template: LabelTemplate, spec: LabelPaperSpec): number {
   const ta = template.label.width / template.label.height
-  const pa = spec.labelWidth / spec.labelHeight
-  if (!Number.isFinite(ta) || !Number.isFinite(pa) || ta <= 0 || pa <= 0) return 0
-  return Math.min(ta, pa) / Math.max(ta, pa)
+  if (!Number.isFinite(ta) || ta <= 0) return 0
+  const closeness = (pa: number) =>
+    Number.isFinite(pa) && pa > 0 ? Math.min(ta, pa) / Math.max(ta, pa) : 0
+  const rotated = rotatedPaperSpec(spec)
+  return Math.max(
+    closeness(spec.labelWidth / spec.labelHeight),
+    rotated ? closeness(rotated.labelWidth / rotated.labelHeight) : 0,
+  )
+}
+
+/** 模板单格宽高比更吻合横向进纸（旋转 90°）的一侧 */
+function prefersRotatedFeed(template: LabelTemplate, spec: LabelPaperSpec): boolean {
+  const rotated = rotatedPaperSpec(spec)
+  if (!rotated) return false
+  const ta = template.label.width / template.label.height
+  const closeness = (s: LabelPaperSpec) => {
+    const pa = s.labelWidth / s.labelHeight
+    return ta > 0 && pa > 0 ? Math.min(ta, pa) / Math.max(ta, pa) : 0
+  }
+  return closeness(rotated) > closeness(spec)
 }
 
 /** 几何平均缩放系数：>1 放大，<1 缩小 */
@@ -90,9 +108,20 @@ function fmt(key: string, vars: Record<string, string | number>): string {
 }
 
 function reasonOf(template: LabelTemplate, spec: LabelPaperSpec, level: FitLevel): string {
-  const size = formatSize(spec.labelWidth, spec.labelHeight)
+  const rotated = prefersRotatedFeed(template, spec)
+  const labelW = rotated ? spec.labelHeight : spec.labelWidth
+  const labelH = rotated ? spec.labelWidth : spec.labelHeight
+  const size = formatSize(labelW, labelH)
   const design = formatSize(template.label.width, template.label.height)
   if (level === 'recommended') {
+    if (rotated) {
+      return fmt('单格 {size}（横向进纸 {cols} 列 × {rows} 行）与本模板设计尺寸 {design} 最接近', {
+        size,
+        cols: spec.rows,
+        rows: spec.cols,
+        design,
+      })
+    }
     return fmt('单格 {size}（{cols} 列 × {rows} 行）与本模板设计尺寸 {design} 最接近', {
       size,
       cols: spec.cols,
@@ -101,6 +130,12 @@ function reasonOf(template: LabelTemplate, spec: LabelPaperSpec, level: FitLevel
     })
   }
   if (level === 'usable') {
+    if (rotated) {
+      return fmt('单格 {size}（横向进纸）与模板设计尺寸 {design} 相近，等比微调后可用', {
+        size,
+        design,
+      })
+    }
     return fmt('单格 {size} 与模板设计尺寸 {design} 相近，等比微调后可用', { size, design })
   }
   const scale = meanScale(template, spec)

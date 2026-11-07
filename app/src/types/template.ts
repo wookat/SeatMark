@@ -113,6 +113,12 @@ export interface LabelTemplate {
   page: PageSpec
   fields: TemplateField[]
   showLabelBorder: boolean
+  /**
+   * 纸型专用模板：值为 labelPapers 中的纸型 slug。
+   * 此类模板的 label/page 几何由纸型规格直接生成（单格与版式与实物模切一致），
+   * 用于纸型详情页「专用模板」标记、模板选择器徽标与 SEO 关联。
+   */
+  designedForPaper?: string
 }
 
 /** Excel 中的一行数据：表头 -> 单元格文本 */
