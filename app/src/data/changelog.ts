@@ -18,12 +18,19 @@ export interface ChangelogDay {
 }
 
 export const CHANGELOG_GENERATED_AT = '2026-11-08'
-export const CHANGELOG_ENTRY_COUNT = 57
+export const CHANGELOG_ENTRY_COUNT = 64
 
 export const changelogDays: ChangelogDay[] = [
   {
     date: '2026-11-08',
     entries: [
+      { hash: 'e7179b5', kind: 'fix', text: "轮播圆点触击区 8px→20px" },
+      { hash: '5ec52fa', kind: 'feature', text: "水印内容多形态——图标/图标+文字/上下排列按模板轮换" },
+      { hash: '2398ceb', kind: 'fix', text: "补登记 print-avery-address-labels-from-excel 英文正文页" },
+      { hash: 'acc12d5', kind: 'feature', text: "print-avery-address-labels-from-excel——英文获客教程第 15 篇" },
+      { hash: 'e4e8b15', kind: 'feature', text: "第八批 6 款纸型专用模板（440→446）" },
+      { hash: '1cbe9fa', kind: 'fix', text: "标签水印多形态自适应落位，消除字段重叠" },
+      { hash: 'ba1afaa', kind: 'feature', text: "第七批 6 款纸型专用模板（434→440）" },
       { hash: '4dcd572', kind: 'feature', text: "第六批 6 款纸型专用模板（428→434）" },
       { hash: '0785f45', kind: 'feature', text: "第五批 6 款纸型专用模板（422→428）" },
       { hash: 'bc124fe', kind: 'feature', text: "第四批 6 款纸型专用模板（416→422）" },
