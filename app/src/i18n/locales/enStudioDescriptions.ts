@@ -811,4 +811,10 @@ export const enTemplateDescriptions: Record<string, string> = {
     '85.72×59.27 mm 8-up badge insert: org, name and role; badge cards for expos and job fairs.',
   '85.72×59.27 mm 八格名牌内页，部门、姓名、工号，活动工作人员临时胸卡。':
     '85.72×59.27 mm 8-up badge insert: dept, name and staff ID; temporary badges for event staff.',
+  '105×74.25 mm 八分格，考场、科目、座位号与姓名四要素，大字号考号区便于巡视核对。': '105×74.25 mm eight-up sheet with venue, subject, seat number and name — oversized seat-number block for at-a-glance checks.',
+  '105×59.4 mm 十格价签，商品名与规格居左、大号价格居右，促销档橙色系吸引视线。': '105×59.4 mm ten-up price tag: item name and spec left, large price right — amber promo colorway that pops on shelf.',
+  '70×42.4 mm 二十一格，顶部色条配岗位名称与姓名，值日表、课代表、小组长标识用。': '70×42.4 mm 21-up tag with a color-bar duty title and large name — for class duty rosters, class reps and group leaders.',
+  '70×37.1 mm 二四格圆角，圆点描边风格，学号与姓名双行排版，课本作业本统一标识。': '70×37.1 mm 24-up rounded tag in dotted-outline style with student ID and name rows — uniform book and workbook labels.',
+  'Φ60 mm 圆形封口贴，品名环形排布、生产日期居中，糕点酱料罐装出货标记。': '60mm round seal: product name on the ring, production date centered — a freshness marker for jars and pastry packs.',
+  '对折三角桌牌，居中大字排布嘉宾与席位信息，论坛发布会的来宾席标识。': 'Folded table tent with centered large-type guest and seat info — a dignified marker for forum and launch-event guests.',
 }

@@ -298,8 +298,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppTableCard8',
       'gaokaoDesk',
       'large',
-      'trainingDesk',
-    ],
+      'trainingDesk', 'ppExamSeat8b',],
   },
   {
     slug: 'a4-8up-round',
@@ -385,8 +384,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppSeatCard10',
       'cubbyLabel',
       'windowCounter',
-      'standard',
-    ],
+      'standard', 'ppPrice10amber',],
   },
   {
     slug: 'a4-10up-round',
@@ -481,7 +479,7 @@ export const labelPapers: LabelPaperSpec[] = [
     cornerRadius: 30,
     description: 'Φ60mm 圆形模切一页 12 枚，圆形姓名贴、笑脸贴与编号章贴的常用规格。',
     uses: ['圆形姓名贴', '奖励/笑脸贴', '编号章贴'],
-    recommendedTemplates: ['ppSealThanks60', 'ppSealDate60', 'kidsName', 'minimal', 'standard'],
+    recommendedTemplates: ['ppSealThanks60', 'ppSealDate60', 'kidsName', 'minimal', 'standard', 'ppDateSeal60',],
   },
   {
     slug: 'a4-14up',
@@ -629,8 +627,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppClassTag21',
       'standard',
       'deskName',
-      'assetTag',
-    ],
+      'assetTag', 'ppDutyTag21',],
   },
   {
     slug: 'a4-21up-round',
@@ -689,7 +686,7 @@ export const labelPapers: LabelPaperSpec[] = [
     corner: 'square',
     description: '3×8 满切（70×37.1 mm）一页 24 枚，满切无间距利用率高，座签与物品贴的常用规格。',
     uses: ['考场座签', '物品分类贴', '姓名贴'],
-    recommendedTemplates: ['standard', 'deskName', 'seatOnly'],
+    recommendedTemplates: ['standard', 'deskName', 'seatOnly', 'ppSidName24',],
   },
   {
     slug: 'a4-24up-round',
@@ -1161,7 +1158,7 @@ export const labelPapers: LabelPaperSpec[] = [
     description:
       'Avery 5302 兼容对折席卡：Letter 纸每张 4 枚，沿每枚中线压痕对折成 88.9×50.8 mm 站立桌牌，婚宴席卡与会议姓名牌的标准小规格。',
     uses: ['婚宴/宴会席卡', '会议姓名桌牌', '自助餐菜品标签'],
-    recommendedTemplates: ['ppWedTent5302', 'meetingTent', 'vTent', 'tentBilingual'],
+    recommendedTemplates: ['ppWedTent5302', 'meetingTent', 'vTent', 'tentBilingual', 'ppTentGuest5302',],
   },
   {
     slug: 'avery-5305',

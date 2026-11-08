@@ -1650,4 +1650,86 @@ export const paperSeries2Templates: LabelTemplate[] = [
     demoDataset: 'meeting',
     ...lay(badgeC(dims('avery-5395').w, dims('avery-5395').h, '#7c3aed')),
   }),
+
+  // ================================================================
+  // 第三批：高频纸型第三设计（婚宴/零售/教学/食品）
+  // ================================================================
+
+  // ---- a4-8up（105×74.25 ×8）第三款：考号色块座贴 ----
+  pt('a4-8up', false, {
+    id: 'ppExamSeat8b',
+    name: '八分·考号色块座贴',
+    category: 'exam',
+    description: '105×74.25 mm 八分格，考场、科目、座位号与姓名四要素，大字号考号区便于巡视核对。',
+    scenario: 'A4 八分格不干胶专用',
+    accent: '#b91c1c',
+    sampleData: { name: '王小明', item: '2026 期末联考', sub: '第 12 考场 · 座号 08' },
+    demoDataset: 'exam',
+    ...lay(examTag(dims('a4-8up').w, dims('a4-8up').h, '#b91c1c')),
+  }),
+
+  // ---- a4-10up（99.1×57 ×10）第三款：促销价签 ----
+  pt('a4-10up', false, {
+    id: 'ppPrice10amber',
+    name: '十格·促销价签橙版',
+    category: 'life',
+    description: '105×59.4 mm 十格价签，商品名与规格居左、大号价格居右，促销档橙色系吸引视线。',
+    scenario: 'A4 十格价签专用',
+    accent: '#ea580c',
+    sampleData: { item: '手作曲奇', spec: '200g / 盒', price: '9.9', unit: '元 / 盒' },
+    demoDataset: 'retail',
+    ...lay(priceTag(dims('a4-10up').w, dims('a4-10up').h, '#ea580c')),
+  }),
+
+  // ---- a4-21up（63.5×38.1 ×21）第三款：值日生岗位贴 ----
+  pt('a4-21up', false, {
+    id: 'ppDutyTag21',
+    name: '二一·值日生岗位贴',
+    category: 'teaching',
+    description: '70×42.4 mm 二十一格，顶部色条配岗位名称与姓名，值日表、课代表、小组长标识用。',
+    scenario: 'A4 二十一格不干胶专用',
+    accent: '#0d9488',
+    sampleData: { name: '王小明', sub: '图书管理员' },
+    demoDataset: 'classroom',
+    ...lay(nsBar(dims('a4-21up').w, dims('a4-21up').h, '#0d9488', '图书管理员', '岗位', 'sub')),
+  }),
+
+  // ---- a4-24up（66×33.9 ×24 圆角）第三款：学号姓名贴 ----
+  pt('a4-24up', false, {
+    id: 'ppSidName24',
+    name: '二四·学号姓名贴',
+    category: 'teaching',
+    description: '70×37.1 mm 二四格圆角，圆点描边风格，学号与姓名双行排版，课本作业本统一标识。',
+    scenario: 'A4 二十四格不干胶专用',
+    accent: '#0d9488',
+    sampleData: { name: '王小明', sub: '学号 08' },
+    demoDataset: 'classroom',
+    ...lay(nsDots(dims('a4-24up').w, dims('a4-24up').h, '#0d9488', '学号 08', '王小明')),
+  }),
+
+  // ---- a4-circle-60（Φ60 圆 ×? 格）第三款：生产日期贴 ----
+  pt('a4-circle-60', false, {
+    id: 'ppDateSeal60',
+    name: '圆贴六零·生产日期贴',
+    category: 'life',
+    description: 'Φ60 mm 圆形封口贴，品名环形排布、生产日期居中，糕点酱料罐装出货标记。',
+    scenario: 'A4 圆形不干胶专用',
+    accent: '#334155',
+    sampleData: { name: '手作烘焙', sub: '生产日期', date: '2026-11-08' },
+    demoDataset: 'restaurant',
+    ...lay(sealC(dims('a4-circle-60').w, '#334155', '生产日期', '2026-11-08')),
+  }),
+
+  // ---- avery-5302 第三款：嘉宾席桌牌 ----
+  pt('avery-5302', false, {
+    id: 'ppTentGuest5302',
+    name: '5302·嘉宾席桌牌',
+    category: 'event',
+    description: '对折三角桌牌，居中大字排布嘉宾与席位信息，论坛发布会的来宾席标识。',
+    scenario: 'Avery 5302 对折桌牌专用',
+    accent: '#7c3aed',
+    sampleData: { name: '王小明', org: '云杉科技', role: '特邀嘉宾' },
+    demoDataset: 'meeting',
+    ...lay(cardC(dims('avery-5302').w, dims('avery-5302').h, '#7c3aed', '嘉宾')),
+  }),
 ]

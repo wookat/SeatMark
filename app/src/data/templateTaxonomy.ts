@@ -17,7 +17,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'exam-desk',
       name: '考场布置',
-      templateIds: ['ppExam15', 'ppExamDesk8r', 'ppExamDesk8ro',
+      templateIds: ['ppExam15', 'ppExamDesk8r', 'ppExamSeat8b', 'ppExamDesk8ro',
         'standard',
         'seatOnly',
         'minimal',
@@ -70,7 +70,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'teaching-desk',
       name: '教室桌贴',
-      templateIds: ['ppName14', 'ppName15', 'ppName16', 'ppName20', 'ppName24', 'ppName27', 'ppName12n', 'ppName14r', 'ppName16r', 'ppName18r', 'ppName21r', 'ppName22r', 'ppName33', 'ppSid32r', 'ppSidName21', 'ppEngName24r', 'ppEngName30',
+      templateIds: ['ppName14', 'ppName15', 'ppName16', 'ppName20', 'ppName24', 'ppName27', 'ppName12n', 'ppName14r', 'ppName16r', 'ppName18r', 'ppName21r', 'ppName22r', 'ppName33', 'ppSid32r', 'ppSidName21', 'ppDutyTag21', 'ppSidName24', 'ppEngName24r', 'ppEngName30',
         'deskName',
         'infoStrip',
         'trainingDesk',
@@ -190,7 +190,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'event-tent',
       name: '桌牌席卡',
-      templateIds: ['ppTallCard2v', 'ppTraining8', 'ppDeskCard8r90', 'ppTent5302b', 'ppTent5305b', 'ppTent5309b',
+      templateIds: ['ppTallCard2v', 'ppTraining8', 'ppDeskCard8r90', 'ppTent5302b', 'ppTentGuest5302', 'ppTent5305b', 'ppTent5309b',
         'signage',
         'deskHalf',
         'meetingTent',
@@ -349,7 +349,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'life-food',
       name: '餐饮门店',
-      templateIds: ['ppBakerySeal60', 'ppDateSeal119', 'ppBrandSeal119', 'ppSpice21', 'ppDate21r',
+      templateIds: ['ppBakerySeal60', 'ppDateSeal60', 'ppDateSeal119', 'ppBrandSeal119', 'ppSpice21', 'ppDate21r',
         'reservedTable',
         'privateRoomDoor',
         'takeoutShelf',
@@ -387,7 +387,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'life-service',
       name: '生活服务',
-      templateIds: ['ppPrice10g', 'ppPrice10ro',
+      templateIds: ['ppPrice10g', 'ppPrice10amber', 'ppPrice10ro',
         'gymLocker',
         'gymClassDoor',
         'spaHook',

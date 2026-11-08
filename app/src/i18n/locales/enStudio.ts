@@ -1460,4 +1460,10 @@ export const enTemplateScenarios: Record<string, string> = {
   'Avery 5390 徽章内页专用': 'For Avery 5390 badge inserts',
   'Avery 5392 大徽章专用': 'For Avery 5392 large badges',
   'Avery 5395 名牌内页专用': 'For Avery 5395 badge inserts',
+  '八分·考号色块座贴': '8-Up Exam Seat Label, Block Style',
+  '十格·促销价签橙版': '10-Up Promo Price Tag, Amber',
+  '二一·值日生岗位贴': '21-Up Classroom Duty Tag',
+  '二四·学号姓名贴': '24-Up Student ID & Name Tag',
+  '圆贴六零·生产日期贴': '60mm Round Production-Date Seal',
+  '5302·嘉宾席桌牌': 'Avery 5302 Guest Table Tent',
 }
