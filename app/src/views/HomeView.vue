@@ -533,26 +533,30 @@ const FAQS = computed(() => [
             </div>
           </div>
           <!-- 轮播圆点（左）：点击切换；激活点拉长并走自动播放进度条，悬停时进度与轮换同步暂停 -->
-          <div class="absolute bottom-3 left-3 flex items-center gap-1.5" data-testid="hero-slide-nav">
+          <div class="absolute bottom-3 left-3 flex items-center gap-0" data-testid="hero-slide-nav">
             <button
               v-for="(slide, i) in heroSlides"
               :key="slide.tpl.id"
               type="button"
-              class="relative h-2 cursor-pointer rounded-full bg-white/80 ring-1 ring-slate-300/70 transition-all duration-300"
-              :class="i === activeSlideIdx ? 'w-6' : 'w-2 hover:bg-white'"
+              class="relative flex cursor-pointer items-center justify-center p-1.5"
               :aria-label="slide.name"
               :aria-current="i === activeSlideIdx ? 'true' : undefined"
               @click="heroSlideIdx = i"
             >
               <span
-                v-if="i === activeSlideIdx && heroSlides.length > 1"
-                :key="activeSlideIdx"
-                class="absolute inset-0 overflow-hidden rounded-full"
+                class="relative block h-2 rounded-full bg-white/80 ring-1 ring-slate-300/70 transition-all duration-300"
+                :class="i === activeSlideIdx ? 'w-6' : 'w-2 hover:bg-white'"
               >
                 <span
-                  class="hero-progress block h-full w-full origin-left rounded-full bg-brand-600 motion-reduce:hidden"
-                  :class="{ '[animation-play-state:paused]': heroHover }"
-                ></span>
+                  v-if="i === activeSlideIdx && heroSlides.length > 1"
+                  :key="activeSlideIdx"
+                  class="absolute inset-0 overflow-hidden rounded-full"
+                >
+                  <span
+                    class="hero-progress block h-full w-full origin-left rounded-full bg-brand-600 motion-reduce:hidden"
+                    :class="{ '[animation-play-state:paused]': heroHover }"
+                  ></span>
+                </span>
               </span>
             </button>
           </div>
