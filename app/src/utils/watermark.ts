@@ -72,10 +72,29 @@ export function watermarkToneFor(options: {
 
 // ---------- 水印落位（多形态自适应） ----------
 
-export const WATERMARK_FULL_TEXT = 'SeatMark 座签 · seatmark.cn'
-export const WATERMARK_SHORT_TEXT = 'seatmark.cn'
+export const WATERMARK_BRAND_EN = 'SeatMark'
+export const WATERMARK_BRAND_ZH = '座签'
+export const WATERMARK_DOMAIN = 'seatmark.cn'
+export const WATERMARK_BRAND_NAME = `${WATERMARK_BRAND_EN} ${WATERMARK_BRAND_ZH}`
+export const WATERMARK_FULL_TEXT = `${WATERMARK_BRAND_NAME} · ${WATERMARK_DOMAIN}`
+export const WATERMARK_SHORT_TEXT = WATERMARK_DOMAIN
 
-/** 水印形态：四条边签名带 或 斜向浅水印兜底 */
+/**
+ * 水印内容形态（多样化，不只是「名称+域名」一种）：
+ * - icon：纯品牌图形标（印刷厂角标记式，窄带兜底也能放下）
+ * - line：单行文字
+ * - iconLine：图标 + 单行文字（名称 / 域名 / 中文 / 英文）
+ * - stacked：名称上下两行排列（仅斜向兜底，单线带放不下）
+ * - iconStacked：图标在上 + 文字在下（仅斜向兜底）
+ */
+export type WatermarkContent =
+  | { kind: 'icon' }
+  | { kind: 'line'; text: string }
+  | { kind: 'iconLine'; text: string }
+  | { kind: 'stacked'; line1: string; line2: string }
+  | { kind: 'iconStacked'; text: string }
+
+/** 水印落位形态：四条边签名带 或 斜向浅水印兜底 */
 export type WatermarkVariant = 'bottom' | 'top' | 'right' | 'left' | 'diagonal'
 
 export interface WatermarkRect {
@@ -87,7 +106,7 @@ export interface WatermarkRect {
 
 export interface WatermarkPlacement {
   variant: WatermarkVariant
-  text: string
+  content: WatermarkContent
   /** 水印带定位（mm，旋转前 DOM 盒）；diagonal 形态下为全幅居中容器 */
   leftMm: number
   topMm: number
@@ -109,25 +128,102 @@ export function estimateWatermarkWidth(text: string, fontSizeMm: number): number
   return em * fontSizeMm * 1.06
 }
 
+/** 估算内容形态总宽（mm）：图标占 1.05em，图标与文字间另留 0.5em 间隙 */
+export function estimateContentWidth(content: WatermarkContent, fontSizeMm: number): number {
+  switch (content.kind) {
+    case 'icon':
+      return fontSizeMm * 1.05
+    case 'line':
+      return estimateWatermarkWidth(content.text, fontSizeMm)
+    case 'iconLine':
+      return fontSizeMm * 1.55 + estimateWatermarkWidth(content.text, fontSizeMm)
+    case 'stacked':
+      return Math.max(
+        estimateWatermarkWidth(content.line1, fontSizeMm),
+        estimateWatermarkWidth(content.line2, fontSizeMm),
+      )
+    case 'iconStacked':
+      return Math.max(fontSizeMm * 1.6, estimateWatermarkWidth(content.text, fontSizeMm))
+  }
+}
+
+/** 边线签名带候选内容（丰富→精简），能放下的池子由 seed 轮换其一 */
+const BAND_CONTENTS: WatermarkContent[] = [
+  { kind: 'iconLine', text: WATERMARK_FULL_TEXT },
+  { kind: 'line', text: WATERMARK_FULL_TEXT },
+  { kind: 'iconLine', text: WATERMARK_BRAND_NAME },
+  { kind: 'iconLine', text: WATERMARK_DOMAIN },
+  { kind: 'line', text: WATERMARK_BRAND_NAME },
+  { kind: 'iconLine', text: WATERMARK_BRAND_EN },
+  { kind: 'iconLine', text: WATERMARK_BRAND_ZH },
+  { kind: 'line', text: WATERMARK_DOMAIN },
+  { kind: 'icon' },
+]
+
+/** 斜向浅水印候选：空间充裕时可上下排列，纯图标可做大幅幽灵印 */
+const DIAGONAL_CONTENTS: WatermarkContent[] = [
+  { kind: 'iconStacked', text: WATERMARK_FULL_TEXT },
+  { kind: 'stacked', line1: WATERMARK_BRAND_NAME, line2: WATERMARK_DOMAIN },
+  { kind: 'iconLine', text: WATERMARK_FULL_TEXT },
+  { kind: 'line', text: WATERMARK_FULL_TEXT },
+  { kind: 'iconLine', text: WATERMARK_BRAND_NAME },
+  { kind: 'stacked', line1: WATERMARK_BRAND_EN, line2: WATERMARK_BRAND_ZH },
+  { kind: 'icon' },
+  { kind: 'line', text: WATERMARK_DOMAIN },
+  { kind: 'iconLine', text: WATERMARK_DOMAIN },
+]
+
+/** 模板 id → 稳定整数种子：同一模板每次导出形态一致，不同模板形态错开 */
+function seedHash(seed: string): number {
+  let h = 0
+  for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+  return h
+}
+
 function rectsIntersect(a: WatermarkRect, b: WatermarkRect): boolean {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
+}
+
+/** 斜向兜底中各内容形态的字号（mm）：宽度按对角线 72%，厚度不超过短边一半 */
+function diagonalFontFor(content: WatermarkContent, width: number, height: number): number {
+  const diagonal = Math.hypot(width, height)
+  const minSide = Math.min(width, height)
+  const byWidth = (diagonal * 0.72) / estimateContentWidth(content, 1)
+  switch (content.kind) {
+    case 'line':
+    case 'iconLine':
+      return Math.min(byWidth, minSide * 0.24)
+    case 'stacked':
+      return Math.min(byWidth, (minSide * 0.5) / 2.7)
+    case 'iconStacked':
+      return Math.min(byWidth, (minSide * 0.5) / 3.4)
+    // 纯图标幽灵印：fontSizeMm 即图标边长
+    case 'icon':
+      return minSide * 0.34
+  }
+}
+
+/** 斜向形态的可读性下限：文字类字号 ≥2.2mm，纯图标边长 ≥3mm */
+function diagonalMinFont(content: WatermarkContent): number {
+  return content.kind === 'icon' ? 3 : 2.2
 }
 
 /**
  * 标签内水印落位：优先底边签名带（印刷厂版权脚注式），依次退到顶边、
  * 右边、左边竖排签名带；四条边都被字段占用时改用斜向浅水印兜底，
  * 低透明度压在字段层之上但不遮挡辨识，任何模板都不再出现文字级重叠。
+ * 内容由候选池按 seed（模板 id）确定性轮换——纯图标、图标+名称、
+ * 图标+域名、名称上下排列、图标+中文/英文 等形态在不同模板间错开呈现。
  */
 export function watermarkPlacement(options: {
   width: number
   height: number
   fields: { x: number; y: number; width: number; height: number }[]
-  fullText?: string
-  shortText?: string
+  /** 形态轮换种子（传模板 id），缺省时恒取候选池首个（最丰富） */
+  seed?: string
 }): WatermarkPlacement {
   const { width, height, fields } = options
-  const fullText = options.fullText ?? WATERMARK_FULL_TEXT
-  const shortText = options.shortText ?? WATERMARK_SHORT_TEXT
+  const seed = seedHash(options.seed ?? '')
   // 字号约为标签宽度的 3.2%，下限 2mm（黑白打印可读），上限 3.2mm——签名式水印刻意小
   const size = Math.min(Math.max(Math.min(width, height * 2.4) * 0.032, 2), 3.2)
   const bandHeight = size * 1.4
@@ -161,11 +257,12 @@ export function watermarkPlacement(options: {
     if (fieldRects.some((f) => rectsIntersect(rect, f))) continue
     // 竖排带沿高度方向排文字；横排带沿宽度方向排文字，取 70% 估算全长
     const span = variant === 'left' || variant === 'right' ? rect.h : rect.w
-    const text =
-      estimateWatermarkWidth(fullText, size) <= span * 0.7 ? fullText : shortText
+    const pool = BAND_CONTENTS.filter((c) => estimateContentWidth(c, size) <= span * 0.7)
+    // icon 恒能放入，pool 永不为空
+    const content = pool[seed % pool.length]!
     return {
       variant,
-      text,
+      content,
       leftMm: laid.x,
       topMm: laid.y,
       widthMm: laid.w,
@@ -176,24 +273,23 @@ export function watermarkPlacement(options: {
   }
 
   // 斜向浅水印兜底：沿标签对角线方向居中，宽度按对角线 72% 自适应
-  const diagonal = Math.hypot(width, height)
   const rotateDeg = (Math.atan2(height, width) * 180) / Math.PI
-  const cap = Math.min(width, height) * 0.24
-  let fontSizeMm = Math.min((diagonal * 0.72) / estimateWatermarkWidth(fullText, 1), cap)
-  let text = fullText
-  if (fontSizeMm < 2.4) {
-    text = shortText
-    fontSizeMm = Math.min((diagonal * 0.72) / estimateWatermarkWidth(shortText, 1), cap)
+  const pool = DIAGONAL_CONTENTS.map((c) => ({
+    c,
+    fontSizeMm: diagonalFontFor(c, width, height),
+  })).filter((x) => x.fontSizeMm >= diagonalMinFont(x.c))
+  const pick = pool[seed % pool.length] ?? {
+    c: { kind: 'line', text: WATERMARK_DOMAIN } as WatermarkContent,
+    fontSizeMm: 2.2,
   }
-  fontSizeMm = Math.max(fontSizeMm, 2.2)
   return {
     variant: 'diagonal',
-    text,
+    content: pick.c,
     leftMm: 0,
     topMm: 0,
     widthMm: width,
     heightMm: height,
-    fontSizeMm,
+    fontSizeMm: pick.fontSizeMm,
     rotateDeg,
   }
 }

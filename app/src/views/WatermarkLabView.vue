@@ -20,17 +20,22 @@ const scale = ref(Number(params.get('scale')) || 0.8)
 const list = computed(() =>
   defaultTemplates
     .filter((t) => !wanted || wanted.has(t.id))
-    .map((template) => ({
-      template,
-      variant: watermarkPlacement({
+    .map((template) => {
+      const p = watermarkPlacement({
         width: template.label.width,
         height: template.label.height,
         fields: template.fields,
-      }).variant,
-      w: template.label.width * MM_TO_PX * scale.value,
-      h: template.label.height * MM_TO_PX * scale.value,
-    }))
-    .filter((item) => !variantFilter || item.variant === variantFilter),
+        seed: template.id,
+      })
+      return {
+        template,
+        variant: p.variant,
+        kind: p.content.kind,
+        w: template.label.width * MM_TO_PX * scale.value,
+        h: template.label.height * MM_TO_PX * scale.value,
+      }
+    })
+    .filter((item) => !variantFilter || item.variant === variantFilter || item.kind === variantFilter),
 )
 </script>
 
@@ -65,7 +70,7 @@ const list = computed(() =>
         </div>
         <figcaption class="mt-1.5 max-w-40 truncate text-[10px] leading-4 text-slate-500">
           {{ item.template.id }} · {{ item.template.name }} ·
-          <strong class="text-slate-700">{{ item.variant }}</strong>
+          <strong class="text-slate-700">{{ item.variant }}·{{ item.kind }}</strong>
         </figcaption>
       </figure>
     </div>

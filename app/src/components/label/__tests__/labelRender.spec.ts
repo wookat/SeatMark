@@ -142,11 +142,13 @@ describe('LabelCard', () => {
     })
     const wm = wrapper.find('.label-watermark')
     expect(wm.exists()).toBe(true)
-    expect(wm.text()).toContain('seatmark.cn')
+    // 内容形态按模板 id 轮换：图标 / 图标+文字 / 纯文字 / 上下排列 之一
+    expect(wm.attributes('data-kind')).toBeTruthy()
+    expect(wm.text()).toMatch(/SeatMark|座签|seatmark\.cn|^$/)
     expect(wm.attributes('style')).toMatch(/font-size: [\d.]+mm/)
   })
 
-  it('底部有空位的大标签使用品牌全称水印', () => {
+  it('底部有空位的大标签用底边签名带渲染品牌内容', () => {
     const t = cloneTemplate(standard)
     t.label.width = 180
     t.label.height = 128
@@ -155,10 +157,12 @@ describe('LabelCard', () => {
     const wrapper = mount(LabelCard, {
       props: { template: t, texts: { name: '测试' }, watermark: true },
     })
-    expect(wrapper.find('.label-watermark').text()).toBe('SeatMark 座签 · seatmark.cn')
+    const wm = wrapper.find('.label-watermark')
+    expect(wm.attributes('data-variant')).toBe('bottom')
+    expect(wm.text()).toMatch(/SeatMark|座签|seatmark\.cn|^$/)
   })
 
-  it('小标签水印退回短版域名', () => {
+  it('小标签水印退回短文本或纯图标（宽度受限时形态收窄）', () => {
     const t = cloneTemplate(standard)
     t.label.width = 40
     const wrapper = mount(LabelCard, {
@@ -168,7 +172,10 @@ describe('LabelCard', () => {
         watermark: true,
       },
     })
-    expect(wrapper.find('.label-watermark').text()).toBe('seatmark.cn')
+    const wm = wrapper.find('.label-watermark')
+    // 40mm 小标签四边均被字段占用 → 斜向兜底，内容收窄为短文本或纯图标
+    expect(['line', 'iconLine', 'icon']).toContain(wm.attributes('data-kind'))
+    expect(wm.text()).toMatch(/^(SeatMark 座签|seatmark\.cn|SeatMark|座签)?$/)
   })
 
   it('第 370 轮：水印底边内缩 inset = max(1.0, size*0.3 + 0.4)，与底边框线留出间隙；顶边退让分支同用该 inset', () => {

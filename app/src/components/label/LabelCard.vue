@@ -115,9 +115,10 @@ import { computed, type CSSProperties } from 'vue'
 import { localizeSampleText } from '@/data/demoDatasets'
 import { combineFontStacks, DEFAULT_FONT_STACK, withRareCJKFallback } from '@/data/fonts'
 import { currentLocale, t, t as tr } from '@/i18n'
+import BrandMark from '@/components/ui/BrandMark.vue'
 import { qrToSvg } from '@/utils/qrcode'
 import { sanitizeDecorSvg } from '@/utils/svgSanitize'
-import { watermarkPlacement, watermarkToneFor } from '@/utils/watermark'
+import { watermarkPlacement, watermarkToneFor, type WatermarkContent } from '@/utils/watermark'
 import type { LabelTemplate, TemplateField } from '@/types/template'
 
 const props = withDefaults(
@@ -152,14 +153,19 @@ const watermarkTone = computed(() =>
   }),
 )
 
+/** 品牌图形标定位点：浅色水印下用深色点保证可辨识 */
+const watermarkDot = computed(() => (watermarkTone.value === 'light' ? '#1e293b' : '#ffffff'))
+
 /**
  * 水印落位自适应：优先底边签名带（印刷厂版权脚注式），依次退到顶边、
  * 右边、左边竖排签名带；四边都被字段占用时用斜向浅水印兜底，
  * 低透明度压在字段上但不遮挡辨识，任何模板都不再出现文字级重叠。
+ * 内容形态（纯图标 / 图标+名称 / 图标+域名 / 名称上下排 / 纯文字）
+ * 按模板 id 在候选池中轮换，不同模板呈现不同形式。
  */
 const watermarkLayout = computed<{
   variant: 'bottom' | 'top' | 'right' | 'left' | 'diagonal'
-  text: string
+  content: WatermarkContent
   style: CSSProperties
   innerStyle: CSSProperties
 }>(() => {
@@ -167,6 +173,7 @@ const watermarkLayout = computed<{
     width: props.template.label.width,
     height: props.template.label.height,
     fields: props.template.fields,
+    seed: props.template.id,
   })
   const style: CSSProperties = {
     left: `${p.leftMm}mm`,
@@ -177,14 +184,14 @@ const watermarkLayout = computed<{
   }
   const innerStyle: CSSProperties = {}
   if (p.variant === 'diagonal') {
-    // 全幅容器内文本沿对角线斜放
-    innerStyle.transform = `rotate(${-p.rotateDeg}deg)`
+    // 全幅容器内文本沿对角线斜放（纯图标幽灵印不旋转）
+    if (p.content.kind !== 'icon') innerStyle.transform = `rotate(${-p.rotateDeg}deg)`
   } else if (p.rotateDeg) {
     // 左右竖排签名带：整条带绕左上原点旋转贴边（比 writing-mode 导出更可靠）
     style.transform = `rotate(${p.rotateDeg}deg)`
     style.transformOrigin = '0 0'
   }
-  return { variant: p.variant, text: p.text, style, innerStyle }
+  return { variant: p.variant, content: p.content, style, innerStyle }
 })
 
 const SAMPLE_FALLBACK: Record<string, string> = {
@@ -402,19 +409,56 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
       :class="{
         'label-watermark--light': watermarkTone === 'light',
         'label-watermark--diagonal': watermarkLayout.variant === 'diagonal',
+        'label-watermark--ghost-icon':
+          watermarkLayout.variant === 'diagonal' && watermarkLayout.content.kind === 'icon',
       }"
       :style="watermarkLayout.style"
       :data-variant="watermarkLayout.variant"
+      :data-kind="watermarkLayout.content.kind"
       aria-hidden="true"
     >
       <template v-if="watermarkLayout.variant === 'diagonal'">
-        <span class="label-watermark__text" :style="watermarkLayout.innerStyle">{{
-          watermarkLayout.text
-        }}</span>
+        <!-- 纯图标幽灵印：不旋转，整幅居中 -->
+        <BrandMark
+          v-if="watermarkLayout.content.kind === 'icon'"
+          class="label-watermark__glyph"
+          :dot="watermarkDot"
+        />
+        <span v-else class="label-watermark__diag" :style="watermarkLayout.innerStyle">
+          <span
+            v-if="watermarkLayout.content.kind === 'stacked'"
+            class="label-watermark__stack"
+          >
+            <span>{{ watermarkLayout.content.line1 }}</span>
+            <span>{{ watermarkLayout.content.line2 }}</span>
+          </span>
+          <span
+            v-else-if="watermarkLayout.content.kind === 'iconStacked'"
+            class="label-watermark__stack"
+          >
+            <BrandMark class="label-watermark__icon label-watermark__icon--lg" :dot="watermarkDot" />
+            <span>{{ watermarkLayout.content.text }}</span>
+          </span>
+          <template v-else>
+            <BrandMark
+              v-if="watermarkLayout.content.kind === 'iconLine'"
+              class="label-watermark__icon"
+              :dot="watermarkDot"
+            />
+            <span>{{ watermarkLayout.content.text }}</span>
+          </template>
+        </span>
       </template>
       <template v-else>
         <span class="label-watermark__rule" />
-        <span class="label-watermark__text">{{ watermarkLayout.text }}</span>
+        <BrandMark
+          v-if="watermarkLayout.content.kind === 'icon' || watermarkLayout.content.kind === 'iconLine'"
+          class="label-watermark__icon"
+          :dot="watermarkDot"
+        />
+        <span v-if="watermarkLayout.content.kind !== 'icon'" class="label-watermark__text">{{
+          'text' in watermarkLayout.content ? watermarkLayout.content.text : ''
+        }}</span>
         <span class="label-watermark__rule" />
       </template>
     </div>

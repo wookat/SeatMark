@@ -392,6 +392,51 @@
   color: rgba(255, 255, 255, 0.2);
 }
 
+/* 纯图标幽灵印：比文字斜印略深一点，保证浅格可辨 */
+.label-watermark--diagonal.label-watermark--ghost-icon {
+  color: rgba(100, 116, 139, 0.22);
+}
+
+.label-watermark--diagonal.label-watermark--ghost-icon.label-watermark--light {
+  color: rgba(255, 255, 255, 0.26);
+}
+
+/* 沿对角线排布的内层容器（图标+文字 或 上下两行） */
+.label-watermark__diag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  white-space: nowrap;
+}
+
+/* 上下两行排列（名称上下排 / 图标在上） */
+.label-watermark__stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3em;
+  line-height: 1.18;
+  text-align: center;
+}
+
+/* 品牌图形标：随 currentColor 与水印字号缩放（em 相对单位） */
+.label-watermark__icon {
+  inline-size: 1.05em;
+  block-size: 1.05em;
+  flex: none;
+}
+
+.label-watermark__icon--lg {
+  inline-size: 1.6em;
+  block-size: 1.6em;
+}
+
+/* 斜向纯图标幽灵印：fontSizeMm 即图标边长 */
+.label-watermark__glyph {
+  inline-size: 1em;
+  block-size: 1em;
+}
+
 .label-watermark__rule {
   flex: 1;
   block-size: 0.12mm;
