@@ -817,4 +817,10 @@ export const enTemplateDescriptions: Record<string, string> = {
   '70×37.1 mm 二四格圆角，圆点描边风格，学号与姓名双行排版，课本作业本统一标识。': '70×37.1 mm 24-up rounded tag in dotted-outline style with student ID and name rows — uniform book and workbook labels.',
   'Φ60 mm 圆形封口贴，品名环形排布、生产日期居中，糕点酱料罐装出货标记。': '60mm round seal: product name on the ring, production date centered — a freshness marker for jars and pastry packs.',
   '对折三角桌牌，居中大字排布嘉宾与席位信息，论坛发布会的来宾席标识。': 'Folded table tent with centered large-type guest and seat info — a dignified marker for forum and launch-event guests.',
+  '105×49.5 mm 十二格，顶部色条配物品名与类别，储物间、地下室与库房的分类标识。': '105×49.5 mm twelve-up tag with a color-bar category and bold item name — order for storage rooms, basements and warehouse shelves.',
+  '70×29.7 mm 三十格圆点描边姓名贴，水杯餐具与文具的高频防水标识。': '70×29.7 mm 30-up dotted-outline name sticker for bottles, lunch boxes and stationery — the waterproof everyday label.',
+  '105×99 mm 六格大字收纳箱贴，物品名与存放位置两行，搬家箱与库房箱的箱面标识。': '105×99 mm six-up large-print bin label with item name and location rows — the box-side marker for moving and storage.',
+  '63.5×46.6 mm 圆角十八格，圆点描边配调料名与备注，厨房调味罐的统一标识。': '63.5×46.6 mm rounded 18-up label with dotted outline, spice name and note — a uniform look for the whole spice rack.',
+  '101.6×50.8 mm 十格易碎运输贴，顶部警示色条配易碎提示，玻璃陶瓷与精密件的发货标识。': '101.6×50.8 mm ten-up fragile shipping label with a red warning bar and handling note — for glass, ceramics and instruments.',
+  '105×37.1 mm 十六格，顶部色条配档案名与类别，文件盒、卷宗盒与票据盒的盒面标识。': '105×37.1 mm 16-up label with a color-bar category and bold archive name — for file, dossier and receipt boxes.',
 }

@@ -1732,4 +1732,86 @@ export const paperSeries2Templates: LabelTemplate[] = [
     demoDataset: 'meeting',
     ...lay(cardC(dims('avery-5302').w, dims('avery-5302').h, '#7c3aed', '嘉宾')),
   }),
+
+  // ================================================================
+  // 第四批：高频纸型第三/四设计（收纳/姓名/厨房/运输/档案）
+  // ================================================================
+
+  // ---- a4-12up（105×49.5 ×12）----
+  pt('a4-12up', false, {
+    id: 'ppStorageTag12',
+    name: '十二·储物间分类贴',
+    category: 'life',
+    description: '105×49.5 mm 十二格，顶部色条配物品名与类别，储物间、地下室与库房的分类标识。',
+    scenario: 'A4 十二格不干胶专用',
+    accent: '#b45309',
+    sampleData: { name: '换季衣物', sub: '储物间 A 区' },
+    demoDataset: 'asset',
+    ...lay(nsBar(dims('a4-12up').w, dims('a4-12up').h, '#b45309', '储物间 A 区', '类别', 'sub')),
+  }),
+
+  // ---- a4-30up（70×29.7 ×30）----
+  pt('a4-30up', false, {
+    id: 'ppWaterName30',
+    name: '三十·防水姓名贴',
+    category: 'kids',
+    description: '70×29.7 mm 三十格圆点描边姓名贴，水杯餐具与文具的高频防水标识。',
+    scenario: 'A4 三十格不干胶专用',
+    accent: '#0284c7',
+    sampleData: { name: '乐乐', sub: '小（1）班' },
+    demoDataset: 'kindergarten',
+    ...lay(nsDots(dims('a4-30up').w, dims('a4-30up').h, '#0284c7', '小（1）班', '乐乐')),
+  }),
+
+  // ---- a4-6up（105×99 ×6）----
+  pt('a4-6up', false, {
+    id: 'ppStorageBox6c',
+    name: '六格·收纳箱大字贴',
+    category: 'life',
+    description: '105×99 mm 六格大字收纳箱贴，物品名与存放位置两行，搬家箱与库房箱的箱面标识。',
+    scenario: 'A4 六格不干胶专用',
+    accent: '#b45309',
+    sampleData: { name: '冬季被褥', sub: '储藏室顶层' },
+    demoDataset: 'asset',
+    ...lay(nsBar(dims('a4-6up').w, dims('a4-6up').h, '#b45309', '储藏室顶层', '类别', 'sub')),
+  }),
+
+  // ---- a4-18up-round（63.5×46.6 ×18 圆角）----
+  pt('a4-18up-round', false, {
+    id: 'ppSpice18c',
+    name: '一八·厨房调料贴',
+    category: 'life',
+    description: '63.5×46.6 mm 圆角十八格，圆点描边配调料名与备注，厨房调味罐的统一标识。',
+    scenario: 'A4 圆角十八格不干胶专用',
+    accent: '#b45309',
+    sampleData: { name: '食盐', sub: '低钠' },
+    demoDataset: 'restaurant',
+    ...lay(nsDots(dims('a4-18up-round').w, dims('a4-18up-round').h, '#b45309', '低钠', '食盐')),
+  }),
+
+  // ---- avery-5163（101.6×50.8 ×10）----
+  pt('avery-5163', false, {
+    id: 'ppFragile5163',
+    name: '5163·易碎运输贴',
+    category: 'life',
+    description: '101.6×50.8 mm 十格易碎运输贴，顶部警示色条配易碎提示，玻璃陶瓷与精密件的发货标识。',
+    scenario: 'Avery 5163 运输标签专用',
+    accent: '#dc2626',
+    sampleData: { name: '易碎品', sub: '请轻放 · 此面朝上' },
+    demoDataset: 'asset',
+    ...lay(nsBar(dims('avery-5163').w, dims('avery-5163').h, '#dc2626', '请轻放 · 此面朝上', '类别', 'sub')),
+  }),
+
+  // ---- a4-16up（105×37.1 ×16）----
+  pt('a4-16up', false, {
+    id: 'ppFileTag16',
+    name: '十六·文件盒分类贴',
+    category: 'life',
+    description: '105×37.1 mm 十六格，顶部色条配档案名与类别，文件盒、卷宗盒与票据盒的盒面标识。',
+    scenario: 'A4 十六格不干胶专用',
+    accent: '#334155',
+    sampleData: { name: '2025 年度合同', sub: '财务档案' },
+    demoDataset: 'asset',
+    ...lay(nsBar(dims('a4-16up').w, dims('a4-16up').h, '#334155', '财务档案', '类别', 'sub')),
+  }),
 ]

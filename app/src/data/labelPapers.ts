@@ -239,8 +239,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppLibZone6',
       'large',
       'warehouseShelf',
-      'checkinZone',
-    ],
+      'checkinZone', 'ppStorageBox6c',],
   },
   {
     slug: 'a4-6up-strip',
@@ -426,8 +425,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppFileTag12H',
       'withPhoto',
       'detailed',
-      'dormBed',
-    ],
+      'dormBed', 'ppStorageTag12',],
   },
   {
     slug: 'a4-12up-3x4',
@@ -546,7 +544,7 @@ export const labelPapers: LabelPaperSpec[] = [
     corner: 'square',
     description: 'A4 十六等分（105×37.1 mm），一页 16 枚，考号贴与图书标签的高性价比之选。',
     uses: ['考号贴', '图书角标签', '物品归位贴'],
-    recommendedTemplates: ['examNo', 'bookLabel', 'shelfCategory'],
+    recommendedTemplates: ['examNo', 'bookLabel', 'shelfCategory', 'ppFileTag16',],
   },
   {
     slug: 'a4-16up-round',
@@ -590,8 +588,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppOpenDate18r',
       'standard',
       'deskName',
-      'minimal',
-    ],
+      'minimal', 'ppSpice18c',],
   },
   {
     slug: 'a4-20up',
@@ -760,8 +757,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppSupplyTag30',
       'seatOnly',
       'kidsName',
-      'assetTag',
-    ],
+      'assetTag', 'ppWaterName30',],
   },
   {
     slug: 'a4-30up-round',
@@ -1106,8 +1102,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppShip5163H',
       'standard',
       'infoStrip',
-      'warehouseShelf',
-    ],
+      'warehouseShelf', 'ppFragile5163',],
   },
   {
     slug: 'avery-5164',
