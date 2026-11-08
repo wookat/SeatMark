@@ -1529,7 +1529,7 @@ function toPlaceCards() {
       <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
         {{ tr('宴会座位表生成器') }}
       </h1>
-      <p class="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+      <p class="mx-auto mt-2 max-w-2xl text-sm leading-7 text-slate-600">
         {{ tr('婚宴、年会、答谢宴的桌位安排：粘贴宾客名单并分组，选圆桌/长桌/U 形等场地布局，一键自动分配（优先把同组宾客排在同桌），拖拽微调后导出 A4/A3 高清座位图直接打印。名单不会上传，数据只留在这台设备的浏览器里。') }}
       </p>
       <p class="mt-2 text-xs text-slate-500">

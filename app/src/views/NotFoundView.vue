@@ -14,7 +14,7 @@ const recommendedGuides = footerGuideLinks.slice(0, 3)
     <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
       {{ t('页面不存在或已被移动') }}
     </h1>
-    <p class="mx-auto mt-4 max-w-xl text-sm leading-6 text-slate-600">
+    <p class="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-600">
       {{ t('你访问的地址没有对应的页面。可能是链接拼写有误，或该内容已经调整位置。 下面是一些常用入口，或直接进入标签工坊开始制作。') }}
     </p>
 

@@ -84,7 +84,7 @@ const SCENARIOS = computed(() =>
     </div>
 
     <!-- 适用场景 -->
-    <h2 class="mt-10 text-lg font-bold text-slate-900">{{ isEn ? 'Where it fits' : '适用场景' }}</h2>
+    <h2 class="mt-12 text-lg font-bold text-slate-900">{{ isEn ? 'Where it fits' : '适用场景' }}</h2>
     <ul class="mt-3 grid gap-2 sm:grid-cols-2">
       <li v-for="s in SCENARIOS" :key="s" class="flex items-center gap-2 text-sm text-slate-700">
         <svg class="size-4 shrink-0 text-emerald-500" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3.5 8.5 3 3 6-7" /></svg>

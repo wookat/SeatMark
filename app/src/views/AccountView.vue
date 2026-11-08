@@ -588,7 +588,8 @@ function formatDate(iso: string | null | undefined): string {
     <template v-else>
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{{ t('个人中心') }}</h1>
+          <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">SeatMark</p>
+          <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">{{ t('个人中心') }}</h1>
           <p class="mt-1 text-sm text-slate-600">{{ auth.user.email }}</p>
         </div>
         <span

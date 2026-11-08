@@ -255,7 +255,7 @@ const recommendedItems = computed(() => {
       <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
         {{ t('标签模板库') }}
       </h1>
-      <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+      <p class="mx-auto mt-3 max-w-2xl text-sm leading-7 text-slate-600">
         {{ fill('{n} 款免费内置模板覆盖考场座签、考号贴、课桌姓名贴、会议桌牌、出入证、学生证、工作证等场景，含按不干胶版型设计的专用模板，全部以毫米为单位精确排版，点击任意模板查看详情，或直接开始生成。', { n: items.length }) }}
       </p>
       <ZhOnlyNotice variant="templates" />

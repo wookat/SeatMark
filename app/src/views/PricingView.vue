@@ -154,12 +154,12 @@ async function startPay(plan: string) {
       <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
         {{ t('定价方案') }}
       </h1>
-      <p class="mx-auto mt-4 max-w-xl text-sm leading-6 text-slate-600">
+      <p class="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-600">
         {{ t('带水印导出与打印完全不限次数；无水印导出每天') }} {{ QUOTA_ANON_DAILY }} {{ t('次（登录后') }}
         {{ QUOTA_USER_DAILY }} {{ t('次），分享可再送次数。') }}
       </p>
       <p
-        class="mx-auto mt-1.5 max-w-xl text-sm leading-6 text-slate-600"
+        class="mx-auto mt-1.5 max-w-xl text-sm leading-7 text-slate-600"
         data-testid="pricing-signup-benefit"
       >
         <template v-if="auth.serviceUnavailable">
@@ -292,7 +292,7 @@ async function startPay(plan: string) {
       <h2 class="text-center text-2xl font-bold tracking-tight text-slate-900">
         {{ t('纸型与定制服务') }}
       </h2>
-      <p class="mx-auto mt-3 max-w-xl text-center text-sm leading-6 text-slate-600">
+      <p class="mx-auto mt-3 max-w-xl text-center text-sm leading-7 text-slate-600">
         {{ t('除模板工具外，我们还提供不干胶纸型售卖与按纸型定制模板的人工服务。') }}
       </p>
       <div class="mt-8 grid gap-5 md:grid-cols-3">

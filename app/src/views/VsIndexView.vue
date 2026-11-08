@@ -42,7 +42,7 @@ const EN_FEATURED: EnIndexFeatured[] = [
       <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
         {{ t('工具对比：SeatMark 与常见桌牌席卡做法') }}
       </h1>
-      <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+      <p class="mx-auto mt-3 max-w-2xl text-sm leading-7 text-slate-600">
         {{ t('基于我们对各工具的实际上手记录，逐项对照名单批量生成、打印拼版、校准精度、隐私与价格，帮你按自己的场景选对工具。措辞如实客观，对方领先项照写。') }}
       </p>
       <ZhOnlyNotice variant="vs" />

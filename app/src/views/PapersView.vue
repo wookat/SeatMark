@@ -140,7 +140,7 @@ function cells(spec: (typeof labelPapers)[number]) {
       <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
         {{ t('不干胶纸型库') }}
       </h1>
-      <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+      <p class="mx-auto mt-3 max-w-2xl text-sm leading-7 text-slate-600">
         {{ t('收录国产电商常见的不干胶分切规格：A4 满切与圆角模切、A3/A5 整版，以及美标 Letter 的 Avery 兼容纸型，共 {n} 种。每种版型配专用模板，选好纸型上传名单即打即贴，详情页可下单同款纸包或定制模板。').replace('{n}', String(labelPapers.length)) }}
       </p>
       <ZhOnlyNotice />

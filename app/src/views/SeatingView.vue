@@ -1543,7 +1543,7 @@ function toDeskLabels() {
       <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
         {{ tr('教室座位表打印') }}
       </h1>
-      <p class="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+      <p class="mx-auto mt-2 max-w-2xl text-sm leading-7 text-slate-600">
         {{ tr('班主任、监考老师用：粘贴名单、设行列与过道，得到可直接打印张贴的 A4 座位表；随机或男女混排，点选就能换位。名单只留在这台设备的浏览器里，不上传。') }}
       </p>
       <p class="mt-2 text-xs text-slate-500">

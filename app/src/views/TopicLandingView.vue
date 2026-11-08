@@ -19,7 +19,7 @@ const stepsHeading = computed(() => (page.value ? topicStepsHeading(page.value) 
       <h1 class="text-3xl leading-tight font-bold tracking-tight text-slate-900 sm:text-4xl">
         {{ page.heading }}
       </h1>
-      <p class="mx-auto mt-4 max-w-2xl text-sm leading-6 text-slate-600">
+      <p class="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-600">
         {{ page.subheading }}
       </p>
       <div class="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
