@@ -2175,12 +2175,12 @@ function toDeskLabels() {
             @click="scrollToSection(s.ref())"
           >
             <span
-              class="flex size-4.5 shrink-0 items-center justify-center rounded-full text-[10px] font-black"
+              class="flex size-4.5 shrink-0 items-center justify-center rounded-full text-[11px] font-black"
               :class="s.done ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-500'"
               aria-hidden="true"
             >{{ i + 1 }}</span>
             <span>{{ s.label }}</span>
-            <span class="text-[10px] font-semibold text-slate-400 group-hover:text-brand-400">{{ s.state }}</span>
+            <span class="text-[11px] font-semibold text-slate-400 group-hover:text-brand-400">{{ s.state }}</span>
           </button>
         </nav>
         <div class="mb-2 flex flex-wrap items-center justify-between gap-2">

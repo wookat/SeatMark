@@ -314,11 +314,11 @@ function cells(spec: (typeof labelPapers)[number]) {
           </div>
           <div class="flex shrink-0 flex-col items-end gap-1">
             <span
-              class="rounded bg-brand-50 px-1.5 py-0.5 text-[10px] font-bold text-brand-600"
+              class="rounded bg-brand-50 px-1.5 py-0.5 text-[11px] font-bold text-brand-600"
             >
               {{ sheetKeyOf(p) }}
             </span>
-            <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+            <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-500">
               {{ t(formOf(p)) }}
             </span>
           </div>

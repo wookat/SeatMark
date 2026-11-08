@@ -87,7 +87,7 @@ function pick(icon: VectorIcon) {
           stroke-linejoin="round"
           v-html="icon.body"
         ></svg>
-        <span class="text-[10px] font-semibold text-slate-600">{{ icon.name }}</span>
+        <span class="text-[11px] font-semibold text-slate-600">{{ icon.name }}</span>
       </button>
     </div>
 

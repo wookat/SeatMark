@@ -457,13 +457,13 @@ watch(
             :style="{ height: `${Math.max(4, (g.count / maxGrowth) * 100)}%` }"
           >
             <span
-              class="pointer-events-none absolute -top-7 left-1/2 hidden -translate-x-1/2 rounded bg-slate-900 px-1.5 py-0.5 text-[10px] whitespace-nowrap text-white group-hover:block"
+              class="pointer-events-none absolute -top-7 left-1/2 hidden -translate-x-1/2 rounded bg-slate-900 px-1.5 py-0.5 text-[11px] whitespace-nowrap text-white group-hover:block"
             >
               {{ g.date.slice(5) }}：{{ g.count }}
             </span>
           </div>
         </div>
-        <div class="mt-1 flex justify-between text-[10px] text-slate-600">
+        <div class="mt-1 flex justify-between text-[11px] text-slate-600">
           <span>{{ overview.growth[0]?.date }}</span>
           <span>{{ overview.growth[overview.growth.length - 1]?.date }}</span>
         </div>

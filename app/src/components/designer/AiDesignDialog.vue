@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 
 import { t } from '@/i18n'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
+import SelectField, { type SelectOption } from '@/components/ui/SelectField.vue'
 import type { AiDesignResult } from '@/utils/aiDesign'
 import {
   AiHttpError,
@@ -61,6 +62,13 @@ const BACKGROUND_OPTIONS = [
   { value: 'tint', label: '主色底纹' },
 ] as const
 
+const translatedOptions = (list: readonly { value: string; label: string }[]): SelectOption[] =>
+  list.map((o) => ({ value: o.value, label: t(o.label) }))
+
+const orientationOptions = computed(() => translatedOptions(ORIENTATION_OPTIONS))
+const styleOptions = computed(() => translatedOptions(STYLE_OPTIONS))
+const backgroundOptions = computed(() => translatedOptions(BACKGROUND_OPTIONS))
+
 const config = ref(loadAiConfig())
 
 const fieldsText = ref('')
@@ -97,6 +105,26 @@ function siteModelLabel(m: { id: string; label: string }): string {
 const isSiteServed = computed(
   () => config.value.provider === 'auto' || config.value.provider.startsWith('site:'),
 )
+
+/** 生成模型选项：原 <optgroup> 分组展平为 hint（站点提供 / 需 API Key） */
+const providerOptions = computed<SelectOption[]>(() => [
+  { value: 'auto', label: t('自适应 · 站点推荐（无需配置）') },
+  ...siteModels.value.map((m) => ({
+    value: `site:${m.id}`,
+    label: siteModelLabel(m),
+    hint: t('站点提供'),
+  })),
+  ...(activePreset.value
+    ? [
+        {
+          value: activePreset.value.id,
+          label: `${t(activePreset.value.name)} · ${t(activePreset.value.freeNote)}`,
+          hint: t('需 API Key'),
+        },
+      ]
+    : []),
+  { value: 'custom', label: t('自定义 OpenAI 兼容接口…') },
+])
 
 /** 当前选中 BYOK 预设的密钥/模型条目（不存在时创建并持久化到 config） */
 function byokEntry(id: string) {
@@ -260,27 +288,15 @@ async function generate() {
         <div class="grid grid-cols-3 gap-2">
           <div>
             <label class="field-label">{{ t('排列方向') }}</label>
-            <select v-model="orientation" class="input-field">
-              <option v-for="o in ORIENTATION_OPTIONS" :key="o.value" :value="o.value">
-                {{ t(o.label) }}
-              </option>
-            </select>
+            <SelectField v-model="orientation" :options="orientationOptions" />
           </div>
           <div>
             <label class="field-label">{{ t('整体风格') }}</label>
-            <select v-model="style" class="input-field">
-              <option v-for="o in STYLE_OPTIONS" :key="o.value" :value="o.value">
-                {{ t(o.label) }}
-              </option>
-            </select>
+            <SelectField v-model="style" :options="styleOptions" />
           </div>
           <div>
             <label class="field-label">{{ t('背景') }}</label>
-            <select v-model="background" class="input-field">
-              <option v-for="o in BACKGROUND_OPTIONS" :key="o.value" :value="o.value">
-                {{ t(o.label) }}
-              </option>
-            </select>
+            <SelectField v-model="background" :options="backgroundOptions" />
           </div>
         </div>
         <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
@@ -322,21 +338,8 @@ async function generate() {
 
       <div>
         <label class="field-label">{{ t('生成模型') }}</label>
-        <select v-model="config.provider" class="input-field" data-testid="ai-model-select">
-          <option value="auto">{{ t('自适应 · 站点推荐（无需配置）') }}</option>
-          <optgroup v-if="siteModels.length" :label="t('站点提供（无需配置）')">
-            <option v-for="m in siteModels" :key="m.id" :value="`site:${m.id}`">
-              {{ siteModelLabel(m) }}
-            </option>
-          </optgroup>
-          <!-- BYOK 组不再对新用户展示；仅当历史配置选中了某预设时渲染该项，保证旧选择可用 -->
-          <optgroup v-if="activePreset" :label="t('免费模型（需自己的 API Key）')">
-            <option :value="activePreset.id">
-              {{ t(activePreset.name) }} · {{ t(activePreset.freeNote) }}
-            </option>
-          </optgroup>
-          <option value="custom">{{ t('自定义 OpenAI 兼容接口…') }}</option>
-        </select>
+        <!-- BYOK 预设仅当历史配置选中时出现（providerOptions 内条件挂载），保证旧选择可用 -->
+        <SelectField v-model="config.provider" :options="providerOptions" data-testid="ai-model-select" />
 
         <p v-if="isSiteServed" class="mt-2 text-[11px] leading-4 text-slate-600">
           {{ t('仅经本站同源代理调用，浏览器不直连第三方；仅发送字段名与示例值，不上传完整名单。繁忙时可能失败，可稍后重试或改选其他模型。') }}

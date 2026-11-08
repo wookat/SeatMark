@@ -164,11 +164,11 @@ onBeforeUnmount(() => {
             @click="pickDefault"
           >
             <span class="font-medium">{{ defaultLabelText }}</span>
-            <span class="text-[10px] text-slate-600">{{ t('无需联网') }}</span>
+            <span class="text-[11px] text-slate-600">{{ t('无需联网') }}</span>
           </button>
 
           <template v-for="group in groups" :key="group.label">
-            <p class="px-2.5 pt-2.5 pb-1 text-[10px] font-bold tracking-wider text-slate-600">
+            <p class="px-2.5 pt-2.5 pb-1 text-[11px] font-bold tracking-wider text-slate-600">
               {{ group.label }}
             </p>
             <button
@@ -189,17 +189,17 @@ onBeforeUnmount(() => {
                 <span
                   v-if="aliasApplied(font)"
                   lang="zh"
-                  class="block truncate text-[10px] text-slate-600"
+                  class="block truncate text-[11px] text-slate-600"
                   :style="{ fontFamily: fontStackOf(font) }"
                 >
                   {{ font.name }}
                 </span>
-                <span v-else class="block truncate text-[10px] text-slate-600">
+                <span v-else class="block truncate text-[11px] text-slate-600">
                   {{ font.lang === 'zh' ? font.family : font.preview }}
                 </span>
               </span>
               <span
-                class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600"
+                class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600"
               >
                 {{ t(font.category) }}
               </span>
@@ -255,7 +255,7 @@ onBeforeUnmount(() => {
         </div>
 
         <p
-          class="border-t border-slate-100 bg-slate-50/60 px-3 py-1.5 text-[10px] leading-4 text-slate-600"
+          class="border-t border-slate-100 bg-slate-50/60 px-3 py-1.5 text-[11px] leading-4 text-slate-600"
         >
           {{ t('系统字体本机直接渲染；开源字体来自公共 CDN 按需联网加载，可免费商用') }}
         </p>

@@ -178,7 +178,7 @@ onBeforeUnmount(() => {
             <span class="min-w-0 flex-1 truncate">{{ option.label }}</span>
             <span
               v-if="option.badge"
-              class="shrink-0 rounded px-1 py-0.5 text-[10px] leading-none font-bold"
+              class="shrink-0 rounded px-1 py-0.5 text-[11px] leading-none font-bold"
               :class="BADGE_TONE_CLASS[option.badgeTone ?? 'positive']"
             >
               {{ option.badge }}
@@ -186,7 +186,7 @@ onBeforeUnmount(() => {
             <!-- 窄屏下提示另起一行，不挤占选项名的宽度 -->
             <span
               v-if="option.hint"
-              class="shrink-0 text-[10px] text-slate-600 max-sm:order-last max-sm:min-w-0 max-sm:basis-full max-sm:font-normal"
+              class="shrink-0 text-[11px] text-slate-600 max-sm:order-last max-sm:min-w-0 max-sm:basis-full max-sm:font-normal"
               data-testid="select-option-hint"
             >
               {{ option.hint }}

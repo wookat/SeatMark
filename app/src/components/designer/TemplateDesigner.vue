@@ -1229,7 +1229,7 @@ function save(asNew: boolean) {
           class="fixed z-[70] max-h-80 w-52 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-pop"
           :style="{ left: `${addMenuPos.left}px`, top: `${addMenuPos.top}px` }"
         >
-          <p class="px-2 pt-1 pb-0.5 text-[10px] font-bold tracking-wider text-slate-600">
+          <p class="px-2 pt-1 pb-0.5 text-[11px] font-bold tracking-wider text-slate-600">
             {{ t('常用考务字段') }}
           </p>
           <button
@@ -1241,12 +1241,12 @@ function save(asNew: boolean) {
           >
             {{ preset.name }}
             <span
-              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
+              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[11px] font-bold text-slate-600"
             >
               {{ preset.tag }}
             </span>
           </button>
-          <p class="px-2 pt-2 pb-0.5 text-[10px] font-bold tracking-wider text-slate-600">
+          <p class="px-2 pt-2 pb-0.5 text-[11px] font-bold tracking-wider text-slate-600">
             {{ t('形状与图标') }}
           </p>
           <button
@@ -1258,7 +1258,7 @@ function save(asNew: boolean) {
           >
             {{ preset.name }}
             <span
-              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
+              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[11px] font-bold text-slate-600"
             >
               {{ preset.tag }}
             </span>
@@ -1270,12 +1270,12 @@ function save(asNew: boolean) {
           >
             {{ t('矢量图标库…') }}
             <span
-              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
+              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[11px] font-bold text-slate-600"
             >
               图
             </span>
           </button>
-          <p class="px-2 pt-2 pb-0.5 text-[10px] font-bold tracking-wider text-slate-600">
+          <p class="px-2 pt-2 pb-0.5 text-[11px] font-bold tracking-wider text-slate-600">
             {{ t('空白字段') }}
           </p>
           <button
@@ -1285,7 +1285,7 @@ function save(asNew: boolean) {
           >
             {{ t('空白文本') }}
             <span
-              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
+              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[11px] font-bold text-slate-600"
             >
               文
             </span>
@@ -1297,7 +1297,7 @@ function save(asNew: boolean) {
           >
             {{ t('空白照片') }}
             <span
-              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
+              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[11px] font-bold text-slate-600"
             >
               图
             </span>
@@ -1310,7 +1310,7 @@ function save(asNew: boolean) {
           >
             {{ t('二维码') }}
             <span
-              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
+              class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[11px] font-bold text-slate-600"
             >
               {{ t('码') }}
             </span>
@@ -1540,7 +1540,7 @@ function save(asNew: boolean) {
       >
         <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2.5">
           <h3 class="text-xs font-bold text-slate-700">{{ t('字段') }}</h3>
-          <span class="text-[10px] font-semibold text-slate-600">{{ t('{n} 个').replace('{n}', String(draft.fields.length)) }}</span>
+          <span class="text-[11px] font-semibold text-slate-600">{{ t('{n} 个').replace('{n}', String(draft.fields.length)) }}</span>
         </div>
         <div class="min-h-0 flex-1 overflow-y-auto p-2">
           <ul v-if="draft.fields.length" class="grid gap-1">
@@ -1557,7 +1557,7 @@ function save(asNew: boolean) {
             >
               <span class="flex min-w-0 items-center gap-1.5">
                 <span
-                  class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-600"
+                  class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[11px] font-bold text-slate-600"
                 >
                   {{ field.type === 'image' ? t('图') : field.type === 'qr' ? t('码') : t('文') }}
                 </span>
@@ -1580,7 +1580,7 @@ function save(asNew: boolean) {
             {{ t('还没有字段') }}<br />{{ t('点击工具栏「+ 添加字段」开始') }}
           </p>
         </div>
-        <p class="shrink-0 border-t border-slate-100 px-3 py-2 text-[10px] leading-4 text-slate-600">
+        <p class="shrink-0 border-t border-slate-100 px-3 py-2 text-[11px] leading-4 text-slate-600">
           {{ t('点击选中 · Ctrl+点击多选 · Ctrl+A 全选 · Ctrl+D 复制 · Delete 删除') }}
         </p>
       </aside>
@@ -1645,7 +1645,7 @@ function save(asNew: boolean) {
                     @pointercancel="endDrag"
                   ></span>
                   <span
-                    class="absolute -top-6 left-0 rounded bg-brand-600 px-1.5 py-0.5 text-[10px] font-bold whitespace-nowrap text-white"
+                    class="absolute -top-6 left-0 rounded bg-brand-600 px-1.5 py-0.5 text-[11px] font-bold whitespace-nowrap text-white"
                   >
                     {{ field.label }} · {{ field.x }},{{ field.y }} · {{ field.width }}×{{ field.height }}mm
                   </span>
@@ -1763,7 +1763,7 @@ function save(asNew: boolean) {
             </div>
 
             <p
-              class="col-span-2 mt-1.5 flex items-center gap-2 text-[10px] font-bold tracking-wider text-slate-600"
+              class="col-span-2 mt-1.5 flex items-center gap-2 text-[11px] font-bold tracking-wider text-slate-600"
             >
               {{ t('位置与尺寸') }}
               <span class="h-px flex-1 bg-slate-100"></span>
@@ -1813,7 +1813,7 @@ function save(asNew: boolean) {
           <template v-if="selectedField.type === 'text'">
             <div class="mt-2 grid grid-cols-2 gap-2">
               <p
-                class="col-span-2 mt-1.5 flex items-center gap-2 text-[10px] font-bold tracking-wider text-slate-600"
+                class="col-span-2 mt-1.5 flex items-center gap-2 text-[11px] font-bold tracking-wider text-slate-600"
               >
                 {{ t('文字样式') }}
                 <span class="h-px flex-1 bg-slate-100"></span>
@@ -1905,7 +1905,7 @@ function save(asNew: boolean) {
 
           <div class="mt-2 grid grid-cols-2 gap-2">
             <p
-              class="col-span-2 mt-1.5 flex items-center gap-2 text-[10px] font-bold tracking-wider text-slate-600"
+              class="col-span-2 mt-1.5 flex items-center gap-2 text-[11px] font-bold tracking-wider text-slate-600"
             >
               {{ t('外观') }}
               <span class="h-px flex-1 bg-slate-100"></span>

@@ -46,7 +46,7 @@ const SCENARIOS = computed(() =>
       <BrandMark class="size-10 shrink-0 text-brand-600" />
       <div>
         <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">{{ isEn ? 'About SeatMark' : '关于 SeatMark 座签' }}</p>
-        <h1 class="mt-0.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
           {{ isEn ? 'Batch label printing that runs in your browser' : '在浏览器里批量生成可打印的座签与证卡' }}
         </h1>
       </div>

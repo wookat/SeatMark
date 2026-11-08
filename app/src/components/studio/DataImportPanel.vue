@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import CheckboxField from '@/components/ui/CheckboxField.vue'
 import ModalDialog from '@/components/ui/ModalDialog.vue'
+import SelectField from '@/components/ui/SelectField.vue'
 import RosterEditorGrid from '@/components/studio/RosterEditorGrid.vue'
 import { useDragScroll } from '@/composables/useDragScroll'
 import { t } from '@/i18n'
@@ -25,6 +26,11 @@ const dragging = ref(false)
 
 /** 面板小预览跟随排版顺序（筛选 + 排序后） */
 const previewRows = computed(() => workspace.displayRows.slice(0, 5))
+
+/** 工作表切换下拉选项（sheetName 直接作 label，无需翻译） */
+const sheetOptions = computed(() =>
+  workspace.excel.sheetNames.map((name) => ({ value: name, label: name })),
+)
 
 // 列较多时表格在容器内横向滚动，支持按住拖拽平移查看
 const previewScroller = ref<HTMLElement | null>(null)
@@ -405,21 +411,17 @@ async function onDownloadSample() {
           <p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-600">
             <span class="flex min-w-0 items-center gap-1" data-testid="import-sheet-label">
               <template v-if="workspace.excel.sheetNames.length > 1">
-                <label class="flex items-center gap-1">
+                <span class="flex items-center gap-1">
                   {{ t('工作表') }}
-                  <select
-                    class="max-w-36 cursor-pointer truncate rounded border border-slate-300 bg-white px-1 py-0.5 text-xs text-slate-700"
-                    :value="workspace.excel.sheetName"
+                  <SelectField
+                    class="w-36 shrink-0"
+                    size="sm"
+                    :model-value="workspace.excel.sheetName"
+                    :options="sheetOptions"
                     :aria-label="t('切换工作表')"
-                    @change="
-                      workspace.switchSheet(($event.target as HTMLSelectElement).value)
-                    "
-                  >
-                    <option v-for="name in workspace.excel.sheetNames" :key="name" :value="name">
-                      {{ name }}
-                    </option>
-                  </select>
-                </label>
+                    @update:model-value="workspace.switchSheet($event)"
+                  />
+                </span>
               </template>
               <template v-else>{{ t('工作表') }}{{ t('「') }}{{ workspace.excel.sheetName }}{{ t('」') }}</template>
             </span>
