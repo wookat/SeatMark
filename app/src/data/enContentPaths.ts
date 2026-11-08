@@ -21,6 +21,7 @@ export const EN_CONTENT_DETAIL_PATHS = [
   '/en/guides/eventbrite-attendee-badges',
   '/en/guides/wedding-table-plan-uk',
   '/en/guides/print-avery-tent-cards',
+  '/en/guides/print-avery-address-labels-from-excel',
   '/en/place-card-generator',
   '/en/name-badge-generator',
   '/en/tent-card-generator',
