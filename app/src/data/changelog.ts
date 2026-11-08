@@ -17,13 +17,21 @@ export interface ChangelogDay {
   entries: ChangelogEntry[]
 }
 
-export const CHANGELOG_GENERATED_AT = '2026-11-07'
-export const CHANGELOG_ENTRY_COUNT = 49
+export const CHANGELOG_GENERATED_AT = '2026-11-08'
+export const CHANGELOG_ENTRY_COUNT = 57
 
 export const changelogDays: ChangelogDay[] = [
   {
     date: '2026-11-08',
     entries: [
+      { hash: '4dcd572', kind: 'feature', text: "第六批 6 款纸型专用模板（428→434）" },
+      { hash: '0785f45', kind: 'feature', text: "第五批 6 款纸型专用模板（422→428）" },
+      { hash: 'bc124fe', kind: 'feature', text: "第四批 6 款纸型专用模板（416→422）" },
+      { hash: '6e934ca', kind: 'feature', text: "第三批 6 款纸型专用模板（410→416）" },
+      { hash: '1cf4c45', kind: 'feature', text: "更新记录入构建链、admin 意向单筛选、SelectField 无障碍" },
+      { hash: '16fafce', kind: 'fix', text: "排版收尾——页面副标题行高统一 leading-7、个人中心页头对齐标准" },
+      { hash: '488ffe5', kind: 'fix', text: "统一前端控件与排版——原生 select 清零、页头规格、微文本" },
+      { hash: '32b6c7e', kind: 'feature', text: "更新记录页 /updates——内容由仓库提交历史生成，页脚入口" },
       { hash: '147a4b2', kind: 'feature', text: "第二批 102 款纸型专用模板，56 种纸型全覆盖（308→410）" },
       { hash: '089130c', kind: 'feature', text: "全站文案升级为「纸 × 模板」双产品线叙事" },
       { hash: 'b355ea6', kind: 'feature', text: "横向进纸排版 + 纸型售卖/定制服务区块" },

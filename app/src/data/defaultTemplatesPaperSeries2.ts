@@ -1978,4 +1978,86 @@ export const paperSeries2Templates: LabelTemplate[] = [
     demoDataset: 'restaurant',
     ...lay(nsBar(dims('a4-65up-round').w, dims('a4-65up-round').h, '#b45309', '2026-11-08', '类别', 'sub')),
   }),
+
+  // ================================================================
+  // 第七批：圆角格族群第三设计
+  // ================================================================
+
+  // ---- a4-8up-round（99.1×67.7 ×8 圆角）----
+  pt('a4-8up-round', false, {
+    id: 'ppDoorSign8r',
+    name: '八圆·科室门牌贴',
+    category: 'event',
+    description: '99.1×67.7 mm 圆角八格，单位与房间名双行居中，办公室与教室的科室门牌标识。',
+    scenario: 'A4 圆角八格不干胶专用',
+    accent: '#1d4ed8',
+    sampleData: { name: '三年级办公室', org: '云杉实验小学', role: '301' },
+    demoDataset: 'meeting',
+    ...lay(deskCard(dims('a4-8up-round').w, dims('a4-8up-round').h, '#1d4ed8')),
+  }),
+
+  // ---- a4-10up-round（99.1×57.7 ×10 圆角）----
+  pt('a4-10up-round', false, {
+    id: 'ppTableCard10r',
+    name: '十圆·培训桌卡',
+    category: 'event',
+    description: '99.1×57.7 mm 圆角十格，单位姓名职务三行排布，培训班与工作坊的学员桌卡。',
+    scenario: 'A4 圆角十格不干胶专用',
+    accent: '#334155',
+    sampleData: { name: '王小明', org: '云杉科技', role: '产品总监' },
+    demoDataset: 'meeting',
+    ...lay(deskCard(dims('a4-10up-round').w, dims('a4-10up-round').h, '#334155')),
+  }),
+
+  // ---- a4-21up-round（63.5×38.1 ×21 圆角）----
+  pt('a4-21up-round', false, {
+    id: 'ppEngName21r',
+    name: '二一圆·英文姓名贴',
+    category: 'teaching',
+    description: '63.5×38.1 mm 圆角二十一格，顶部色条配英文名与中文名，双语课堂与国际班的姓名标识。',
+    scenario: 'A4 圆角二十一格不干胶专用',
+    accent: '#7c3aed',
+    sampleData: { name: 'Emma', sub: '王小明' },
+    demoDataset: 'classroom',
+    ...lay(nsBar(dims('a4-21up-round').w, dims('a4-21up-round').h, '#7c3aed', '王小明', '班级', 'sub')),
+  }),
+
+  // ---- a4-24up-round（63.5×33.9 ×24 圆角）----
+  pt('a4-24up-round', false, {
+    id: 'ppDateTag24r',
+    name: '二四圆·食品日期贴',
+    category: 'life',
+    description: '63.5×33.9 mm 圆角二十四格，顶部色条配品名与日期，辅食分装与厨房备餐的日期标。',
+    scenario: 'A4 圆角二十四格不干胶专用',
+    accent: '#b45309',
+    sampleData: { name: '开封日期', sub: '2026-11-08' },
+    demoDataset: 'restaurant',
+    ...lay(nsBar(dims('a4-24up-round').w, dims('a4-24up-round').h, '#b45309', '2026-11-08', '类别', 'sub')),
+  }),
+
+  // ---- a4-30up-round（63.5×28 ×30 圆角）----
+  pt('a4-30up-round', false, {
+    id: 'ppCupName30r',
+    name: '三十圆·水杯姓名贴',
+    category: 'kids',
+    description: '63.5×28 mm 圆角三十格圆点描边姓名贴，姓名班级小号排版，保温杯与餐具的归属标识。',
+    scenario: 'A4 圆角三十格不干胶专用',
+    accent: '#ec4899',
+    sampleData: { name: '乐乐', sub: '小（1）班' },
+    demoDataset: 'kindergarten',
+    ...lay(nsDots(dims('a4-30up-round').w, dims('a4-30up-round').h, '#ec4899', '小（1）班', '乐乐')),
+  }),
+
+  // ---- a4-32up-round（47×33 ×32 圆角）----
+  pt('a4-32up-round', false, {
+    id: 'ppPlantTag32r',
+    name: '三二圆·植物标记贴',
+    category: 'life',
+    description: '47×33 mm 圆角三十二格，顶部色条配植物名与日期，阳台绿植与育苗盆的标记。',
+    scenario: 'A4 圆角三十二格不干胶专用',
+    accent: '#16a34a',
+    sampleData: { name: '多肉 · 玉露', sub: '2026-11-08' },
+    demoDataset: 'asset',
+    ...lay(nsBar(dims('a4-32up-round').w, dims('a4-32up-round').h, '#16a34a', '2026-11-08', '类别', 'sub')),
+  }),
 ]

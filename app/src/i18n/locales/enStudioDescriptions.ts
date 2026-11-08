@@ -835,4 +835,10 @@ export const enTemplateDescriptions: Record<string, string> = {
   '48×16.9 mm 六十八格超小贴，顶部色条配编号与学号，物品编码与迷你序号的密排标。': '48×16.9 mm 68-up micro tag with a color-bar label and bold ID — dense numbering for items, books and equipment.',
   '52.5×21.2 mm 五十六格圆点描边姓名贴，姓名班级小号排版，笔袋尺规的文具归属标识。': '52.5×21.2 mm 56-up dotted-outline name tag — small-type name and class ownership labels for pencil cases and rulers.',
   '38.1×21.2 mm 圆角六十五格迷你贴，顶部色条配开封与日期，食品开封与保质标记。': '38.1×21.2 mm rounded 65-up mini label with a color-bar and bold date — opened-date and freshness marks for jars and packs.',
+  '99.1×67.7 mm 圆角八格，单位与房间名双行居中，办公室与教室的科室门牌标识。': '99.1×67.7 mm rounded 8-up door sign with unit and room name centered — office and classroom door plates.',
+  '99.1×57.7 mm 圆角十格，单位姓名职务三行排布，培训班与工作坊的学员桌卡。': '99.1×57.7 mm rounded 10-up place card with org, name and role rows — learner desk cards for courses and workshops.',
+  '63.5×38.1 mm 圆角二十一格，顶部色条配英文名与中文名，双语课堂与国际班的姓名标识。': '63.5×38.1 mm rounded 21-up tag with a color-bar Chinese name and bold English name — bilingual classroom labels.',
+  '63.5×33.9 mm 圆角二十四格，顶部色条配品名与日期，辅食分装与厨房备餐的日期标。': '63.5×33.9 mm rounded 24-up label with a color-bar and bold date — freshness marks for baby-food portions and meal prep.',
+  '63.5×28 mm 圆角三十格圆点描边姓名贴，姓名班级小号排版，保温杯与餐具的归属标识。': '63.5×28 mm rounded 30-up dotted-outline name tag — small-type labels for bottles and lunchware.',
+  '47×33 mm 圆角三十二格，顶部色条配植物名与日期，阳台绿植与育苗盆的标记。': '47×33 mm rounded 32-up marker with a color-bar date and bold plant name — labels for balcony plants and seedling pots.',
 }

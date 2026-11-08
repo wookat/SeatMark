@@ -318,8 +318,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppItemTag8rH',
       'standard',
       'gaokaoDesk',
-      'assetTag',
-    ],
+      'assetTag', 'ppDoorSign8r',],
   },
   {
     slug: 'a4-8up-round-90',
@@ -404,8 +403,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppNameCard10rH',
       'standard',
       'deskName',
-      'windowCounter',
-    ],
+      'windowCounter', 'ppTableCard10r',],
   },
   {
     slug: 'a4-12up',
@@ -645,8 +643,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppExamSeat21rH',
       'standard',
       'deskName',
-      'minimal',
-    ],
+      'minimal', 'ppEngName21r',],
   },
   {
     slug: 'a4-22up-round',
@@ -705,8 +702,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppNameTag24r2',
       'standard',
       'minimal',
-      'deskName',
-    ],
+      'deskName', 'ppDateTag24r',],
   },
   {
     slug: 'a4-24up-narrow',
@@ -773,7 +769,7 @@ export const labelPapers: LabelPaperSpec[] = [
     cornerRadius: 2.5,
     description: '63.5×28 mm 30格圆角模切，一页 30 枚窄条标签，批量序号与姓名贴的高密度免裁切选择。',
     uses: ['批量序号贴', '姓名贴', '物品标签'],
-    recommendedTemplates: ['seatOnly', 'minimal', 'examNo'],
+    recommendedTemplates: ['seatOnly', 'minimal', 'examNo', 'ppCupName30r',],
   },
   {
     slug: 'a4-32up-round',
@@ -789,7 +785,7 @@ export const labelPapers: LabelPaperSpec[] = [
     cornerRadius: 2.5,
     description: '47×33 mm 32格圆角模切，一页 32 枚近方标签，彩色/牛皮纸系列的常见 SKU。',
     uses: ['分类标记贴', '小号姓名贴', '价格/编号贴'],
-    recommendedTemplates: ['minimal', 'kidsName', 'labeled'],
+    recommendedTemplates: ['minimal', 'kidsName', 'labeled', 'ppPlantTag32r',],
   },
   {
     slug: 'a4-33up',
