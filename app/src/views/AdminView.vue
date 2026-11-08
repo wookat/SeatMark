@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 
 import { isServiceUnavailableError, useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import SelectField from '@/components/ui/SelectField.vue'
 import { apiFetch, ApiError } from '@/utils/api'
 
 interface Overview {
@@ -256,6 +257,26 @@ const FEEDBACK_LABEL: Record<string, string> = {
   other: '其他',
   order: '购买意向',
   custom: '定制需求',
+}
+
+/** 反馈类型筛选：'' = 全部；购买/定制意向置顶可选 */
+const feedbackTypeFilter = ref('')
+const feedbackTypeOptions = [
+  { value: '', label: '全部类型' },
+  { value: 'order', label: '购买意向' },
+  { value: 'custom', label: '定制需求' },
+  { value: 'suggestion', label: '建议' },
+  { value: 'bug', label: 'Bug' },
+  { value: 'other', label: '其他' },
+]
+const filteredFeedback = computed(() =>
+  feedbackTypeFilter.value ? feedback.value.filter((f) => f.type === feedbackTypeFilter.value) : feedback.value,
+)
+
+/** 购买/定制意向是商机，徽标用醒目色与普通反馈区分 */
+const FEEDBACK_BADGE_CLASS: Record<string, string> = {
+  order: 'bg-brand-100 text-brand-700',
+  custom: 'bg-amber-100 text-amber-800',
 }
 
 /** 访客国家码展示名：常见国家给中文名，其余直接显示两字母码 */
@@ -626,7 +647,12 @@ watch(
 
       <!-- 反馈 -->
       <section class="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-card">
-        <h2 class="text-sm font-bold text-slate-900">用户反馈（{{ feedback.length }}）</h2>
+        <div class="flex items-center justify-between gap-3">
+          <h2 class="text-sm font-bold text-slate-900">
+            用户反馈（{{ filteredFeedback.length }}<template v-if="feedbackTypeFilter"> / {{ feedback.length }}</template>）
+          </h2>
+          <SelectField v-model="feedbackTypeFilter" :options="feedbackTypeOptions" size="sm" class="w-36" />
+        </div>
         <p class="mt-1 text-xs text-slate-600">
           KV 存档的反馈列表（保留 180 天）；同时仍会实时推送到企业微信群（见 /api/feedback）。
         </p>
@@ -634,9 +660,12 @@ watch(
           存档过多，仅展示最近 {{ feedback.length }} 条；更早记录请到存储控制台查看。
         </p>
         <ul class="mt-3 grid gap-3">
-          <li v-for="(f, i) in feedback" :key="i" class="rounded border border-slate-100 bg-slate-50 p-3">
+          <li v-for="(f, i) in filteredFeedback" :key="i" class="rounded border border-slate-100 bg-slate-50 p-3">
             <div class="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-              <span class="rounded bg-slate-200 px-1.5 py-0.5 font-semibold text-slate-700">
+              <span
+                class="rounded px-1.5 py-0.5 font-semibold"
+                :class="FEEDBACK_BADGE_CLASS[f.type] ?? 'bg-slate-200 text-slate-700'"
+              >
                 {{ FEEDBACK_LABEL[f.type] || f.type }}
               </span>
               <span>{{ formatDate(f.createdAt) }}</span>
@@ -645,7 +674,7 @@ watch(
             </div>
             <p class="mt-1.5 text-sm leading-6 text-slate-700">{{ f.content }}</p>
           </li>
-          <li v-if="!feedback.length" class="py-6 text-center text-sm text-slate-600">
+          <li v-if="!filteredFeedback.length" class="py-6 text-center text-sm text-slate-600">
             暂无 KV 存档反馈（未绑定 KV 时反馈仅推送企业微信）
           </li>
         </ul>

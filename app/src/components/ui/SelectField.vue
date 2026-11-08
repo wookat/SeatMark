@@ -33,8 +33,10 @@ const props = withDefaults(
     placeholder?: string
     /** 选项列表展开方向；auto：下方空间不足且上方更宽裕时向上展开（如固定在底部的工具条） */
     placement?: 'auto' | 'down' | 'up'
+    /** 无相邻文字标签时的无障碍名称（落在触发按钮上，如「切换工作表」） */
+    ariaLabel?: string
   }>(),
-  { modelValue: undefined, size: 'md', placeholder: undefined, placement: 'auto' },
+  { modelValue: undefined, size: 'md', placeholder: undefined, placement: 'auto', ariaLabel: undefined },
 )
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
@@ -124,6 +126,7 @@ onBeforeUnmount(() => {
       :class="size === 'sm' ? '!py-1 text-xs max-sm:min-h-9' : ''"
       aria-haspopup="listbox"
       :aria-expanded="open"
+      :aria-label="ariaLabel"
       @click="toggle"
     >
       <span class="min-w-0 flex-1 truncate">{{ current?.label ?? placeholder ?? t('请选择') }}</span>

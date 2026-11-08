@@ -19,11 +19,18 @@ const appDir = dirname(fileURLToPath(import.meta.url)) + '/..'
 const TYPE_MAP = { feat: 'feature', fix: 'fix', perf: 'improve', refactor: 'improve' }
 
 // execFile 直传参数：Windows cmd 会把 %ad 当变量展开，不能走 shell 字符串
-const raw = execFileSync(
-  'git',
-  ['log', '--no-merges', '--pretty=format:%h|%ad|%s', '--date=short'],
-  { cwd: appDir, encoding: 'utf-8' },
-)
+// git 不可用（CI 浅克隆/源码包）时静默退出：构建继续使用已提交的 changelog.ts 快照
+let raw
+try {
+  raw = execFileSync(
+    'git',
+    ['log', '--no-merges', '--pretty=format:%h|%ad|%s', '--date=short'],
+    { cwd: appDir, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] },
+  )
+} catch {
+  console.log('gen-changelog: git history unavailable, keeping existing changelog.ts snapshot')
+  process.exit(0)
+}
 
 const days = new Map() // date -> entries[]
 for (const line of raw.split('\n')) {
