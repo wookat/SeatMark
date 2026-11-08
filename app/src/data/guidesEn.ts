@@ -1116,6 +1116,97 @@ export const enGuides: Guide[] = [
 <h2>When not to use tent stock</h2>
 <p>Place-card-size tents are lovely but not always the right shape — flat cards tuck into napkins, and escort cards carry table numbers. For the comparison, see <a href="/en/guides/escort-cards-vs-place-cards">escort cards vs place cards</a>, and for the general double-sided walkthrough see <a href="/en/guides/double-sided-name-tents">double-sided name tents</a>. The <a href="/en/tent-card-generator">tent card generator</a> page covers the direct workflow.</p>`,
   },
+  {
+    slug: 'print-avery-address-labels-from-excel',
+    title: 'Print address labels from Excel onto Avery sheets',
+    description:
+      'Turn an Excel or CSV address list into perfectly aligned Avery 5160/5163 labels in your browser — the die-cut grid locks automatically, nothing is uploaded.',
+    keywords: [
+      'avery 5160 template',
+      'print address labels from excel',
+      'avery labels from spreadsheet',
+      'mail merge labels without word',
+      'avery 5163 shipping labels',
+    ],
+    category: 'Labels',
+    audiences: ['Small businesses', 'Online sellers', 'Office admins'],
+    datePublished: '2026-11-08',
+    dateModified: '2026-11-08',
+    readingMinutes: 5,
+    howTo: {
+      name: 'Print a batch of Avery address labels from a spreadsheet',
+      steps: [
+        {
+          name: 'Prepare the address list',
+          text: 'One recipient per row in Excel or CSV with name, address and phone columns — headers are matched to label fields automatically.',
+        },
+        {
+          name: 'Pick the sheet model, not a grid',
+          text: 'In the paper library choose your actual sheet — Avery 5160 (30-up) or 5163 (10-up). Rows, margins and gaps lock to the die-cut; no manual measuring.',
+        },
+        {
+          name: 'Choose a layout and preview',
+          text: 'Pick a dedicated address-label template for that sheet, then check a few previews — long addresses wrap automatically.',
+        },
+        {
+          name: 'Export and print at 100%',
+          text: 'Export as PDF and print at exactly 100% scale on the adhesive sheet. Peel and stick — no cutting, no alignment fiddling.',
+        },
+      ],
+    },
+    faqs: [
+      {
+        q: 'Do I need Word mail merge for Avery labels?',
+        a: 'No. SeatMark replaces the merge entirely: import the list, pick your sheet model, and the layout is generated for you — no Word, no template downloads.',
+      },
+      {
+        q: 'Will the print land exactly on the die-cut labels?',
+        a: 'Yes. Each sheet model in the paper library stores its real grid — rows, columns, margins and gaps — and templates are designed against those measurements. Print at 100% scale and it lands on the cuts.',
+      },
+      {
+        q: 'My sheet is not Avery — can I still use it?',
+        a: 'If your sheet is listed, pick its model. If not, enter the label size and grid manually and SeatMark lays out a custom imposition.',
+      },
+      {
+        q: 'Is my address list uploaded anywhere?',
+        a: 'No. Everything is parsed locally in your browser; names and addresses never leave your device, and the tool works offline after first load.',
+      },
+    ],
+    related: ['print-place-cards-from-excel', 'print-avery-tent-cards', 'name-badges-from-spreadsheet'],
+    quickStart: {
+      label: 'Try it with a sample address list',
+      to: '/studio?demo=1',
+      note: 'Opens the studio with demo data — replace it with your own list in one paste.',
+    },
+    body: `
+<h2>Why the mail-merge route feels like work</h2>
+<p>The classic way to print address labels is Word mail merge plus a downloaded template file — and it works, right up until the printer margins shift, a field overflows its box, or the template you found does not quite match the sheet in your hand. The spreadsheet-first route skips all of that: keep the addresses in Excel, and let the tool worry about the grid.</p>
+<p>SeatMark reads your list directly in the browser. Choose the actual adhesive sheet you bought — the die-cut layout is already stored — and every label previews with real data before you spend a single sheet.</p>
+
+<h2>Step 1 — Get the list into shape</h2>
+<p>One recipient per row, headers in the first row. A <code>name</code> column plus <code>address</code> and <code>phone</code> columns cover the common layouts; extra columns just ride along.</p>
+<ol>
+  <li>Save or export the sheet as <code>.xlsx</code> or <code>.csv</code>.</li>
+  <li>Split multi-line addresses into one column if you can — the layout wraps it for you.</li>
+  <li>Check for empty rows between entries; they become blank labels.</li>
+</ol>
+
+<h2>Step 2 — Pick the sheet model, not a grid</h2>
+<p>Open the <a href="/en/papers">paper library</a> and find your sheet — <strong>Avery 5160</strong> (30 address labels per sheet) or <strong>5163</strong> (10 shipping labels) are both there, alongside dozens of common die-cut layouts. The moment you pick it, the rows, margins and gaps lock to the real die-cut. You never measure anything.</p>
+
+<h2>Step 3 — Choose a layout designed for that sheet</h2>
+<p>Every sheet model ships with dedicated templates — address labels in several styles, return-address strips, fragile marks. Pick one and the preview fills with your real rows immediately. Long addresses shrink or wrap instead of silently overflowing the cut line.</p>
+
+<h2>Step 4 — Print on the adhesive sheet</h2>
+<p>Export as PDF and print at <strong>100% scale</strong> on plain paper first if you want a trial run, then on the adhesive sheet. Peel and stick — no scissors, no misaligned cuts. If your printer drifts a fraction of a millimetre, run the built-in calibration once.</p>
+
+<h2>Common pitfalls</h2>
+<ul>
+  <li><strong>"Fit to printable area".</strong> Scaling by even 2% shifts every label off its die-cut — always print at 100%.</li>
+  <li><strong>Wrong sheet model.</strong> A 5160 grid printed on a look-alike sheet lands half a label off — match the model, not the look.</li>
+  <li><strong>Mixed-length addresses.</strong> Check the longest row in preview before printing the batch.</li>
+</ul>`,
+  },
 ]
 
 export function findEnGuide(slug: string): Guide | undefined {
