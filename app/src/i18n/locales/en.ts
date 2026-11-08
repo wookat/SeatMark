@@ -234,8 +234,8 @@ export const en: Record<string, string> = {
   '{n} 张 PNG，打包 zip': '{n} PNG files, zipped',
   '{n} 张 PNG': '{n} PNG file',
   '{n} 张整页 PNG': '{n} full-page PNG',
-  '无水印（消耗 1 次额度）或带底边细线水印': 'watermark-free (uses 1 credit) or thin bottom-edge watermark',
-  '带底边细线水印': 'thin bottom-edge watermark',
+  '无水印（消耗 1 次额度）或带品牌水印': 'watermark-free (uses 1 credit) or branded watermark',
+  '带品牌水印': 'branded watermark',
   '常见问题': 'FAQ',
   '序号命名（前缀-001.png）': 'Sequential names (prefix-001.png)',
   '应用': 'Apply',
@@ -326,8 +326,8 @@ export const en: Record<string, string> = {
   '横向间距 (mm)': 'Horizontal gap (mm)',
   '次': '',
   '款模板': 'templates',
-  '每张标签底边叠加细线签名式品牌水印（细线 + seatmark.cn 小字，配色随模板自适应），不遮挡姓名等核心内容':
-    'A slim signature-style watermark (thin line + small seatmark.cn text, color adapts to the template) is added at the bottom edge of each label without covering names or key content',
+  '每张标签叠加品牌水印（细线签名或斜向浅水印，位置随版式自动避让字段），不遮挡姓名等核心内容':
+    'Each label carries a brand watermark (edge signature or diagonal tint, auto-placed around fields) without covering names or key content',
   '没有匹配的取值': 'No matching values',
   '没有匹配的数据，请调整搜索或列筛选条件': 'No matching data — adjust your search or column filters',
   '没有文件？粘贴名单': 'No file? Paste a list',

@@ -492,7 +492,7 @@ export const labelPapers: LabelPaperSpec[] = [
     corner: 'square',
     description: 'A4 十四等分满切（105×42.4 mm），信息条与座位号的经典窄版，电商最常见 14 格规格。',
     uses: ['信息条标签', '座位号贴', '姓名条贴'],
-    recommendedTemplates: ['infoStrip', 'seatOnly', 'examNo'],
+    recommendedTemplates: ['infoStrip', 'seatOnly', 'examNo', 'ppClassTag14',],
   },
   {
     slug: 'a4-14up-round',
@@ -529,7 +529,7 @@ export const labelPapers: LabelPaperSpec[] = [
     corner: 'square',
     description: '3×5 满切（70×50.8 mm）一页 15 枚，接近名片横版比例，姓名贴与门牌两相宜。',
     uses: ['姓名贴', '座位桌贴', '小型门牌'],
-    recommendedTemplates: ['deskName', 'standard', 'minimal'],
+    recommendedTemplates: ['deskName', 'standard', 'minimal', 'ppBookTag15',],
   },
   {
     slug: 'a4-16up',
@@ -603,7 +603,7 @@ export const labelPapers: LabelPaperSpec[] = [
     corner: 'square',
     description: '97×28 mm 窄条 20 格版式，行列规整好撕取，考号贴与编号贴的高密度选择。',
     uses: ['考号/序号贴', '物品编号贴', '档案编号条'],
-    recommendedTemplates: ['examNo', 'seatOnly', 'assetTag'],
+    recommendedTemplates: ['examNo', 'seatOnly', 'assetTag', 'ppShelfTag20',],
   },
   {
     slug: 'a4-21up',
@@ -736,7 +736,7 @@ export const labelPapers: LabelPaperSpec[] = [
     corner: 'square',
     description: '3×9 满切（70×31.5 mm）一页 27 枚，比 30 格稍高的窄条版式，信息更易辨认。',
     uses: ['座位号贴', '姓名条', '物品标签'],
-    recommendedTemplates: ['seatOnly', 'minimal', 'examNo'],
+    recommendedTemplates: ['seatOnly', 'minimal', 'examNo', 'ppColorTag27',],
   },
   {
     slug: 'a4-30up',
@@ -804,7 +804,7 @@ export const labelPapers: LabelPaperSpec[] = [
     corner: 'square',
     description: '3×11 满切（70×25.4 mm）一页 33 枚，横宽信息条的高密度版式，考号与资产编号适用。',
     uses: ['考号/编号贴', '资产编号条', '信息条标签'],
-    recommendedTemplates: ['examNo', 'seatOnly', 'assetTag'],
+    recommendedTemplates: ['examNo', 'seatOnly', 'assetTag', 'ppSeqTag33',],
   },
   {
     slug: 'a4-40up',
@@ -841,7 +841,7 @@ export const labelPapers: LabelPaperSpec[] = [
     cornerRadius: 2,
     description: '45.7×25.4 mm 40格圆角模切，一页 40 枚，撕取顺手的窄条规格，批量编号贴常用。',
     uses: ['批量编号贴', '迷你姓名贴', '物品标签'],
-    recommendedTemplates: ['minimal', 'seatOnly', 'examNo'],
+    recommendedTemplates: ['minimal', 'seatOnly', 'examNo', 'ppMiniName40',],
   },
   {
     slug: 'a4-44up-round',

@@ -1814,4 +1814,86 @@ export const paperSeries2Templates: LabelTemplate[] = [
     demoDataset: 'asset',
     ...lay(nsBar(dims('a4-16up').w, dims('a4-16up').h, '#334155', '财务档案', '类别', 'sub')),
   }),
+
+  // ================================================================
+  // 第五批：小格纸型第三设计（教学分组/图书/货架/序号/迷你姓名）
+  // ================================================================
+
+  // ---- a4-14up（105×42.4 ×14）----
+  pt('a4-14up', false, {
+    id: 'ppClassTag14',
+    name: '十四·小组编号贴',
+    category: 'teaching',
+    description: '105×42.4 mm 十四格，顶部色条配小组名与科目，课堂分组与小组竞赛的编号标识。',
+    scenario: 'A4 十四格不干胶专用',
+    accent: '#7c3aed',
+    sampleData: { name: '第三小组', sub: '语文阅读' },
+    demoDataset: 'classroom',
+    ...lay(nsBar(dims('a4-14up').w, dims('a4-14up').h, '#7c3aed', '语文阅读', '类别', 'sub')),
+  }),
+
+  // ---- a4-15up（70×50.8 ×15）----
+  pt('a4-15up', false, {
+    id: 'ppBookTag15',
+    name: '十五·图书借阅贴',
+    category: 'teaching',
+    description: '70×50.8 mm 十五格，顶部色条配姓名与班级，班级图书角借阅登记与归还标识。',
+    scenario: 'A4 十五格不干胶专用',
+    accent: '#0d9488',
+    sampleData: { name: '王小明', sub: '三（2）班' },
+    demoDataset: 'classroom',
+    ...lay(nsBar(dims('a4-15up').w, dims('a4-15up').h, '#0d9488', '三（2）班', '班级', 'sub')),
+  }),
+
+  // ---- a4-20up（97×28 ×20）----
+  pt('a4-20up', false, {
+    id: 'ppShelfTag20',
+    name: '二十·货架层板贴',
+    category: 'life',
+    description: '97×28 mm 二十格窄条，顶部色条配品类名与分区，便利店与文具店的层板分类标。',
+    scenario: 'A4 二十格不干胶专用',
+    accent: '#b45309',
+    sampleData: { name: '手作曲奇', sub: '烘焙区' },
+    demoDataset: 'retail',
+    ...lay(nsBar(dims('a4-20up').w, dims('a4-20up').h, '#b45309', '烘焙区', '类别', 'sub')),
+  }),
+
+  // ---- a4-27up（70×31.5 ×27）----
+  pt('a4-27up', false, {
+    id: 'ppColorTag27',
+    name: '二七·彩色分组贴',
+    category: 'kids',
+    description: '70×31.5 mm 二十七格圆点描边分组贴，队名与姓名双行，运动会与夏令营的分组标识。',
+    scenario: 'A4 二十七格不干胶专用',
+    accent: '#ec4899',
+    sampleData: { name: '乐乐', sub: '红队' },
+    demoDataset: 'kindergarten',
+    ...lay(nsDots(dims('a4-27up').w, dims('a4-27up').h, '#ec4899', '红队', '乐乐')),
+  }),
+
+  // ---- a4-33up（70×25.4 ×33）----
+  pt('a4-33up', false, {
+    id: 'ppSeqTag33',
+    name: '三三·序号标记贴',
+    category: 'teaching',
+    description: '70×25.4 mm 三十三格小贴，顶部色条配序号与学号，试卷分拣与座位编号的密排标。',
+    scenario: 'A4 三十三格不干胶专用',
+    accent: '#334155',
+    sampleData: { name: '08', sub: '学号' },
+    demoDataset: 'classroom',
+    ...lay(nsBar(dims('a4-33up').w, dims('a4-33up').h, '#334155', '学号', '类别', 'sub')),
+  }),
+
+  // ---- a4-40up-round（45.7×25.4 ×40 圆角）----
+  pt('a4-40up-round', false, {
+    id: 'ppMiniName40',
+    name: '四十·迷你姓名贴',
+    category: 'kids',
+    description: '45.7×25.4 mm 圆角四十格迷你姓名贴，圆点描边配姓名班级，铅笔橡皮的小面积标识。',
+    scenario: 'A4 圆角四十格不干胶专用',
+    accent: '#0284c7',
+    sampleData: { name: '乐乐', sub: '小（1）班' },
+    demoDataset: 'kindergarten',
+    ...lay(nsDots(dims('a4-40up-round').w, dims('a4-40up-round').h, '#0284c7', '小（1）班', '乐乐')),
+  }),
 ]

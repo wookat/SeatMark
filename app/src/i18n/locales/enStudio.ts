@@ -1481,4 +1481,13 @@ export const enTemplateScenarios: Record<string, string> = {
   '请轻放 · 此面朝上': 'Handle with Care · This Side Up',
   '2025 年度合同': '2025 Annual Contracts',
   '财务档案': 'Finance Archive',
+  '十四·小组编号贴': '14-Up Classroom Group Tag',
+  '十五·图书借阅贴': '15-Up Library Checkout Tag',
+  '二十·货架层板贴': '20-Up Shelf-Edge Category Strip',
+  '二七·彩色分组贴': '27-Up Color-Coded Team Tag',
+  '三三·序号标记贴': '33-Up Numbered Marker Tag',
+  '第三小组': 'Group 3',
+  '语文阅读': 'Chinese Reading',
+  '烘焙区': 'Bakery Zone',
+  '红队': 'Red Team',
 }

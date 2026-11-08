@@ -823,4 +823,10 @@ export const enTemplateDescriptions: Record<string, string> = {
   '63.5×46.6 mm 圆角十八格，圆点描边配调料名与备注，厨房调味罐的统一标识。': '63.5×46.6 mm rounded 18-up label with dotted outline, spice name and note — a uniform look for the whole spice rack.',
   '101.6×50.8 mm 十格易碎运输贴，顶部警示色条配易碎提示，玻璃陶瓷与精密件的发货标识。': '101.6×50.8 mm ten-up fragile shipping label with a red warning bar and handling note — for glass, ceramics and instruments.',
   '105×37.1 mm 十六格，顶部色条配档案名与类别，文件盒、卷宗盒与票据盒的盒面标识。': '105×37.1 mm 16-up label with a color-bar category and bold archive name — for file, dossier and receipt boxes.',
+  '105×42.4 mm 十四格，顶部色条配小组名与科目，课堂分组与小组竞赛的编号标识。': '105×42.4 mm 14-up tag with a color-bar subject and bold group name — numbering for group work and class contests.',
+  '70×50.8 mm 十五格，顶部色条配姓名与班级，班级图书角借阅登记与归还标识。': '70×50.8 mm 15-up tag with a color-bar, name and class — checkout and return labels for the classroom library.',
+  '97×28 mm 二十格窄条，顶部色条配品类名与分区，便利店与文具店的层板分类标。': '97×28 mm 20-up narrow strip with a color-bar zone and category name — shelf-edge signage for shops and stationery aisles.',
+  '70×31.5 mm 二十七格圆点描边分组贴，队名与姓名双行，运动会与夏令营的分组标识。': '70×31.5 mm 27-up dotted-outline team tag with team name and member name — fast color-coded grouping for field days and camps.',
+  '70×25.4 mm 三十三格小贴，顶部色条配序号与学号，试卷分拣与座位编号的密排标。': '70×25.4 mm 33-up mini tag with a color-bar label and bold sequence number — dense numbering for paper sorting and seat maps.',
+  '45.7×25.4 mm 圆角四十格迷你姓名贴，圆点描边配姓名班级，铅笔橡皮的小面积标识。': '45.7×25.4 mm rounded 40-up mini name sticker with dotted outline — tiny ownership labels for pencils and erasers.',
 }

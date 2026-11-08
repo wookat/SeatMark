@@ -70,7 +70,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'teaching-desk',
       name: '教室桌贴',
-      templateIds: ['ppName14', 'ppName15', 'ppName16', 'ppName20', 'ppName24', 'ppName27', 'ppName12n', 'ppName14r', 'ppName16r', 'ppName18r', 'ppName21r', 'ppName22r', 'ppName33', 'ppSid32r', 'ppSidName21', 'ppDutyTag21', 'ppSidName24', 'ppEngName24r', 'ppEngName30',
+      templateIds: ['ppName14', 'ppName15', 'ppName16', 'ppName20', 'ppName24', 'ppName27', 'ppName12n', 'ppName14r', 'ppName16r', 'ppName18r', 'ppName21r', 'ppName22r', 'ppName33', 'ppSid32r', 'ppSidName21', 'ppDutyTag21', 'ppClassTag14', 'ppBookTag15', 'ppSeqTag33', 'ppSidName24', 'ppEngName24r', 'ppEngName30',
         'deskName',
         'infoStrip',
         'trainingDesk',
@@ -144,7 +144,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'kids-name',
       name: '姓名与物品',
-      templateIds: ['ppName30r', 'ppName32r', 'ppName40r', 'ppName68', 'ppPencil24n', 'ppPencil30', 'ppWaterName30', 'ppNameCart21', 'ppNameCart24r', 'ppNameCart40', 'ppName44r', 'ppName48r', 'ppPencil48r', 'ppName56m', 'ppName65r', 'ppPencil65r', 'ppName40', 'ppItemTag40r',
+      templateIds: ['ppName30r', 'ppName32r', 'ppName40r', 'ppName68', 'ppPencil24n', 'ppPencil30', 'ppWaterName30', 'ppColorTag27', 'ppMiniName40', 'ppNameCart21', 'ppNameCart24r', 'ppNameCart40', 'ppName44r', 'ppName48r', 'ppPencil48r', 'ppName56m', 'ppName65r', 'ppPencil65r', 'ppName40', 'ppItemTag40r',
         'kidsName',
         'kidsAnimal',
         'kidsCandy',
@@ -387,7 +387,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'life-service',
       name: '生活服务',
-      templateIds: ['ppPrice10g', 'ppPrice10amber', 'ppPrice10ro',
+      templateIds: ['ppPrice10g', 'ppPrice10amber', 'ppShelfTag20', 'ppPrice10ro',
         'gymLocker',
         'gymClassDoor',
         'spaHook',
