@@ -144,7 +144,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'kids-name',
       name: '姓名与物品',
-      templateIds: ['ppName30r', 'ppName32r', 'ppName40r', 'ppName68', 'ppPencil24n', 'ppPencil30', 'ppWaterName30', 'ppColorTag27', 'ppStationTag56', 'ppMiniName40', 'ppCupName30r', 'ppNameCart21', 'ppNameCart24r', 'ppNameCart40', 'ppName44r', 'ppName48r', 'ppPencil48r', 'ppName56m', 'ppName65r', 'ppPencil65r', 'ppName40', 'ppItemTag40r',
+      templateIds: ['ppName30r', 'ppName32r', 'ppName40r', 'ppName68', 'ppPencil24n', 'ppPencil30', 'ppWaterName30', 'ppColorTag27', 'ppStationTag56', 'ppMiniName40', 'ppCupName30r', 'ppEraserTag48r', 'ppNameCart21', 'ppNameCart24r', 'ppNameCart40', 'ppName44r', 'ppName48r', 'ppPencil48r', 'ppName56m', 'ppName65r', 'ppPencil65r', 'ppName40', 'ppItemTag40r',
         'kidsName',
         'kidsAnimal',
         'kidsCandy',
@@ -190,7 +190,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'event-tent',
       name: '桌牌席卡',
-      templateIds: ['ppTallCard2v', 'ppTraining8', 'ppDeskCard8r90', 'ppTent5302b', 'ppTentGuest5302', 'ppTent5305b', 'ppTentKeynote5305', 'ppTent5309b', 'ppDoorSign8r', 'ppTableCard10r',
+      templateIds: ['ppTallCard2v', 'ppTraining8', 'ppDeskCard8r90', 'ppTent5302b', 'ppTentGuest5302', 'ppTent5305b', 'ppTentKeynote5305', 'ppTentPanel5309', 'ppTent5309b', 'ppDoorSign8r', 'ppTableCard10r',
         'signage',
         'deskHalf',
         'meetingTent',
@@ -325,7 +325,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'archiveBoxSpine',
         'streamGearTag',
         'sharedDesk',
-        'ppFileBox12', 'ppFileTag16',
+        'ppFileBox12', 'ppFileTag16', 'ppKeyTag24n', 'ppCableTag44r', 'ppVialTag22r',
         'ppSerial56',
         'ppSpine120',
         'ppAddr5160',
@@ -408,7 +408,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'life-community',
       name: '社区家庭',
-      templateIds: ['ppSpiceDate18', 'ppOpenDate18b', 'ppDate24r', 'ppNoticeA3b', 'ppNoticeA5b', 'ppTallGuide2v', 'ppItemTag27', 'ppPlantTag32r',
+      templateIds: ['ppSpiceDate18', 'ppOpenDate18b', 'ppDate24r', 'ppNoticeA3b', 'ppNoticeA5b', 'ppTallGuide2v', 'ppBigNotice2r', 'ppItemTag27', 'ppPlantTag32r',
         'bookLabel',
         'dormDoor',
         'mailboxLabel',

@@ -841,4 +841,10 @@ export const enTemplateDescriptions: Record<string, string> = {
   '63.5×33.9 mm 圆角二十四格，顶部色条配品名与日期，辅食分装与厨房备餐的日期标。': '63.5×33.9 mm rounded 24-up label with a color-bar and bold date — freshness marks for baby-food portions and meal prep.',
   '63.5×28 mm 圆角三十格圆点描边姓名贴，姓名班级小号排版，保温杯与餐具的归属标识。': '63.5×28 mm rounded 30-up dotted-outline name tag — small-type labels for bottles and lunchware.',
   '47×33 mm 圆角三十二格，顶部色条配植物名与日期，阳台绿植与育苗盆的标记。': '47×33 mm rounded 32-up marker with a color-bar date and bold plant name — labels for balcony plants and seedling pots.',
+  '200×144 mm 圆角对开大贴，标题正文落款三行排布，楼栋通知与店铺告示的大字号版。': '200×144 mm rounded half-sheet large-print notice with title, body and signature rows — building notices and shop signs readable at distance.',
+  '64.5×33.8 mm 窄二十四格，顶部色条配钥匙名与编号，前台与机房的钥匙串标记。': '64.5×33.8 mm narrow 24-up tag with a color-bar ID and bold key name — labels for front-desk and server-room key rings.',
+  '48.5×25.4 mm 圆角四十四格，顶部色条配线缆名与端口，桌后与机柜的线缆标识。': '48.5×25.4 mm rounded 44-up cable label with a color-bar port and cable name — wrap-around markers for desk and rack wiring.',
+  '45.7×21.2 mm 圆角四十八格迷你姓名贴，圆点描边配姓名小号字，橡皮涂改带的微物标识。': '45.7×21.2 mm rounded 48-up mini name tag with dotted outline — ownership marks for erasers and correction tape.',
+  '96×25.5 mm 圆角二十二格，顶部色条配品名与日期，实验室试剂管与样品瓶的标记。': '96×25.5 mm rounded 22-up wrap label with a color-bar date and bold name — vial and sample-bottle markers for the lab bench.',
+  '177.8×279.4 mm 竖折长条桌牌，单位姓名职务居中排布，评审席与答辩席的修长桌签。': '177.8×279.4 mm vertical-fold long tent with centered org, name and role — an elongated marker for judge panels and defense seats.',
 }

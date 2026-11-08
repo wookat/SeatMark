@@ -160,7 +160,7 @@ export const labelPapers: LabelPaperSpec[] = [
     cornerRadius: 3,
     description: '200×144 mm 2格圆角模切，相当于 A5 大贴，大门牌、物流箱贴与分区告示常用。',
     uses: ['大号门贴', '物流/物资箱贴', '分区告示'],
-    recommendedTemplates: ['examDoor', 'signage', 'large'],
+    recommendedTemplates: ['examDoor', 'signage', 'large', 'ppBigNotice2r',],
   },
   {
     slug: 'a4-circle-119',
@@ -664,8 +664,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppDateTag22rH',
       'minimal',
       'examNo',
-      'labeled',
-    ],
+      'labeled', 'ppVialTag22r',],
   },
   {
     slug: 'a4-24up',
@@ -717,7 +716,7 @@ export const labelPapers: LabelPaperSpec[] = [
     corner: 'square',
     description: '64.5×33.8 mm 窄版 24 格（龙诚海 1263），四周留白充裕，便于整排撕取。',
     uses: ['姓名贴', '编号贴', '小型座签'],
-    recommendedTemplates: ['deskName', 'minimal', 'examNo'],
+    recommendedTemplates: ['deskName', 'minimal', 'examNo', 'ppKeyTag24n',],
   },
   {
     slug: 'a4-27up',
@@ -858,8 +857,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppMiniName44rH',
       'minimal',
       'kidsName',
-      'examBag',
-    ],
+      'examBag', 'ppCableTag44r',],
   },
   {
     slug: 'a4-48up-round',
@@ -880,8 +878,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppPencilName48rH',
       'minimal',
       'kidsName',
-      'seatOnly',
-    ],
+      'seatOnly', 'ppEraserTag48r',],
   },
   {
     slug: 'a4-56up',
@@ -1192,7 +1189,7 @@ export const labelPapers: LabelPaperSpec[] = [
     description:
       'Avery 5309 兼容大号对折席卡：Letter 整页 1 枚，撕去两侧边条后沿纵向中线压痕对折成 279.4×88.9 mm 站立桌牌。',
     uses: ['宴会主桌台签', '演讲者/嘉宾大号名牌', '签到台展示桌牌'],
-    recommendedTemplates: ['ppTent5309', 'vTent', 'meetingTent'],
+    recommendedTemplates: ['ppTent5309', 'vTent', 'meetingTent', 'ppTentPanel5309',],
   },
 ]
 

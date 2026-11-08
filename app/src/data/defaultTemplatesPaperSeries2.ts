@@ -2060,4 +2060,86 @@ export const paperSeries2Templates: LabelTemplate[] = [
     demoDataset: 'asset',
     ...lay(nsBar(dims('a4-32up-round').w, dims('a4-32up-round').h, '#16a34a', '2026-11-08', '类别', 'sub')),
   }),
+
+  // ================================================================
+  // 第八批：圆角大格/窄条/长条桌牌第三设计
+  // ================================================================
+
+  // ---- a4-2up-round（200×144 对开圆角 ×2）----
+  pt('a4-2up-round', false, {
+    id: 'ppBigNotice2r',
+    name: '二圆·大字号通知贴',
+    category: 'life',
+    description: '200×144 mm 圆角对开大贴，标题正文落款三行排布，楼栋通知与店铺告示的大字号版。',
+    scenario: 'A4 圆角对开不干胶专用',
+    accent: '#b91c1c',
+    sampleData: { name: '停水通知', org: '物业管理处', role: '2026-11-08' },
+    demoDataset: 'meeting',
+    ...lay(deskCard(dims('a4-2up-round').w, dims('a4-2up-round').h, '#b91c1c')),
+  }),
+
+  // ---- a4-24up-narrow（64.5×33.8 ×24 窄格）----
+  pt('a4-24up-narrow', false, {
+    id: 'ppKeyTag24n',
+    name: '窄二四·钥匙标记贴',
+    category: 'life',
+    description: '64.5×33.8 mm 窄二十四格，顶部色条配钥匙名与编号，前台与机房的钥匙串标记。',
+    scenario: 'A4 窄二十四格不干胶专用',
+    accent: '#334155',
+    sampleData: { name: '会议室钥匙', sub: 'A-03' },
+    demoDataset: 'asset',
+    ...lay(nsBar(dims('a4-24up-narrow').w, dims('a4-24up-narrow').h, '#334155', 'A-03', '类别', 'sub')),
+  }),
+
+  // ---- a4-44up-round（48.5×25.4 ×44 圆角）----
+  pt('a4-44up-round', false, {
+    id: 'ppCableTag44r',
+    name: '四四圆·线缆标记贴',
+    category: 'life',
+    description: '48.5×25.4 mm 圆角四十四格，顶部色条配线缆名与端口，桌后与机柜的线缆标识。',
+    scenario: 'A4 圆角四十四格专用',
+    accent: '#0f766e',
+    sampleData: { name: '显示器线', sub: 'HDMI-1' },
+    demoDataset: 'asset',
+    ...lay(nsBar(dims('a4-44up-round').w, dims('a4-44up-round').h, '#0f766e', 'HDMI-1', '类别', 'sub')),
+  }),
+
+  // ---- a4-48up-round（45.7×21.2 ×48 圆角）----
+  pt('a4-48up-round', false, {
+    id: 'ppEraserTag48r',
+    name: '四八圆·橡皮迷你贴',
+    category: 'kids',
+    description: '45.7×21.2 mm 圆角四十八格迷你姓名贴，圆点描边配姓名小号字，橡皮涂改带的微物标识。',
+    scenario: 'A4 圆角四十八格专用',
+    accent: '#ec4899',
+    sampleData: { name: '乐乐', sub: '小（1）班' },
+    demoDataset: 'kindergarten',
+    ...lay(nsDots(dims('a4-48up-round').w, dims('a4-48up-round').h, '#ec4899', '小（1）班', '乐乐')),
+  }),
+
+  // ---- a4-22up-round（96×25.5 ×22 圆角）----
+  pt('a4-22up-round', false, {
+    id: 'ppVialTag22r',
+    name: '二二圆·试剂管标记贴',
+    category: 'life',
+    description: '96×25.5 mm 圆角二十二格，顶部色条配品名与日期，实验室试剂管与样品瓶的标记。',
+    scenario: 'A4 圆角二十二格专用',
+    accent: '#0f766e',
+    sampleData: { name: '样品 A-12', sub: '2026-11-08' },
+    demoDataset: 'asset',
+    ...lay(nsBar(dims('a4-22up-round').w, dims('a4-22up-round').h, '#0f766e', '2026-11-08', '类别', 'sub')),
+  }),
+
+  // ---- avery-5309（177.8×279.4 竖折长条）----
+  pt('avery-5309', false, {
+    id: 'ppTentPanel5309',
+    name: '5309·评委席桌牌',
+    category: 'event',
+    description: '177.8×279.4 mm 竖折长条桌牌，单位姓名职务居中排布，评审席与答辩席的修长桌签。',
+    scenario: 'Avery 5309 长条桌牌专用',
+    accent: '#7c3aed',
+    sampleData: { name: '王小明', org: '云杉科技', role: '评审专家' },
+    demoDataset: 'meeting',
+    ...lay(deskCard(dims('avery-5309').w, dims('avery-5309').h, '#7c3aed')),
+  }),
 ]
