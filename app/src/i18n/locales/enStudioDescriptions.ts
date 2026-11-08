@@ -829,4 +829,10 @@ export const enTemplateDescriptions: Record<string, string> = {
   '70×31.5 mm 二十七格圆点描边分组贴，队名与姓名双行，运动会与夏令营的分组标识。': '70×31.5 mm 27-up dotted-outline team tag with team name and member name — fast color-coded grouping for field days and camps.',
   '70×25.4 mm 三十三格小贴，顶部色条配序号与学号，试卷分拣与座位编号的密排标。': '70×25.4 mm 33-up mini tag with a color-bar label and bold sequence number — dense numbering for paper sorting and seat maps.',
   '45.7×25.4 mm 圆角四十格迷你姓名贴，圆点描边配姓名班级，铅笔橡皮的小面积标识。': '45.7×25.4 mm rounded 40-up mini name sticker with dotted outline — tiny ownership labels for pencils and erasers.',
+  '66.68×25.4 mm 三十格寄件贴，顶部色条配收件人与备注，节日礼物与心意包裹的邮寄标识。': '66.68×25.4 mm 30-up mailing label with a color-bar recipient and note row — a dressed-up mark for gift parcels.',
+  '88.9×56.36 mm 徽章内页访客牌，单位、姓名与访客身份三行，前台登记与来宾接待用。': '88.9×56.36 mm badge insert with org, name and visitor status — front-desk sign-in for offices, schools and events.',
+  '215.9×127 mm 超大对折桌牌，单位姓名职务三行排布，主席台演讲者与嘉宾席标识。': '215.9×127 mm oversized folded tent with org, name and role rows — a head-table marker readable from the back row.',
+  '48×16.9 mm 六十八格超小贴，顶部色条配编号与学号，物品编码与迷你序号的密排标。': '48×16.9 mm 68-up micro tag with a color-bar label and bold ID — dense numbering for items, books and equipment.',
+  '52.5×21.2 mm 五十六格圆点描边姓名贴，姓名班级小号排版，笔袋尺规的文具归属标识。': '52.5×21.2 mm 56-up dotted-outline name tag — small-type name and class ownership labels for pencil cases and rulers.',
+  '38.1×21.2 mm 圆角六十五格迷你贴，顶部色条配开封与日期，食品开封与保质标记。': '38.1×21.2 mm rounded 65-up mini label with a color-bar and bold date — opened-date and freshness marks for jars and packs.',
 }

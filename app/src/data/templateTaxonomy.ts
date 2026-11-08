@@ -144,7 +144,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'kids-name',
       name: '姓名与物品',
-      templateIds: ['ppName30r', 'ppName32r', 'ppName40r', 'ppName68', 'ppPencil24n', 'ppPencil30', 'ppWaterName30', 'ppColorTag27', 'ppMiniName40', 'ppNameCart21', 'ppNameCart24r', 'ppNameCart40', 'ppName44r', 'ppName48r', 'ppPencil48r', 'ppName56m', 'ppName65r', 'ppPencil65r', 'ppName40', 'ppItemTag40r',
+      templateIds: ['ppName30r', 'ppName32r', 'ppName40r', 'ppName68', 'ppPencil24n', 'ppPencil30', 'ppWaterName30', 'ppColorTag27', 'ppStationTag56', 'ppMiniName40', 'ppNameCart21', 'ppNameCart24r', 'ppNameCart40', 'ppName44r', 'ppName48r', 'ppPencil48r', 'ppName56m', 'ppName65r', 'ppPencil65r', 'ppName40', 'ppItemTag40r',
         'kidsName',
         'kidsAnimal',
         'kidsCandy',
@@ -190,7 +190,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'event-tent',
       name: '桌牌席卡',
-      templateIds: ['ppTallCard2v', 'ppTraining8', 'ppDeskCard8r90', 'ppTent5302b', 'ppTentGuest5302', 'ppTent5305b', 'ppTent5309b',
+      templateIds: ['ppTallCard2v', 'ppTraining8', 'ppDeskCard8r90', 'ppTent5302b', 'ppTentGuest5302', 'ppTent5305b', 'ppTentKeynote5305', 'ppTent5309b',
         'signage',
         'deskHalf',
         'meetingTent',
@@ -228,7 +228,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'event-badge',
       name: '证件胸牌',
-      templateIds: ['ppBadge5390a', 'ppVisitor5390', 'ppBadge5392a', 'ppStaff5392', 'ppNameStrip10', 'ppBadge5395b', 'ppBadge5395staff',
+      templateIds: ['ppBadge5390a', 'ppVisitorBadge5390b', 'ppVisitor5390', 'ppBadge5392a', 'ppStaff5392', 'ppNameStrip10', 'ppBadge5395b', 'ppBadge5395staff',
         'eventBadge',
         'expoBadgeH',
         'expoBadgeV',
@@ -314,7 +314,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'life-office',
       name: '办公职场',
-      templateIds: ['ppFileTab20', 'ppFileBox12b', 'ppSpine120b', 'ppAddr24', 'ppAddr33', 'ppAddr21', 'ppAddrEn5160', 'ppReturn5160', 'ppCode24n', 'ppCode40', 'ppCode44r', 'ppCode56', 'ppCode68', 'ppItemTag14',
+      templateIds: ['ppFileTab20', 'ppFileBox12b', 'ppSpine120b', 'ppAddr24', 'ppAddr33', 'ppAddr21', 'ppAddrEn5160', 'ppGiftTag5160', 'ppReturn5160', 'ppCode24n', 'ppCode40', 'ppCode44r', 'ppCode56', 'ppCode68', 'ppItemTag14',
         'staffIdCard',
         'officeDesk',
         'meetingRoomDoor',
@@ -367,7 +367,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
     {
       id: 'life-storage',
       name: '仓储物流',
-      templateIds: ['ppZoneCard2r', 'ppShelfTag16', 'ppBoxTag8', 'ppBinTag12sq', 'ppShelfCat6', 'ppShelfStrip6', 'ppShipping5163', 'ppStorage5164', 'ppStorageTag12', 'ppStorageBox6c', 'ppFragile5163', 'ppItemTag8ro',
+      templateIds: ['ppZoneCard2r', 'ppShelfTag16', 'ppBoxTag8', 'ppBinTag12sq', 'ppShelfCat6', 'ppShelfStrip6', 'ppShipping5163', 'ppStorage5164', 'ppStorageTag12', 'ppStorageBox6c', 'ppCodeTag68', 'ppFragile5163', 'ppItemTag8ro',
         'warehouseShelf',
         'inventoryCount',
         'parcelShelf',
@@ -421,7 +421,7 @@ export const TEMPLATE_SUBCATEGORIES: Record<TemplateCategory, TemplateSubcategor
         'ppNoticeA4',
         'ppZoneA3',
         'ppNoticeA5',
-        'ppSpice18r', 'ppSpice18c',
+        'ppSpice18r', 'ppSpice18c', 'ppTinyDate65',
         'ppNoticeA4H',
         'ppNoticeA5H',
         'ppSpice18rH',

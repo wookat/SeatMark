@@ -905,8 +905,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppSerial56H',
       'seatOnly',
       'minimal',
-      'assetTag',
-    ],
+      'assetTag', 'ppStationTag56',],
   },
   {
     slug: 'a4-65up-round',
@@ -927,8 +926,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppKidsName65rH',
       'kidsName',
       'minimal',
-      'seatOnly',
-    ],
+      'seatOnly', 'ppTinyDate65',],
   },
   {
     slug: 'a4-68up',
@@ -943,7 +941,7 @@ export const labelPapers: LabelPaperSpec[] = [
     corner: 'square',
     description: '4×17 满切（48×16.9 mm）一页 68 枚，超窄条序号与条码贴的高密度版式。',
     uses: ['条码/序号贴', '超小物品编号', '试卷角标'],
-    recommendedTemplates: ['minimal', 'seatOnly', 'examNo'],
+    recommendedTemplates: ['minimal', 'seatOnly', 'examNo', 'ppCodeTag68',],
   },
   // ============ A3 / A5 整版背胶纸 ============
   // A3/A5 在电商以整张背胶纸形式销售为主（自裁任意尺寸），收录整版规格
@@ -1010,7 +1008,7 @@ export const labelPapers: LabelPaperSpec[] = [
     corner: 'square',
     description: 'Avery 5390 兼容证卡内页版式：Letter 纸 2 列 × 4 行无边距模切（88.9×56.4 mm），插进卡套即用的会议证卡。',
     uses: ['会议证卡内页', '访客胸牌', '展会吊牌'],
-    recommendedTemplates: ['withPhoto', 'detailed', 'standard'],
+    recommendedTemplates: ['withPhoto', 'detailed', 'standard', 'ppVisitorBadge5390b',],
   },
   {
     slug: 'avery-5392',
@@ -1074,8 +1072,7 @@ export const labelPapers: LabelPaperSpec[] = [
       'ppReceiver5160',
       'minimal',
       'seatOnly',
-      'examNo',
-    ],
+      'examNo', 'ppGiftTag5160',],
   },
   {
     slug: 'avery-5163',
@@ -1176,7 +1173,7 @@ export const labelPapers: LabelPaperSpec[] = [
     description:
       'Avery 5305 兼容对折席卡：Letter 纸每张 2 枚横向满幅，沿中线压痕对折成 215.9×63.5 mm 大桌牌，适合主席台与长姓名台签。',
     uses: ['主席台/讲台桌牌', '长姓名与头衔台签', '迎宾指示桌牌'],
-    recommendedTemplates: ['ppTent5305', 'meetingTent', 'vTent', 'tentBilingual'],
+    recommendedTemplates: ['ppTent5305', 'meetingTent', 'vTent', 'tentBilingual', 'ppTentKeynote5305',],
   },
   {
     slug: 'avery-5309',

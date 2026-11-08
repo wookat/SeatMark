@@ -1490,4 +1490,12 @@ export const enTemplateScenarios: Record<string, string> = {
   '语文阅读': 'Chinese Reading',
   '烘焙区': 'Bakery Zone',
   '红队': 'Red Team',
+  '5160·礼品寄件贴': 'Avery 5160 Gift Mailing Label',
+  '5390·访客登记牌': 'Avery 5390 Visitor Badge Insert',
+  '5305·演讲者桌牌': 'Avery 5305 Keynote Speaker Tent',
+  '六八·编号迷你贴': '68-Up Mini Number Tag',
+  '五六·文具姓名贴': '56-Up Stationery Name Tag',
+  '六五·迷你日期贴': '65-Up Mini Date Label',
+  '生日礼物': 'Birthday Gift',
+  '主题演讲嘉宾': 'Keynote Speaker',
 }

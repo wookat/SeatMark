@@ -1896,4 +1896,86 @@ export const paperSeries2Templates: LabelTemplate[] = [
     demoDataset: 'kindergarten',
     ...lay(nsDots(dims('a4-40up-round').w, dims('a4-40up-round').h, '#0284c7', '小（1）班', '乐乐')),
   }),
+
+  // ================================================================
+  // 第六批：Avery 系列 + 迷你格族群第三设计
+  // ================================================================
+
+  // ---- avery-5160（66.68×25.4 ×30）----
+  pt('avery-5160', false, {
+    id: 'ppGiftTag5160',
+    name: '5160·礼品寄件贴',
+    category: 'life',
+    description: '66.68×25.4 mm 三十格寄件贴，顶部色条配收件人与备注，节日礼物与心意包裹的邮寄标识。',
+    scenario: 'Avery 5160 地址贴专用',
+    accent: '#b45309',
+    sampleData: { name: '王小明 收', sub: '生日礼物' },
+    demoDataset: 'asset',
+    ...lay(nsBar(dims('avery-5160').w, dims('avery-5160').h, '#b45309', '生日礼物', '类别', 'sub')),
+  }),
+
+  // ---- avery-5390（88.9×56.36 ×8）----
+  pt('avery-5390', false, {
+    id: 'ppVisitorBadge5390b',
+    name: '5390·访客登记牌',
+    category: 'event',
+    description: '88.9×56.36 mm 徽章内页访客牌，单位、姓名与访客身份三行，前台登记与来宾接待用。',
+    scenario: 'Avery 5390 徽章内页专用',
+    accent: '#0d9488',
+    sampleData: { name: '王小明', org: '云杉科技', role: '访客' },
+    demoDataset: 'meeting',
+    ...lay(badgeC(dims('avery-5390').w, dims('avery-5390').h, '#0d9488')),
+  }),
+
+  // ---- avery-5305（215.9×127 大对折）----
+  pt('avery-5305', false, {
+    id: 'ppTentKeynote5305',
+    name: '5305·演讲者桌牌',
+    category: 'event',
+    description: '215.9×127 mm 超大对折桌牌，单位姓名职务三行排布，主席台演讲者与嘉宾席标识。',
+    scenario: 'Avery 5305 大桌牌专用',
+    accent: '#1d4ed8',
+    sampleData: { name: '王小明', org: '云杉科技', role: '主题演讲嘉宾' },
+    demoDataset: 'meeting',
+    ...lay(deskCard(dims('avery-5305').w, dims('avery-5305').h, '#1d4ed8')),
+  }),
+
+  // ---- a4-68up（48×16.9 ×68）----
+  pt('a4-68up', false, {
+    id: 'ppCodeTag68',
+    name: '六八·编号迷你贴',
+    category: 'life',
+    description: '48×16.9 mm 六十八格超小贴，顶部色条配编号与学号，物品编码与迷你序号的密排标。',
+    scenario: 'A4 六十八格不干胶专用',
+    accent: '#334155',
+    sampleData: { name: '08', sub: '学号' },
+    demoDataset: 'asset',
+    ...lay(nsBar(dims('a4-68up').w, dims('a4-68up').h, '#334155', '学号', '类别', 'sub')),
+  }),
+
+  // ---- a4-56up（52.5×21.2 ×56）----
+  pt('a4-56up', false, {
+    id: 'ppStationTag56',
+    name: '五六·文具姓名贴',
+    category: 'kids',
+    description: '52.5×21.2 mm 五十六格圆点描边姓名贴，姓名班级小号排版，笔袋尺规的文具归属标识。',
+    scenario: 'A4 五十六格不干胶专用',
+    accent: '#0284c7',
+    sampleData: { name: '乐乐', sub: '小（1）班' },
+    demoDataset: 'kindergarten',
+    ...lay(nsDots(dims('a4-56up').w, dims('a4-56up').h, '#0284c7', '小（1）班', '乐乐')),
+  }),
+
+  // ---- a4-65up-round（38.1×21.2 ×65 圆角）----
+  pt('a4-65up-round', false, {
+    id: 'ppTinyDate65',
+    name: '六五·迷你日期贴',
+    category: 'life',
+    description: '38.1×21.2 mm 圆角六十五格迷你贴，顶部色条配开封与日期，食品开封与保质标记。',
+    scenario: 'A4 圆角六十五格不干胶专用',
+    accent: '#b45309',
+    sampleData: { name: '开封日期', sub: '2026-11-08' },
+    demoDataset: 'restaurant',
+    ...lay(nsBar(dims('a4-65up-round').w, dims('a4-65up-round').h, '#b45309', '2026-11-08', '类别', 'sub')),
+  }),
 ]
