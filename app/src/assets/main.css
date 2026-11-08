@@ -353,17 +353,17 @@
   user-select: none;
 }
 
-/* 标签内底边细线签名水印：左右细线夹极小字距文字，印刷厂版权脚注式；
-   字号/定位由 LabelCard 按标签尺寸内联注入，色调随模板底色切换 */
+/* 标签内细线签名水印：左右细线夹极小字距文字，印刷厂版权脚注式；
+   默认贴底边，字段占位时自动退到顶边或左右竖排，仍放不下则改斜向浅水印；
+   字号/定位由 LabelCard 按标签尺寸与字段布局内联注入，色调随模板底色切换 */
 .label-watermark {
   position: absolute;
-  left: 0;
-  right: 0;
   z-index: 20;
   display: flex;
   align-items: center;
   gap: 0.7em;
-  padding: 0 1.2em;
+  padding-block: 0;
+  padding-inline: 1.2em;
   font-weight: 500;
   line-height: 1;
   letter-spacing: 0.14em;
@@ -378,10 +378,24 @@
   color: rgba(255, 255, 255, 0.55);
 }
 
+/* 斜向浅水印：四边都被字段占用时的兜底形态——全幅居中沿对角线斜放，
+   透明度刻意压低，盖在字段上仍不影响内容辨识，也无法被裁边裁掉 */
+.label-watermark--diagonal {
+  justify-content: center;
+  padding: 0;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: rgba(100, 116, 139, 0.16);
+}
+
+.label-watermark--diagonal.label-watermark--light {
+  color: rgba(255, 255, 255, 0.2);
+}
+
 .label-watermark__rule {
   flex: 1;
-  height: 0.12mm;
-  min-height: 1px;
+  block-size: 0.12mm;
+  min-block-size: 1px;
   background: currentColor;
   opacity: 0.55;
 }

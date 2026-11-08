@@ -357,7 +357,7 @@ const exportSummary = computed(() => {
   } else {
     parts.push(`${labels} ${t('个标签')} / ${pages} ${t('页')}`)
   }
-  parts.push(quota.remaining > 0 ? t('无水印（消耗 1 次额度）或带底边细线水印') : t('带底边细线水印'))
+  parts.push(quota.remaining > 0 ? t('无水印（消耗 1 次额度）或带品牌水印') : t('带品牌水印'))
   return parts.join(' · ')
 })
 
@@ -1802,7 +1802,7 @@ const hintKey = ref<HintKey | null>(null)
               <span>
                 <span class="block text-sm font-bold text-slate-900">{{ t('带水印导出（不限次数）') }}</span>
                 <span class="mt-0.5 block text-xs leading-5 text-slate-600">
-                  {{ t('每张标签底边叠加细线签名式品牌水印（细线 + seatmark.cn 小字，配色随模板自适应），不遮挡姓名等核心内容') }}
+                  {{ t('每张标签叠加品牌水印（细线签名或斜向浅水印，位置随版式自动避让字段），不遮挡姓名等核心内容') }}
                 </span>
               </span>
             </button>

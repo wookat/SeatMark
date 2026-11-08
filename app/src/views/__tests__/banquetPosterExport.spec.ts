@@ -178,7 +178,7 @@ describe('第 363 轮：导出检查弹窗「本次导出」摘要行', () => {
     expect(text).toContain('已安排 48/48')
     expect(text).toContain('空桌 2')
     expect(text).toContain('6/8')
-    expect(text).toContain('带底边细线水印')
+    expect(text).toContain('带品牌水印')
     // 与状态条数字同源
     const bar = wrapper.text()
     expect(bar).toContain('空桌 2')

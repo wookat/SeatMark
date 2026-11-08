@@ -1209,7 +1209,7 @@ const exportSummaryLine = computed(() => {
     `${tr('已安排')} ${s.assigned}/${s.total}`,
     `${tr('空桌')} ${s.emptyTables}`,
     `${tr('有宾客的桌')} ${totalTables - s.emptyTables}/${totalTables}`,
-    quota.remaining > 0 ? tr('无水印（消耗 1 次额度）或带底边细线水印') : tr('带底边细线水印'),
+    quota.remaining > 0 ? tr('无水印（消耗 1 次额度）或带品牌水印') : tr('带品牌水印'),
   ]
   return parts.join(' · ')
 })

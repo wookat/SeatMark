@@ -117,7 +117,7 @@ import { combineFontStacks, DEFAULT_FONT_STACK, withRareCJKFallback } from '@/da
 import { currentLocale, t, t as tr } from '@/i18n'
 import { qrToSvg } from '@/utils/qrcode'
 import { sanitizeDecorSvg } from '@/utils/svgSanitize'
-import { watermarkToneFor } from '@/utils/watermark'
+import { watermarkPlacement, watermarkToneFor } from '@/utils/watermark'
 import type { LabelTemplate, TemplateField } from '@/types/template'
 
 const props = withDefaults(
@@ -144,28 +144,6 @@ const props = withDefaults(
   },
 )
 
-/** 小标签只放域名，宽度足够时放全称（品牌名+域名） */
-const WATERMARK_FULL = 'SeatMark 座签 · seatmark.cn'
-const WATERMARK_SHORT = 'seatmark.cn'
-
-/** 估算水印文本宽度（mm）：CJK 记 1em、西文/符号记 0.64em */
-function estimateTextWidth(text: string, fontSizeMm: number): number {
-  let em = 0
-  for (const ch of text) em += /[\u2E80-\u9FFF\uF900-\uFAFF]/.test(ch) ? 1 : 0.64
-  return em * fontSizeMm * 1.06
-}
-
-interface Rect {
-  x: number
-  y: number
-  w: number
-  h: number
-}
-
-function intersects(a: Rect, b: Rect): boolean {
-  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
-}
-
 /** 水印色调随模板底色自适应：深色模板浅水印、浅色模板深灰水印 */
 const watermarkTone = computed(() =>
   watermarkToneFor({
@@ -175,44 +153,39 @@ const watermarkTone = computed(() =>
 )
 
 /**
- * 底边细线签名水印：印刷厂版权脚注式——左右细线夹极小字距文字，横贯标签底边；
- * 底边被字段占用时退到顶边，两边都被占用时仍贴底边（半透明叠加，不影响可读性）。
+ * 水印落位自适应：优先底边签名带（印刷厂版权脚注式），依次退到顶边、
+ * 右边、左边竖排签名带；四边都被字段占用时用斜向浅水印兜底，
+ * 低透明度压在字段上但不遮挡辨识，任何模板都不再出现文字级重叠。
  */
-const watermarkLayout = computed<{ text: string; style: CSSProperties }>(() => {
-  const { width, height } = props.template.label
-  // 字号约为标签宽度的 3.2%，下限 2mm（黑白打印可读），上限 3.2mm——签名式水印刻意小
-  const size = Math.min(Math.max(Math.min(width, height * 2.4) * 0.032, 2), 3.2)
-  const bandHeight = size * 1.4
-  const inset = Math.max(1.0, size * 0.3 + 0.4)
-  // 字段外扩一小圈避让间隙：水印紧贴字段也会显得视觉重叠
-  const clearance = Math.max(0.6, size * 0.25)
-  const fieldRects: Rect[] = props.template.fields.map((f) => ({
-    x: f.x - clearance,
-    y: f.y - clearance,
-    w: f.width + clearance * 2,
-    h: f.height + clearance * 2,
-  }))
-  const text =
-    estimateTextWidth(WATERMARK_FULL, size) <= width * 0.7 ? WATERMARK_FULL : WATERMARK_SHORT
-  const bands: Rect[] = [
-    { x: 0, y: height - inset - bandHeight, w: width, h: bandHeight },
-    { x: 0, y: inset, w: width, h: bandHeight },
-  ]
-  for (const band of bands) {
-    if (fieldRects.some((f) => intersects(band, f))) continue
-    return { text, style: styleFor(band, size) }
+const watermarkLayout = computed<{
+  variant: 'bottom' | 'top' | 'right' | 'left' | 'diagonal'
+  text: string
+  style: CSSProperties
+  innerStyle: CSSProperties
+}>(() => {
+  const p = watermarkPlacement({
+    width: props.template.label.width,
+    height: props.template.label.height,
+    fields: props.template.fields,
+  })
+  const style: CSSProperties = {
+    left: `${p.leftMm}mm`,
+    top: `${p.topMm}mm`,
+    width: `${p.widthMm}mm`,
+    height: `${p.heightMm}mm`,
+    fontSize: `${p.fontSizeMm}mm`,
   }
-  // 兜底：上下边都被字段占用时仍贴底边（半透明 + 细线，视觉干扰最小）
-  return { text, style: styleFor(bands[0]!, size) }
+  const innerStyle: CSSProperties = {}
+  if (p.variant === 'diagonal') {
+    // 全幅容器内文本沿对角线斜放
+    innerStyle.transform = `rotate(${-p.rotateDeg}deg)`
+  } else if (p.rotateDeg) {
+    // 左右竖排签名带：整条带绕左上原点旋转贴边（比 writing-mode 导出更可靠）
+    style.transform = `rotate(${p.rotateDeg}deg)`
+    style.transformOrigin = '0 0'
+  }
+  return { variant: p.variant, text: p.text, style, innerStyle }
 })
-
-function styleFor(band: Rect, size: number): CSSProperties {
-  return {
-    top: `${band.y}mm`,
-    height: `${band.h}mm`,
-    fontSize: `${size}mm`,
-  }
-}
 
 const SAMPLE_FALLBACK: Record<string, string> = {
   seatNo: '12',
@@ -426,13 +399,24 @@ function fieldClasses(field: TemplateField): Record<string, boolean> {
     <div
       v-if="watermark"
       class="label-watermark"
-      :class="{ 'label-watermark--light': watermarkTone === 'light' }"
+      :class="{
+        'label-watermark--light': watermarkTone === 'light',
+        'label-watermark--diagonal': watermarkLayout.variant === 'diagonal',
+      }"
       :style="watermarkLayout.style"
+      :data-variant="watermarkLayout.variant"
       aria-hidden="true"
     >
-      <span class="label-watermark__rule" />
-      <span class="label-watermark__text">{{ watermarkLayout.text }}</span>
-      <span class="label-watermark__rule" />
+      <template v-if="watermarkLayout.variant === 'diagonal'">
+        <span class="label-watermark__text" :style="watermarkLayout.innerStyle">{{
+          watermarkLayout.text
+        }}</span>
+      </template>
+      <template v-else>
+        <span class="label-watermark__rule" />
+        <span class="label-watermark__text">{{ watermarkLayout.text }}</span>
+        <span class="label-watermark__rule" />
+      </template>
     </div>
   </div>
 </template>

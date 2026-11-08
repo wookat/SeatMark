@@ -70,7 +70,7 @@ describe('第 363 轮：导出弹窗「本次输出」摘要', () => {
       expect(text).toContain('A4')
       expect(text).toContain('26')
       expect(text).toContain('2 页')
-      expect(text).toContain('带底边细线水印')
+      expect(text).toContain('带品牌水印')
       // 摘要在输出副标题列表之上
       const html = wrapper.find('[role="dialog"]').html()
       expect(html.indexOf('export-summary')).toBeLessThan(html.indexOf('output-subtitles'))

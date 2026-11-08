@@ -20,7 +20,7 @@ const props = withDefaults(
     unmappedFields?: Set<string>
     /** 屏幕预览模式下带圆角阴影；导出/打印时关闭 */
     screen?: boolean
-    /** 品牌水印：每张标签内部底部居中 + 页脚角标（免费不限次导出/打印时叠加） */
+    /** 品牌水印：每张标签内自适应落位（边线签名或斜向浅水印）+ 页脚角标（免费不限次导出/打印时叠加） */
     watermark?: boolean
     /** 预览交互模式：标签可点击（单张覆写入口） */
     interactive?: boolean

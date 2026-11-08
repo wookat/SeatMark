@@ -183,6 +183,15 @@ const enRoutes: RouteRecordRaw[] = routes.map((route) => ({
 const allRoutes: RouteRecordRaw[] = [
   ...routes,
   ...enRoutes,
+  ...(import.meta.env.DEV
+    ? [
+        {
+          path: '/dev/watermark',
+          name: 'dev-watermark',
+          component: () => import('@/views/WatermarkLabView.vue'),
+        } satisfies RouteRecordRaw,
+      ]
+    : []),
   {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
